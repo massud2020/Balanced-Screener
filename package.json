@@ -1,0 +1,18 @@
+{
+  "name": "balanced-screener",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Balanced Screener — PWA price screener with 3+1 pattern strategy",
+  "scripts": {
+    "test": "jest --verbose --runInBand",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"],
+    "transform": {}
+  }
+}

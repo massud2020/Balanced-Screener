@@ -1,0 +1,114 @@
+<script src="engine.js?v=32"></script><script src="btengine.js?v=32"></script>
+<script>
+const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+const COL={pattern:"#4aa3ff"},NAME={pattern:"الگوی ۳+۱"};
+const SVG=(p,c="")=>`<svg class="${c}" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICON={ok:SVG('<path class="chk" d="m5 12.5 4.5 4.5L19 7.5"/>'),err:SVG('<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.1"/>'),inf:SVG('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.1"/>')};
+function toast(msg,type="info",ms=3800){const w=$("toasts"),t=document.createElement("div");t.className="toast "+type;t.setAttribute("role",type==="error"?"alert":"status");
+t.innerHTML=`<span class="ti">${type==="success"?ICON.ok:type==="error"?ICON.err:ICON.inf}</span><span>${msg}</span>`;w.appendChild(t);requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add("in")));
+const rm=()=>{t.classList.remove("in");setTimeout(()=>t.remove(),260)};t.onclick=rm;setTimeout(rm,ms);while(w.children.length>3)w.firstChild.remove()}
+let tfilter="all",tshow=40,datasets=[],running=false,cancel=false,RESULT=null,viewMode=null;
+/* ---------- IndexedDB ---------- */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open("bt",1);r.onupgradeneeded=()=>r.result.createObjectStore("ds",{keyPath:"name"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function dbAll(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction("ds").objectStore("ds").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}catch(e){return[]}}
+async function dbPut(v){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction("ds","readwrite");t.objectStore("ds").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){return false}return true}
+async function dbDel(n){try{const db=await idb();await new Promise(res=>{const t=db.transaction("ds","readwrite");t.objectStore("ds").delete(n);t.oncomplete=res;t.onerror=res})}catch(e){}}
+const dstr=t=>new Date(t*1000).toISOString().slice(0,16).replace("T"," ");
+function renderDs(){$("dl").innerHTML=datasets.length?datasets.map((d,i)=>`<div class="ds"><input type="checkbox" data-i="${i}" ${d.on?"checked":""} aria-label="انتخاب ${d.sym}" style="width:20px;height:20px;accent-color:#3dca85"><div class="nm"><b>${d.sym}</b> <span class="hint">${fa(d.t.length)} کندل</span><small>${dstr(d.t[0]).slice(0,10)} → ${dstr(d.t[d.t.length-1]).slice(0,10)} · ${d.name}</small></div><button data-del="${i}" aria-label="حذف">✕</button></div>`).join(""):'<div class="hint" style="margin-top:10px">هنوز فایلی اضافه نشده.</div>'}
+$("dl").onclick=async e=>{const c=e.target.closest("input[data-i]");if(c){datasets[+c.dataset.i].on=c.checked;return}const b=e.target.closest("button[data-del]");if(b){const d=datasets.splice(+b.dataset.del,1)[0];await dbDel(d.name);renderDs()}};
+$("fi").onchange=async e=>{const inp=e.target,files=[...inp.files];if(!files.length)return;const msg=$("fm");msg.className="msg";msg.textContent=`${fa(files.length)} فایل انتخاب شد…`;let okN=0,errs=[];
+for(let n=0;n<files.length;n++){const f=files[n];msg.className="msg";msg.textContent=`در حال خواندن ${f.name} (${fa(n+1)} از ${fa(files.length)})…`;await new Promise(r=>setTimeout(r,30));
+try{const r=parseMT5(decodeBuf(await f.arrayBuffer()));if(r.error){errs.push(f.name+": "+r.error);continue}
+const sym=f.name.replace(/\.[^.]+$/,"").split(/[_\s,.\-]/)[0].toUpperCase()||"SYMBOL",d={name:f.name,sym,dg:r.dg,t:Float64Array.from(r.t),o:Float64Array.from(r.o),h:Float64Array.from(r.h),l:Float64Array.from(r.l),c:Float64Array.from(r.c),on:true};
+const k=datasets.findIndex(x=>x.name===d.name);k>=0?datasets[k]=d:datasets.push(d);await dbPut({name:d.name,sym:d.sym,dg:d.dg,t:d.t,o:d.o,h:d.h,l:d.l,c:d.c});okN++}catch(x){errs.push(f.name+": "+(x&&x.message||"خطا در خواندن"))}}
+inp.value="";renderDs();msg.className="msg err";msg.innerHTML=errs.map(x=>`<div>⚠ ${x}</div>`).join("");if(okN)toast(`${fa(okN)} فایل با موفقیت اضافه شد`,"success");if(errs.length)toast(errs[0]+(errs.length>1?` (و ${fa(errs.length-1)} خطای دیگر)`:""),"error",5600)};
+/* ---------- settings persistence ---------- */
+const FIELDS=["m15","h1","h1s","mhOn","noWk"],NUMS=["ex","rr","mb","cost","risk","from","to","gapMin","mhHold","aOpen","bClose","hF","hT"];
+FIELDS.forEach(i=>{const v=LS("bt_"+i);if(v!=null)$(i).checked=v==="true";$(i).onchange=()=>LS("bt_"+i,$(i).checked)});
+NUMS.forEach(i=>{const v=LS("bt_"+i);if(v!=null)$(i).value=v;$(i).onchange=()=>LS("bt_"+i,$(i).value)});
+/* ---------- Web Worker ---------- */
+let WK=null,jobId=0;const WK_JOBS=new Map();
+function ensureWorker(){if(WK)return WK;WK=new Worker("btworker.js?v=32");
+WK.addEventListener("message",ev=>{const{id}=ev.data,cb=WK_JOBS.get(id);if(!cb)return;WK_JOBS.delete(id);ev.data.ok?cb.res(ev.data.trades):cb.rej(new Error(ev.data.err))});
+WK.addEventListener("error",e=>{console.error("worker error",e.message);WK_JOBS.forEach(cb=>cb.rej(new Error(e.message||"worker error")));WK_JOBS.clear();try{WK.terminate()}catch(x){}WK=null});
+return WK}
+function runInWorker(m5,S,mode,sym,O,lo,hi){return new Promise((res,rej)=>{const id=++jobId;WK_JOBS.set(id,{res,rej});ensureWorker().postMessage({id,payload:{m5,S,mode,sym,O,lo,hi}})})}
+/* ---------- run ---------- */
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function idxRange(t,from,to){let lo=0,hi=t.length-1;while(lo<t.length&&t[lo]<from)lo++;while(hi>=0&&t[hi]>to)hi--;return[lo,hi]}
+async function run(){if(running)return;const sel=datasets.filter(d=>d.on),modes=["pattern"],msg=$("fm");
+if(!sel.length){toast("اول یک فایل داده‌ی MT5 اضافه و انتخاب کن","error");return}
+const hf=$("hF").value.trim(),ht=$("hT").value.trim(),O={exit:$("ex").value,rr:Math.max(.5,+$("rr").value||2),maxBars:Math.max(12,Math.round(+$("mb").value||288)),cost:Math.max(0,+$("cost").value||0),mh:{gap:$("mhOn").checked,gapMin:Math.max(5,+$("gapMin").value||30),afterOpen:Math.max(0,Math.round(+$("aOpen").value||0)),beforeClose:Math.max(0,Math.round(+$("bClose").value||0)),forceClose:$("mhHold").value==="close",hFrom:hf===""?null:Math.min(24,Math.max(0,+hf)),hTo:ht===""?null:Math.min(24,Math.max(0,+ht)),noWeekend:$("noWk").checked}},S={m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked},risk=Math.max(.1,+$("risk").value||1);
+const from=$("from").value?Date.parse($("from").value+"T00:00:00Z")/1000:0,to=$("to").value?Date.parse($("to").value+"T23:59:59Z")/1000:Infinity;
+const t0=performance.now();running=true;cancel=false;$("run").disabled=true;$("pg").classList.add("on");$("res").innerHTML="";const all={},blk={},gapsBy={},steps=sel.length*modes.length;let k=0;modes.forEach(m=>{all[m]=[];blk[m]={open:0,close:0,hours:0,weekend:0}});
+try{for(const d of sel){if(cancel)break;$("pt").textContent=`آماده‌سازی ${d.sym}…`;await tick();const m5=candlesOf(d),[lo,hi]=idxRange(d.t,from,to);if(hi-lo<500){k+=modes.length;continue}
+const si=O.mh.gap?sessInfo(m5,O.mh.gapMin):null;if(O.mh.gap)gapsBy[d.sym]=si.gaps;
+for(const m of modes){if(cancel)break;$("pt").textContent=`${d.sym} · ${NAME[m]} (${fa(k+1)} از ${fa(steps)})`;$("pu").style.width=(k/steps*100)+"%";await tick();
+try{const trades=await runInWorker(m5,S,m,d.sym,O,lo,hi);all[m].push(...trades);
+const blocked=countBlocked({m5},m,O,lo,hi,si);blk[m].open+=blocked.open;blk[m].close+=blocked.close;blk[m].hours+=blocked.hours;blk[m].weekend+=blocked.weekend}
+catch(e){toast(`${d.sym} · ${NAME[m]}: ${e.message}`,"error",4000)}
+k++}}}
+catch(e){toast("خطا در اجرا: "+(e&&e.message||e),"error",5600)}
+$("pu").style.width="100%";running=false;$("run").disabled=false;$("pg").classList.remove("on");RESULT={all,blk,gapsBy,risk,O,S,modes,cancelled:cancel};tfilter="all";tshow=40;render();const tot=modes.reduce((a,m)=>a+all[m].length,0);msg.textContent="";
+toast(cancel?`اجرا متوقف شد (${fa(tot)} معامله تا اینجا)`:tot?`بک‌تست کامل شد · ${fa(tot)} معامله · ${((performance.now()-t0)/1000).toFixed(1)} ثانیه`:"بک‌تست تمام شد ولی معامله‌ای ساخته نشد",(cancel||!tot)?"info":"success");if(tot)$("res").scrollIntoView({behavior:"smooth",block:"start"})}
+$("run").onclick=run;$("cn").onclick=()=>{cancel=true;$("pt").textContent="در حال توقف…"};
+/* ---------- results ---------- */
+const f2=(x,d=2)=>x==null||!isFinite(x)?"∞":x.toFixed(d),sg=x=>x>0?"pos":x<0?"neg":"";
+const IC={target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>',trend:'<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',down:'<path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',scale:'<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',bars:'<path d="M12 20V10M18 20V4M6 20v-4"/>',sigma:'<path d="M18 7V5H6l6 7-6 7h12v-2"/>',wave:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',xc:'<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'};
+const ico=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+const tile=(cls,icon,label,val)=>`<div class="m ${cls}"><div class="mh">${ico(icon)}<i>${label}</i></div><b>${val}</b></div>`;
+function statsCard(m,tr,risk,bk,mh){const s=metrics(tr,risk),c=COL[m];if(!s.n)return`<div class="sc" style="--c:${c}"><h4>${NAME[m]}</h4><div class="hint" style="margin-top:8px">در این داده هیچ معامله‌ای نبسته نشد.</div></div>`;
+const srt=[...tr].sort((a,b)=>a.tE-b.tE),cut=Math.floor(srt.length*.7),a=metrics(srt.slice(0,cut),risk),b=metrics(srt.slice(cut),risk),ln=x=>x.n?`<bdi dir="rtl">${fa(x.n)} معامله · PF ${f2(x.pf)} · میانگین ${f2(x.avgR)}R</bdi>`:"—";
+const wrC=s.wr>=50?"t-pos":s.wr>=40?"t-warn":"t-neg",rpos=s.retPct>0,rtxt=Math.abs(s.retPct)>1e6?(rpos?">1M%":"<−1M%"):(rpos?"+":"")+f2(s.retPct,1)+"%";
+return`<div class="sc" style="--c:${c}"><h4>${NAME[m]}<small>${fa(s.n)} معامله</small></h4>
+<div class="hero"><div class="m big ${wrC}"><div class="mh">${ico("target")}<i>نرخ برد</i></div><b>${f2(s.wr,1)}%</b><div class="pbar"><u style="width:${Math.min(100,s.wr)}%"></u></div></div>
+<div class="m big ${rpos?"t-pos":"t-neg"}"><div class="mh">${ico(rpos?"trend":"down")}<i>بازده خالص</i></div><b>${rtxt}</b><span class="sub"><bdi dir="rtl">ریسک ${risk}%</bdi> · <bdi dir="ltr">${s.sumR>0?"+":""}${f2(s.sumR,1)}R</bdi></span></div></div>
+<div class="mg">${tile(s.avgR>0?"t-pos":"t-neg","scale","امید ریاضی (R)",f2(s.avgR,3))}${tile(s.pf>=1?"t-pos":"t-neg","bars","Profit Factor",f2(s.pf))}${tile(s.sumR>0?"t-pos":"t-neg","sigma","جمع R",f2(s.sumR,1))}
+${tile("t-soft","wave","افت سرمایه (R)","−"+f2(s.ddR,1))}${tile(s.ddPct>25?"t-neg":"t-soft","down","افت حداکثر",`−${f2(s.ddPct,1)}%`)}${tile("","xc","باخت متوالی",fa(s.maxLossStreak))}</div>
+<div class="split"><div><span>۷۰٪ اول زمان</span>${ln(a)}</div><div><span>۳۰٪ آخر زمان</span>${ln(b)}</div><div><span>لانگ / شورت</span><bdi dir="ltr">${fa(s.longs)} (${f2(s.avgLong)}R) / ${fa(s.shorts)} (${f2(s.avgShort)}R)</bdi></div><div><span>میانگین نگهداری</span><bdi dir="ltr">${f2(s.avgBars*5/60,1)} h</bdi></div></div>
+${mhLine(s,bk,mh)}${s.n<30?'<div class="warn">⚠ تعداد معامله کمتر از ۳۰ است؛ نتیجه قابل اتکا نیست. داده‌ی بیشتر یا نمادهای بیشتر اضافه کن.</div>':s.pf>3&&s.n<100?'<div class="warn">⚠ PF خیلی بالا با نمونه‌ی کم معمولاً شانسی است؛ روی داده‌ی جدید دوباره امتحان کن.</div>':""}</div>`}
+function mhLine(s,bk,mh){if(!mh)return"";const parts=[];const tot=bk?bk.open+bk.close+bk.hours+bk.weekend:0;
+if(tot)parts.push(`ورود مسدودشده: ${fa(tot)} (${[bk.open&&`بعد بازگشایی ${fa(bk.open)}`,bk.close&&`قبل تعطیلی ${fa(bk.close)}`,bk.hours&&`ساعت ${fa(bk.hours)}`,bk.weekend&&`آخر هفته ${fa(bk.weekend)}`].filter(Boolean).join("، ")})`);
+if(mh.gap&&mh.forceClose)parts.push(`بسته‌شده با تعطیلی بازار: ${fa(s.closeExits||0)} معامله`);
+if(mh.gap&&!mh.forceClose)parts.push(`نگه‌داشته‌شده از تعطیلی: ${fa(s.crossed||0)} معامله`);
+return parts.length?`<div class="hint" style="margin-top:10px;line-height:1.9">${parts.join("<br>")}</div>`:""}
+function drawEq(cv,series){const W=cv.parentNode.clientWidth||340,H=240,dpr=window.devicePixelRatio||1;cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+"px";cv.style.height=H+"px";const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle="#12151b";g.fillRect(0,0,W,H);
+let t0=Infinity,t1=-Infinity,v0=0,v1=0;series.forEach(s=>s.pts.forEach(p=>{if(p.t<t0)t0=p.t;if(p.t>t1)t1=p.t;if(p.v<v0)v0=p.v;if(p.v>v1)v1=p.v}));if(!isFinite(t0)||t1<=t0){g.fillStyle="#7a808c";g.font="12px system-ui";g.fillText("داده‌ی کافی نیست",12,24);return}
+const L=8,Rr=46,T=14,B=24,pw=W-L-Rr,ph=H-T-B,X=t=>L+(t-t0)/(t1-t0)*pw,Y=v=>T+(v1-v)/((v1-v0)||1)*ph;g.font="10px system-ui";g.textBaseline="middle";
+for(let k=0;k<=4;k++){const v=v0+(v1-v0)*k/4,y=Y(v);g.strokeStyle="#1c1f26";g.lineWidth=1;g.beginPath();g.moveTo(L,y);g.lineTo(L+pw,y);g.stroke();g.fillStyle="#7a808c";g.textAlign="left";g.fillText(v.toFixed(1)+"R",L+pw+4,y)}
+g.setLineDash([4,3]);g.strokeStyle="#3a3f4a";g.beginPath();g.moveTo(L,Y(0));g.lineTo(L+pw,Y(0));g.stroke();g.setLineDash([]);
+series.forEach(s=>{if(!s.pts.length)return;g.strokeStyle=s.color;g.lineWidth=1.8;g.beginPath();g.moveTo(X(t0),Y(0));s.pts.forEach(p=>g.lineTo(X(p.t),Y(p.v)));g.stroke()});
+g.fillStyle="#7a808c";g.textAlign="left";g.fillText(dstr(t0).slice(0,10),L,H-9);g.textAlign="right";g.fillText(dstr(t1).slice(0,10),L+pw,H-9)}
+function render(){if(!RESULT)return;const{all,risk,modes,cancelled}=RESULT,total=modes.reduce((a,m)=>a+all[m].length,0);
+if(!total){$("res").innerHTML=`<div class="card"><div class="hint">هیچ معامله‌ای ساخته نشد${cancelled?" (اجرا متوقف شد)":""}. ممکنه داده کوتاه باشه (برای فیلتر H1 حدود ۳٬۰۰۰ کندل M5 لازمه) یا فیلترها خیلی سخت‌گیرانه باشن.</div></div>`;return}
+viewMode="pattern";
+let h=(cancelled?'<div class="warn">اجرا نیمه‌کاره متوقف شد؛ نتایج ناقص‌اند.</div>':"")+(RESULT.O.mh.gap&&Object.keys(RESULT.gapsBy).length?`<div class="card" style="margin-top:14px"><div class="hint">تعطیلی‌های شناسایی‌شده (شکاف ≥ ${fa(RESULT.O.mh.gapMin)} دقیقه): ${Object.entries(RESULT.gapsBy).map(([k,v])=>`<bdi dir="ltr">${k} ${fa(v)}</bdi>`).join(" · ")}</div></div>`:"")+modes.map(m=>statsCard(m,all[m],risk,RESULT.blk[m],RESULT.O.mh)).join("")+
+`<div class="card"><h2>منحنی سرمایه (جمع R)</h2><canvas id="eq"></canvas><div class="lg">${modes.map(m=>`<span style="--c:${COL[m]}">${NAME[m]}</span>`).join("")}</div></div>
+<div class="card"><h2>جزئیات</h2><div id="det"></div></div>
+<div class="note">فرض‌های شبیه‌سازی: ورود روی قیمت بسته‌شدن کندل سیگنال؛ اگر SL و TP توی یک کندل هر دو لمس بشن، SL حساب می‌شه؛ گپ‌ها روی قیمت بازشدن بدتر حساب می‌شن؛ در هر نماد و استراتژی هم‌زمان فقط یک معامله باز است؛ از کندل‌های آینده استفاده نمی‌شه (برای هر استراتژی با حذف داده‌ی آینده تست شده)؛ اسلیپیج و کمیسیون فقط از فیلد «هزینه» وارد می‌شن. «بازده ٪» با فرض ترکیب سود و مستقل‌بودن معاملات حساب می‌شه و با معامله‌ی زیاد غیرواقعی بزرگ می‌شه؛ بیشتر به R، PF و افت سرمایه نگاه کن. نتیجه‌ی گذشته تضمینی برای آینده نیست.</div>`;
+$("res").innerHTML=h;drawEq($("eq"),modes.map(m=>({color:COL[m],pts:equityOf(all[m])})));detail()}
+const WHY={SL:"حد ضرر",TP:"هدف (TP)",RSI:"واگرایی RSI",TIME:"پایان زمان",CLOSE:"تعطیلی بازار"};
+const dur=n=>{const mn=n*5,h=Math.floor(mn/60),m=mn%60;return h?`${h}h ${m}m`:`${m}m`};
+function tradeCard(t,dg){const win=t.R>0,L=t.side==="LONG";
+return`<article class="tc ${win?"w":"l"}"><div class="th"><div class="tid"><b>${t.sym}</b><span class="chip ${L?"cl":"cs"}">${L?"▲":"▼"} ${t.side}</span>${t.cross?'<span class="chip cx">گپ تعطیلی</span>':""}</div><b class="tr ${win?"pos":"neg"}">${win?"+":""}${f2(t.R,2)}R</b></div>
+<div class="tg"><div><i>ورود</i><b>${t.entry.toFixed(dg)}</b><small>${dstr(t.tE)}</small></div><div><i>خروج</i><b>${t.px.toFixed(dg)}</b><small>${dstr(t.tX)}</small></div></div>
+<div class="tf"><span class="chip why ${t.why}">${WHY[t.why]||t.why}</span><span>⏱ ${dur(t.bars)}</span><span>SL ${t.sl.toFixed(dg)}</span>${t.tp!=null?`<span>TP ${t.tp.toFixed(dg)}</span>`:""}</div></article>`}
+function detail(){const{all,risk}=RESULT,tr=all[viewMode],by={};tr.forEach(t=>{(by[t.sym]||(by[t.sym]=[])).push(t)});
+const syms=Object.keys(by).sort().map(s=>{const m=metrics(by[s],risk);return`<div class="sy ${m.sumR>0?"w":"l"}"><div class="sh"><b>${s}</b><span>${fa(m.n)} معامله</span></div><div class="sg"><div><i>وین</i><b>${f2(m.wr,0)}%</b></div><div><i>avg R</i><b class="${sg(m.avgR)}">${f2(m.avgR,2)}</b></div><div><i>PF</i><b>${f2(m.pf)}</b></div><div><i>جمع R</i><b class="${sg(m.sumR)}">${f2(m.sumR,1)}</b></div></div></div>`}).join("");
+let list=[...tr].sort((a,b)=>b.tE-a.tE);if(tfilter==="w")list=list.filter(t=>t.R>0);else if(tfilter==="l")list=list.filter(t=>t.R<=0);
+const shown=list.slice(0,tshow),dgOf=s=>(datasets.find(d=>d.sym===s)||{dg:5}).dg;
+$("det").innerHTML=`<h3>عملکرد هر نماد</h3><div class="sy-grid">${syms||'<div class="hint">—</div>'}</div>
+<div class="th2"><h3 style="margin:0">معاملات (${fa(shown.length)} از ${fa(list.length)})</h3><div class="seg sm" id="tfs">${[["all","همه"],["w","برد"],["l","باخت"]].map(([v,t])=>`<button data-f="${v}" class="${tfilter===v?"on":""}">${t}</button>`).join("")}</div></div>
+<div class="tl">${shown.map(t=>tradeCard(t,dgOf(t.sym))).join("")||'<div class="hint">معامله‌ای با این فیلتر نیست.</div>'}</div>
+${list.length>shown.length?`<button id="more" class="more">نمایش ${fa(Math.min(40,list.length-shown.length))} معامله‌ی بیشتر</button>`:""}
+<button id="csv" class="csv">⬇ دانلود همه‌ی معاملات (CSV)</button>`;
+const btn=$("csv"),label="⬇ دانلود همه‌ی معاملات (CSV)";
+btn.onclick=async()=>{if(btn.classList.contains("busy"))return;btn.classList.add("busy");btn.innerHTML='<span class="spin"></span> در حال آماده‌سازی…';
+try{await new Promise(r=>setTimeout(r,450));const hd="symbol,strategy,side,entry_time,entry,sl,tp,exit_time,exit,reason,R,bars,held_over_close\n",body=[...tr].sort((a,b)=>a.tE-b.tE).map(t=>[t.sym,t.mode,t.side,dstr(t.tE),t.entry,t.sl,t.tp==null?"":t.tp,dstr(t.tX),t.px,t.why,t.R.toFixed(4),t.bars,t.cross?1:0].join(",")).join("\n"),u=URL.createObjectURL(new Blob([hd+body],{type:"text/csv"})),a=document.createElement("a");a.href=u;a.download=`backtest_${viewMode}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+btn.classList.remove("busy");btn.classList.add("ok");btn.innerHTML=ICON.ok+" دانلود شد";toast(`فایل CSV دانلود شد (${fa(tr.length)} معامله)`,"success");setTimeout(()=>{btn.classList.remove("ok");btn.innerHTML=label},2400)}
+catch(e){btn.classList.remove("busy");btn.innerHTML=label;toast("دانلود ناموفق بود: "+(e&&e.message||"خطای ناشناخته"),"error",5200)}}}
+$("res").onclick=e=>{
+const f=e.target.closest("#tfs button");if(f){tfilter=f.dataset.f;tshow=40;detail();return}if(e.target.closest("#more")){tshow+=40;detail()}};
+window.addEventListener("resize",()=>{if(RESULT&&$("eq"))drawEq($("eq"),RESULT.modes.map(m=>({color:COL[m],pts:equityOf(RESULT.all[m])})))});
+(async()=>{datasets=(await dbAll()).map(d=>({...d,on:true}));renderDs();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
+</script>

@@ -1,0 +1,36 @@
+name: scan
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Send a test notification"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: scan
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/cache@v4
+        with:
+          path: .state
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+      - run: node scan.js
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
+          TEST: ${{ inputs.test && '1' || '0' }}
+          LOOP_SECONDS: "270"
+          MODES: ${{ vars.MODES }}
