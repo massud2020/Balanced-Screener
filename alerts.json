@@ -1,4 +1,13 @@
 {
-  "tz": "UTC",
-  "alerts": []
+  "tz": "Asia/Tehran",
+  "alerts": [
+    {
+      "id": "amvbr6kda",
+      "sym": "BTCUSDT",
+      "type": "every",
+      "on": true,
+      "every": 5
+    }
+  ],
+  "updated": "2026-10-17T05:52:42.315Z"
 }
