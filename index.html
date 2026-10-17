@@ -303,7 +303,7 @@ const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS
 const D={},MN={pattern:"۳+۱"};let timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
-function renderChips(){const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(Object.keys(MKT_LABEL));
+function renderChips(){const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
 $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${MKT_LABEL[m]} <span class="cnt">${fa(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+'<button class="mini" id="mAll">همه</button><button class="mini" id="mNone">هیچ</button>';updCnt()}
 function updCnt(){const sel=selectedMkts();$("goC").textContent=fa(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
@@ -319,7 +319,7 @@ else if(u[4]&&LS("bs_tok")){try{[a,h]=await Promise.all([oanda(u[4],"M5"),oanda(
 if((a.length<210||h.length<210)&&u[2]){const[x,y]=await Promise.all([yh(u[2],"5m","5d"),yh(u[2],"1h","6mo")]);if(x.length>a.length)a=x;if(y.length>h.length)h=y}return[a,h]}
 const S=()=>({mode:"pattern",m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
-async function scan(){if(busy)return;busy=true;$("go").disabled=true;$("goT").textContent="در حال اسکن";$("dot").classList.toggle("on",$("auto").checked);const sel=selectedMkts();
+async function scan(){if(busy)return;busy=true;$("go").disabled=true;$("goT").textContent="در حال اسکن";setTimeout(()=>{if(busy){$("st").textContent="شبکه کند است یا به API دسترسی ندارد. صبر کنید...";}},8000);$("dot").classList.toggle("on",$("auto").checked);const sel=selectedMkts();
 const hasSrc=u=>u[1]||u[2]||(u[4]&&LS("bs_tok")),L=U.filter(u=>sel.includes(mktOf(u))&&hasSrc(u)).concat(sel.includes("stock")?extraList().map(t=>[t.toUpperCase(),0,t.toUpperCase(),2,0]):[]);
 const done=()=>{$("ld").classList.remove("on");setProg(0);busy=false;$("go").disabled=false;$("goT").textContent="اسکن"};
 if(!L.length){$("st").textContent="هیچ بازاری انتخاب نشده؛ از چیپ‌های بالا یکی را روشن کن";done();return}
