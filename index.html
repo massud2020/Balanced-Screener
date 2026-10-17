@@ -485,4 +485,53 @@ if(MISS.length){$("list").innerHTML="";$("st").innerHTML='<span style="color:#ff
   document.getElementById("err-box").style.display="block";
   document.getElementById("err-box").innerHTML = "<b>INIT ERROR:</b> " + err.message + "<br>" + err.stack;
 }
-</script></body></html>
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ۱. ساخت کانال‌های اعلان در اندروید
+  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
+    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
+  }
+
+  // ۲. تزریق دکمه آبی قیمت سریع به صورت ایمن و بدون دستکاری کدهای اصلی
+  const observer = new MutationObserver(() => {
+    const sumDiv = document.getElementById('sum');
+    // اگر باکس خلاصه ساخته شد و دکمه ما هنوز آنجا نبود
+    if (sumDiv && !document.getElementById('qpBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'qpBtn';
+      btn.innerHTML = '🔍 قیمت سریع';
+      btn.style.cssText = 'background:#3b82f6;color:#fff;border:none;border-radius:99px;padding:0 12px;min-height:32px;font-size:12px;font-weight:700;margin-inline-start:8px;';
+      
+      btn.onclick = async () => {
+        if (!window.AL || !window.U || !window.fetchTF) return alert('سیستم هنوز آماده نیست. چند لحظه صبر کنید.');
+        
+        const sym = prompt("نماد مورد نظر را وارد کنید (مثلاً BTCUSDT):");
+        if (!sym) return;
+        const symUp = sym.trim().toUpperCase();
+        
+        btn.innerText = "دریافت...";
+        try {
+          const u = window.AL.resolve(symUp, window.U);
+          const bars = await window.fetchTF(u, "5m");
+          if (bars && bars.length) {
+            alert("قیمت " + symUp + ":\n" + window.AL.fmt(bars[bars.length-1].close, u[3]));
+          } else {
+            alert("قیمت برای " + symUp + " پیدا نشد.");
+          }
+        } catch(e) {
+          alert("خطا در دریافت قیمت.");
+        }
+        btn.innerText = '🔍 قیمت سریع';
+      };
+      
+      sumDiv.appendChild(btn);
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+</script>
+
+</body></html>
