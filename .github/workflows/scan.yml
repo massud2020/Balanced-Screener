@@ -30,7 +30,7 @@ jobs:
       - run: node scan.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+            TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
           TEST: ${{ inputs.test && '1' || '0' }}
           LOOP_SECONDS: "270"
