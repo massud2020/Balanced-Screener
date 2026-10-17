@@ -241,7 +241,7 @@ function readAlerts() {
   } catch (e) { return { tz: "UTC", alerts: [] }; }
 }
 
-async function notify(title, message, priority = 5, tags = ["chart_with_upwards_trend"]) {
+async function notify(title, message, priority = 4, tags = ["chart_with_upwards_trend"]) {
   const r = await fetch("https://ntfy.sh/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -287,10 +287,9 @@ async function priceAlerts(ast, now) {
   console.log(`${new Date().toISOString()} price alerts: ${list.length} active, symbols ${Object.keys(data).length}, fired ${fired.length}`);
   for (const f of fired) {
     try {
-      await notify(f.title, f.text, f.kind === "price" ? 5 : 3,
+      await notify(f.title, f.text, f.kind === "price" ? 4 : 3,
         [f.kind === "price" ? "bell" : f.kind === "every" ? "stopwatch" : "alarm_clock"]);
     } catch (e) {
-      delete ast.fired[f.key];
       console.error("alert notify failed", e.message);
     }
   }
