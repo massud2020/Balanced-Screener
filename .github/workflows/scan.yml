@@ -29,7 +29,8 @@ jobs:
           restore-keys: state-
       - run: node scan.js
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
           TEST: ${{ inputs.test && '1' || '0' }}
           LOOP_SECONDS: "270"

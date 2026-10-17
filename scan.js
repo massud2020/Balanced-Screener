@@ -4,7 +4,7 @@ const fs = require("fs"),
   { U } = require("./symbols.js"),
   AL = require("./alerts.js");
 
-const TOPIC = process.env.NTFY_TOPIC,
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
   TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
 const F15 = process.env.M15 !== "0",
@@ -241,14 +241,22 @@ function readAlerts() {
   } catch (e) { return { tz: "UTC", alerts: [] }; }
 }
 
-async function notify(title, message, priority = 4, tags = ["chart_with_upwards_trend"]) {
-  const r = await fetch("https://ntfy.sh/", {
+async function notify(title, message, priority = 5, tags = []) {
+  const TOKEN = process.env.TELEGRAM_TOKEN;
+  const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+  if (!TOKEN || !CHAT_ID) {
+    console.log("Telegram credentials missing. Skip.");
+    return;
+  }
+  const text = "*" + title + "*\n\n" + message;
+  const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
+  const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ topic: TOPIC, title, message, priority, tags }),
+    body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: "Markdown" }),
     signal: AbortSignal.timeout(15000),
   });
-  if (!r.ok) throw new Error("ntfy " + r.status);
+  if (!r.ok) throw new Error("Telegram " + r.status);
 }
 
 const LOOP = +(process.env.LOOP_SECONDS || 0),
@@ -370,7 +378,7 @@ async function signals(sent, modes, now, ast) {
 if (typeof module !== "undefined") module.exports = { loadCached, DC, tf, slot5, mktOf, cgPrice, cgOHLC, cgId };
 
 if (require.main === module) (async () => {
-  if (!TOPIC) { console.error("NTFY_TOPIC is not set"); process.exit(1); }
+  if (!TELEGRAM_TOKEN) { console.error("TELEGRAM_TOKEN is not set"); process.exit(1); }
   if (process.env.TEST === "1") {
     await notify("تست اسکرینر", "اعلان‌ها درست کار می‌کنند ✅", 3, ["white_check_mark"]);
     console.log("test sent");
