@@ -349,6 +349,42 @@ const BL=[];
 function banner(fr){fr.forEach(r=>BL.unshift(r.kind?{kind:"price",sym:r.a.sym,title:r.title,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}:{id:r.id,mode:r.mode,side:r.side,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}));BL.length=Math.min(BL.length,40);
 $("bn").innerHTML='<div class="hd"><b>🔔 اعلان جدید</b><button id="bx" aria-label="بستن">✕</button></div>'+BL.slice(0,3).map(x=>x.kind?`<div class="bi" data-id="${x.sym}" data-mode="pattern"><b>${x.title}</b> <span style="color:var(--mu)">${x.t}</span></div>`:`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fa(BL.length-3)} مورد دیگر</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
 function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance("New signal. "+t);u.lang="en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function alertNow(fr) {
+  beep(); banner(fr); say(fr);
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 400]); } catch (e) {}
+
+  // اعلان Native برای اندروید
+  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    fr.slice(0, 5).forEach(r => {
+      LocalNotifications.schedule({
+        notifications: [{
+          title: (r.side === 'LONG' ? '🟢 LONG ' : '🔴 SHORT ') + r.id + ' · ' + MN[r.mode],
+          body: 'Entry ' + r.entry.toFixed(r.d) + ' | SL ' + r.sl.toFixed(r.d),
+          id: Math.floor(Math.random() * 100000),
+          schedule: { at: new Date(Date.now() + 100) },
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#46c58c'
+        }]
+      }).catch(e => console.log('Native notif error', e));
+    });
+  } 
+  // اعلان Web برای مرورگر
+  else if (window.Notification && Notification.permission === 'granted' && navigator.serviceWorker) {
+    navigator.serviceWorker.ready.then(g => fr.slice(0, 5).forEach(r => 
+      g.showNotification((r.side === 'LONG' ? '🟢 LONG ' : '🔴 SHORT ') + r.id + ' · ' + MN[r.mode], {
+        body: 'Entry ' + r.entry.toFixed(r.d) + ' | SL ' + r.sl.toFixed(r.d),
+        icon: 'icon-192.png',
+        tag: 's-' + r.id,
+        requireInteraction: true
+      })
+    )).catch(() => {});
+  }
+}
+const BL=[];
+function banner(fr){fr.forEach(r=>BL.unshift(r.kind?{kind:"price",sym:r.a.sym,title:r.title,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}:{id:r.id,mode:r.mode,side:r.side,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}));BL.length=Math.min(BL.length,40);
+$("bn").innerHTML='<div class="hd"><b>🔔 اعلان جدید</b><button id="bx" aria-label="بستن">✕</button></div>'+BL.slice(0,3).map(x=>x.kind?`<div class="bi" data-id="${x.sym}" data-mode="pattern"><b>${x.title}</b> <span style="color:var(--mu)">${x.t}</span></div>`:`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fa(BL.length-3)} مورد دیگر</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
+function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance("New signal. "+t);u.lang="en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function alertNow(fr){beep();banner(fr);say(fr);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}
 if(window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id+" · "+MN[r.mode],{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
 function priceAlertNow(fired){beep();banner(fired);try{navigator.vibrate&&navigator.vibrate([250,100,250,100,500])}catch(e){}
@@ -432,6 +468,13 @@ $("nSave").disabled=false}
 $("ghr").value=LS("bs_ghr")||repoGuess();$("ght").value=LS("bs_ght")||"";NM.forEach(([m,id])=>{const v=LS("bs_n_"+m);if(v!=null)$(id).checked=v==="true";$(id).onchange=()=>{$("nHint").textContent="تغییر ذخیره نشده - «ذخیره روی سرور» را بزن"}});
 $("nSave").onclick=nSave;nLoad();
 $("ver").textContent="v"+BUILD;$("verl").textContent="نسخه‌ی فعلی: v"+BUILD;
+
+if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+  window.Capacitor.Plugins.LocalNotifications.requestPermissions().then(res => {
+    console.log('Native notification permission:', res.display);
+  });
+}
+
 setInterval(()=>{if(!document.hidden)runAlertsInApp()},60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)runAlertsInApp()});setTimeout(()=>{try{runAlertsInApp()}catch(e){}},2500);alCount();
 if(MISS.length){$("list").innerHTML="";$("st").innerHTML='<span style="color:#ff6b6b">⚠ این فایل‌ها قدیمی یا آپلودنشده‌اند: '+MISS.join("، ")+' — آپلود کنید و چند بار رفرش کنید</span>'}else{renderChips();scan()}
 </script></body></html>
