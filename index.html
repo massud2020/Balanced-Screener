@@ -245,6 +245,16 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 </style>
 </head>
 <body>
+
+<div id="err-box" style="display:none; position:fixed; top:0; left:0; right:0; background:#d4524c; color:#fff; z-index:9999; padding:15px; font-size:13px; word-break:break-all; direction:ltr; text-align:left;"></div>
+<script>
+  window.onerror = function(msg, url, line, col, error) {
+    var e = document.getElementById('err-box');
+    e.style.display = 'block';
+    e.innerHTML += '<b>ERROR:</b> ' + msg + '<br><b>File:</b> ' + url + ':' + line + '<br><hr>';
+  };
+</script>
+
 <header class="bar">
   <div class="brand"><i>◈</i><div class="bt">Screener <small id="ver"></small></div></div>
   <div class="acts"><span class="dot" id="dot" title="اسکن خودکار"></span><button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button><button class="ic" id="gs" aria-label="تنظیمات">⚙</button></div>
@@ -476,5 +486,10 @@ if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
 }
 
 setInterval(()=>{if(!document.hidden)runAlertsInApp()},60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)runAlertsInApp()});setTimeout(()=>{try{runAlertsInApp()}catch(e){}},2500);alCount();
+try {
 if(MISS.length){$("list").innerHTML="";$("st").innerHTML='<span style="color:#ff6b6b">⚠ این فایل‌ها قدیمی یا آپلودنشده‌اند: '+MISS.join("، ")+' — آپلود کنید و چند بار رفرش کنید</span>'}else{renderChips();scan()}
+} catch(err) {
+  document.getElementById("err-box").style.display="block";
+  document.getElementById("err-box").innerHTML = "<b>INIT ERROR:</b> " + err.message + "<br>" + err.stack;
+}
 </script></body></html>
