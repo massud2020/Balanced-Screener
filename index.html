@@ -246,14 +246,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 </head>
 <body>
 
-<div id="err-box" style="display:none; position:fixed; top:0; left:0; right:0; background:#d4524c; color:#fff; z-index:9999; padding:15px; font-size:13px; word-break:break-all; direction:ltr; text-align:left;"></div>
-<script>
-  window.onerror = function(msg, url, line, col, error) {
-    var e = document.getElementById('err-box');
-    e.style.display = 'block';
-    e.innerHTML += '<b>ERROR:</b> ' + msg + '<br><b>File:</b> ' + url + ':' + line + '<br><hr>';
-  };
-</script>
+
 
 <header class="bar">
   <div class="brand"><i>◈</i><div class="bt">Screener <small id="ver"></small></div></div>
@@ -355,7 +348,7 @@ const eb=$("eb");if(eb)eb.onclick=()=>$("el").classList.toggle("on");
 const hk=Object.keys(cnt||{}),bad=hk.filter(m=>cnt[m].ok<cnt[m].n);$("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${MKT_LABEL[m]} <bdi dir="ltr">${fa(cnt[m].ok)}/${fa(cnt[m].n)}</bdi></span>`).join("")+(bad.some(m=>m!=="crypto"&&cnt[m].ok===0)?'<div class="hint2">منبع این بازارها (Yahoo) جواب نداده؛ معمولاً محدودیت موقت است. اگه ادامه داشت از VPN استفاده کن یا توکن OANDA بذار.</div>':"")}
 $("sum").onclick=e=>{const b=e.target.closest("button");if(!b)return;vf=b.dataset.v;renderList()};
 function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="sine";g.gain.value=.25;[880,1175,880,1175].forEach((f,i)=>o.frequency.setValueAtTime(f,a.currentTime+i*.18));o.start();o.stop(a.currentTime+.75)}catch(e){}}
-const BL=[];
+var BL=[];
 function banner(fr){fr.forEach(r=>BL.unshift(r.kind?{kind:"price",sym:r.a.sym,title:r.title,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}:{id:r.id,mode:r.mode,side:r.side,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}));BL.length=Math.min(BL.length,40);
 $("bn").innerHTML='<div class="hd"><b>🔔 اعلان جدید</b><button id="bx" aria-label="بستن">✕</button></div>'+BL.slice(0,3).map(x=>x.kind?`<div class="bi" data-id="${x.sym}" data-mode="pattern"><b>${x.title}</b> <span style="color:var(--mu)">${x.t}</span></div>`:`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fa(BL.length-3)} مورد دیگر</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
 function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance("New signal. "+t);u.lang="en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
@@ -391,7 +384,7 @@ function alertNow(fr) {
     )).catch(() => {});
   }
 }
-const BL=[];
+// duplicate BL removed
 function banner(fr){fr.forEach(r=>BL.unshift(r.kind?{kind:"price",sym:r.a.sym,title:r.title,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}:{id:r.id,mode:r.mode,side:r.side,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}));BL.length=Math.min(BL.length,40);
 $("bn").innerHTML='<div class="hd"><b>🔔 اعلان جدید</b><button id="bx" aria-label="بستن">✕</button></div>'+BL.slice(0,3).map(x=>x.kind?`<div class="bi" data-id="${x.sym}" data-mode="pattern"><b>${x.title}</b> <span style="color:var(--mu)">${x.t}</span></div>`:`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fa(BL.length-3)} مورد دیگر</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
 function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance("New signal. "+t);u.lang="en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
