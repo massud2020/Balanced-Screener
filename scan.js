@@ -17,7 +17,7 @@ if (!MODES.length) MODES.push("pattern");
 function enabledModes() {
   let m = MODES;
   try {
-    const c = JSON.parse(fs.readFileSync("ntfy-config.json", "utf8"));
+    const c = { strategies: {} };
     if (c && c.strategies && typeof c.strategies === "object")
       m = m.filter(x => c.strategies[x] !== false);
   } catch (e) {}
