@@ -2,13 +2,22 @@
   "name": "balanced-screener",
   "version": "1.0.0",
   "private": true,
-  "description": "Balanced Screener — PWA price screener with 3+1 pattern strategy",
+  "description": "Balanced Screener — Android App",
   "scripts": {
     "test": "jest --verbose --runInBand",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build:www": "node build-www.js",
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "android": "npm run build:www && npm run cap:sync"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
     "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
   },
   "jest": {
     "testEnvironment": "node",

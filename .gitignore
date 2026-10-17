@@ -1,4 +1,9 @@
 node_modules/
 .state/
+www/
+android/
 *.log
+*.bak
+*.apk
 .DS_Store
+.env
