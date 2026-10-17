@@ -1,5 +1,20 @@
 // Backtest engine: MT5 CSV parser + walk-forward simulation using the same strategy logic as engine.js
 // Requires engine.js globals: DEF, ema, rsi, atr, resample, lci, checkPattern, divExit
+// در Node.js این globals رو از require می‌گیریم؛ در مرورگر از importScripts.
+if (typeof require !== "undefined" && typeof module !== "undefined") {
+  try {
+    const E = require("./engine.js");
+    global.DEF = E.DEF;
+    global.ema = E.ema;
+    global.rsi = E.rsi;
+    global.atr = E.atr;
+    global.resample = E.resample;
+    global.lci = E.lci;
+    global.checkPattern = E.checkPattern;
+    global.divExit = E.divExit;
+  } catch (e) {}
+}
+
 function decodeBuf(buf){const u=new Uint8Array(buf);let enc="utf-8",s=0;
 if(u[0]===0xFF&&u[1]===0xFE){enc="utf-16le";s=2}else if(u[0]===0xFE&&u[1]===0xFF){enc="utf-16be";s=2}
 else if(u[0]===0xEF&&u[1]===0xBB&&u[2]===0xBF){s=3}else if(u.length>3&&u[0]!==0&&u[1]===0&&u[2]!==0&&u[3]===0)enc="utf-16le";
