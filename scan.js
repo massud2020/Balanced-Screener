@@ -358,8 +358,7 @@ async function signals(sent, modes, now, ast) {
     if (n >= 10) break;
     const { u, mode, r } = f, L = r.side === "LONG", d = u[3];
     try {
-      await notify(
-        `${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`,
+      await notify(`🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`,
         `${NAME[mode]}\nEntry ${r.entry.toFixed(d)} | SL ${r.sl.toFixed(d)}\nRSI ${r.rsi.toFixed(1)} | کندل ${Math.max(0, Math.round(f.age / 60))} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`,
         5, [L ? "green_circle" : "red_circle", "chart_with_upwards_trend"]
       );
