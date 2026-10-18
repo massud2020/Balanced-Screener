@@ -382,6 +382,11 @@ async function signals(sent, modes, now, ast) {
       );
       sent[f.key] = now;
       n++;
+      // 📝 ذخیره آخرین سیگنال برای ربات MT5
+      try {
+        const mt5Data = `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(d)},${r.sl.toFixed(d)},0,${now}`;
+        fs.writeFileSync("latest_signal.txt", mt5Data);
+      } catch(e) { console.log("MT5 File Write Error:", e); }
     } catch (e) { console.error("notify failed", e.message); }
   }
   if (fresh.length > 10) {
