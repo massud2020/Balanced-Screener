@@ -241,7 +241,7 @@ function readAlerts() {
   } catch (e) { return { tz: "UTC", alerts: [] }; }
 }
 
-async function notify(title, message, priority = 5, tags = []) {
+async function notify(title, message, priority = 5, tags = [], threadId = null) {
   const TOKEN = process.env.TELEGRAM_TOKEN;
   const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
   if (!TOKEN || !CHAT_ID) {
