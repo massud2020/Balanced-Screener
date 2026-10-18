@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.style.cssText = 'background:#3b82f6;color:#fff;border:none;border-radius:99px;padding:0 12px;min-height:32px;font-size:12px;font-weight:700;margin-inline-start:8px;';
       
       btn.onclick = async () => {
-        if (!window.AL || !window.U || !window.fetchTF) return alert('سیستم هنوز آماده نیست. چند لحظه صبر کنید.');
+        if (typeof AL === 'undefined' || typeof U === 'undefined' || typeof fetchTF === 'undefined') return alert('سیستم هنوز آماده نیست. چند لحظه صبر کنید.');
         
         const sym = prompt("نماد مورد نظر را وارد کنید (مثلاً BTCUSDT):");
         if (!sym) return;
@@ -514,10 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         btn.innerText = "دریافت...";
         try {
-          const u = window.AL.resolve(symUp, window.U);
-          const bars = await window.fetchTF(u, "5m");
+          const u = AL.resolve(symUp, U);
+          const bars = await fetchTF(u, "5m");
           if (bars && bars.length) {
-            alert("قیمت " + symUp + ":\n" + window.AL.fmt(bars[bars.length-1].close, u[3]));
+            alert("قیمت " + symUp + ":\n" + AL.fmt(bars[bars.length-1].close, u[3]));
           } else {
             alert("قیمت برای " + symUp + " پیدا نشد.");
           }
