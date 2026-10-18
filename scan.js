@@ -294,8 +294,7 @@ async function priceAlerts(ast, now) {
   console.log(`${new Date().toISOString()} price alerts: ${list.length} active, symbols ${Object.keys(data).length}, fired ${fired.length}`);
   for (const f of fired) {
     try {
-      await notify(f.title, f.text, f.kind === "price" ? 4 : 3,
-        [f.kind === "price" ? "bell" : f.kind === "every" ? "stopwatch" : "alarm_clock"]);
+      await notify(f.title, f.text, f.kind === "price" ? 4 : 3, [f.kind === "price" ? "bell" : f.kind === "every" ? "stopwatch" : "alarm_clock"], process.env.TELEGRAM_ALERT_THREAD_ID);
     } catch (e) {
       console.error("alert notify failed", e.message);
     }
