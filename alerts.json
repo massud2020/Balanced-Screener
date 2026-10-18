@@ -15,7 +15,15 @@
       "on": true,
       "price": 1,
       "repeat": "once"
+    },
+    {
+      "id": "amvdofnkk",
+      "sym": "XRPUSDT",
+      "type": "above",
+      "on": true,
+      "price": 1,
+      "repeat": "once"
     }
   ],
-  "updated": "2026-10-18T10:05:56.452Z"
+  "updated": "2026-10-18T10:23:00.562Z"
 }
