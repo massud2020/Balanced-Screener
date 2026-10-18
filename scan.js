@@ -248,12 +248,11 @@ async function notify(title, message, priority = 5, tags = [], threadId = null) 
     console.log("Telegram credentials missing. Skip.");
     return;
   }
-  const text = "*" + title + "*\n\n" + message;
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: "Markdown" }),
+    body: JSON.stringify({ chat_id: CHAT_ID, text: title + "\n\n" + message, parse_mode: "HTML", ...(threadId ? { message_thread_id: threadId } : {}) }),
     signal: AbortSignal.timeout(15000),
   });
   if (!r.ok) throw new Error("Telegram " + r.status);
@@ -360,7 +359,7 @@ async function signals(sent, modes, now, ast) {
     try {
       await notify(`🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`,
         `${NAME[mode]}\nEntry ${r.entry.toFixed(d)} | SL ${r.sl.toFixed(d)}\nRSI ${r.rsi.toFixed(1)} | کندل ${Math.max(0, Math.round(f.age / 60))} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`,
-        5, [L ? "green_circle" : "red_circle", "chart_with_upwards_trend"]
+        5, [L ? "green_circle" : "red_circle", "chart_with_upwards_trend"], process.env.TELEGRAM_SIGNAL_THREAD_ID
       );
       sent[f.key] = now;
       n++;
