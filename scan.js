@@ -249,13 +249,33 @@ async function notify(title, message, priority = 5, tags = [], threadId = null) 
     return;
   }
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
+  
+  // ۱. پاک‌سازی ورودی‌ها (حذف فاصله‌های احتمالی)
+  const cleanChatId = String(CHAT_ID).trim();
+  const cleanThreadId = threadId ? parseInt(String(threadId).trim(), 10) : undefined;
+
+  // ۲. ساخت پیام بدون فرمت HTML (برای جلوگیری از خطای 400)
+  const payload = {
+    chat_id: cleanChatId,
+    text: title + "\n\n" + message
+  };
+  
+  if (cleanThreadId && !isNaN(cleanThreadId)) {
+    payload.message_thread_id = cleanThreadId;
+  }
+
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: title + "\n\n" + message, parse_mode: "HTML", ...(threadId ? { message_thread_id: threadId } : {}) }),
+    body: JSON.stringify(payload),
     signal: AbortSignal.timeout(15000),
   });
-  if (!r.ok) throw new Error("Telegram " + r.status);
+  
+  if (!r.ok) {
+    // ۳. چاپ دقیق خطای تلگرام در لاگ‌ها
+    const errData = await r.text();
+    throw new Error("Telegram " + r.status + " - " + errData);
+  }
 }
 
 const LOOP = +(process.env.LOOP_SECONDS || 0),
