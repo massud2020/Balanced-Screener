@@ -264,7 +264,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
   <label><span>H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
   <label><span>فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
   <h3>منبع داده</h3>
-  <label><span>OANDA توکن</span><input type="password" id="tok" placeholder="API token" autocomplete="off"></label>
+  <label><span>OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
   <label><span>نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
   <label><span>سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   <h3>برنامه</h3>
@@ -440,7 +440,24 @@ $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
 $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000)};
 $("auto").checked=LS("bs_auto")!=="false";$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000);
 $("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()};$("tok").value=LS("bs_tok")||"";$("env").value=LS("bs_env")||"practice";
-$("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};$("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
+
+$("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};
+$("saveTok").onclick=()=>{
+  const t = $("tok").value.trim();
+  LS("bs_tok", t);
+  const b = $("saveTok");
+  b.style.background = "#2e9a69";
+  b.style.borderColor = "#2e9a69";
+  b.style.color = "#fff";
+  b.textContent = "✓ ذخیره شد";
+  setTimeout(() => {
+    b.style.background = "var(--card2)";
+    b.style.borderColor = "var(--bd)";
+    b.style.color = "var(--tx)";
+    b.textContent = "ذخیره";
+  }, 2500);
+  scan();
+};$("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
 ["m15","h1","h1s","only"].forEach(i=>{const v=LS("bs_"+i);if(v!=null){$(i).type==="checkbox"?$(i).checked=v==="true":$(i).value=v}});
 if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controller;let rl=false;
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
