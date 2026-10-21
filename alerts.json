@@ -7,7 +7,14 @@
       "type": "every",
       "on": true,
       "every": 5
+    },
+    {
+      "id": "amvidvxpe",
+      "sym": "ETHUSDT",
+      "type": "every",
+      "on": true,
+      "every": 5
     }
   ],
-  "updated": "2026-10-21T17:26:15.765Z"
+  "updated": "2026-10-21T17:26:39.846Z"
 }
