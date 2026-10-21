@@ -110,7 +110,7 @@ function openForm(a){edit=a?JSON.parse(JSON.stringify(a)):{id:"a"+Date.now().toS
 function closeForm(){$("sh").classList.remove("on");document.body.style.overflow=""}
 function draw(){const a=edit,time=a.type==="time",every=a.type==="every",price=!time&&!every;
 $("sheet").innerHTML=`<h2>${a._new?"هشدار جدید":"ویرایش هشدار"}</h2>
-<label class="fld">نماد (تایپ یا انتخاب از لیست)<div class="sym-wrap"><input id="fs" value="${a.sym}" placeholder="مثلاً BTCUSDT" autocomplete="off" autocapitalize="characters" style="width:100%;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:0 12px;min-height:44px;font-size:15px;direction:ltr;text-align:right"><div id="symDrop" class="sym-drop"></div></div></label>
+<label class="fld" style="position:relative">نماد (تایپ یا انتخاب از لیست)<div class="sym-wrap"><input id="fs" value="${a.sym}" placeholder="مثلاً BTCUSDT" autocomplete="off" autocapitalize="characters" style="width:100%;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:0 12px;min-height:44px;font-size:15px;direction:ltr;text-align:right"><div id="symDrop" class="sym-drop"></div></div></label>
 <div class="seg" id="ft">${[["above","▲ بالاتر"],["below","▼ پایین‌تر"],["every","⏱ دوره‌ای"],["time","🕘 ساعت"]].map(([v,t])=>`<button data-v="${v}" class="${a.type===v?"on":""}">${t}</button>`).join("")}</div>
 ${price?`<label class="fld">قیمت هدف<input id="fp" inputmode="decimal" value="${a.price}" placeholder="مثلاً 68000"></label><div class="cur" id="cur"><span>قیمت فعلی: <b id="cv">—</b></span><button id="cgo" type="button">دریافت</button><span id="cq"></span></div>`:""}
 ${every?`<div class="fld">هر چند دقیقه قیمت برایم ارسال شود؟<div class="chips" id="fe2">${EVERY.map(n=>`<button data-n="${n}" class="${a.every===n?"on":""}">${n>=60?fa(n/60)+" ساعت":fa(n)+" دقیقه"}</button>`).join("")}</div><div class="row2" style="margin-top:8px"><input id="fev" inputmode="numeric" value="${a.every}" aria-label="دقیقه"><span class="hint" style="align-self:center">دقیقه (۱ تا ۱۴۴۰)</span></div></div><div class="hint" id="warn" style="margin-top:8px"></div>`:""}
@@ -243,6 +243,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 500);
 });
+</script>
+
+
+<script id="sym-js">
+document.addEventListener('focusin', function(e) {
+    if (e.target && e.target.id === 'fs') {
+        let drop = document.getElementById('symDropCustom');
+        if (!drop) {
+            drop = document.createElement('div');
+            drop.id = 'symDropCustom';
+            drop.className = 'sym-drop';
+            e.target.parentNode.appendChild(drop);
+
+            // انتخاب گزینه با mousedown تا کیبورد بسته نشود
+            drop.addEventListener('mousedown', function(ev) {
+                const item = ev.target.closest('.sym-item');
+                if (item && item.dataset.v) {
+                    e.target.value = item.dataset.v;
+                    drop.classList.remove('on');
+                    e.target.dispatchEvent(new Event('change')); // دریافت قیمت
+                }
+            });
+        }
+        drop.classList.add('on');
+        updateDrop(e.target.value, drop);
+    }
+});
+
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'fs') {
+        let drop = document.getElementById('symDropCustom');
+        if (drop && drop.classList.contains('on')) {
+            updateDrop(e.target.value, drop);
+        }
+    }
+});
+
+document.addEventListener('click', function(e) {
+    let drop = document.getElementById('symDropCustom');
+    if (drop && !e.target.closest('label') && !e.target.closest('.sym-drop')) {
+        drop.classList.remove('on');
+    }
+});
+
+function updateDrop(val, drop) {
+    const v = val.toUpperCase().trim();
+    const custom = JSON.parse(localStorage.getItem('bs_custom_syms') || '[]');
+    const base = typeof U !== 'undefined' ? U.map(u => u[0]) : [];
+    const all = [...new Set([...base, ...custom])];
+    
+    let filtered = all.filter(s => s.includes(v));
+    if (v && !all.includes(v)) filtered.unshift(v);
+
+    if (filtered.length === 0) {
+        drop.innerHTML = '<div class="sym-item" style="color:var(--mu);text-align:center;cursor:default">نماد جدید (قابل ثبت)</div>';
+    } else {
+        drop.innerHTML = filtered.map(s => '<div class="sym-item" data-v="' + s + '">' + s + '</div>').join('');
+    }
+}
 </script>
 
 </body></html>
