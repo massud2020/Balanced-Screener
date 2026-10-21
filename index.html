@@ -463,30 +463,6 @@ if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controlle
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
 $("upd").onclick=async()=>{$("upd").textContent="در حال پاک‌سازی…";try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
-/* ---- ntfy per-strategy switches (stored in repo file ntfy-config.json, read by the GitHub Action) ---- */
-const NM=[["pattern","nN"]];
-const repoGuess=()=>{const hn=location.hostname,p=location.pathname.split("/").filter(Boolean);if(/\.github\.io$/.test(hn)){const o=hn.split(".")[0];return p.length&&!/\.[a-z]+$/i.test(p[0])?o+"/"+p[0]:o+"/"+hn}return""};
-const nCfg=()=>{const st={};NM.forEach(([m,id])=>st[m]=$(id).checked);return{strategies:st}};
-const nShow=(html,cls="")=>{const o=$("nOut");o.className="nout on "+cls;o.innerHTML=html};
-function nManual(text,repo,why){const q=encodeURIComponent(text),r=/^[\w.-]+\/[\w.-]+$/.test(repo)?repo:"OWNER/REPO";
-nShow((why?why+"<br>":"")+`این متن رو توی فایل <b dir="ltr">ntfy-config.json</b> بذار:<pre id="nJ">${text.replace(/</g,"&lt;")}</pre><button id="nCopy">کپی متن</button> <a href="https://github.com/${r}/new/main?filename=ntfy-config.json&value=${q}" target="_blank" rel="noopener">ساخت فایل در GitHub</a><a href="https://github.com/${r}/edit/main/ntfy-config.json" target="_blank" rel="noopener">ویرایش فایل موجود</a>`,why?"err":"");
-$("nCopy").onclick=async()=>{try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();try{document.execCommand("copy")}catch(x){}t.remove()}$("nCopy").textContent="کپی شد ✓"}}
-async function nLoad(){try{let c=null;const tok=LS("bs_ght"),repo=($("ghr").value||"").trim();
-if(tok&&/^[\w.-]+\/[\w.-]+$/.test(repo)){try{const r=await fetch(`https://api.github.com/repos/${repo}/contents/ntfy-config.json`,{headers:{Authorization:"Bearer "+tok,Accept:"application/vnd.github+json"},cache:"no-store"});if(r.ok){const j=await r.json();c=JSON.parse(atob(String(j.content).replace(/\s/g,"")))}}catch(e){}}
-if(!c){const r=await fetch("ntfy-config.json?"+Date.now(),{cache:"no-store"});if(r.ok)c=await r.json()}
-if(c&&c.strategies)NM.forEach(([m,id])=>{if(m in c.strategies)$(id).checked=!!c.strategies[m]})}catch(e){}}
-async function nSave(){const cfg=nCfg(),text=JSON.stringify(cfg,null,2)+"\n",tok=($("ght").value||"").trim(),repo=($("ghr").value||"").trim();LS("bs_ght",tok);LS("bs_ghr",repo);NM.forEach(([m,id])=>LS("bs_n_"+m,$(id).checked));
-if(!tok||!/^[\w.-]+\/[\w.-]+$/.test(repo)){nManual(text,repo,tok?"آدرس ریپو درست نیست (مثل user/repo).":"");return}
-$("nSave").disabled=true;nShow("در حال ذخیره روی GitHub…");
-try{const api=`https://api.github.com/repos/${repo}/contents/ntfy-config.json`,HD={Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","Content-Type":"application/json"};let sha;
-const g=await fetch(api,{headers:HD,cache:"no-store"});if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error(g.status===401?"token نامعتبر است":g.status===403?"token مجوز Contents: Read and write ندارد":"خطای "+g.status);
-const p=await fetch(api,{method:"PUT",headers:HD,body:JSON.stringify({message:"ntfy: update strategy switches",content:btoa(text),...(sha?{sha}:{})})});
-if(!p.ok)throw new Error(p.status===401?"token نامعتبر است":p.status===403||p.status===404?"دسترسی به این ریپو ممکن نیست (نام ریپو یا مجوز token رو چک کن)":p.status===409||p.status===422?"تداخل نسخه؛ یک بار دیگر ذخیره کن":"خطای "+p.status);
-nShow("✓ ذخیره شد. از اجرای بعدی اسکن پس‌زمینه (حداکثر چند دقیقه) اعمال می‌شه.","ok")}
-catch(e){nManual(text,repo,"⚠ ذخیره‌ی خودکار انجام نشد: "+(e&&e.message||"خطا"))}
-$("nSave").disabled=false}
-$("ghr").value=LS("bs_ghr")||repoGuess();$("ght").value=LS("bs_ght")||"";NM.forEach(([m,id])=>{const v=LS("bs_n_"+m);if(v!=null)$(id).checked=v==="true";$(id).onchange=()=>{$("nHint").textContent="تغییر ذخیره نشده - «ذخیره روی سرور» را بزن"}});
-$("nSave").onclick=nSave;nLoad();
 $("ver").textContent="v"+BUILD;$("verl").textContent="نسخه‌ی فعلی: v"+BUILD;
 
 if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {

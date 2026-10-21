@@ -1,4 +1,4 @@
-// Background scanner for GitHub Actions: scans all symbols, sends ntfy.sh push alerts.
+// Background scanner for GitHub Actions: scans all symbols, sends Telegram alerts.
 const fs = require("fs"),
   { evaluate, dropForming } = require("./engine.js"),
   { U } = require("./symbols.js"),

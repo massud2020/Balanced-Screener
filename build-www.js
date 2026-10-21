@@ -20,7 +20,6 @@ const FILES = [
   "icon-192.png",
   "icon-512.png",
   "alerts.json",
-  "ntfy-config.json"
 ];
 
 console.log("📦 آماده‌سازی پوشه www/ ...");

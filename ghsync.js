@@ -1,4 +1,4 @@
-// Tiny GitHub Contents API helper (browser). Used to save alerts.json / ntfy-config.json to the repo.
+// Tiny GitHub Contents API helper (browser). Used to save alerts.json to the repo.
 const b64e=s=>btoa(unescape(encodeURIComponent(s))),b64d=s=>decodeURIComponent(escape(atob(String(s).replace(/\s/g,""))));
 const ghErr=s=>s===401?"token نامعتبر است":s===403?"token مجوز Contents: Read and write ندارد":s===404?"ریپو پیدا نشد (نام ریپو را چک کن)":s===409||s===422?"تداخل نسخه؛ یک بار دیگر امتحان کن":"خطای "+s;
 async function ghGet(path,repo,tok){const r=await fetch(`https://api.github.com/repos/${repo}/contents/${path}`,{headers:{Authorization:"Bearer "+tok,Accept:"application/vnd.github+json"},cache:"no-store"});if(r.status===404)return null;if(!r.ok)throw new Error(ghErr(r.status));const j=await r.json();return{text:b64d(j.content),sha:j.sha}}
