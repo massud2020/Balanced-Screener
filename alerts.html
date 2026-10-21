@@ -128,7 +128,7 @@ else{a.from=$("ff")?$("ff").value||"":"";a.to=$("fto")?$("fto").value||"":"";
 if(a.type==="every"){a.price=undefined;a.every=Math.round(+norm($("fev").value))||0}
 else{a.price=parseFloat(norm($("fp").value));a.repeat=$("fr").value;a.cool=Math.max(1,Math.round(+norm($("fc").value)||60))}}}
 function warn(){const w=$("warn");if(!w||edit.type!=="every")return;const n=+norm(($("fev")||{}).value)||edit.every,tmp={every:n,from:($("ff")||{}).value,to:($("fto")||{}).value},d=AL.perDay(tmp);
-w.innerHTML=d>150?`⚠ با این تنظیم حدود <b>${fa(d)}</b> پیام در روز می‌آید. ممکنه سرویس رایگان ntfy.sh سقف روزانه‌ی پیام (حدود ۲۵۰) داشته باشه؛ بازه‌ی ساعتی کوتاه‌تر یا فاصله‌ی بیشتر انتخاب کن.`:`حدود ${fa(d)} پیام در روز`;w.style.color=d>150?"#ffb020":""}
+w.innerHTML=d>150?`⚠ با این تنظیم حدود <b>${fa(d)}</b> پیام در روز می‌آید. ارسال این تعداد پیام روی تلگرام محدودیتی ندارد، اما ممکن است اعلان‌ها زیاد شود. می‌توانید فاصله زمانی بیشتری انتخاب کنید.`:`حدود ${fa(d)} پیام در روز`;w.style.color=d>150?"#ffb020":""}
 
 function setupSymAutocomplete() {
     const fsInput = document.getElementById('fs');
