@@ -30,6 +30,9 @@ jobs:
       - name: Build www folder
         run: node build-www.js
 
+      - name: Generate Android Icons
+        run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11'
+
       - name: Add Capacitor Android platform
         run: npx cap add android
 
