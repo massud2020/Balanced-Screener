@@ -62,7 +62,7 @@ button.p{background:linear-gradient(120deg,#c98a12,#f2b53b);border:none;color:#1
   <label>ریپازیتوری GitHub (user/repo)<input class="in" id="ghr" placeholder="user/repo" value="massud2020/Balanced-Screener" autocomplete="off"></label>
   <label>GitHub token (اختیاری، برای ذخیره‌ی خودکار)<input class="in" id="ght" type="password" placeholder="github_pat_…" autocomplete="off"></label>
   <label>منطقه‌ی زمانی ساعت‌ها<input class="in" id="tz" placeholder="Asia/Tehran" autocomplete="off"></label>
-  <div class="btns"><button id="push">ذخیره روی سرور</button><button id="pull">دریافت از سرور</button></div>
+  <div class="btns"><button id="push" style="display:none">ذخیره روی سرور</button><span style="color:var(--gb);font-size:13px;font-weight:bold;display:flex;align-items:center;gap:5px">✓ ذخیره خودکار فعال است</span><button id="pull">دریافت از سرور</button></div>
   <div class="sy" id="sy"></div>
 </section>
 
@@ -150,7 +150,10 @@ try{if(tok&&slug(repo)){const g=await ghGet("alerts.json",repo,tok);txt=g&&g.tex
 if(!txt){toast("فایل alerts.json روی سرور نیست",true);return}const c=JSON.parse(txt);if(!Array.isArray(c.alerts))throw new Error("قالب فایل درست نیست");cfg.alerts=c.alerts;if(c.tz){cfg.tz=c.tz;$("tz").value=c.tz}persist();toast("از سرور دریافت شد ✓")}catch(e){toast("دریافت ناموفق: "+(e&&e.message||"خطا"),true)}}
 $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persist;
 /* ---- init ---- */
-(async()=>{$("syms").innerHTML=U.map(u=>`<option value="${u[0]}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";$("tz").value=cfg.tz;
+(async()=>{$("syms").innerHTML=U.map(u=>`<option value="${u[0]}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
+   $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());};
+   $("ghr").oninput=()=>{LS("bs_ghr",$("ghr").value.trim());};$("tz").value=cfg.tz;
+if(LS("bs_ght") && LS("bs_ghr")) autoSync();
 if(!cfg.alerts.length&&LS("bs_alerts")==null){try{const r=await fetch("alerts.json?"+Date.now(),{cache:"no-store"});if(r.ok){const c=await r.json();if(Array.isArray(c.alerts)&&c.alerts.length){cfg.alerts=c.alerts;if(c.tz)cfg.tz=c.tz;$("tz").value=cfg.tz;LS("bs_alerts",JSON.stringify({tz:cfg.tz,alerts:cfg.alerts}))}}}catch(e){}}
 render();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
 </script>
