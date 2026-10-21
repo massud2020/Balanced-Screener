@@ -49,6 +49,16 @@ button.p{background:linear-gradient(120deg,#c98a12,#f2b53b);border:none;color:#1
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+
+<style id="sym-css">
+.sym-wrap { position: relative; width: 100%; }
+.sym-drop { display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--card2); border: 1px solid var(--bd); border-radius: 10px; z-index: 1000; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+.sym-drop.on { display: block; }
+.sym-item { padding: 10px 12px; font-size: 14px; direction: ltr; text-align: right; cursor: pointer; border-bottom: 1px solid var(--bd2); color: var(--tx); }
+.sym-item:last-child { border-bottom: none; }
+.sym-item:hover, .sym-item:active { background: var(--bd); }
+</style>
+
 </head>
 <body>
 <header class="bar"><div class="brand"><i>🔔</i><div>هشدار قیمت</div></div><a class="btn" href="index.html">← اسکرینر</a></header>
@@ -100,7 +110,7 @@ function openForm(a){edit=a?JSON.parse(JSON.stringify(a)):{id:"a"+Date.now().toS
 function closeForm(){$("sh").classList.remove("on");document.body.style.overflow=""}
 function draw(){const a=edit,time=a.type==="time",every=a.type==="every",price=!time&&!every;
 $("sheet").innerHTML=`<h2>${a._new?"هشدار جدید":"ویرایش هشدار"}</h2>
-<label class="fld">نماد (قابل تایپ)<input id="fs" value="${a.sym}" placeholder="مثلاً BTCUSDT یا EURUSD یا AAPL" autocomplete="off" autocapitalize="characters"></label>
+<label class="fld">نماد (تایپ یا انتخاب از لیست)<div class="sym-wrap"><input id="fs" value="${a.sym}" placeholder="مثلاً BTCUSDT" autocomplete="off" autocapitalize="characters" style="width:100%;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:0 12px;min-height:44px;font-size:15px;direction:ltr;text-align:right"><div id="symDrop" class="sym-drop"></div></div></label>
 <div class="seg" id="ft">${[["above","▲ بالاتر"],["below","▼ پایین‌تر"],["every","⏱ دوره‌ای"],["time","🕘 ساعت"]].map(([v,t])=>`<button data-v="${v}" class="${a.type===v?"on":""}">${t}</button>`).join("")}</div>
 ${price?`<label class="fld">قیمت هدف<input id="fp" inputmode="decimal" value="${a.price}" placeholder="مثلاً 68000"></label><div class="cur" id="cur"><span>قیمت فعلی: <b id="cv">—</b></span><button id="cgo" type="button">دریافت</button><span id="cq"></span></div>`:""}
 ${every?`<div class="fld">هر چند دقیقه قیمت برایم ارسال شود؟<div class="chips" id="fe2">${EVERY.map(n=>`<button data-n="${n}" class="${a.every===n?"on":""}">${n>=60?fa(n/60)+" ساعت":fa(n)+" دقیقه"}</button>`).join("")}</div><div class="row2" style="margin-top:8px"><input id="fev" inputmode="numeric" value="${a.every}" aria-label="دقیقه"><span class="hint" style="align-self:center">دقیقه (۱ تا ۱۴۴۰)</span></div></div><div class="hint" id="warn" style="margin-top:8px"></div>`:""}
@@ -111,7 +121,7 @@ ${time?"":`<div class="row2"><label class="fld" style="margin-top:0">از ساع
 ${price?`<div class="row2"><label class="fld">تکرار<select id="fr"><option value="once" ${a.repeat!=="cool"?"selected":""}>فقط یک‌بار</option><option value="cool" ${a.repeat==="cool"?"selected":""}>تکرار با فاصله</option></select></label><label class="fld">فاصله‌ی تکرار (دقیقه)<input id="fc" inputmode="numeric" value="${a.cool||60}"></label></div>`:""}
 <label class="fld">یادداشت (اختیاری)<textarea id="fn" maxlength="120" placeholder="مثلاً حمایت هفتگی">${(a.note||"").replace(/</g,"&lt;")}</textarea></label>
 <div class="err" id="fe"></div><div class="btns"><button class="p" id="fsave">ذخیره</button><button id="fcancel">انصراف</button></div>`;
-bind();warn()}
+bind();warn();setupSymAutocomplete();}
 function readForm(){const a=edit;a.sym=($("fs").value||"").trim().toUpperCase();a.note=($("fn").value||"").trim();
 if(a.type==="time"){a.price=undefined;a.from=a.to=undefined}
 else{a.from=$("ff")?$("ff").value||"":"";a.to=$("fto")?$("fto").value||"":"";
@@ -119,6 +129,52 @@ if(a.type==="every"){a.price=undefined;a.every=Math.round(+norm($("fev").value))
 else{a.price=parseFloat(norm($("fp").value));a.repeat=$("fr").value;a.cool=Math.max(1,Math.round(+norm($("fc").value)||60))}}}
 function warn(){const w=$("warn");if(!w||edit.type!=="every")return;const n=+norm(($("fev")||{}).value)||edit.every,tmp={every:n,from:($("ff")||{}).value,to:($("fto")||{}).value},d=AL.perDay(tmp);
 w.innerHTML=d>150?`⚠ با این تنظیم حدود <b>${fa(d)}</b> پیام در روز می‌آید. ممکنه سرویس رایگان ntfy.sh سقف روزانه‌ی پیام (حدود ۲۵۰) داشته باشه؛ بازه‌ی ساعتی کوتاه‌تر یا فاصله‌ی بیشتر انتخاب کن.`:`حدود ${fa(d)} پیام در روز`;w.style.color=d>150?"#ffb020":""}
+
+function setupSymAutocomplete() {
+    const fsInput = document.getElementById('fs');
+    const drop = document.getElementById('symDrop');
+    if (!fsInput || !drop) return;
+
+    const getSyms = () => {
+        let custom = [];
+        try { custom = JSON.parse(LS('bs_custom_syms') || '[]'); } catch(e) {}
+        const base = U ? U.map(u => u[0]) : [];
+        return [...new Set([...base, ...custom])];
+    };
+
+    const renderDrop = (val) => {
+        const ft = val.toUpperCase().trim();
+        const all = getSyms();
+        let filtered = all.filter(s => s.includes(ft));
+        
+        if (ft && !all.includes(ft)) {
+            filtered.unshift(ft); 
+        }
+
+        if (filtered.length === 0) {
+            drop.innerHTML = '<div class="sym-item" style="color:var(--mu);text-align:center;cursor:default">نماد جدید (قابل ثبت)</div>';
+        } else {
+            drop.innerHTML = filtered.map(s => `<div class="sym-item" data-v="${s}">${s}</div>`).join('');
+        }
+    };
+
+    fsInput.onfocus = () => { drop.classList.add('on'); renderDrop(fsInput.value); };
+    fsInput.oninput = () => { drop.classList.add('on'); renderDrop(fsInput.value); };
+    
+    drop.onclick = (e) => {
+        const item = e.target.closest('.sym-item');
+        if (item && item.dataset.v) {
+            fsInput.value = item.dataset.v;
+            drop.classList.remove('on');
+            fsInput.dispatchEvent(new Event('change')); // دریافت قیمت لحظه‌ای
+        }
+    };
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sym-wrap')) drop.classList.remove('on');
+    });
+}
+
 function bind(){
          $("fcancel").onclick=closeForm;
          setTimeout(()=>{
