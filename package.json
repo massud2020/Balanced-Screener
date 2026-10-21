@@ -12,6 +12,7 @@
     "android": "npm run build:www && npm run cap:sync"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.1.2",
     "jest": "^29.7.0"
   },
