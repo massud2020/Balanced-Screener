@@ -100,7 +100,7 @@ function openForm(a){edit=a?JSON.parse(JSON.stringify(a)):{id:"a"+Date.now().toS
 function closeForm(){$("sh").classList.remove("on");document.body.style.overflow=""}
 function draw(){const a=edit,time=a.type==="time",every=a.type==="every",price=!time&&!every;
 $("sheet").innerHTML=`<h2>${a._new?"هشدار جدید":"ویرایش هشدار"}</h2>
-<label class="fld">نماد<input id="fs" list="syms" value="${a.sym}" placeholder="مثلاً BTCUSDT یا EURUSD یا AAPL" autocomplete="off" autocapitalize="characters"></label>
+<label class="fld">نماد (قابل تایپ)<input id="fs" list="syms" value="${a.sym}" placeholder="مثلاً BTCUSDT یا EURUSD یا AAPL" autocomplete="off" autocapitalize="characters"></label>
 <div class="seg" id="ft">${[["above","▲ بالاتر"],["below","▼ پایین‌تر"],["every","⏱ دوره‌ای"],["time","🕘 ساعت"]].map(([v,t])=>`<button data-v="${v}" class="${a.type===v?"on":""}">${t}</button>`).join("")}</div>
 ${price?`<label class="fld">قیمت هدف<input id="fp" inputmode="decimal" value="${a.price}" placeholder="مثلاً 68000"></label><div class="cur" id="cur"><span>قیمت فعلی: <b id="cv">—</b></span><button id="cgo" type="button">دریافت</button><span id="cq"></span></div>`:""}
 ${every?`<div class="fld">هر چند دقیقه قیمت برایم ارسال شود؟<div class="chips" id="fe2">${EVERY.map(n=>`<button data-n="${n}" class="${a.every===n?"on":""}">${n>=60?fa(n/60)+" ساعت":fa(n)+" دقیقه"}</button>`).join("")}</div><div class="row2" style="margin-top:8px"><input id="fev" inputmode="numeric" value="${a.every}" aria-label="دقیقه"><span class="hint" style="align-self:center">دقیقه (۱ تا ۱۴۴۰)</span></div></div><div class="hint" id="warn" style="margin-top:8px"></div>`:""}
@@ -119,7 +119,25 @@ if(a.type==="every"){a.price=undefined;a.every=Math.round(+norm($("fev").value))
 else{a.price=parseFloat(norm($("fp").value));a.repeat=$("fr").value;a.cool=Math.max(1,Math.round(+norm($("fc").value)||60))}}}
 function warn(){const w=$("warn");if(!w||edit.type!=="every")return;const n=+norm(($("fev")||{}).value)||edit.every,tmp={every:n,from:($("ff")||{}).value,to:($("fto")||{}).value},d=AL.perDay(tmp);
 w.innerHTML=d>150?`⚠ با این تنظیم حدود <b>${fa(d)}</b> پیام در روز می‌آید. ممکنه سرویس رایگان ntfy.sh سقف روزانه‌ی پیام (حدود ۲۵۰) داشته باشه؛ بازه‌ی ساعتی کوتاه‌تر یا فاصله‌ی بیشتر انتخاب کن.`:`حدود ${fa(d)} پیام در روز`;w.style.color=d>150?"#ffb020":""}
-function bind(){$("fcancel").onclick=closeForm;
+function bind(){
+         $("fcancel").onclick=closeForm;
+         setTimeout(()=>{
+             const fsInput = document.getElementById('fs');
+             if(fsInput){
+                 fsInput.addEventListener('change', () => {
+                     const sym = fsInput.value.trim().toUpperCase();
+                     if(sym){
+                         let cSyms = JSON.parse(LS('bs_custom_syms') || '[]');
+                         if(!cSyms.includes(sym) && !U.find(u=>u[0]===sym)){
+                             cSyms.push(sym);
+                             LS('bs_custom_syms', JSON.stringify(cSyms));
+                             const symsList = document.getElementById('syms');
+                             if(symsList) symsList.innerHTML += `<option value="${sym}">`;
+                         }
+                     }
+                 });
+             }
+         }, 100);
 $("ft").onclick=e=>{const b=e.target.closest("button");if(!b)return;readForm();edit.type=b.dataset.v;draw()};
 $("fd").onclick=e=>{const b=e.target.closest("button");if(!b)return;const v=+b.dataset.d,i=edit.days.indexOf(v);i>=0?edit.days.splice(i,1):edit.days.push(v);b.classList.toggle("on")};
 if(edit.type==="time"){$("fadd").onclick=()=>{const t=$("fnt").value;if(!t)return;if(!edit.at.includes(t))edit.at.push(t);edit.at.sort();readForm();draw()};$("fa").onclick=e=>{const b=e.target.closest("button[data-r]");if(b){edit.at=edit.at.filter(x=>x!==b.dataset.r);readForm();draw()}}}
@@ -150,7 +168,9 @@ try{if(tok&&slug(repo)){const g=await ghGet("alerts.json",repo,tok);txt=g&&g.tex
 if(!txt){toast("فایل alerts.json روی سرور نیست",true);return}const c=JSON.parse(txt);if(!Array.isArray(c.alerts))throw new Error("قالب فایل درست نیست");cfg.alerts=c.alerts;if(c.tz){cfg.tz=c.tz;$("tz").value=c.tz}persist();toast("از سرور دریافت شد ✓")}catch(e){toast("دریافت ناموفق: "+(e&&e.message||"خطا"),true)}}
 $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persist;
 /* ---- init ---- */
-(async()=>{$("syms").innerHTML=U.map(u=>`<option value="${u[0]}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
+(async()=>{$("syms").innerHTML=U.map(u=>`<option value="${u[0]}">`).join("");
+         const cSyms = JSON.parse(LS('bs_custom_syms') || '[]');
+         $("syms").innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
    $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());};
    $("ghr").oninput=()=>{LS("bs_ghr",$("ghr").value.trim());};$("tz").value=cfg.tz;
 if(LS("bs_ght") && LS("bs_ghr")) autoSync();
