@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#121b16" />
-      <stop offset="100%" stop-color="#0b0d11" />
-    </radialGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="12" result="blur" />
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur2" />
       <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="blur" />
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
+    <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e232a" />
+      <stop offset="100%" stop-color="#0b0d11" />
+    </radialGradient>
   </defs>
-  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
-  <g filter="url(#glow)">
-    <line x1="260" y1="400" x2="260" y2="740" stroke="#35e07b" stroke-width="24" stroke-linecap="round"/>
-    <rect x="210" y="500" width="100" height="160" rx="16" fill="#35e07b"/>
+  <rect width="1024" height="1024" rx="200" fill="url(#bg-grad)"/>
+  <g filter="url(#neon-glow)">
+    <line x1="280" y1="460" x2="280" y2="780" stroke="#35e07b" stroke-width="20" stroke-linecap="round"/>
+    <rect x="230" y="540" width="100" height="160" rx="20" fill="#35e07b"/>
   </g>
-  <g filter="url(#glow)">
-    <line x1="510" y1="320" x2="510" y2="680" stroke="#ff3b3b" stroke-width="24" stroke-linecap="round"/>
-    <rect x="460" y="400" width="100" height="180" rx="16" fill="#ff3b3b"/>
+  <g filter="url(#neon-glow)">
+    <line x1="512" y1="360" x2="512" y2="680" stroke="#ff5252" stroke-width="20" stroke-linecap="round"/>
+    <rect x="462" y="420" width="100" height="180" rx="20" fill="#ff5252"/>
   </g>
-  <g filter="url(#glow)">
-    <line x1="760" y1="240" x2="760" y2="600" stroke="#35e07b" stroke-width="24" stroke-linecap="round"/>
-    <rect x="710" y="320" width="100" height="200" rx="16" fill="#35e07b"/>
+  <g filter="url(#neon-glow)">
+    <line x1="744" y1="240" x2="744" y2="580" stroke="#35e07b" stroke-width="20" stroke-linecap="round"/>
+    <rect x="694" y="320" width="100" height="180" rx="20" fill="#35e07b"/>
   </g>
-  <path d="M 100 720 C 250 720, 320 540, 420 520 C 500 500, 500 460, 600 440 C 700 420, 750 340, 924 320" 
-        fill="none" stroke="#ff6ec7" stroke-width="28" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M 120 720 Q 300 650 400 540 T 620 460 T 900 340" fill="none" stroke="#ff6ec7" stroke-width="26" stroke-linecap="round" filter="url(#neon-glow)"/>
 </svg>
