@@ -154,4 +154,16 @@ $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persis
 if(!cfg.alerts.length&&LS("bs_alerts")==null){try{const r=await fetch("alerts.json?"+Date.now(),{cache:"no-store"});if(r.ok){const c=await r.json();if(Array.isArray(c.alerts)&&c.alerts.length){cfg.alerts=c.alerts;if(c.tz)cfg.tz=c.tz;$("tz").value=cfg.tz;LS("bs_alerts",JSON.stringify({tz:cfg.tz,alerts:cfg.alerts}))}}}catch(e){}}
 render();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const ghr = document.getElementById('ghr');
+        if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
+            ghr.value = 'massud2020/Balanced-Screener';
+        }
+    }, 500);
+});
+</script>
+
 </body></html>
