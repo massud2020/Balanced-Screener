@@ -68,7 +68,7 @@ button.p{background:linear-gradient(120deg,#c98a12,#f2b53b);border:none;color:#1
 
 <div id="sh"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
-<datalist id="syms"></datalist>
+
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=34"></script><script src="ghsync.js?v=34"></script>
 <script>
 const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
@@ -100,7 +100,7 @@ function openForm(a){edit=a?JSON.parse(JSON.stringify(a)):{id:"a"+Date.now().toS
 function closeForm(){$("sh").classList.remove("on");document.body.style.overflow=""}
 function draw(){const a=edit,time=a.type==="time",every=a.type==="every",price=!time&&!every;
 $("sheet").innerHTML=`<h2>${a._new?"هشدار جدید":"ویرایش هشدار"}</h2>
-<label class="fld">نماد (قابل تایپ)<input id="fs" list="syms" value="${a.sym}" placeholder="مثلاً BTCUSDT یا EURUSD یا AAPL" autocomplete="off" autocapitalize="characters"></label>
+<label class="fld">نماد (قابل تایپ)<input id="fs" value="${a.sym}" placeholder="مثلاً BTCUSDT یا EURUSD یا AAPL" autocomplete="off" autocapitalize="characters"></label>
 <div class="seg" id="ft">${[["above","▲ بالاتر"],["below","▼ پایین‌تر"],["every","⏱ دوره‌ای"],["time","🕘 ساعت"]].map(([v,t])=>`<button data-v="${v}" class="${a.type===v?"on":""}">${t}</button>`).join("")}</div>
 ${price?`<label class="fld">قیمت هدف<input id="fp" inputmode="decimal" value="${a.price}" placeholder="مثلاً 68000"></label><div class="cur" id="cur"><span>قیمت فعلی: <b id="cv">—</b></span><button id="cgo" type="button">دریافت</button><span id="cq"></span></div>`:""}
 ${every?`<div class="fld">هر چند دقیقه قیمت برایم ارسال شود؟<div class="chips" id="fe2">${EVERY.map(n=>`<button data-n="${n}" class="${a.every===n?"on":""}">${n>=60?fa(n/60)+" ساعت":fa(n)+" دقیقه"}</button>`).join("")}</div><div class="row2" style="margin-top:8px"><input id="fev" inputmode="numeric" value="${a.every}" aria-label="دقیقه"><span class="hint" style="align-self:center">دقیقه (۱ تا ۱۴۴۰)</span></div></div><div class="hint" id="warn" style="margin-top:8px"></div>`:""}
@@ -168,7 +168,7 @@ try{if(tok&&slug(repo)){const g=await ghGet("alerts.json",repo,tok);txt=g&&g.tex
 if(!txt){toast("فایل alerts.json روی سرور نیست",true);return}const c=JSON.parse(txt);if(!Array.isArray(c.alerts))throw new Error("قالب فایل درست نیست");cfg.alerts=c.alerts;if(c.tz){cfg.tz=c.tz;$("tz").value=c.tz}persist();toast("از سرور دریافت شد ✓")}catch(e){toast("دریافت ناموفق: "+(e&&e.message||"خطا"),true)}}
 $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persist;
 /* ---- init ---- */
-(async()=>{$("syms").innerHTML=U.map(u=>`<option value="${u[0]}">`).join("");
+(async()=>{
          const cSyms = JSON.parse(LS('bs_custom_syms') || '[]');
          $("syms").innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
    $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());};
