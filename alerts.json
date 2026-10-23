@@ -2,12 +2,26 @@
   "tz": "Asia/Tehran",
   "alerts": [
     {
-      "id": "amvbr6kda",
+      "id": "amvidvjzw",
       "sym": "BTCUSDT",
+      "type": "every",
+      "on": true,
+      "every": 5
+    },
+    {
+      "id": "amvidvxpe",
+      "sym": "ETHUSDT",
+      "type": "every",
+      "on": true,
+      "every": 5
+    },
+    {
+      "id": "amvidwgt6",
+      "sym": "FETUSDT",
       "type": "every",
       "on": true,
       "every": 5
     }
   ],
-  "updated": "2026-10-21T09:27:10.274Z"
+  "updated": "2026-10-21T17:27:10.032Z"
 }
