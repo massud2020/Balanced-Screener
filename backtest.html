@@ -1,4 +1,184 @@
-<script src="engine.js?v=35"></script><script src="btengine.js?v=35"></script>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0b0d11">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>بک‌تست · Screener</title>
+<style>
+:root{--bg:#0b0d11;--card:#12151b;--card2:#171b22;--bd:#232830;--bd2:#1b1f27;--tx:#e6e9ee;--tx2:#a7aebb;--mu:#78808d;--g:#2e9a69;--gb:#46c58c;--gd:rgba(47,157,104,.14);--r:#d4524c;--rb:#e8736d;--rs:12px;--rad:16px;--font:"Segoe UI",system-ui,-apple-system,sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.6 var(--font);min-height:100dvh;padding:0 14px calc(env(safe-area-inset-bottom) + 40px);-webkit-font-smoothing:antialiased}
+bdi{unicode-bidi:isolate}
+button,select,input{font:inherit;color:var(--tx)}
+button,a.btn{color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);padding:0 14px;min-height:44px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s}
+button:active{transform:scale(.97)}button:disabled{opacity:.5}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
+.bar{position:sticky;top:0;z-index:20;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,11,14,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px}.brand i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));font-style:normal;font-size:15px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;margin-top:14px}
+h2{font-size:15px;margin-bottom:6px}h3{font-size:12px;color:var(--mu);font-weight:600;margin:14px 0 4px;letter-spacing:.03em}
+.stg{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--bd2);border-radius:12px;padding:10px 12px}.stg .od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd)}.stg b{font-size:14px}.stg small{color:var(--mu);font-size:11.5px}
+.hint{color:var(--mu);font-size:12.5px;line-height:1.8}
+.drop{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;border:1.5px dashed #2c4a3a;border-radius:var(--rs);padding:18px 12px;margin-top:10px;cursor:pointer;background:rgba(61,202,133,.04)}.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}.drop b{color:var(--gb)}.drop span{color:var(--mu);font-size:12px}
+.ds{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--bd2)}.ds:first-child{border-top:none}
+.ds .nm{flex:1;min-width:0}.ds .nm b{direction:ltr;display:inline-block}.ds .nm small{display:block;color:var(--mu);font-size:11.5px;direction:ltr;text-align:right}
+.ds button{min-height:34px;padding:0 10px;font-size:13px;color:var(--rb)}
+.msg{font-size:12.5px;margin-top:8px;color:var(--tx2)}.msg.err{color:var(--rb)}.msg.ok{color:var(--gb)}
+details.guide{margin-top:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:0 12px}
+details.guide summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--tx2);font-size:13.5px}
+details.guide ol,details.guide ul{margin:0 18px 10px 0;color:var(--tx2);font-size:13px;line-height:1.9}
+details.guide code{direction:ltr;unicode-bidi:isolate;background:var(--bg);border:1px solid var(--bd2);border-radius:6px;padding:1px 6px;font-size:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mu)}
+.fld input,.fld select{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:0 11px;min-height:42px;font-size:14px;color:var(--tx);direction:ltr;text-align:right;width:100%}
+.sw{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:46px;border-bottom:1px solid var(--bd2);font-size:14px;color:var(--tx2)}.sw:last-child{border-bottom:none}
+.sw small{display:block;color:var(--mu);font-size:11.5px}
+.sw input{-webkit-appearance:none;appearance:none;flex:none;width:44px;height:26px;border-radius:99px;background:#2a2e37;position:relative;cursor:pointer;transition:background .2s}
+.sw input::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;background:#cfd3da;transition:inset-inline-start .2s}
+.sw input:checked{background:var(--g)}.sw input:checked::after{inset-inline-start:21px;background:#fff}
+button.p{position:relative;overflow:hidden;background:linear-gradient(120deg,#1f8f5f 0%,#33b57f 48%,#2aa9a0 100%);border:none;color:#fff;font-weight:800;width:100%;min-height:54px;font-size:15.5px;margin-top:14px;letter-spacing:.01em;box-shadow:0 6px 22px rgba(51,181,127,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+button.p::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-120%);animation:sheen 3.8s ease-in-out infinite}
+button.p:disabled::after{animation:none;opacity:0}
+@keyframes sheen{60%,100%{transform:translateX(120%)}}
+.prog{display:none;margin-top:12px}.prog.on{display:block}
+.pb{height:6px;border-radius:99px;background:#1a1d24;overflow:hidden;margin-top:8px}.pb u{display:block;height:100%;width:0;background:linear-gradient(90deg,#2a8f5c,var(--gb));transition:width .2s}
+.pt{display:flex;justify-content:space-between;font-size:12.5px;color:var(--tx2);gap:8px}
+.sc{border:1px solid var(--bd);border-radius:var(--rad);background:var(--card);padding:14px;margin-top:14px;position:relative;overflow:hidden}
+.sc::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--c)}
+.sc h4{font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px}.sc h4 small{font-size:11.5px;color:var(--mu);font-weight:500}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;direction:ltr}
+.kv div{background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:7px 9px;min-width:0}
+.kv i{display:block;font-style:normal;font-size:10.5px;color:var(--mu);letter-spacing:.04em;text-transform:uppercase;direction:rtl;text-align:right}
+.kv b{display:block;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}.pos{color:var(--gb)}.neg{color:var(--rb)}
+.split{margin-top:10px;font-size:12px;color:var(--tx2);display:grid;gap:4px}.split div{display:flex;justify-content:space-between;gap:8px;background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:6px 10px}
+.warn{margin-top:10px;font-size:12px;color:#ffb020;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.25);border-radius:10px;padding:7px 10px}
+canvas{width:100%;border-radius:var(--rad);display:block;border:1px solid var(--bd)}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--mu)}.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px;background:var(--c)}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--bd2);border-radius:99px;padding:3px;margin:12px 0 4px}.seg button{border:none;background:transparent;min-height:34px;border-radius:99px;font-size:12.5px;padding:0 13px;color:var(--mu)}.seg button.on{background:var(--card2);color:var(--tx)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;direction:ltr;margin-top:8px}th,td{padding:7px 6px;border-bottom:1px solid var(--bd2);text-align:right;white-space:nowrap}th{color:var(--mu);font-weight:600;font-size:11px;text-transform:uppercase}
+.tw{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.note{margin-top:16px;font-size:12px;color:var(--mu);line-height:1.9;border-top:1px solid var(--bd2);padding-top:12px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.m{position:relative;border:1px solid var(--bd2);border-radius:14px;padding:10px 11px;background:var(--bg);min-width:0;overflow:hidden}
+.m .mh{display:flex;align-items:center;gap:6px;color:var(--mu)}.m .mh i{font-style:normal;font-size:11.5px;line-height:1.3}
+.m .ic{width:16px;height:16px;flex:none}
+.m b{display:block;margin-top:6px;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;text-align:right}
+.m.big b{font-size:25px;letter-spacing:-.01em;margin-top:8px}
+.m .sub{display:block;font-size:11.5px;color:var(--tx2);margin-top:2px;direction:ltr;text-align:right}
+.m .pbar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);margin-top:9px;overflow:hidden;direction:ltr}.m .pbar u{display:block;height:100%;background:currentColor;border-radius:99px}
+.t-pos{background:linear-gradient(135deg,rgba(70,197,140,.20),rgba(70,197,140,.04) 75%),var(--bg);border-color:rgba(70,197,140,.32)}.t-pos .mh{color:#7fdcb1}.t-pos b,.t-pos .pbar{color:var(--gb)}
+.t-neg{background:linear-gradient(135deg,rgba(232,115,109,.20),rgba(232,115,109,.04) 75%),var(--bg);border-color:rgba(232,115,109,.32)}.t-neg .mh{color:#f0a09b}.t-neg b,.t-neg .pbar{color:var(--rb)}
+.t-warn{background:linear-gradient(135deg,rgba(255,176,32,.17),rgba(255,176,32,.04) 75%),var(--bg);border-color:rgba(255,176,32,.3)}.t-warn .mh{color:#ffc766}.t-warn b,.t-warn .pbar{color:#ffb020}
+.t-soft{background:linear-gradient(135deg,rgba(232,115,109,.09),rgba(232,115,109,.01) 75%),var(--bg);border-color:rgba(232,115,109,.18)}.t-soft b{color:var(--rb)}
+.sy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.sy{border:1px solid var(--bd2);border-radius:14px;padding:10px 11px;background:var(--bg);min-width:0}.sy.w{border-color:rgba(70,197,140,.3);background:linear-gradient(135deg,rgba(70,197,140,.09),transparent 70%),var(--bg)}.sy.l{border-color:rgba(232,115,109,.28);background:linear-gradient(135deg,rgba(232,115,109,.09),transparent 70%),var(--bg)}
+.sy .sh{display:flex;justify-content:space-between;align-items:baseline;gap:6px}.sy .sh b{direction:ltr}.sy .sh span{color:var(--mu);font-size:11px}
+.sy .sg{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-top:8px;direction:ltr}.sy .sg i{display:block;font-style:normal;font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}.sy .sg b{font-size:13px;font-variant-numeric:tabular-nums}
+.th2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
+.seg.sm{margin:0}.seg.sm button{min-height:30px;font-size:12px;padding:0 11px}
+.tl{display:grid;gap:10px;margin-top:10px}
+.tc{border-radius:14px;padding:11px 12px;border:1.5px solid var(--bd);background:var(--card);animation:up .22s ease both}
+.tc.w{border-color:rgba(70,197,140,.6);background:linear-gradient(135deg,rgba(70,197,140,.08),transparent 60%),var(--card)}
+.tc.l{border-color:rgba(232,115,109,.6);background:linear-gradient(135deg,rgba(232,115,109,.08),transparent 60%),var(--card)}
+.tc .th{display:flex;justify-content:space-between;align-items:center;gap:8px}.tc .tid{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.tc .tid b{direction:ltr;font-size:15px}
+.tc .tr{font-size:18px;font-variant-numeric:tabular-nums;direction:ltr}
+.chip{font-size:11px;font-weight:700;border-radius:99px;padding:2px 9px;border:1px solid var(--bd);color:var(--tx2);white-space:nowrap}
+.chip.cl{color:var(--gb);border-color:rgba(70,197,140,.35);background:rgba(70,197,140,.1)}.chip.cs{color:var(--rb);border-color:rgba(232,115,109,.35);background:rgba(232,115,109,.1)}.chip.cx{color:#ffb020;border-color:rgba(255,176,32,.35)}
+.chip.why.TP{color:var(--gb)}.chip.why.SL{color:var(--rb)}.chip.why.BE{color:#ffb020}.chip.why.RSI{color:#6db4ff}.chip.why.CLOSE{color:#ffb020}
+.tc .tg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;direction:ltr}
+.tc .tg div{background:rgba(0,0,0,.22);border-radius:10px;padding:7px 9px;min-width:0}.tc .tg i{display:block;font-style:normal;font-size:10px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}.tc .tg b{display:block;font-size:14px;font-variant-numeric:tabular-nums}.tc .tg small{display:block;color:var(--mu);font-size:10.5px;margin-top:1px}
+.tc .tf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:9px;font-size:12px;color:var(--mu);direction:ltr}
+.more{width:100%;margin-top:12px}
+.csv{width:100%;margin-top:12px;min-height:48px;transition:background .2s,border-color .2s,color .2s}
+.csv.busy{color:var(--tx2)}.csv.ok{background:rgba(70,197,140,.14);border-color:var(--gb);color:var(--gb)}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.22);border-top-color:var(--gb);border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+.chk{width:18px;height:18px;stroke-dasharray:24;stroke-dashoffset:24;animation:dr .35s .05s ease forwards}
+@keyframes sp{to{transform:rotate(360deg)}}@keyframes dr{to{stroke-dashoffset:0}}@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#toasts{position:fixed;inset-inline:0;bottom:calc(env(safe-area-inset-bottom) + 14px);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:100;pointer-events:none;padding:0 14px}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:10px;max-width:430px;background:rgba(23,27,34,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--bd);border-inline-start:4px solid var(--mu);border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.6;box-shadow:0 12px 32px rgba(0,0,0,.55);transform:translateY(18px);opacity:0;transition:transform .25s,opacity .25s;cursor:pointer}
+.toast.in{transform:none;opacity:1}.toast.success{border-inline-start-color:var(--gb)}.toast.error{border-inline-start-color:var(--rb)}.toast.info{border-inline-start-color:#4aa3ff}
+.toast .ti{flex:none;display:grid;place-items:center;width:20px;height:20px}.toast.success .ti{color:var(--gb)}.toast.error .ti{color:var(--rb)}.toast.info .ti{color:#6db4ff}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="brand"><i>📊</i><div>بک‌تست <small id="bv" style="color:var(--mu);font-size:11px;font-weight:500">v35</small></div></div><a class="btn" href="index.html">← اسکرینر</a></header>
+<section class="card">
+  <h2>۱ · داده‌ی MT5</h2>
+  <p class="hint">برای هر نماد یک فایل CSV با تایم‌فریم <bdi dir="ltr">M5</bdi> (یا <bdi dir="ltr">M1</bdi>) انتخاب کن. فایل‌ها روی همین گوشی ذخیره می‌شن و به جایی فرستاده نمی‌شن. ساعت‌ها همون ساعت سرور بروکر هستن؛ Daily Open هم با شروع روز سرور حساب می‌شه.</p>
+  <div class="drop"><b>＋ انتخاب فایل‌های CSV</b><span>چند فایل رو هم‌زمان می‌شه انتخاب کرد</span><input type="file" id="fi" multiple aria-label="انتخاب فایل‌های CSV"></div>
+  <div class="msg" id="fm"></div>
+  <div id="dl"></div>
+  <details class="guide"><summary>راهنمای گرفتن خروجی از MT5</summary>
+    <h3>روش ۱ · از خود MT5 (دسکتاپ)</h3>
+    <ol><li>توی MT5 کلید <code>Ctrl+U</code> یا منوی <code>View ‹ Symbols</code> رو بزن.</li>
+    <li>تب <code>Bars</code>، نماد و تایم‌فریم <code>M5</code> و بازه‌ی تاریخ رو انتخاب کن و <code>Request</code> بزن.</li>
+    <li>دکمه‌ی <code>Export Bars</code> رو بزن و فایل CSV رو ذخیره کن.</li>
+    <li>اگه تعداد کندل‌ها کم بود: <code>Tools ‹ Options ‹ Charts</code> و مقدار <code>Max bars in chart</code> رو روی Unlimited بذار، بعد MT5 رو ببند و باز کن.</li></ol>
+    <h3>روش ۲ · اسکریپت آماده</h3>
+    <ol><li>فایل <code>MT5_ExportBars.mq5</code> (داخل زیپ اپ) رو توی <code>MQL5/Scripts</code> بذار و توی MetaEditor کامپایل کن.</li>
+    <li>روی چارت هر نماد بندازش، یا اسم چند نماد رو با کاما توی ورودی <code>Symbols</code> بنویس.</li>
+    <li>فایل‌ها توی <code>File ‹ Open Data Folder ‹ MQL5 ‹ Files</code> ساخته می‌شن.</li></ol>
+    <h3>نکته‌ها</h3>
+    <ul><li>MT5 موبایل خروجی CSV نمی‌ده؛ از دسکتاپ استفاده کن و فایل‌ها رو به گوشی منتقل کن.</li>
+    <li>برای فیلتر H1 حداقل حدود ۳٬۰۰۰ کندل M5 (حدود ۲ هفته) لازمه؛ برای نتیجه‌ی قابل‌اتکا ۶ ماه تا ۲ سال بهتره.</li>
+    <li>قالب‌های Tab، کاما و نقطه‌ویرگول و فایل‌های UTF-16 پشتیبانی می‌شن.</li></ul>
+  </details>
+</section>
+<section class="card">
+  <h2>۲ · تنظیمات</h2>
+  <h3>استراتژی</h3>
+  <div class="stg"><span class="od"></span><b>الگوی ۳+۱</b><small>EMA21/50/200 · فیلتر M15 و H1 · خروج با واگرایی RSI</small></div>
+  <h3>خروج از معامله</h3>
+  <div class="row2">
+    <div class="fld">روش خروج<select id="ex"><option value="native">خود استراتژی</option><option value="rr">TP ثابت با RR</option></select></div>
+    <div class="fld">RR هدف (برای TP ثابت)<input id="rr" type="number" inputmode="decimal" step="0.1" min="0.5" value="2"></div>
+  </div>
+  <p class="hint" style="margin-top:6px">«خود استراتژی»: معامله با اولین واگرایی RSI (یک کندل بعد از تأیید) خارج می‌شه. SL همیشه فعاله.</p>
+  <div class="row2" style="margin-top:10px">
+    <div class="fld">حداکثر نگهداری (کندل ۵ دقیقه)<input id="mb" type="number" inputmode="numeric" min="12" value="288"></div>
+    <div class="fld">هزینه رفت‌وبرگشت (٪ قیمت)<input id="cost" type="number" inputmode="decimal" step="0.001" min="0" value="0"></div>
+  </div>
+  <div class="row2" style="margin-top:10px">
+    <div class="fld">ریسک هر معامله (٪ سرمایه)<input id="risk" type="number" inputmode="decimal" step="0.1" min="0.1" value="1"></div>
+    <div></div>
+  </div>
+  <h3>فیلترها</h3>
+  <label class="sw"><span>فیلتر M15<small>EMA21 در برابر EMA50 در ۱۵ دقیقه</small></span><input type="checkbox" id="m15" checked></label>
+  <label class="sw"><span>فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small></span><input type="checkbox" id="h1" checked></label>
+  <label class="sw"><span>H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
+  <label class="sw"><span>فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small></span><input type="checkbox" id="rsi" checked></label>
+  <div class="row2" style="margin-top:8px">
+    <div class="fld">خرید زیر<input id="rsiL" type="number" inputmode="numeric" min="1" max="99" value="40"></div>
+    <div class="fld">فروش بالای<input id="rsiS" type="number" inputmode="numeric" min="1" max="99" value="60"></div>
+  </div>
+  <h3>تعطیلی بازار و ساعت معامله</h3>
+  <label class="sw"><span>توقف در تعطیلی بازار<small>جاهایی که بین دو کندل پشت‌سرهم شکاف بزرگ هست (آخر هفته، وقفه‌ی روزانه) تعطیلی حساب می‌شه</small></span><input type="checkbox" id="mhOn" checked></label>
+  <div class="row2" style="margin-top:8px">
+    <div class="fld">حداقل طول شکاف (دقیقه)<input id="gapMin" type="number" inputmode="numeric" min="5" value="30"></div>
+    <div class="fld">معامله‌ی باز هنگام تعطیلی<select id="mhHold"><option value="close">بستن قبل از تعطیلی</option><option value="hold">نگه‌داشتن (با ریسک گپ)</option></select></div>
+  </div>
+  <div class="row2" style="margin-top:10px">
+    <div class="fld">بدون ورود بعد از بازگشایی (کندل)<input id="aOpen" type="number" inputmode="numeric" min="0" value="12"></div>
+    <div class="fld">بدون ورود قبل از تعطیلی (کندل)<input id="bClose" type="number" inputmode="numeric" min="0" value="6"></div>
+  </div>
+  <div class="row2" style="margin-top:10px">
+    <div class="fld">ساعت مجاز ورود: از (ساعت سرور)<input id="hF" type="number" inputmode="numeric" min="0" max="23" placeholder="مثلاً ۷"></div>
+    <div class="fld">تا<input id="hT" type="number" inputmode="numeric" min="0" max="24" placeholder="مثلاً ۲۰"></div>
+  </div>
+  <label class="sw" style="margin-top:6px"><span>بدون ورود در شنبه و یکشنبه<small>بر اساس تاریخ فایل MT5 (ساعت سرور)</small></span><input type="checkbox" id="noWk"></label>
+  <p class="hint">«بستن قبل از تعطیلی»: اگه تا آخرین کندل قبل از تعطیلی نه SL خورده نه TP، با قیمت همون کندل خارج می‌شه. «نگه‌داشتن»: معامله از تعطیلی رد می‌شه و گپ بازگشایی روی قیمت بازشدن حساب می‌شه. ساعت‌ها خالی بمونن یعنی بدون محدودیت. برای کریپتو (۲۴ ساعته) شکافی پیدا نمی‌شه و فقط فیلتر ساعت و شنبه/یکشنبه اثر دارن.</p>
+  <h3>بازه‌ی زمانی (اختیاری)</h3>
+  <div class="row2"><div class="fld">از تاریخ<input id="from" type="date"></div><div class="fld">تا تاریخ<input id="to" type="date"></div></div>
+</section>
+<button class="p" id="run"><span id="runT">▶ اجرای بک‌تست</span></button>
+<div class="prog" id="pg"><div class="pt"><span id="pt">…</span><button id="cn" style="min-height:30px;padding:0 10px;font-size:12px">توقف</button></div><div class="pb"><u id="pu"></u></div></div>
+<section id="res"></section>
+<div id="toasts" aria-live="polite"></div>
+<script src="engine.js?v=200"></script><script src="btengine.js?v=200"></script>
 <script>
 const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 const COL={pattern:"#4aa3ff"},NAME={pattern:"الگوی ۳+۱"};
@@ -8,7 +188,6 @@ function toast(msg,type="info",ms=3800){const w=$("toasts"),t=document.createEle
 t.innerHTML=`<span class="ti">${type==="success"?ICON.ok:type==="error"?ICON.err:ICON.inf}</span><span>${msg}</span>`;w.appendChild(t);requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add("in")));
 const rm=()=>{t.classList.remove("in");setTimeout(()=>t.remove(),260)};t.onclick=rm;setTimeout(rm,ms);while(w.children.length>3)w.firstChild.remove()}
 let tfilter="all",tshow=40,datasets=[],running=false,cancel=false,RESULT=null,viewMode=null;
-/* ---------- IndexedDB ---------- */
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open("bt",1);r.onupgradeneeded=()=>r.result.createObjectStore("ds",{keyPath:"name"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 async function dbAll(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction("ds").objectStore("ds").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}catch(e){return[]}}
 async function dbPut(v){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction("ds","readwrite");t.objectStore("ds").put(v);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){return false}return true}
@@ -22,23 +201,20 @@ try{const r=parseMT5(decodeBuf(await f.arrayBuffer()));if(r.error){errs.push(f.n
 const sym=f.name.replace(/\.[^.]+$/,"").split(/[_\s,.\-]/)[0].toUpperCase()||"SYMBOL",d={name:f.name,sym,dg:r.dg,t:Float64Array.from(r.t),o:Float64Array.from(r.o),h:Float64Array.from(r.h),l:Float64Array.from(r.l),c:Float64Array.from(r.c),on:true};
 const k=datasets.findIndex(x=>x.name===d.name);k>=0?datasets[k]=d:datasets.push(d);await dbPut({name:d.name,sym:d.sym,dg:d.dg,t:d.t,o:d.o,h:d.h,l:d.l,c:d.c});okN++}catch(x){errs.push(f.name+": "+(x&&x.message||"خطا در خواندن"))}}
 inp.value="";renderDs();msg.className="msg err";msg.innerHTML=errs.map(x=>`<div>⚠ ${x}</div>`).join("");if(okN)toast(`${fa(okN)} فایل با موفقیت اضافه شد`,"success");if(errs.length)toast(errs[0]+(errs.length>1?` (و ${fa(errs.length-1)} خطای دیگر)`:""),"error",5600)};
-/* ---------- settings persistence ---------- */
-const FIELDS=["m15","h1","h1s","mhOn","noWk"],NUMS=["ex","rr","mb","cost","risk","from","to","gapMin","mhHold","aOpen","bClose","hF","hT"];
+const FIELDS=["m15","h1","h1s","rsi","mhOn","noWk"],NUMS=["ex","rr","mb","cost","risk","rsiL","rsiS","from","to","gapMin","mhHold","aOpen","bClose","hF","hT"];
 FIELDS.forEach(i=>{const v=LS("bt_"+i);if(v!=null)$(i).checked=v==="true";$(i).onchange=()=>LS("bt_"+i,$(i).checked)});
 NUMS.forEach(i=>{const v=LS("bt_"+i);if(v!=null)$(i).value=v;$(i).onchange=()=>LS("bt_"+i,$(i).value)});
-/* ---------- Web Worker ---------- */
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function idxRange(t,from,to){let lo=0,hi=t.length-1;while(lo<t.length&&t[lo]<from)lo++;while(hi>=0&&t[hi]>to)hi--;return[lo,hi]}
 let WK=null,jobId=0;const WK_JOBS=new Map();
-function ensureWorker(){if(WK)return WK;WK=new Worker("btworker.js?v=32");
+function ensureWorker(){if(WK)return WK;WK=new Worker("btworker.js?v=200");
 WK.addEventListener("message",ev=>{const{id}=ev.data,cb=WK_JOBS.get(id);if(!cb)return;WK_JOBS.delete(id);ev.data.ok?cb.res(ev.data.trades):cb.rej(new Error(ev.data.err))});
 WK.addEventListener("error",e=>{console.error("worker error",e.message);WK_JOBS.forEach(cb=>cb.rej(new Error(e.message||"worker error")));WK_JOBS.clear();try{WK.terminate()}catch(x){}WK=null});
 return WK}
 function runInWorker(m5,S,mode,sym,O,lo,hi){return new Promise((res,rej)=>{const id=++jobId;WK_JOBS.set(id,{res,rej});ensureWorker().postMessage({id,payload:{m5,S,mode,sym,O,lo,hi}})})}
-/* ---------- run ---------- */
-const tick=()=>new Promise(r=>setTimeout(r,0));
-function idxRange(t,from,to){let lo=0,hi=t.length-1;while(lo<t.length&&t[lo]<from)lo++;while(hi>=0&&t[hi]>to)hi--;return[lo,hi]}
 async function run(){if(running)return;const sel=datasets.filter(d=>d.on),modes=["pattern"],msg=$("fm");
 if(!sel.length){toast("اول یک فایل داده‌ی MT5 اضافه و انتخاب کن","error");return}
-const hf=$("hF").value.trim(),ht=$("hT").value.trim(),O={exit:$("ex").value,rr:Math.max(.5,+$("rr").value||2),maxBars:Math.max(12,Math.round(+$("mb").value||288)),cost:Math.max(0,+$("cost").value||0),mh:{gap:$("mhOn").checked,gapMin:Math.max(5,+$("gapMin").value||30),afterOpen:Math.max(0,Math.round(+$("aOpen").value||0)),beforeClose:Math.max(0,Math.round(+$("bClose").value||0)),forceClose:$("mhHold").value==="close",hFrom:hf===""?null:Math.min(24,Math.max(0,+hf)),hTo:ht===""?null:Math.min(24,Math.max(0,+ht)),noWeekend:$("noWk").checked}},S={m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked},risk=Math.max(.1,+$("risk").value||1);
+const hf=$("hF").value.trim(),ht=$("hT").value.trim(),O={exit:$("ex").value,rr:Math.max(.5,+$("rr").value||2),maxBars:Math.max(12,Math.round(+$("mb").value||288)),cost:Math.max(0,+$("cost").value||0),mh:{gap:$("mhOn").checked,gapMin:Math.max(5,+$("gapMin").value||30),afterOpen:Math.max(0,Math.round(+$("aOpen").value||0)),beforeClose:Math.max(0,Math.round(+$("bClose").value||0)),forceClose:$("mhHold").value==="close",hFrom:hf===""?null:Math.min(24,Math.max(0,+hf)),hTo:ht===""?null:Math.min(24,Math.max(0,+ht)),noWeekend:$("noWk").checked}},S={m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked,rsi:$("rsi").checked,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60},risk=Math.max(.1,+$("risk").value||1);
 const from=$("from").value?Date.parse($("from").value+"T00:00:00Z")/1000:0,to=$("to").value?Date.parse($("to").value+"T23:59:59Z")/1000:Infinity;
 const t0=performance.now();running=true;cancel=false;$("run").disabled=true;$("pg").classList.add("on");$("res").innerHTML="";const all={},blk={},gapsBy={},steps=sel.length*modes.length;let k=0;modes.forEach(m=>{all[m]=[];blk[m]={open:0,close:0,hours:0,weekend:0}});
 try{for(const d of sel){if(cancel)break;$("pt").textContent=`آماده‌سازی ${d.sym}…`;await tick();const m5=candlesOf(d),[lo,hi]=idxRange(d.t,from,to);if(hi-lo<500){k+=modes.length;continue}
@@ -52,7 +228,6 @@ catch(e){toast("خطا در اجرا: "+(e&&e.message||e),"error",5600)}
 $("pu").style.width="100%";running=false;$("run").disabled=false;$("pg").classList.remove("on");RESULT={all,blk,gapsBy,risk,O,S,modes,cancelled:cancel};tfilter="all";tshow=40;render();const tot=modes.reduce((a,m)=>a+all[m].length,0);msg.textContent="";
 toast(cancel?`اجرا متوقف شد (${fa(tot)} معامله تا اینجا)`:tot?`بک‌تست کامل شد · ${fa(tot)} معامله · ${((performance.now()-t0)/1000).toFixed(1)} ثانیه`:"بک‌تست تمام شد ولی معامله‌ای ساخته نشد",(cancel||!tot)?"info":"success");if(tot)$("res").scrollIntoView({behavior:"smooth",block:"start"})}
 $("run").onclick=run;$("cn").onclick=()=>{cancel=true;$("pt").textContent="در حال توقف…"};
-/* ---------- results ---------- */
 const f2=(x,d=2)=>x==null||!isFinite(x)?"∞":x.toFixed(d),sg=x=>x>0?"pos":x<0?"neg":"";
 const IC={target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>',trend:'<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',down:'<path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',scale:'<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',bars:'<path d="M12 20V10M18 20V4M6 20v-4"/>',sigma:'<path d="M18 7V5H6l6 7-6 7h12v-2"/>',wave:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',xc:'<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'};
 const ico=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
@@ -87,7 +262,7 @@ let h=(cancelled?'<div class="warn">اجرا نیمه‌کاره متوقف شد
 <div class="card"><h2>جزئیات</h2><div id="det"></div></div>
 <div class="note">فرض‌های شبیه‌سازی: ورود روی قیمت بسته‌شدن کندل سیگنال؛ اگر SL و TP توی یک کندل هر دو لمس بشن، SL حساب می‌شه؛ گپ‌ها روی قیمت بازشدن بدتر حساب می‌شن؛ در هر نماد و استراتژی هم‌زمان فقط یک معامله باز است؛ از کندل‌های آینده استفاده نمی‌شه (برای هر استراتژی با حذف داده‌ی آینده تست شده)؛ اسلیپیج و کمیسیون فقط از فیلد «هزینه» وارد می‌شن. «بازده ٪» با فرض ترکیب سود و مستقل‌بودن معاملات حساب می‌شه و با معامله‌ی زیاد غیرواقعی بزرگ می‌شه؛ بیشتر به R، PF و افت سرمایه نگاه کن. نتیجه‌ی گذشته تضمینی برای آینده نیست.</div>`;
 $("res").innerHTML=h;drawEq($("eq"),modes.map(m=>({color:COL[m],pts:equityOf(all[m])})));detail()}
-const WHY={BE:"حد ضرر (BE)",SL:"حد ضرر",TP:"هدف (TP)",RSI:"واگرایی RSI",TIME:"پایان زمان",CLOSE:"تعطیلی بازار",BE:"حد ضرر (BE)"};
+const WHY={SL:"حد ضرر",TP:"هدف (TP)",RSI:"واگرایی RSI",TIME:"پایان زمان",CLOSE:"تعطیلی بازار",BE:"حد ضرر (BE)"};
 const dur=n=>{const mn=n*5,h=Math.floor(mn/60),m=mn%60;return h?`${h}h ${m}m`:`${m}m`};
 function tradeCard(t,dg){const win=t.R>0,L=t.side==="LONG";
 return`<article class="tc ${win?"w":"l"}"><div class="th"><div class="tid"><b>${t.sym}</b><span class="chip ${L?"cl":"cs"}">${L?"▲":"▼"} ${t.side}</span>${t.cross?'<span class="chip cx">گپ تعطیلی</span>':""}</div><b class="tr ${win?"pos":"neg"}">${win?"+":""}${f2(t.R,2)}R</b></div>
@@ -112,3 +287,4 @@ const f=e.target.closest("#tfs button");if(f){tfilter=f.dataset.f;tshow=40;detai
 window.addEventListener("resize",()=>{if(RESULT&&$("eq"))drawEq($("eq"),RESULT.modes.map(m=>({color:COL[m],pts:equityOf(RESULT.all[m])})))});
 (async()=>{datasets=(await dbAll()).map(d=>({...d,on:true}));renderDs();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
 </script>
+</body></html>
