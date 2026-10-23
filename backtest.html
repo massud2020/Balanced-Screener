@@ -87,7 +87,7 @@ let h=(cancelled?'<div class="warn">اجرا نیمه‌کاره متوقف شد
 <div class="card"><h2>جزئیات</h2><div id="det"></div></div>
 <div class="note">فرض‌های شبیه‌سازی: ورود روی قیمت بسته‌شدن کندل سیگنال؛ اگر SL و TP توی یک کندل هر دو لمس بشن، SL حساب می‌شه؛ گپ‌ها روی قیمت بازشدن بدتر حساب می‌شن؛ در هر نماد و استراتژی هم‌زمان فقط یک معامله باز است؛ از کندل‌های آینده استفاده نمی‌شه (برای هر استراتژی با حذف داده‌ی آینده تست شده)؛ اسلیپیج و کمیسیون فقط از فیلد «هزینه» وارد می‌شن. «بازده ٪» با فرض ترکیب سود و مستقل‌بودن معاملات حساب می‌شه و با معامله‌ی زیاد غیرواقعی بزرگ می‌شه؛ بیشتر به R، PF و افت سرمایه نگاه کن. نتیجه‌ی گذشته تضمینی برای آینده نیست.</div>`;
 $("res").innerHTML=h;drawEq($("eq"),modes.map(m=>({color:COL[m],pts:equityOf(all[m])})));detail()}
-const WHY={SL:"حد ضرر",TP:"هدف (TP)",RSI:"واگرایی RSI",TIME:"پایان زمان",CLOSE:"تعطیلی بازار"};
+const WHY={SL:"حد ضرر",TP:"هدف (TP)",RSI:"واگرایی RSI",TIME:"پایان زمان",CLOSE:"تعطیلی بازار",BE:"حد ضرر (BE)"};
 const dur=n=>{const mn=n*5,h=Math.floor(mn/60),m=mn%60;return h?`${h}h ${m}m`:`${m}m`};
 function tradeCard(t,dg){const win=t.R>0,L=t.side==="LONG";
 return`<article class="tc ${win?"w":"l"}"><div class="th"><div class="tid"><b>${t.sym}</b><span class="chip ${L?"cl":"cs"}">${L?"▲":"▼"} ${t.side}</span>${t.cross?'<span class="chip cx">گپ تعطیلی</span>':""}</div><b class="tr ${win?"pos":"neg"}">${win?"+":""}${f2(t.R,2)}R</b></div>
