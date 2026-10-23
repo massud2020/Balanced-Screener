@@ -54,6 +54,7 @@ return out}
 function sessInfo(m,gapMin){const n=m.length,start=new Int32Array(n),end=new Int32Array(n),gs=gapMin*60;let s=0,cnt=0;
 for(let i=1;i<=n;i++){if(i===n||m[i].time-m[i-1].time>gs){for(let j=s;j<i;j++){start[j]=s;end[j]=i-1}s=i;if(i<n)cnt++}}return{start,end,gaps:cnt}}
 
+
 function simTrade(P,s,O){
   const m=P.m5,L=s.side==="LONG",initialRisk=Math.abs(s.entry-s.sl);
   if(!(initialRisk>0))return null;
@@ -63,6 +64,7 @@ function simTrade(P,s,O){
   else{const ex=divExit(m,P.rA,s.i,L);if(ex)divIdx=ex.i+1}
   const MH=O.mh&&O.mh.gap&&O.mh.forceClose&&P.si?O.mh:null,se=MH?P.si.end[s.i]:-1,realClose=!!MH&&se<m.length-1;
   let end=Math.min(m.length-1,s.i+O.maxBars);if(realClose)end=Math.min(end,se);
+  
   let currentSL=s.sl,beActive=false;
   
   for(let q=s.i+1;q<=end;q++){
