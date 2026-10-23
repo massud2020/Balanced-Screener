@@ -262,6 +262,17 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
   <label><span>فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small></span><input type="checkbox" id="m15" checked></label>
   <label><span>فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small></span><input type="checkbox" id="h1" checked></label>
   <label><span>H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
+  <label><span>فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small></span><input type="checkbox" id="rsi" checked></label>
+  <div style="display:flex; gap:10px; margin-top:-5px; margin-bottom:10px; padding: 0 14px;">
+    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
+      <span>خرید زیر:</span>
+      <input type="number" id="rsiL" value="40" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+    </div>
+    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
+      <span>فروش بالای:</span>
+      <input type="number" id="rsiS" value="60" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+    </div>
+  </div>
   <label><span>فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
   <h3>منبع داده</h3>
   <label><span>OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
@@ -320,7 +331,7 @@ async function load(u){let a=[],h=[];
 if(u[1]){try{[a,h]=await Promise.all([okx(u[1],"5m"),okx(u[1],"1H")])}catch(e){}}
 else if(u[4]&&LS("bs_tok")){try{[a,h]=await Promise.all([oanda(u[4],"M5"),oanda(u[4],"H1")])}catch(e){}}
 if((a.length<210||h.length<210)&&u[2]){const[x,y]=await Promise.all([yh(u[2],"5m","5d"),yh(u[2],"1h","6mo")]);if(x.length>a.length)a=x;if(y.length>h.length)h=y}return[a,h]}
-const S=()=>({mode:"pattern",m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked});
+const S=()=>({mode:"pattern",m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked,rsi:$("rsi").checked,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 async function scan(){if(busy)return;busy=true;$("go").disabled=true;$("goT").textContent="در حال اسکن";setTimeout(()=>{if(busy){$("st").textContent="شبکه کند است یا به API دسترسی ندارد. صبر کنید...";}},8000);$("dot").classList.toggle("on",$("auto").checked);const sel=selectedMkts();
 const hasSrc=u=>u[1]||u[2]||(u[4]&&LS("bs_tok")),L=U.filter(u=>sel.includes(mktOf(u))&&hasSrc(u)).concat(sel.includes("stock")?extraList().map(t=>[t.toUpperCase(),0,t.toUpperCase(),2,0]):[]);
@@ -435,7 +446,8 @@ const openRow=e=>{const w=e.target.closest(".row");if(w&&D[w.dataset.id])openCha
 $("list").onclick=openRow;$("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openRow(e)}};$("cx").onclick=closeChart;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()});
 $("gs").onclick=()=>{$("set").classList.toggle("on");$("gs").classList.toggle("on")};
-["m15","h1","h1s"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);scan()});
+["m15","h1","h1s","rsi"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);scan()});
+  ["rsiL","rsiS"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).value);scan()});
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
 $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000)};
 $("auto").checked=LS("bs_auto")!=="false";$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000);
@@ -458,7 +470,8 @@ $("saveTok").onclick=()=>{
   }, 2500);
   scan();
 };$("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
-["m15","h1","h1s","only"].forEach(i=>{const v=LS("bs_"+i);if(v!=null){$(i).type==="checkbox"?$(i).checked=v==="true":$(i).value=v}});
+["m15","h1","h1s","rsi","only"].forEach(i=>{const v=LS("bs_"+i);if(v!=null){$(i).type==="checkbox"?$(i).checked=v==="true":$(i).value=v}});
+  ["rsiL","rsiS"].forEach(i=>{const v=LS("bs_"+i);if(v!=null)$(i).value=v});
 if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controller;let rl=false;
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}

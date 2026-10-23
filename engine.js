@@ -60,7 +60,8 @@ add("trend",`قیمت ${L?"بالای":"پایین"} EMA${S.es} و شیب EMA`,(
 add("emax",`EMA${S.ef} ${L?"بالای":"پایین"} EMA${S.em}`,L?ef>em:ef<em,((ef-em)/a>=0?"+":"")+((ef-em)/a).toFixed(2)+"×ATR",{t:"dist",v:(ef-em)/a});
 add("nc","هم‌جهتی دو کندل اخیر (بدون تقاطع)",nc,nc?"بله":"خیر");
 add("pat","الگوی ۳+۱",pp.ok,"نسبت "+pp.ratio.toFixed(2)+" از "+S.minRatio,{t:"pat",c:pat.slice().reverse().map(c=>({o:c.open,h:c.high,l:c.low,c:c.close})),ratio:pp.ratio,th:S.minRatio,ok:pp.ok});
-out.slEst=(b.high-b.low)*2}
+if(S.rsi){const rsiOk=L?r<S.rsiL:r>S.rsiS;add("rsi","فیلتر RSI ("+(L?"زیر "+S.rsiL:"بالای "+S.rsiS)+")",rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
+ out.slEst=(b.high-b.low)*2}
 if(S.m15){const m=dropForming(resample(m5,15),900,now);if(m.length<S.em+2)add("m15","فیلتر M15",false,"تاریخچه کم");else{const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));add("m15",`M15: EMA${S.ef} ${L?"بالای":"پایین"} EMA${S.em}`,L?f>mm:f<mm,((f-mm)/a>=0?"+":"")+((f-mm)/a).toFixed(2)+"×ATR",{t:"dist",v:(f-mm)/a})}}
 if(S.h1){if(h1.length<S.es+2)add("h1","فیلتر H1",false,"تاریخچه کم");else{const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];let ok;if(S.h1Strict){const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));ok=L?c>hs&&f>m&&m>hs:c<hs&&f<m&&m<hs}else ok=L?c>hs:c<hs;add("h1",`H1: قیمت ${L?"بالای":"پایین"} EMA${S.es}${S.h1Strict?" (سخت‌گیرانه)":""}`,ok,((c-hs)/a>=0?"+":"")+((c-hs)/a).toFixed(1)+"×ATR",{t:"dist",v:(c-hs)/a})}}
 return out}
