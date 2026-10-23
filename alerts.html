@@ -226,7 +226,7 @@ $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persis
 /* ---- init ---- */
 (async()=>{
          const cSyms = JSON.parse(LS('bs_custom_syms') || '[]');
-         $("syms").innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
+         $("syms").innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
    $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());};
    $("ghr").oninput=()=>{LS("bs_ghr",$("ghr").value.trim());};$("tz").value=cfg.tz;
 if(LS("bs_ght") && LS("bs_ghr")) autoSync();

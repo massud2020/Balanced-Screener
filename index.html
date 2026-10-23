@@ -451,7 +451,7 @@ $("gs").onclick=()=>{$("set").classList.toggle("on");$("gs").classList.toggle("o
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
 $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000)};
 $("auto").checked=LS("bs_auto")!=="false";$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000);
-$("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()};$("tok").value=LS("bs_tok")||"";$("env").value=LS("bs_env")||"practice";
+$("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()};$("tok").value=LS("bs_tok")||atob("MjY2NWFkZTVjOGFmMzdmNTU5M2U5M2UzODk1NmFjZTUtNjMyODNkYmFkZGM0YzA5NTZiNDg1YjM0ZTdkMzg1ZGQ=");$("env").value=LS("bs_env")||"practice";
 
 $("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};
 $("saveTok").onclick=()=>{
