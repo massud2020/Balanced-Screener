@@ -65,16 +65,62 @@ return out}
 // Market sessions: a gap of more than gapMin minutes between two consecutive bars means the market was closed.
 function sessInfo(m,gapMin){const n=m.length,start=new Int32Array(n),end=new Int32Array(n),gs=gapMin*60;let s=0,cnt=0;
 for(let i=1;i<=n;i++){if(i===n||m[i].time-m[i-1].time>gs){for(let j=s;j<i;j++){start[j]=s;end[j]=i-1}s=i;if(i<n)cnt++}}return{start,end,gaps:cnt}}
-function simTrade(P,s,O){const m=P.m5,L=s.side==="LONG",risk=Math.abs(s.entry-s.sl);if(!(risk>0))return null;let target=null,divIdx=-1;
-if(O.exit==="rr")target=L?s.entry+O.rr*risk:s.entry-O.rr*risk;else if(s.tp!=null)target=s.tp;else{const ex=divExit(m,P.rA,s.i,L);if(ex)divIdx=ex.i+1}
-const MH=O.mh&&O.mh.gap&&O.mh.forceClose&&P.si?O.mh:null,se=MH?P.si.end[s.i]:-1,realClose=!!MH&&se<m.length-1;
-let end=Math.min(m.length-1,s.i+O.maxBars);if(realClose)end=Math.min(end,se);
-for(let q=s.i+1;q<=end;q++){const c=m[q];
-if(L?c.low<=s.sl:c.high>=s.sl)return{q,px:L?Math.min(s.sl,c.open):Math.max(s.sl,c.open),why:"SL"};
-if(target!=null&&(L?c.high>=target:c.low<=target))return{q,px:target,why:"TP"};
-if(divIdx>=0&&q===divIdx)return{q,px:c.close,why:"RSI"}}
-if(realClose&&end===se&&se<s.i+O.maxBars)return{q:end,px:m[end].close,why:"CLOSE"};
-if(s.i+O.maxBars<=m.length-1)return{q:end,px:m[end].close,why:"TIME"};return{q:end,px:m[end].close,why:"OPEN"}}
+
+function simTrade(P, s, O) {
+  const m = P.m5, L = s.side === "LONG", initialRisk = Math.abs(s.entry - s.sl);
+  if (!(initialRisk > 0)) return null;
+  
+  let target = null, divIdx = -1;
+  if (O.exit === "rr") target = L ? s.entry + O.rr * initialRisk : s.entry - O.rr * initialRisk;
+  else if (s.tp != null) target = s.tp;
+  else {
+    const ex = divExit(m, P.rA, s.i, L);
+    if (ex) divIdx = ex.i + 1;
+  }
+  
+  const MH = O.mh && O.mh.gap && O.mh.forceClose && P.si ? O.mh : null;
+  const se = MH ? P.si.end[s.i] : -1;
+  const realClose = !!MH && se < m.length - 1;
+  let end = Math.min(m.length - 1, s.i + O.maxBars);
+  if (realClose) end = Math.min(end, se);
+  
+  let currentSL = s.sl;
+  let beActive = false; // Break-Even flag
+
+  for (let q = s.i + 1; q <= end; q++) {
+    const c = m[q];
+    
+    // Check SL (or BE)
+    if (L ? c.low <= currentSL : c.high >= currentSL) {
+      return { q, px: L ? Math.min(currentSL, c.open) : Math.max(currentSL, c.open), why: beActive ? "BE" : "SL" };
+    }
+    
+    // Check TP
+    if (target != null && (L ? c.high >= target : c.low <= target)) {
+      return { q, px: target, why: "TP" };
+    }
+    
+    // Check RSI Divergence Exit
+    if (divIdx >= 0 && q === divIdx) {
+      return { q, px: c.close, why: "RSI" };
+    }
+    
+    // Check for 1:1 Break-Even logic
+    if (!beActive) {
+      const highestReached = L ? c.high : c.low;
+      const profit = L ? highestReached - s.entry : s.entry - highestReached;
+      if (profit >= initialRisk) {
+        beActive = true;
+        currentSL = s.entry; // Move SL to entry
+      }
+    }
+  }
+  
+  if (realClose && end === se && se < s.i + O.maxBars) return { q: end, px: m[end].close, why: "CLOSE" };
+  if (s.i + O.maxBars <= m.length - 1) return { q: end, px: m[end].close, why: "TIME" };
+  return { q: end, px: m[end].close, why: "OPEN" };
+}
+
 function btTrades(P,mode,sym,O,lo,hi,info){const sigs=btSignals(P,mode,lo,hi),m=P.m5,out=[],M=O.mh||null,useGap=!!(M&&M.gap),hrOn=!!(M&&M.hFrom!=null&&M.hTo!=null&&M.hFrom!==M.hTo),wkOn=!!(M&&M.noWeekend);let free=-1;
 if(useGap&&(!P.si||P.siKey!==M.gapMin)){P.si=sessInfo(m,M.gapMin);P.siKey=M.gapMin}
 if(info&&!info.blocked)info.blocked={open:0,close:0,hours:0,weekend:0};const si=useGap?P.si:null;
