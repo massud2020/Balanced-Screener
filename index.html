@@ -540,4 +540,25 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+<script id="hardcoded-settings">
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      // پر کردن ریپازیتوری
+      const ghr = document.getElementById('ghr');
+      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
+        ghr.value = 'massud2020/Balanced-Screener';
+        ghr.dispatchEvent(new Event('change')); // ذخیره در حافظه
+      }
+      
+      // پر کردن توکن گیت‌هاب
+      const ght = document.getElementById('ght');
+      if (ght && !ght.value) {
+        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
+        ght.dispatchEvent(new Event('change')); // ذخیره در حافظه
+      }
+    }, 800); // صبر ۰.۸ ثانیه‌ای تا صفحه کاملاً لود شود
+  });
+</script>
+
 </body></html>
