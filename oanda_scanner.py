@@ -2,6 +2,7 @@ import oandapyV20
 import oandapyV20.endpoints.instruments as instruments
 import time
 import os
+import datetime
 
 # خواندن اطلاعات از Secrets گیت‌هاب
 OANDA_API_TOKEN = os.environ.get("OANDA_API_TOKEN")
@@ -48,15 +49,11 @@ def check_strategy(oanda_ticker):
     df_h1 = get_oanda_candles(oanda_ticker, "H1", 250)
     if not df_m5 or not df_m15 or not df_h1: return None
     
-    ema21_m5 = calculate_ema(df_m5, 21)
-    ema50_m5 = calculate_ema(df_m5, 50)
-    ema200_m5 = calculate_ema(df_m5, 200)
-    ema21_m15 = calculate_ema(df_m15, 21)
-    ema50_m15 = calculate_ema(df_m15, 50)
+    ema21_m5 = calculate_ema(df_m5, 21); ema50_m5 = calculate_ema(df_m5, 50); ema200_m5 = calculate_ema(df_m5, 200)
+    ema21_m15 = calculate_ema(df_m15, 21); ema50_m15 = calculate_ema(df_m15, 50)
     ema200_h1 = calculate_ema(df_h1, 200)
     
-    close_m5 = df_m5[-1]['close']
-    close_h1 = df_h1[-1]['close']
+    close_m5 = df_m5[-1]['close']; close_h1 = df_h1[-1]['close']
     
     trend_m5_buy = (close_m5 > ema200_m5) and (ema21_m5 > ema50_m5)
     trend_m5_sell = (close_m5 < ema200_m5) and (ema21_m5 < ema50_m5)
@@ -71,17 +68,14 @@ def check_strategy(oanda_ticker):
     green_size = sum((x['close'] - x['open']) for x in c if x['close'] > x['open'])
     red_size = sum((x['open'] - x['close']) for x in c if x['close'] < x['open'])
     
-    pattern_buy = False
-    pattern_sell = False
+    pattern_buy = False; pattern_sell = False
     if green_count == 1 and red_count == 3 and c[-1]['close'] > c[-1]['open'] and red_size > 0:
         if (green_size / red_size) >= 0.5: pattern_buy = True
     if red_count == 1 and green_count == 3 and c[-1]['close'] < c[-1]['open'] and green_size > 0:
         if (red_size / green_size) >= 0.5: pattern_sell = True
         
-    if trend_m5_buy and filter_m15_buy and filter_h1_buy and pattern_buy: 
-        return "BUY", float(close_m5)
-    if trend_m5_sell and filter_m15_sell and filter_h1_sell and pattern_sell: 
-        return "SELL", float(close_m5)
+    if trend_m5_buy and filter_m15_buy and filter_h1_buy and pattern_buy: return "BUY", float(close_m5)
+    if trend_m5_sell and filter_m15_sell and filter_h1_sell and pattern_sell: return "SELL", float(close_m5)
     return None
 
 print("شروع اسکن در گیت‌هاب...")
@@ -92,10 +86,20 @@ for symbol, ticker in SYMBOLS.items():
         side, entry = result
         timestamp = int(time.time())
         signal_str = f"{symbol},{side},{entry},0,0,{timestamp}"
+        
+        # ۱. ذخیره آخرین سیگنال برای متاتریدر
         with open("latest_signal.txt", "w") as f:
             f.write(signal_str)
+            
+        # ۲. ذخیره تاریخچه روزانه برای داشبورد
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        time_str = datetime.datetime.now().strftime("%H:%M:%S")
+        with open(f"Signals_{today_str}.txt", "a", encoding="utf-8") as f:
+            f.write(f"[{time_str}] {symbol} | {side} | Entry: {entry}\n")
+            
         print(f"سیگنال پیدا شد: {signal_str}")
         signal_found = True
         break
+
 if not signal_found: 
     print("هیچ سیگنالی پیدا نشد.")
