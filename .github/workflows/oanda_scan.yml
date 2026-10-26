@@ -1,31 +1,8 @@
-
-name: OANDA Scan
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
-
-jobs:
-  run_scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: pip install oandapyV20 requests six
-      - name: Run Scanner
-        env:
-          OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
-          OANDA_ACCOUNT_ID: ${{ secrets.OANDA_ACCOUNT_ID }}
-        run: python oanda_scanner.py
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add latest_signal.txt
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update signal from OANDA"
-          git push
+- name: Commit and push changes
+  run: |
+    git config --global user.name 'github-actions[bot]'
+    git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+    git add latest_signal.txt
+    git add Signals_*.txt
+    git diff --quiet && git diff --staged --quiet || git commit -m "Update signal and daily log from OANDA"
+    git push
