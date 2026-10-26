@@ -1,6 +1,6 @@
 // Background scanner for GitHub Actions
 const fs = require("fs"),
-  { evaluate, dropForming } = require("./engine.js"),
+  { evaluate, explain, dropForming } = require("./engine.js"), 
   { U } = require("./symbols.js"),
   AL = require("./alerts.js");
 
@@ -109,6 +109,9 @@ async function once(now) {
   const modes = enabledModes();
   const allRows = [];
   
+  let history = [];
+  try { history = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch(e) {}
+  
   let i = 0;
   await Promise.all(Array.from({ length: 6 }, async () => {
     while (i < U.length) {
@@ -128,16 +131,43 @@ async function once(now) {
           const r = evaluate(u[0], a, h, { mode, m15: F15, h1: FH1, h1Strict: STRICT }, now);
           if (r.side) {
             foundSignal = true;
-            const dataRow = {
-                id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
-                pass: r.pass || 0, total: r.total || 0, bt: bt, mode: mode, u: u,
-                a: a.slice(-300), h: h.slice(-300)
-            };
-            allRows.push(dataRow);
             
-            const L = r.side === "LONG";
-            await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
-            fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
+            // 🛠️ بررسی سخت‌گیرانه و داینامیک
+            let checksData = [];
+            let isValid = false;
+            let totalActive = 0;
+            
+            try {
+                const exp = explain(u[0], a, h, { mode: mode, m15: F15, h1: FH1, h1Strict: STRICT, dg: u[3] }, now);
+                if (exp && exp.checks) {
+                    checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
+                    totalActive = exp.total || exp.checks.length;
+                    
+                    if (exp.pass === totalActive && totalActive > 0) {
+                        isValid = true;
+                    }
+                }
+            } catch(e) { isValid = false; }
+
+            if (isValid) {
+                const dataRow = {
+                    id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
+                    pass: totalActive, total: totalActive, bt: bt, mode: mode, u: u,
+                    a: a.slice(-300), h: h.slice(-300)
+                };
+                allRows.push(dataRow);
+                
+                const L = r.side === "LONG";
+                
+                history.push({
+                    id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, d: u[3],
+                    checks: checksData,
+                    totalConds: totalActive 
+                });
+                
+                await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
+                fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
+            }
           }
         }
         
@@ -151,8 +181,13 @@ async function once(now) {
     }
   }));
   
+  const threeDaysAgo = now - (3 * 24 * 3600);
+  history = history.filter(h => h.time > threeDaysAgo);
+  
   fs.writeFileSync("data.json", JSON.stringify({ time: Date.now(), rows: allRows }));
-  console.log(`Scan complete. Found ${allRows.filter(r => r.side).length} signals.`);
+  fs.writeFileSync("history.json", JSON.stringify({ time: Date.now(), history: history }));
+  
+  console.log(`Scan complete. Found ${allRows.filter(r => r.side).length} valid signals.`);
 }
 
 if (require.main === module) (async () => {
