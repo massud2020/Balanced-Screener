@@ -1,8 +1,8 @@
-name: Balanced Screener Scan
+name: Balanced Screener Scan (1 Min)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # هر ۵ دقیقه
+    - cron: '*/5 * * * *' # گیت‌هاب هر ۵ دقیقه اجرا می‌کند
 
 jobs:
   run_scan:
@@ -20,13 +20,16 @@ jobs:
       - name: Install Dependencies
         run: npm install
         
-      - name: Run Scanner
+      - name: Run Scanner (1 Min Loop)
         env:
-          OANDA_TOKEN: ${{ secrets.OANDA_API_TOKEN }} # توکن شما از Secrets
+          OANDA_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           OANDA_ENV: "practice"
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_SIGNAL_THREAD_ID: ${{ secrets.TELEGRAM_SIGNAL_THREAD_ID }}
+          # 🛠️ تنظیمات اسکن ۱ دقیقه‌ای
+          LOOP_SECONDS: 270  # به مدت ۴.۵ دقیقه درگیر اسکن باشد
+          INTERVAL: 60       # هر ۶۰ ثانیه (۱ دقیقه) یکبار اسکن کند
         run: node scan.js
         
       - name: Commit and push changes
