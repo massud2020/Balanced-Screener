@@ -128,10 +128,7 @@ details.nb summary::after{content:"▾";color:var(--mu);transition:transform .2s
 .pat{display:flex;align-items:center;gap:14px;direction:ltr;flex-wrap:wrap}.rb{position:relative;flex:1;min-width:90px;height:7px;border-radius:99px;background:rgba(255,255,255,.08)}.rb u{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--rb)}.rb.ok u{background:var(--gb)}.rb s{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;border-radius:1px}
 .gg{position:relative;height:10px;border-radius:99px;direction:ltr;background:linear-gradient(90deg,rgba(70,197,140,.6) 0 30%,rgba(255,255,255,.1) 30% 70%,rgba(232,115,109,.6) 70% 100%)}.gg i{position:absolute;top:-4px;width:4px;height:18px;border-radius:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .gl{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);direction:ltr;margin-top:4px}
-.pl{display:flex;direction:rtl;align-items:flex-start;margin:16px 0 6px}.pn{flex:1;text-align:center;position:relative;min-width:0}.pn::before{content:"";position:absolute;top:14px;right:50%;width:100%;height:3px;background:var(--bd);z-index:0}.pn:last-child::before{display:none}.pn.ok::before{background:var(--gb)}
-.pn .dd{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--card2);border:2px solid var(--bd);color:var(--mu)}.pn.ok .dd{background:var(--gb);border-color:var(--gb);color:#06150d}.pn.cur .dd{border-color:#ffb020;color:#ffb020;animation:pl 1.4s ease-in-out infinite}
-.pn small{display:block;font-size:11.5px;color:var(--mu);margin-top:7px;line-height:1.4}.pn.ok small{color:var(--tx2);font-weight:600}.pn em{display:block;font-style:normal;font-size:10.5px;color:var(--mu);direction:ltr;margin-top:2px;word-break:break-all;line-height:1.35}
-.mini{flex:none;width:46px;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;direction:ltr}.mini u{display:block;height:100%;background:var(--gb);border-radius:99px}.mini.hi u{background:#ffb020}
+.mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
 /* chart overlay */
 #ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto;padding:0 14px 24px;direction:ltr;animation:fade .2s ease}
 #ov .oh{position:sticky;top:0;z-index:5;margin:0 -14px 10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(11,13,17,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
@@ -161,7 +158,13 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 
 <header class="bar">
   <div class="brand"><i>◈</i><div class="bt">Balanced Screener <small id="ver"></small></div></div>
-  <div class="acts"><span class="dot" id="dot" title="اسکن خودکار"></span><button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button><button class="ic" id="gs" aria-label="تنظیمات">⚙</button></div>
+  <div class="acts">
+    <span class="dot" id="dot" title="اسکن خودکار"></span>
+    <button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button>
+    <!-- 🛠️ دکمه تاریخچه اضافه شد -->
+    <button class="ic" id="showHist" aria-label="تاریخچه">📅</button>
+    <button class="ic" id="gs" aria-label="تنظیمات">⚙</button>
+  </div>
 </header>
 <section class="ctl">
   <div class="one" aria-label="استراتژی"><span class="od"></span><b>الگوی ۳+۱</b><small>EMA · M15 · H1 · RSI</small></div>
@@ -210,6 +213,20 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 <div class="hl" id="hl"></div>
 <div class="el" id="el"></div>
 <main id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
+
+<!-- 🛠️ پنجره تاریخچه -->
+<div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
+  <div style="max-width:600px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3 style="color:var(--gb); margin:0;">📅 سیگنال‌های امروز</h3>
+      <button id="closeHist" style="min-height:32px; padding:0 12px;">✕ بستن</button>
+    </div>
+    <div id="histList" style="display:flex; flex-direction:column; gap:10px;">
+      <!-- لیست اینجا تزریق می‌شود -->
+    </div>
+  </div>
+</div>
+
 <div id="ov">
   <div class="oh"><div><span id="ct"></span><span class="lv">● LIVE</span></div><button id="cx" aria-label="بستن">✕ بستن</button></div>
   <div class="oa"><a class="btn tv" id="tv" target="_blank" rel="noopener">↗ TradingView</a><button id="te">TradingView داخل اپ</button></div>
@@ -235,8 +252,6 @@ function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
 $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 const PROX=[u=>u,u=>"https://corsproxy.io/?url="+encodeURIComponent(u),u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u)];
 async function J(url,prox){let e;for(const p of prox?PROX:[PROX[0]]){try{const r=await fetch(p(url),{signal:AbortSignal.timeout(12000)});if(r.ok)return await r.json()}catch(x){e=x}}throw e||new Error("fetch")}
-
-// توابع قدیمی دریافت دیتا (okx، yh، oanda، load) حذف شدند چون حالا از data.json می‌خوانیم
 
 const S=()=>({mode:"pattern",m15:$("m15").checked,h1:$("h1").checked,h1Strict:$("h1s").checked,rsi:$("rsi").checked,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
@@ -388,20 +403,85 @@ if(MISS.length){$("list").innerHTML="";$("st").innerHTML='<span style="color:#ff
   document.getElementById("err-box").style.display="block";
   document.getElementById("err-box").innerHTML = "<b>INIT ERROR:</b> " + err.message + "<br>" + err.stack;
 }
+
+// 📅 منطق نمایش تاریخچه با تعداد داینامیک شرط‌ها
+$("showHist").onclick = async () => {
+    const modal = $("histModal");
+    const list = $("histList");
+    modal.style.display = "block";
+    list.innerHTML = '<div style="text-align:center;color:var(--mu);">در حال دریافت...</div>';
+
+    try {
+        const res = await fetch('history.json?t=' + new Date().getTime());
+        if(!res.ok) throw new Error("No history");
+        const data = await res.json();
+        
+        const todayStart = new Date();
+        todayStart.setHours(0,0,0,0);
+        const todayTs = todayStart.getTime() / 1000;
+        
+        const todaysSignals = (data.history || []).filter(h => h.time >= todayTs);
+        
+        if (todaysSignals.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:var(--mu);padding:20px;">امروز هنوز هیچ سیگنال معتبری ثبت نشده است.</div>';
+            return;
+        }
+
+        todaysSignals.sort((a,b) => b.time - a.time);
+
+        list.innerHTML = todaysSignals.map(s => {
+            const isL = s.side === "LONG";
+            const date = new Date(s.time * 1000);
+            const timeStr = date.toLocaleTimeString("fa-IR", {hour: '2-digit', minute:'2-digit'});
+            
+            let checksHtml = '';
+            if (s.checks && s.checks.length > 0) {
+                const countBadge = `<span style="font-size:10px; background:var(--gb); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold; direction:ltr; margin-left: 5px;">${s.totalConds}/${s.totalConds}</span>`;
+                
+                checksHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; direction:ltr; align-items:center;">
+                    ${countBadge}` + 
+                    s.checks.map(c => `
+                        <span style="font-size:10px; padding:2px 6px; border-radius:4px; 
+                            background:rgba(46,154,105,0.15); 
+                            color:var(--gb); 
+                            border:1px solid rgba(46,154,105,0.3);"
+                            title="${c.l}">
+                            ✓ ${c.l.split(' ')[0]}
+                        </span>`).join('') + `</div>`;
+            }
+
+            return `
+            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
+                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? 'LONG' : 'SHORT'}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
+                        <span style="color:var(--mu);">Entry: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
+                        <span style="color:var(--mu);">${timeStr}</span>
+                    </div>
+                </div>
+                ${checksHtml}
+            </div>`;
+        }).join("");
+
+    } catch(e) {
+        list.innerHTML = '<div style="text-align:center;color:var(--rb);padding:20px;">خطا در دریافت تاریخچه.</div>';
+    }
+};
+$("closeHist").onclick = () => { $("histModal").style.display = "none"; };
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ۱. ساخت کانال‌های اعلان در اندروید
   if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
     const { LocalNotifications } = window.Capacitor.Plugins;
     LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
     LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
   }
 
-  // ۲. تزریق دکمه آبی قیمت سریع به صورت ایمن و بدون دستکاری کدهای اصلی
   const observer = new MutationObserver(() => {
     const sumDiv = document.getElementById('sum');
-    // اگر باکس خلاصه ساخته شد و دکمه ما هنوز آنجا نبود
     if (sumDiv && !document.getElementById('qpBtn')) {
       const btn = document.createElement('button');
       btn.id = 'qpBtn';
@@ -439,20 +519,18 @@ document.addEventListener('DOMContentLoaded', () => {
 <script id="hardcoded-settings">
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      // پر کردن ریپازیتوری
       const ghr = document.getElementById('ghr');
       if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
         ghr.value = 'massud2020/Balanced-Screener';
-        ghr.dispatchEvent(new Event('change')); // ذخیره در حافظه
+        ghr.dispatchEvent(new Event('change')); 
       }
       
-      // پر کردن توکن گیت‌هاب
       const ght = document.getElementById('ght');
       if (ght && !ght.value) {
         ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-        ght.dispatchEvent(new Event('change')); // ذخیره در حافظه
+        ght.dispatchEvent(new Event('change')); 
       }
-    }, 800); // صبر ۰.۸ ثانیه‌ای تا صفحه کاملاً لود شود
+    }, 800); 
   });
 </script>
 
