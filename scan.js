@@ -7,9 +7,14 @@ const fs = require("fs"),
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
   TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
-const F15 = process.env.M15 !== "0",
-  FH1 = process.env.H1 !== "0",
-  STRICT = process.env.H1_STRICT === "1";
+
+// 🛠️ خواندن تنظیمات از محیط گیت‌هاب
+const F15 = process.env.M15 !== "0";
+const FH1 = process.env.H1 !== "0";
+const RSI_ON = process.env.RSI !== "0";
+const RSI_L = +(process.env.RSI_L || 40);
+const RSI_S = +(process.env.RSI_S || 60);
+
 const MODES = (process.env.MODES || "pattern")
   .split(",").map(x => x.trim()).filter(x => x === "pattern");
 if (!MODES.length) MODES.push("pattern");
@@ -128,17 +133,20 @@ async function once(now) {
         
         let foundSignal = false;
         for (const mode of modes) {
-          const r = evaluate(u[0], a, h, { mode, m15: F15, h1: FH1, h1Strict: STRICT }, now);
+          // 🛠️ پاس دادن صحیح فیلتر RSI به موتور
+          const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
+          const r = evaluate(u[0], a, h, opts, now);
+          
           if (r.side) {
             foundSignal = true;
             
-            // 🛠️ بررسی سخت‌گیرانه و داینامیک
             let checksData = [];
             let isValid = false;
             let totalActive = 0;
             
             try {
-                const exp = explain(u[0], a, h, { mode: mode, m15: F15, h1: FH1, h1Strict: STRICT, dg: u[3] }, now);
+                // 🛠️ پاس دادن صحیح فیلتر RSI به موتور برای گزارش‌گیری
+                const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
                 if (exp && exp.checks) {
                     checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
                     totalActive = exp.total || exp.checks.length;
@@ -172,7 +180,8 @@ async function once(now) {
         }
         
         if (!foundSignal) {
-            const r = evaluate(u[0], a, h, { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT }, now);
+            const opts = { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
+            const r = evaluate(u[0], a, h, opts, now);
             allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "", pass: r.pass || 0, total: r.total || 0, mode: modes[0], u: u });
         }
       } catch (e) {
