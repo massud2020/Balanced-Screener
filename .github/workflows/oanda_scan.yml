@@ -2,7 +2,7 @@ name: Balanced Screener Scan (1 Min)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # گیت‌هاب هر ۵ دقیقه اجرا می‌کند
+    - cron: '*/5 * * * *'
 
 jobs:
   run_scan:
@@ -18,7 +18,7 @@ jobs:
           node-version: '18'
           
       - name: Install Dependencies
-        run: npm install
+        run: npm ci || npm install
         
       - name: Run Scanner (1 Min Loop)
         env:
@@ -36,5 +36,10 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add latest_signal.txt
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update signal from v34"
-          git push
+          # این شرط بررسی می‌کند اگر تغییر جدیدی (سیگنال) هست، کامیت کند، وگرنه ارور ندهد
+          if ! git diff --cached --quiet; then
+            git commit -m "Update signal from v34"
+            git push
+          else
+            echo "No new signals found. Nothing to commit."
+          fi
