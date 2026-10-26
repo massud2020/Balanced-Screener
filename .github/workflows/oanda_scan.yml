@@ -35,11 +35,16 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add latest_signal.txt
-          git add data.json
-          git add -f .state/
           
-          # 🛠️ شرط هوشمند: فقط اگر تغییراتی وجود داشت، کامیت و پوش کن
+          # 🛠️ فایل data.json همیشه ساخته می‌شود، پس با خیال راحت اضافه می‌شود
+          git add data.json
+          
+          # 🛠️ فایل سیگنال فقط اگر سیگنالی پیدا شده باشد اضافه می‌شود
+          if [ -f latest_signal.txt ]; then
+            git add latest_signal.txt
+          fi
+          
+          # 🛠️ کامیت فقط در صورتی که تغییرات جدیدی وجود داشته باشد
           if ! git diff --cached --quiet; then
             git commit -m "Update signal and data.json"
             git push
