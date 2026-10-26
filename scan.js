@@ -22,9 +22,7 @@ const MK_LABEL = { crypto: "کریپتو", forex: "فارکس", metal: "فلزا
   INDS = new Set(["SPX500", "NAS100", "US30", "US2000", "DE30", "UK100", "FR40", "EU50", "JP225", "HK33", "AU200"]);
 const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]) ? "commodity" : INDS.has(u[0]) ? "index" : (u[4] && u[4] !== 0) ? "forex" : "stock";
 const NAME = { pattern: "الگوی ۳+۱" },
-  MAXAGE = 1200,
-  SF = ".state/sent.json",
-  AF = ".state/alerts.json";
+  MAXAGE = 1200;
 
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
@@ -109,7 +107,7 @@ const LOOP = +(process.env.LOOP_SECONDS || 0),
 
 async function once(now) {
   const modes = enabledModes();
-  const allRows = []; // 🛠️ آرایه‌ای برای ذخیره دیتای تمام ۶۱ نماد
+  const allRows = [];
   
   let i = 0;
   await Promise.all(Array.from({ length: 6 }, async () => {
@@ -119,7 +117,7 @@ async function once(now) {
       try {
         const [a, h] = await loadCached(u, now);
         if (a.length < 50) {
-            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data" });
+            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", mode: modes[0], u: u });
             continue;
         }
         const cl = dropForming(a, 300, now);
@@ -132,31 +130,27 @@ async function once(now) {
             foundSignal = true;
             const dataRow = {
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
-                pass: r.pass || 0, total: r.total || 0, bt: bt,
-                a: a.slice(-300), h: h.slice(-300) // 🛠️ ذخیره کندل‌ها برای نمایش چارت در داشبورد
+                pass: r.pass || 0, total: r.total || 0, bt: bt, mode: mode, u: u,
+                a: a.slice(-300), h: h.slice(-300)
             };
             allRows.push(dataRow);
             
-            // ارسال به تلگرام
             const L = r.side === "LONG";
             await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
-            
-            // ذخیره برای متاتریدر
             fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
           }
         }
         
         if (!foundSignal) {
             const r = evaluate(u[0], a, h, { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT }, now);
-            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "", pass: r.pass || 0, total: r.total || 0 });
+            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "", pass: r.pass || 0, total: r.total || 0, mode: modes[0], u: u });
         }
       } catch (e) {
-          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error" });
+          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", mode: modes[0], u: u });
       }
     }
   }));
   
-  // 🛠️ ذخیره کل نتیجه در فایل data.json برای داشبورد
   fs.writeFileSync("data.json", JSON.stringify({ time: Date.now(), rows: allRows }));
   console.log(`Scan complete. Found ${allRows.filter(r => r.side).length} signals.`);
 }
