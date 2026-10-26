@@ -10,7 +10,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -36,8 +37,11 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 🛠️ فایل data.json همیشه ساخته می‌شود، پس با خیال راحت اضافه می‌شود
+          # 🛠️ اضافه کردن فایل دیتای داشبورد
           git add data.json
+          
+          # 🛠️ اضافه کردن فایل تاریخچه برای دکمه 📅
+          git add history.json
           
           # 🛠️ فایل سیگنال فقط اگر سیگنالی پیدا شده باشد اضافه می‌شود
           if [ -f latest_signal.txt ]; then
@@ -46,7 +50,7 @@ jobs:
           
           # 🛠️ کامیت فقط در صورتی که تغییرات جدیدی وجود داشته باشد
           if ! git diff --cached --quiet; then
-            git commit -m "Update signal and data.json"
+            git commit -m "Update signal, data, and history"
             git push
           else
             echo "No new signals found. Nothing to commit."
