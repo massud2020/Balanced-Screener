@@ -10,21 +10,87 @@ function resample(c,min){const sz=min*60,m=new Map();for(const x of c){const b=M
 function checkPattern(l4,dir,minRatio){let g=0,r=0,gs=0,rs=0;for(const c of l4){const s=c.high-c.low;if(c.close>c.open){g++;gs+=s}else if(c.close<c.open){r++;rs+=s}else return{ok:false,ratio:0}}
 if(dir==="LONG"){if(g!==1||r!==3||!(l4[0].close>l4[0].open)||rs<=0)return{ok:false,ratio:0};const q=gs/rs;return{ok:q>=minRatio,ratio:q}}
 if(r!==1||g!==3||!(l4[0].close<l4[0].open)||gs<=0)return{ok:false,ratio:0};const q=rs/gs;return{ok:q>=minRatio,ratio:q}}
-function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){S={...DEF,...S};const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);const price=raw5.length?raw5[raw5.length-1].close:0;const row=(x={})=>({id,side:null,price,fail:null,...x});
-if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
-const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
-const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
-if([ef,em,es,r,a,efp,emp].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
-const sc=m5[m5.length-1].close,pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
-const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
-const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
-const L=ab&&ef>em&&nc&&slope&&pl.ok,Sh=be&&ef<em&&nc&&slope&&ps.ok;
-let m15L=true,m15S=true;if(S.m15){const m=dropForming(resample(m5,15),900,now);if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));m15L=f>mm;m15S=f<mm}
-let h1L=true,h1S=true;if(S.h1){if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];if(S.h1Strict){const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs}else{h1L=c>hs;h1S=c<hs}}
-let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";
-let sl=null;if(side){const sz=m5[m5.length-1].high-m5[m5.length-1].low;const d=sz*2;if(d>0)sl=side==="LONG"?sc-d:sc+d}
-let fail=null;if(!side){fail=(!ab&&!be)?"قیمت روی EMA200":!slope?"شیب EMA":!nc?"تقاطع EMA21/50":!((pl.ok&&ef>em)||(ps.ok&&ef<em))?"هم‌راستایی EMA21/50":!pl.ok&&!ps.ok?"الگوی ۳+۱":(L?!m15L:Sh?!m15S:!m15L&&!m15S)?"فیلتر M15":"فیلتر H1"}
-return row({side,rsi:r,atr:a,entry:side?sc:null,sl,fail,ef,em,es})}
+
+function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
+  S={...DEF,...S};
+  const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
+  const price=raw5.length?raw5[raw5.length-1].close:0;
+  const row=(x={})=>({id,side:null,price,fail:null,...x});
+  
+  if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
+  
+  const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
+  const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
+  
+  if([ef,em,es,r,a,efp,emp].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
+  
+  const sc=m5[m5.length-1].close,pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
+  const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
+  const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
+  const L=ab&&ef>em&&nc&&slope&&pl.ok,Sh=be&&ef<em&&nc&&slope&&ps.ok;
+  
+  let m15L=true,m15S=true;
+  if(S.m15){
+    const m=dropForming(resample(m5,15),900,now);
+    if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});
+    const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));
+    m15L=f>mm;m15S=f<mm;
+  }
+  
+  let h1L=true,h1S=true;
+  if(S.h1){
+    if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});
+    const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];
+    if(S.h1Strict){
+      const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));
+      h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs;
+    }else{
+      h1L=c>hs;h1S=c<hs;
+    }
+  }
+  
+  let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";
+  let sl=null;if(side){const sz=m5[m5.length-1].high-m5[m5.length-1].low;const d=sz*2;if(d>0)sl=side==="LONG"?sc-d:sc+d}
+  
+  // 🛠️ بخش اصلاح شده: شمارش تمام شرط‌ها بدون توقف زودهنگام
+  let pass = 0, total = 0, checks = [], fail = "";
+  const dir = (ab || L) ? "LONG" : (be || Sh) ? "SHORT" : (sc >= es ? "LONG" : "SHORT");
+  const isL = dir === "LONG";
+
+  const addCheck = (label, ok, failMsg) => {
+      total++;
+      checks.push({ l: label, ok: !!ok });
+      if (ok) pass++;
+      else if (!fail) fail = failMsg; // اولین خطا را ذخیره می‌کند
+  };
+
+  // ۱ تا ۵: شرایط اصلی
+  addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA200`, isL ? ab : be, `قیمت روی EMA200`);
+  addCheck(`شیب EMA`, slope, `شیب EMA`);
+  addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
+  addCheck(`هم‌راستایی EMA21/50`, isL ? ef>em : ef<em, `هم‌راستایی EMA21/50`);
+  addCheck(`الگوی ۳+۱`, isL ? pl.ok : ps.ok, `الگوی ۳+۱`);
+
+  // ۶: فیلتر M15
+  if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
+
+  // ۷: فیلتر H1
+  if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
+
+  // ۸: فیلتر RSI
+  if(S.rsi) {
+      const rsiOk = isL ? r < S.rsiL : r > S.rsiS;
+      addCheck(`فیلتر RSI`, rsiOk, `فیلتر RSI`);
+  }
+
+  // اگر سیگنال صادر شد، یعنی همه شرط‌ها پاس شده‌اند
+  if (side) {
+      pass = total;
+      fail = null;
+  }
+
+  return row({side,rsi:r,atr:a,entry:side?sc:null,sl,fail,ef,em,es, pass, total, checks});
+}
 
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
 function divExit(c,rA,from,isLong){const H=[],L=[];for(let i=Math.max(from+2,1);i<c.length-1;i++){const r=rA[i];if(r==null)continue;if(c[i].high>=c[i-1].high&&c[i].high>=c[i+1].high)H.push({i,p:c[i].high,r});if(c[i].low<=c[i-1].low&&c[i].low<=c[i+1].low)L.push({i,p:c[i].low,r})}
