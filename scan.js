@@ -106,8 +106,19 @@ async function once(now) {
   const modes = enabledModes();
   const allRows = [];
   
+  // 🛠️ اصلاح خواندن تاریخچه
   let history = [];
-  try { history = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch(e) {}
+  try {
+    const rawHistory = fs.readFileSync("history.json", "utf8");
+    const parsed = JSON.parse(rawHistory);
+    if (Array.isArray(parsed)) {
+      history = parsed; 
+    } else if (parsed && Array.isArray(parsed.history)) {
+      history = parsed.history;
+    }
+  } catch(e) {
+    console.log("No valid history.json found. Starting fresh.");
+  }
   
   let i = 0;
   await Promise.all(Array.from({ length: 6 }, async () => {
@@ -172,6 +183,7 @@ async function once(now) {
     }
   }));
   
+  // 🛠️ فیلتر کردن تاریخچه
   const threeDaysAgo = now - (3 * 24 * 3600);
   history = history.filter(h => h.time > threeDaysAgo);
   
