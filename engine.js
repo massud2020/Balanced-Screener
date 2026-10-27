@@ -1,6 +1,6 @@
 // Port of src/lib/strategy/engine.ts (3+1 pattern strategy)
 const DEF={mode:"pattern",ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60};
-const ENGINE_VER=32;
+const ENGINE_VER=33; // نسخه را بالا بردیم تا کش کلاینت پاک شود
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
 function atr(cs,p){const o=Array(cs.length).fill(null);if(cs.length<=p)return o;const tr=cs.map((c,i)=>i?Math.max(c.high-c.low,Math.abs(c.high-cs[i-1].close),Math.abs(c.low-cs[i-1].close)):c.high-c.low);let s=0;for(let i=0;i<p;i++)s+=tr[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<tr.length;i++){pr=(pr*(p-1)+tr[i])/p;o[i]=pr}return o}
@@ -12,84 +12,100 @@ if(dir==="LONG"){if(g!==1||r!==3||!(l4[0].close>l4[0].open)||rs<=0)return{ok:fal
 if(r!==1||g!==3||!(l4[0].close<l4[0].open)||gs<=0)return{ok:false,ratio:0};const q=rs/gs;return{ok:q>=minRatio,ratio:q}}
 
 function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
-  S={...DEF,...S};
-  const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
-  const price=raw5.length?raw5[raw5.length-1].close:0;
-  const row=(x={})=>({id,side:null,price,fail:null,...x});
-  
-  if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
-  
-  const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
-  const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
-  
-  if([ef,em,es,r,a,efp,emp].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
-  
-  const sc=m5[m5.length-1].close,pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
-  const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
-  const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
-  const L=ab&&ef>em&&nc&&slope&&pl.ok,Sh=be&&ef<em&&nc&&slope&&ps.ok;
-  
-  let m15L=true,m15S=true;
-  if(S.m15){
-    const m=dropForming(resample(m5,15),900,now);
-    if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});
-    const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));
-    m15L=f>mm;m15S=f<mm;
-  }
-  
-  let h1L=true,h1S=true;
-  if(S.h1){
-    if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});
-    const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];
-    if(S.h1Strict){
-      const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));
-      h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs;
-    }else{
-      h1L=c>hs;h1S=c<hs;
+    S={...DEF,...S};
+    const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
+    const price=raw5.length?raw5[raw5.length-1].close:0;
+    const row=(x={})=>({id,side:null,price,fail:null,...x});
+    
+    if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
+    
+    const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
+    const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
+    if([ef,em,es,r,a,efp,emp].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
+    
+    const sc=m5[m5.length-1].close,pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
+    const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
+    const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
+    
+    // تعیین جهت پایه برای بررسی شروط
+    const D = sc >= es ? "LONG" : "SHORT";
+    const isL = D === "LONG";
+
+    let m15L=true,m15S=true;
+    if(S.m15){
+        const m=dropForming(resample(m5,15),900,now);
+        if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});
+        const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));
+        m15L=f>mm;m15S=f<mm;
     }
-  }
-  
-  let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";
-  let sl=null;if(side){const sz=m5[m5.length-1].high-m5[m5.length-1].low;const d=sz*2;if(d>0)sl=side==="LONG"?sc-d:sc+d}
-  
-  // 🛠️ بخش اصلاح شده: شمارش تمام شرط‌ها بدون توقف زودهنگام
-  let pass = 0, total = 0, checks = [], fail = "";
-  const dir = (ab || L) ? "LONG" : (be || Sh) ? "SHORT" : (sc >= es ? "LONG" : "SHORT");
-  const isL = dir === "LONG";
+    
+    let h1L=true,h1S=true;
+    if(S.h1){
+        if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});
+        const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];
+        if(S.h1Strict){
+            const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));
+            h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs;
+        } else {
+            h1L=c>hs;h1S=c<hs;
+        }
+    }
 
-  const addCheck = (label, ok, failMsg) => {
-      total++;
-      checks.push({ l: label, ok: !!ok });
-      if (ok) pass++;
-      else if (!fail) fail = failMsg; // اولین خطا را ذخیره می‌کند
-  };
+    // 🛠️ بخش بازنویسی شده برای شمارش داینامیک شرط‌ها
+    let pass = 0, total = 0, checks = [], fail = null;
+    
+    const addCheck = (label, ok, failMsg) => {
+        total++;
+        checks.push({ l: label, ok: !!ok });
+        if (ok) pass++;
+        else if (!fail) fail = failMsg; // اولین خطا را ذخیره می‌کند
+    };
 
-  // ۱ تا ۵: شرایط اصلی
-  addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA200`, isL ? ab : be, `قیمت روی EMA200`);
-  addCheck(`شیب EMA`, slope, `شیب EMA`);
-  addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
-  addCheck(`هم‌راستایی EMA21/50`, isL ? ef>em : ef<em, `هم‌راستایی EMA21/50`);
-  addCheck(`الگوی ۳+۱`, isL ? pl.ok : ps.ok, `الگوی ۳+۱`);
+    // ۱. روند
+    const trendOk = isL ? ab : be;
+    addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, trendOk, `قیمت روی EMA200`);
+    
+    // ۲. شیب
+    addCheck(`شیب EMA`, slope, `شیب EMA`);
+    
+    // ۳. تقاطع
+    addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
+    
+    // ۴. هم‌راستایی
+    const emaOk = isL ? ef > em : ef < em;
+    addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, emaOk, `هم‌راستایی EMA21/50`);
+    
+    // ۵. الگو
+    const patOk = isL ? pl.ok : ps.ok;
+    addCheck(`الگوی ۳+۱`, patOk, `الگوی ۳+۱`);
+    
+    // ۶. فیلتر M15
+    if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
+    
+    // ۷. فیلتر H1
+    if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
+    
+    // ۸. فیلتر RSI
+    if(S.rsi) {
+        const rsiOk = isL ? r < S.rsiL : r > S.rsiS;
+        addCheck(`فیلتر RSI`, rsiOk, `فیلتر RSI`);
+    }
 
-  // ۶: فیلتر M15
-  if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
+    // آیا سیگنال صادر می‌شود؟ (اگر همه شروط پاس شده باشند)
+    let side = null;
+    if (pass === total && total > 0) {
+        side = D;
+        fail = null;
+    }
 
-  // ۷: فیلتر H1
-  if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
+    let sl=null;
+    if(side){
+        const sz=m5[m5.length-1].high-m5[m5.length-1].low;
+        const d=sz*2;
+        if(d>0) sl = side==="LONG" ? sc-d : sc+d;
+    }
 
-  // ۸: فیلتر RSI
-  if(S.rsi) {
-      const rsiOk = isL ? r < S.rsiL : r > S.rsiS;
-      addCheck(`فیلتر RSI`, rsiOk, `فیلتر RSI`);
-  }
-
-  // اگر سیگنال صادر شد، یعنی همه شرط‌ها پاس شده‌اند
-  if (side) {
-      pass = total;
-      fail = null;
-  }
-
-  return row({side,rsi:r,atr:a,entry:side?sc:null,sl,fail,ef,em,es, pass, total, checks});
+    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, pass, total, checks});
 }
 
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
