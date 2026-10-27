@@ -19,18 +19,18 @@ button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);
 button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default;transform:none}
 button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
 /* app bar */
-.bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
+.bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
 .bar::after{content:"";position:absolute;bottom:-1px;inset-inline-start:0;height:2px;width:var(--prog,0%);background:linear-gradient(90deg,var(--g),var(--gb));transition:width .3s}
-.brand{display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;min-width:0}
+.brand{display:flex;align-items:center;gap:5px;font-weight:700;font-size:15px;min-width:0;flex-shrink:1;overflow:hidden}
 .brand i{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;font-style:normal;font-size:16px}
-.bt{white-space:nowrap}.brand small{color:var(--mu);font-size:11px;font-weight:500}
-.acts{display:flex;align-items:center;gap:6px;flex:none}
-button.p{background:linear-gradient(135deg,#2a8f5c,var(--g));border-color:transparent;color:#fff;font-weight:700;min-width:84px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 14px rgba(47,157,104,.3)}
-button.p small{font-weight:500;opacity:.85;font-size:11.5px;background:rgba(0,0,0,.2);padding:1px 7px;border-radius:99px}
-button.ic{width:40px;min-width:40px;padding:0;font-size:16px;display:grid;place-items:center}
+.bt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}.brand small{color:var(--mu);font-size:11px;font-weight:500}
+.acts{display:flex;align-items:center;gap:5px;flex:none}
+button.p{background:linear-gradient(135deg,#2a8f5c,var(--g));border-color:transparent;color:#fff;font-weight:700;min-width:76px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 2px 14px rgba(47,157,104,.3);font-size:13px}
+button.p small{font-weight:500;opacity:.85;font-size:11px;background:rgba(0,0,0,.2);padding:1px 6px;border-radius:99px}
+button.ic{width:36px;min-width:36px;padding:0;font-size:16px;display:grid;place-items:center}
 button.ic.on{border-color:var(--gb);color:var(--gb)}
-a.ic{width:40px;min-width:40px;min-height:44px;display:grid;place-items:center;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--tx);text-decoration:none;font-size:18px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--bd);transition:background .3s}.dot.on{background:var(--gb);box-shadow:0 0 0 4px var(--gd);animation:pl 1.6s ease-in-out infinite}
+a.ic{width:36px;min-width:36px;min-height:44px;display:grid;place-items:center;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--tx);text-decoration:none;font-size:18px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bd);transition:background .3s}.dot.on{background:var(--gb);box-shadow:0 0 0 4px var(--gd);animation:pl 1.6s ease-in-out infinite}
 /* controls */
 .ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 .one{display:flex;align-items:center;gap:9px;min-height:44px;padding:0 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px}.one b{font-weight:700}.one small{color:var(--mu);margin-inline-start:auto;font-size:11.5px;direction:ltr}.one .od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd)}
@@ -162,7 +162,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes shm{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 /* 🛠️ استایل دکمه تغییر زبان */
-#langToggle { font-weight: 700; font-size: 13px; min-width: 44px; }
+#langToggle { font-weight: 700; font-size:12px; }
 /* اصلاح جهت‌ها در حالت انگلیسی */
 body[dir="ltr"] .an { direction: ltr; text-align: left; }
 body[dir="ltr"] .an-h { flex-direction: row; }
@@ -263,6 +263,10 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
+// 🛠️ توابع پایه (انتقال به بالای کد برای جلوگیری از خطای TDZ)
+const $ = i => document.getElementById(i);
+const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
+
 // 🛠️ دیکشنری‌های زبان
 const I18N = {
   fa: {
@@ -339,7 +343,7 @@ const BACKEND_TO_KEY = {
     "خطای نامشخص": "fail_unknown"
 };
 
-// 🛠️ مقداردهی اولیه امن برای جلوگیری از هنگ کردن
+// 🛠️ مقداردهی اولیه امن زبان (حالا LS در دسترس است)
 let currentLang = LS("bs_lang");
 if (currentLang !== 'en') currentLang = 'fa';
 const T = () => (I18N[currentLang] || I18N.fa);
@@ -349,8 +353,8 @@ function trFail(failStr) {
     if (currentLang === 'fa') return failStr; 
     const key = BACKEND_TO_KEY[failStr];
     if (key && I18N.en[key]) return I18N.en[key];
-    if (failStr.startsWith("قیمت بالای")) return "Price above EMA200 & Slope";
-    if (failStr.startsWith("قیمت پایین")) return "Price below EMA200 & Slope";
+    if (failStr.startsWith("قیمت بالای")) return "Price above EMA200";
+    if (failStr.startsWith("قیمت پایین")) return "Price below EMA200";
     return failStr;
 }
 
@@ -381,7 +385,6 @@ function applyLanguage() {
         $("setExtraStocks").innerHTML = currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>";
         
         $("setApp").textContent = currentLang === 'fa' ? "برنامه" : "App";
-        // استفاده از childNodes برای جلوگیری از بازسازی DOM
         if($("setVer").childNodes[0]) $("setVer").childNodes[0].nodeValue = currentLang === 'fa' ? "نسخه‌ی اپ" : "App Version";
         $("upd").textContent = t.btnClearCache;
         
@@ -411,7 +414,6 @@ function applyLanguage() {
         $("ver").textContent = "v" + BUILD;
         if($("verl")) $("verl").textContent = (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v" + BUILD;
 
-        // Re-render dynamic stuff
         renderChips();
         if(LAST) renderList();
     } catch(e) {
@@ -419,12 +421,8 @@ function applyLanguage() {
     }
 }
 
-function fmtNum(n) {
-    return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US");
-}
-function fmtDate(d) {
-    return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-}
+function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
+function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
 // 🛠️ نسخه 35
 const BUILD=35,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
@@ -432,7 +430,6 @@ const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",com
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
-const $=i=>document.getElementById(i),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
