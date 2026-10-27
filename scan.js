@@ -1,11 +1,9 @@
 // Background scanner for GitHub Actions
 const fs = require("fs"),
-  { evaluate, explain, dropForming } = require("./engine.js"), 
-  { U } = require("./symbols.js"),
-  AL = require("./alerts.js");
+  { evaluate, dropForming } = require("./engine.js"), 
+  { U } = require("./symbols.js");
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
-  TOK = process.env.OANDA_TOKEN,
+const TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
 
 const F15 = process.env.M15 !== "0";
@@ -26,8 +24,7 @@ const MK_LABEL = { crypto: "کریپتو", forex: "فارکس", metal: "فلزا
   COMMS = new Set(["WTICO", "BRENT", "NATGAS", "CORN", "WHEAT", "SOYBEAN", "SUGAR"]),
   INDS = new Set(["SPX500", "NAS100", "US30", "US2000", "DE30", "UK100", "FR40", "EU50", "JP225", "HK33", "AU200"]);
 const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]) ? "commodity" : INDS.has(u[0]) ? "index" : (u[4] && u[4] !== 0) ? "forex" : "stock";
-const NAME = { pattern: "الگوی ۳+۱" },
-  MAXAGE = 1200;
+const NAME = { pattern: "الگوی ۳+۱" };
 
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
@@ -122,88 +119,62 @@ async function once(now) {
     while (i < U.length) {
       const u = U[i++];
       if (!u[1] && !u[2] && !(u[4] && TOK)) continue;
+      
       try {
         const [a, h] = await loadCached(u, now);
+        
         if (a.length < 50) {
             allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u });
             continue;
         }
+        
         const cl = dropForming(a, 300, now);
         const bt = cl.length ? cl[cl.length - 1].time : 0;
         
         let foundSignal = false;
+        
         for (const mode of modes) {
           const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
+          // اکنون evaluate در engine.js جدید، خروجی pass و total را نیز دارد
           const r = evaluate(u[0], a, h, opts, now);
           
           if (r.side) {
             foundSignal = true;
             
-            let checksData = [];
-            let isValid = false;
-            let totalActive = 7; 
+            const dataRow = {
+                id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
+                pass: r.total || 7, total: r.total || 7, bt: bt, mode: mode, u: u,
+                a: a.slice(-300), h: h.slice(-300)
+            };
+            allRows.push(dataRow);
             
-            try {
-                const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
-                if (exp && exp.checks && exp.checks.length > 0) {
-                    totalActive = exp.checks.length;
-                    checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
-                    const passCount = exp.checks.filter(c => c.ok).length;
-                    if (passCount === totalActive && totalActive > 0) {
-                        isValid = true;
-                    }
-                }
-            } catch(e) { isValid = false; }
-
-            if (isValid) {
-                const dataRow = {
-                    id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
-                    pass: totalActive, total: totalActive, bt: bt, mode: mode, u: u,
-                    a: a.slice(-300), h: h.slice(-300)
-                };
-                allRows.push(dataRow);
-                
-                const L = r.side === "LONG";
-                
-                history.push({
-                    id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, d: u[3],
-                    checks: checksData,
-                    totalConds: totalActive 
-                });
-                
-                await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
-                fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
-            }
+            const L = r.side === "LONG";
+            const checksData = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
+            
+            history.push({
+                id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, d: u[3],
+                checks: checksData,
+                totalConds: r.total 
+            });
+            
+            await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
+            fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
           }
         }
         
         if (!foundSignal) {
+            // استفاده از خروجی مستقیم evaluate به جای explain
             const opts = { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
             const r = evaluate(u[0], a, h, opts, now);
-            let totalActive = 7;
-            let passCount = 0;
-            let failReason = r.fail || "";
             
-            try {
-                const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
-                if (exp && exp.checks && exp.checks.length > 0) {
-                    totalActive = exp.checks.length;
-                    passCount = exp.checks.filter(c => c.ok).length;
-                    
-                    // پیدا کردن اولین شرطی که پاس نشده
-                    const failedCheck = exp.checks.find(c => !c.ok);
-                    if (failedCheck) failReason = failedCheck.label;
-                }
-            } catch(e) {}
-
             allRows.push({ 
                 id: u[0], 
                 side: null, 
                 d: u[3], 
                 mkt: mktOf(u), 
-                fail: failReason, 
-                pass: passCount, 
-                total: totalActive, 
+                fail: r.fail || "خطای نامشخص", 
+                pass: r.pass || 0, 
+                total: r.total || 7, // در صورت خطای زودهنگام، ۷ در نظر گرفته می‌شود
                 mode: modes[0], 
                 u: u 
             });
