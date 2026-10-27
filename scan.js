@@ -147,7 +147,7 @@ async function once(now) {
             const dataRow = {
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
                 pass: r.total || 7, total: r.total || 7, bt: bt, mode: mode, u: u,
-                a: a.slice(-300), h: h.slice(-300)
+                a: a.slice(-210), h: h.slice(-210) // 🛠️ کاهش به ۲۱۰ برای حجم کمتر
             };
             allRows.push(dataRow);
             
@@ -174,8 +174,7 @@ async function once(now) {
                 pass: r.pass || 0, 
                 total: r.total || 7,
                 mode: modes[0], u: u,
-                a: a.slice(-250), // 🛠️ دیتای کندل‌ها برای نمایش چارت
-                h: h.slice(-250)
+                a: a.slice(-210), h: h.slice(-210) // 🛠️ کاهش به ۲۱۰ برای حجم کمتر
             });
         }
       } catch (e) {
