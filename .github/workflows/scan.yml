@@ -1,11 +1,11 @@
 name: Balanced Screener Scan
 
 on:
-  workflow_dispatch: # امکان اجرای دستی
+  workflow_dispatch: # اجرای دستی
   schedule:
-    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه (می‌توانید تغییر دهید)
+    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
 
-# 🛠️ این خط بسیار مهم است: به اکشن اجازه می‌دهد فایل‌ها را در ریپازیتوری ذخیره کند
+# 🛠️ این خط برای اجازه دادن به اکشن جهت کامیت کردن و ذخیره فایل data.json است
 permissions:
   contents: write 
 
@@ -24,24 +24,17 @@ jobs:
 
       - name: Run Scanner
         env:
-          # توکن‌ها باید در بخش Secrets ریپازیتوری شما تعریف شده باشند
           OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
           OANDA_ENV: ${{ secrets.OANDA_ENV || 'practice' }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # سایر تنظیمات (در صورت نیاز)
-          M15: ${{ secrets.M15 }}
-          H1: ${{ secrets.H1 }}
-          RSI: ${{ secrets.RSI }}
         run: node scan.js
 
       - name: Commit and Push Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          # اضافه کردن فایل‌های تولید شده
-          git add data.json history.json latest_signal.txt
-          # کامیت کردن تغییرات (اگر تغییری نبود، ارور ندهد)
+          # 🛠️ این خط تمام فایل‌های تغییر یافته را اضافه می‌کند (حتی اگر جدید باشند)
+          git add -A
           git commit -m "Update market data [skip ci]" || echo "No changes to commit"
-          # پوش کردن به گیت‌هاب
           git push
