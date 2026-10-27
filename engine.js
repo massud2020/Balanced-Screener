@@ -1,6 +1,7 @@
 // Port of src/lib/strategy/engine.ts (3+1 pattern strategy)
 const DEF={mode:"pattern",ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60};
-const ENGINE_VER=33; // نسخه را بالا بردیم تا کش کلاینت پاک شود
+const ENGINE_VER=34; // نسخه را بالا بردیم تا کش سمت کاربر پاک شود
+
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
 function atr(cs,p){const o=Array(cs.length).fill(null);if(cs.length<=p)return o;const tr=cs.map((c,i)=>i?Math.max(c.high-c.low,Math.abs(c.high-cs[i-1].close),Math.abs(c.low-cs[i-1].close)):c.high-c.low);let s=0;for(let i=0;i<p;i++)s+=tr[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<tr.length;i++){pr=(pr*(p-1)+tr[i])/p;o[i]=pr}return o}
@@ -27,7 +28,6 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
     const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
     
-    // تعیین جهت پایه برای بررسی شروط
     const D = sc >= es ? "LONG" : "SHORT";
     const isL = D === "LONG";
 
@@ -51,47 +51,32 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         }
     }
 
-    // 🛠️ بخش بازنویسی شده برای شمارش داینامیک شرط‌ها
+    // 🛠️ بخش شمارش داینامیک شرط‌ها (بدون توقف زودهنگام)
     let pass = 0, total = 0, checks = [], fail = null;
     
     const addCheck = (label, ok, failMsg) => {
         total++;
         checks.push({ l: label, ok: !!ok });
         if (ok) pass++;
-        else if (!fail) fail = failMsg; // اولین خطا را ذخیره می‌کند
+        else if (!fail) fail = failMsg;
     };
 
-    // ۱. روند
     const trendOk = isL ? ab : be;
     addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, trendOk, `قیمت روی EMA200`);
-    
-    // ۲. شیب
     addCheck(`شیب EMA`, slope, `شیب EMA`);
-    
-    // ۳. تقاطع
     addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
-    
-    // ۴. هم‌راستایی
     const emaOk = isL ? ef > em : ef < em;
     addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, emaOk, `هم‌راستایی EMA21/50`);
-    
-    // ۵. الگو
     const patOk = isL ? pl.ok : ps.ok;
     addCheck(`الگوی ۳+۱`, patOk, `الگوی ۳+۱`);
     
-    // ۶. فیلتر M15
     if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
-    
-    // ۷. فیلتر H1
     if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
-    
-    // ۸. فیلتر RSI
     if(S.rsi) {
         const rsiOk = isL ? r < S.rsiL : r > S.rsiS;
         addCheck(`فیلتر RSI`, rsiOk, `فیلتر RSI`);
     }
 
-    // آیا سیگنال صادر می‌شود؟ (اگر همه شروط پاس شده باشند)
     let side = null;
     if (pass === total && total > 0) {
         side = D;
@@ -111,6 +96,7 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
 function divExit(c,rA,from,isLong){const H=[],L=[];for(let i=Math.max(from+2,1);i<c.length-1;i++){const r=rA[i];if(r==null)continue;if(c[i].high>=c[i-1].high&&c[i].high>=c[i+1].high)H.push({i,p:c[i].high,r});if(c[i].low<=c[i-1].low&&c[i].low<=c[i+1].low)L.push({i,p:c[i].low,r})}
 const A=isLong?H:L;for(let k=1;k<A.length;k++){const a=A[k-1],b=A[k];if(a.i<=from)continue;if(isLong?(b.p>a.p&&b.r<a.r):(b.p<a.p&&b.r>a.r))return{i:b.i,p:c[b.i].close}}return null}
+
 function marks(raw5,rawH1,S,now=Date.now()/1000){S={...DEF,...S};const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);if(m5.length<S.es+4)return[];
 const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
 const m15=S.m15?resample(m5,15):[],mc=m15.map(c=>c.close),mf=S.m15?ema(mc,S.ef):[],mm=S.m15?ema(mc,S.em):[];
@@ -126,7 +112,6 @@ let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";if(!side
 const sz=b.high-b.low,d=sz*2;if(d<=0)continue;
 const ex=divExit(m5,rA,i,side==="LONG");if(!ex)continue;free=m5[ex.i].time;out.push({time:b.time,side,entry:b.close,sl:side==="LONG"?b.close-d:b.close+d,tp:ex.p,t2:m5[ex.i].time})}
 return out}
-
 
 // ---- Visual analysis: the same conditions evaluate() uses, returned as a checklist for the UI ----
 function explain(id,raw5,rawH1,S,now=Date.now()/1000){S={...DEF,...S};const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now),out={id,mode:S.mode,checks:[],pass:0,total:0,dir:null,err:null};
