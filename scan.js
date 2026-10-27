@@ -8,7 +8,6 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
   TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
 
-// 🛠️ خواندن تنظیمات فیلترها از گیت‌هاب
 const F15 = process.env.M15 !== "0";
 const FH1 = process.env.H1 !== "0";
 const RSI_ON = process.env.RSI !== "0";
@@ -142,15 +141,15 @@ async function once(now) {
             
             let checksData = [];
             let isValid = false;
-            let totalActive = 7; // 🛠️ پیش‌فرض
+            let totalActive = 7; 
             
             try {
                 const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
-                if (exp && exp.checks) {
+                if (exp && exp.checks && exp.checks.length > 0) {
+                    totalActive = exp.checks.length;
                     checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
-                    if (exp.total > 0) totalActive = exp.total;
-                    
-                    if (exp.pass === totalActive && totalActive > 0) {
+                    const passCount = exp.checks.filter(c => c.ok).length;
+                    if (passCount === totalActive && totalActive > 0) {
                         isValid = true;
                     }
                 }
@@ -187,17 +186,27 @@ async function once(now) {
             
             try {
                 const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
-                if (exp) {
-                    if (exp.total > 0) totalActive = exp.total;
-                    if (exp.pass > 0) passCount = exp.pass;
-                    if (exp.checks && exp.checks.length > 0) {
-                        const failed = exp.checks.find(c => !c.ok);
-                        if (failed) failReason = failed.label;
-                    }
+                if (exp && exp.checks && exp.checks.length > 0) {
+                    totalActive = exp.checks.length;
+                    passCount = exp.checks.filter(c => c.ok).length;
+                    
+                    // پیدا کردن اولین شرطی که پاس نشده
+                    const failedCheck = exp.checks.find(c => !c.ok);
+                    if (failedCheck) failReason = failedCheck.label;
                 }
             } catch(e) {}
 
-            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: failReason, pass: passCount, total: totalActive, mode: modes[0], u: u });
+            allRows.push({ 
+                id: u[0], 
+                side: null, 
+                d: u[3], 
+                mkt: mktOf(u), 
+                fail: failReason, 
+                pass: passCount, 
+                total: totalActive, 
+                mode: modes[0], 
+                u: u 
+            });
         }
       } catch (e) {
           allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", pass: 0, total: 7, mode: modes[0], u: u });
