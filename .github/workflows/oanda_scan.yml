@@ -8,13 +8,13 @@ jobs:
   run_scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # دسترسی نوشتن
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           
       - name: Install Dependencies
         run: npm install
@@ -38,14 +38,9 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data.json
-          git add history.json
-          if [ -f latest_signal.txt ]; then
-            git add latest_signal.txt
-          fi
-          if ! git diff --cached --quiet; then
-            git commit -m "Update data and signals"
-            git push
-          else
-            echo "No new signals"
-          fi
+          # 🛠️ استفاده از add -A برای اطمینان از اضافه شدن تمام فایل‌ها
+          git add -A
+          # 🛠️ تلاش برای کامیت، اگر تغییری نبود ارور نمی‌دهد
+          git commit -m "Update market data [skip ci]" || echo "No changes to commit"
+          # 🛠️ پوش کردن به گیت‌هاب
+          git push
