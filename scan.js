@@ -13,14 +13,11 @@ const RSI_L = +(process.env.RSI_L || 40);
 const RSI_S = +(process.env.RSI_S || 60);
 const STRICT = process.env.H1_STRICT === "1";
 
-const MODES = (process.env.MODES || "pattern")
-  .split(",").map(x => x.trim()).filter(x => x === "pattern");
+const MODES = (process.env.MODES || "pattern").split(",").map(x => x.trim()).filter(x => x === "pattern");
 if (!MODES.length) MODES.push("pattern");
-
 function enabledModes() { return MODES; }
 
-const MK_LABEL = { crypto: "کریپتو", forex: "فارکس", metal: "فلزات", commodity: "کالا", index: "شاخص", stock: "سهام" },
-  METALS = new Set(["XAUUSD", "XAGUSD", "XCUUSD"]),
+const METALS = new Set(["XAUUSD", "XAGUSD", "XCUUSD"]),
   COMMS = new Set(["WTICO", "BRENT", "NATGAS", "CORN", "WHEAT", "SOYBEAN", "SUGAR"]),
   INDS = new Set(["SPX500", "NAS100", "US30", "US2000", "DE30", "UK100", "FR40", "EU50", "JP225", "HK33", "AU200"]);
 const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]) ? "commodity" : INDS.has(u[0]) ? "index" : (u[4] && u[4] !== 0) ? "forex" : "stock";
@@ -103,9 +100,7 @@ async function notify(title, message) {
   }).catch(() => {});
 }
 
-const LOOP = +(process.env.LOOP_SECONDS || 0),
-  IV = +(process.env.INTERVAL || 60) * 1000,
-  sleep = ms => new Promise(r => setTimeout(r, ms));
+const LOOP = +(process.env.LOOP_SECONDS || 0), IV = +(process.env.INTERVAL || 60) * 1000, sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function once(now) {
   const modes = enabledModes();
@@ -135,12 +130,10 @@ async function once(now) {
         
         for (const mode of modes) {
           const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
-          // اکنون evaluate در engine.js جدید، خروجی pass و total را نیز دارد
           const r = evaluate(u[0], a, h, opts, now);
           
           if (r.side) {
             foundSignal = true;
-            
             const dataRow = {
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
                 pass: r.total || 7, total: r.total || 7, bt: bt, mode: mode, u: u,
@@ -153,8 +146,7 @@ async function once(now) {
             
             history.push({
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, d: u[3],
-                checks: checksData,
-                totalConds: r.total 
+                checks: checksData, totalConds: r.total 
             });
             
             await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
@@ -163,20 +155,15 @@ async function once(now) {
         }
         
         if (!foundSignal) {
-            // استفاده از خروجی مستقیم evaluate به جای explain
             const opts = { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
             const r = evaluate(u[0], a, h, opts, now);
             
             allRows.push({ 
-                id: u[0], 
-                side: null, 
-                d: u[3], 
-                mkt: mktOf(u), 
+                id: u[0], side: null, d: u[3], mkt: mktOf(u), 
                 fail: r.fail || "خطای نامشخص", 
                 pass: r.pass || 0, 
-                total: r.total || 7, // در صورت خطای زودهنگام، ۷ در نظر گرفته می‌شود
-                mode: modes[0], 
-                u: u 
+                total: r.total || 7,
+                mode: modes[0], u: u 
             });
         }
       } catch (e) {
