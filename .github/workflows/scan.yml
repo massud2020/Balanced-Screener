@@ -1,46 +1,47 @@
-name: scan
+name: Balanced Screener Scan
+
 on:
+  workflow_dispatch: # امکان اجرای دستی
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
-    inputs:
-      test:
-        description: "Send a test notification"
-        type: boolean
-        default: false
+    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه (می‌توانید تغییر دهید)
+
+# 🛠️ این خط بسیار مهم است: به اکشن اجازه می‌دهد فایل‌ها را در ریپازیتوری ذخیره کند
 permissions:
-  contents: write
-concurrency:
-  group: scan
-  cancel-in-progress: false
+  contents: write 
+
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - uses: actions/cache@v4
-        with:
-          path: .state
-          key: state-${{ github.run_id }}
-          restore-keys: state-
-      - run: touch latest_signal.txt
-      - run: node scan.js
+          node-version: '20'
+
+      - name: Run Scanner
         env:
+          # توکن‌ها باید در بخش Secrets ریپازیتوری شما تعریف شده باشند
+          OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
+          OANDA_ENV: ${{ secrets.OANDA_ENV || 'practice' }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_SIGNAL_THREAD_ID: ${{ secrets.TELEGRAM_SIGNAL_THREAD_ID }}
-          TELEGRAM_ALERT_THREAD_ID: ${{ secrets.TELEGRAM_ALERT_THREAD_ID }}
-          OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
-          TEST: ${{ inputs.test && '1' || '0' }}
-          LOOP_SECONDS: "270"
-          MODES: ${{ vars.MODES }}
-      - name: Commit latest signal
+          # سایر تنظیمات (در صورت نیاز)
+          M15: ${{ secrets.M15 }}
+          H1: ${{ secrets.H1 }}
+          RSI: ${{ secrets.RSI }}
+        run: node scan.js
+
+      - name: Commit and Push Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add latest_signal.txt || true
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update latest signal [skip ci]" && git push origin HEAD:main)
+          # اضافه کردن فایل‌های تولید شده
+          git add data.json history.json latest_signal.txt
+          # کامیت کردن تغییرات (اگر تغییری نبود، ارور ندهد)
+          git commit -m "Update market data [skip ci]" || echo "No changes to commit"
+          # پوش کردن به گیت‌هاب
+          git push
