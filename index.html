@@ -13,7 +13,7 @@
 :root{--bg:#0b0d11;--card:#12151b;--card2:#171b22;--bd:#232830;--bd2:#1b1f27;--tx:#e6e9ee;--tx2:#a7aebb;--mu:#78808d;--g:#2e9a69;--gb:#46c58c;--gd:rgba(47,157,104,.14);--r:#d4524c;--rb:#e8736d;--rd:rgba(209,75,69,.14);--rad:16px;--rs:12px;--font:"Segoe UI",system-ui,-apple-system,sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--font);min-height:100dvh;padding:0 14px env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--font);min-height:100dvh;padding:0 14px env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased;transition:padding .2s}
 bdi{unicode-bidi:isolate}
 button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:var(--rs);padding:0 14px;min-height:44px;font:inherit;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:background .15s,border-color .15s,transform .1s}
 button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default;transform:none}
@@ -125,7 +125,7 @@ details.nb summary::after{content:"▾";color:var(--mu);transition:transform .2s
 .empty{text-align:center;color:var(--mu);padding:46px 20px;font-size:14px;line-height:1.9}.empty b{display:block;font-size:34px;margin-bottom:4px}
 .sk{height:96px;border-radius:var(--rad);margin:10px 0;background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:shm 1.4s linear infinite}
 /* analysis panel */
-.an{margin-top:12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;direction:rtl}
+.an{margin-top:12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;}
 .an-h{display:flex;align-items:center;gap:14px}.ring{position:relative;width:62px;height:62px;flex:none}.ring svg{transform:rotate(-90deg);display:block}.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;direction:ltr;font-variant-numeric:tabular-nums}
 .an-t b{font-size:15px}.an-t small{display:block;color:var(--mu);font-size:12px;margin-top:2px}
 .ck{display:grid;grid-template-columns:24px 1fr;gap:2px 10px;align-items:start;padding:11px 0;border-top:1px solid var(--bd2)}.an-h+.ck{margin-top:12px}
@@ -163,6 +163,10 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 /* 🛠️ استایل دکمه تغییر زبان */
 #langToggle { font-weight: 700; font-size: 13px; min-width: 44px; }
+/* اصلاح جهت‌ها در حالت انگلیسی */
+body[dir="ltr"] .an { direction: ltr; text-align: left; }
+body[dir="ltr"] .an-h { flex-direction: row; }
+body[dir="ltr"] .ci { direction: ltr; }
 </style>
 </head>
 <body>
@@ -173,7 +177,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
     <span class="dot" id="dot" title="Auto Scan"></span>
     <button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button>
     <button class="ic" id="showHist" aria-label="History">📅</button>
-    <button class="ic" id="langToggle" aria-label="Language">🌐 EN</button>
+    <button class="ic" id="langToggle" aria-label="Language">EN</button>
     <button class="ic" id="gs" aria-label="Settings">⚙</button>
   </div>
 </header>
@@ -259,7 +263,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 </div>
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
-// 🛠️ تنظیمات زبان
+// 🛠️ دیکشنری‌های زبان
 const I18N = {
   fa: {
     scan: "اسکن", settings: "تنظیمات", history: "تاریخچه",
@@ -284,7 +288,6 @@ const I18N = {
     histErr: "خطا در دریافت تاریخچه.", histLoading: "در حال دریافت...",
     btnClose: "✕ بستن", btnSave: "ذخیره", btnSaved: "✓ ذخیره شد", btnEnable: "فعال‌سازی", btnEnabled: "فعال ✓", btnDenied: "رد شد", btnUnsupported: "پشتیبانی نمی‌شود",
     btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
-    // Backend Fail Reasons
     fail_pattern: "الگوی ۳+۱", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
     fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص"
@@ -312,14 +315,12 @@ const I18N = {
     histErr: "Error loading history.", histLoading: "Loading...",
     btnClose: "✕ Close", btnSave: "Save", btnSaved: "✓ Saved", btnEnable: "Enable", btnEnabled: "Enabled ✓", btnDenied: "Denied", btnUnsupported: "Unsupported",
     btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
-    // Backend Fail Reasons
     fail_pattern: "Pattern 3+1", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
     fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error"
   }
 };
 
-// 🛠️ ترجمه متن‌های فارسیِ دریافتی از سرور به کلیدهای انگلیسی
 const BACKEND_TO_KEY = {
     "الگوی ۳+۱": "fail_pattern",
     "هم‌راستایی EMA21/50": "fail_emaAlign",
@@ -338,66 +339,84 @@ const BACKEND_TO_KEY = {
     "خطای نامشخص": "fail_unknown"
 };
 
-let currentLang = LS("bs_lang") || "fa";
-const T = () => I18N[currentLang];
+// 🛠️ مقداردهی اولیه امن برای جلوگیری از هنگ کردن
+let currentLang = LS("bs_lang");
+if (currentLang !== 'en') currentLang = 'fa';
+const T = () => (I18N[currentLang] || I18N.fa);
 
 function trFail(failStr) {
     if (!failStr) return "";
     if (currentLang === 'fa') return failStr; 
     const key = BACKEND_TO_KEY[failStr];
-    return key ? I18N.en[key] : failStr;
+    if (key && I18N.en[key]) return I18N.en[key];
+    if (failStr.startsWith("قیمت بالای")) return "Price above EMA200 & Slope";
+    if (failStr.startsWith("قیمت پایین")) return "Price below EMA200 & Slope";
+    return failStr;
 }
 
 function applyLanguage() {
-    document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-    document.documentElement.lang = currentLang;
-    const t = T();
-    
-    $("goT").textContent = t.scan;
-    $("langToggle").textContent = currentLang === 'fa' ? '🌐 EN' : '🌐 FA';
-    $("stratTitle").textContent = t.fail_pattern;
-    $("navAlerts").textContent = currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts";
-    $("navBacktest").textContent = currentLang === 'fa' ? "بک‌تست" : "Backtest";
-    
-    $("setFilters").textContent = currentLang === 'fa' ? "فیلترها" : "Filters";
-    $("setM15").innerHTML = currentLang === 'fa' ? "فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small>" : "M15 Filter<small>EMA21/50 alignment on 15m</small>";
-    $("setH1").innerHTML = currentLang === 'fa' ? "فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small>" : "H1 Filter<small>Price vs 1H EMA200</small>";
-    $("setH1Strict").textContent = currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict";
-    $("setRsi").innerHTML = currentLang === 'fa' ? "فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small>" : "RSI Filter<small>Buy below limit, Sell above limit</small>";
-    $("setRsiL").textContent = currentLang === 'fa' ? "خرید زیر:" : "Buy below:";
-    $("setRsiS").textContent = currentLang === 'fa' ? "فروش بالای:" : "Sell above:";
-    $("setOnly").textContent = currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal";
-    
-    $("setSource").textContent = currentLang === 'fa' ? "منبع داده" : "Data Source";
-    $("setOanda").textContent = currentLang === 'fa' ? "OANDA توکن" : "OANDA Token";
-    $("setOandaEnv").textContent = currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env";
-    $("setExtraStocks").innerHTML = currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>";
-    
-    $("setApp").textContent = currentLang === 'fa' ? "برنامه" : "App";
-    $("setVer").innerHTML = currentLang === 'fa' ? "نسخه‌ی اپ<small id='verl'></small>" : "App Version<small id='verl'></small>";
-    $("upd").textContent = t.btnClearCache;
-    $("setNotifs").textContent = currentLang === 'fa' ? "اعلان‌ها" : "Notifications";
-    $("setNotifSys").textContent = currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound";
-    $("setNotifVoice").textContent = currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement";
-    $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۶۰ ثانیه</small>" : "Auto Scan<small>Every 60s</small>";
-    $("setTg").textContent = currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed";
-    $("setTgAlert").innerHTML = currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>";
-    $("setGh").innerHTML = currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>";
-    $("setGhToken").innerHTML = currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>";
-    $("nHint").textContent = currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving";
-    $("nSave").textContent = currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server";
-    $("setGhGuide").textContent = currentLang === 'fa' ? "راهنمای ساخت token" : "Token Guide";
-    
-    $("ls").textContent = t.scanning;
-    $("st").textContent = t.ready;
-    $("histTitle").textContent = t.histToday;
-    $("closeHist").textContent = t.btnClose;
-    $("cx").textContent = t.btnClose;
-    $("te").textContent = t.tvInside;
-    
-    // Re-render dynamic stuff
-    renderChips();
-    if(LAST) renderList();
+    try {
+        document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+        document.documentElement.lang = currentLang;
+        const t = T();
+        
+        $("goT").textContent = t.scan;
+        $("langToggle").textContent = currentLang === 'fa' ? 'EN' : 'FA';
+        $("stratTitle").textContent = t.fail_pattern;
+        $("navAlerts").textContent = currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts";
+        $("navBacktest").textContent = currentLang === 'fa' ? "بک‌تست" : "Backtest";
+        
+        $("setFilters").textContent = currentLang === 'fa' ? "فیلترها" : "Filters";
+        $("setM15").innerHTML = currentLang === 'fa' ? "فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small>" : "M15 Filter<small>EMA21/50 alignment on 15m</small>";
+        $("setH1").innerHTML = currentLang === 'fa' ? "فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small>" : "H1 Filter<small>Price vs 1H EMA200</small>";
+        $("setH1Strict").textContent = currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict";
+        $("setRsi").innerHTML = currentLang === 'fa' ? "فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small>" : "RSI Filter<small>Buy below limit, Sell above limit</small>";
+        $("setRsiL").textContent = currentLang === 'fa' ? "خرید زیر:" : "Buy below:";
+        $("setRsiS").textContent = currentLang === 'fa' ? "فروش بالای:" : "Sell above:";
+        $("setOnly").textContent = currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal";
+        
+        $("setSource").textContent = currentLang === 'fa' ? "منبع داده" : "Data Source";
+        $("setOanda").textContent = currentLang === 'fa' ? "OANDA توکن" : "OANDA Token";
+        $("setOandaEnv").textContent = currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env";
+        $("setExtraStocks").innerHTML = currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>";
+        
+        $("setApp").textContent = currentLang === 'fa' ? "برنامه" : "App";
+        // استفاده از childNodes برای جلوگیری از بازسازی DOM
+        if($("setVer").childNodes[0]) $("setVer").childNodes[0].nodeValue = currentLang === 'fa' ? "نسخه‌ی اپ" : "App Version";
+        $("upd").textContent = t.btnClearCache;
+        
+        $("setNotifs").textContent = currentLang === 'fa' ? "اعلان‌ها" : "Notifications";
+        $("setNotifSys").textContent = currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound";
+        $("setNotifVoice").textContent = currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement";
+        $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۶۰ ثانیه</small>" : "Auto Scan<small>Every 60s</small>";
+        
+        $("setTg").textContent = currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed";
+        $("setTgAlert").innerHTML = currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>";
+        $("setGh").innerHTML = currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>";
+        $("setGhToken").innerHTML = currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>";
+        $("nHint").textContent = currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving";
+        $("nSave").textContent = currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server";
+        
+        $("setGhGuide").textContent = currentLang === 'fa' ? "راهنمای ساخت token" : "Token Guide";
+        $("setGhGuideText").innerHTML = currentLang === 'fa' ? "در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده." : "In GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. Select this repo only and set <b>Contents</b> to <b>Read and write</b> in Permissions. Token is saved locally. Without token, the Save button will show the config text to copy manually.";
+        
+        $("ls").textContent = t.scanning;
+        $("st").textContent = t.ready;
+        $("histTitle").textContent = t.histToday;
+        $("closeHist").textContent = t.btnClose;
+        $("cx").textContent = t.btnClose;
+        $("te").textContent = t.tvInside;
+        $("saveTok").textContent = t.btnSave;
+        
+        $("ver").textContent = "v" + BUILD;
+        if($("verl")) $("verl").textContent = (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v" + BUILD;
+
+        // Re-render dynamic stuff
+        renderChips();
+        if(LAST) renderList();
+    } catch(e) {
+        console.error("Language apply error", e);
+    }
 }
 
 function fmtNum(n) {
@@ -714,7 +733,7 @@ $("list").onclick=openRow;$("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()});
 $("gs").onclick=()=>{$("set").classList.toggle("on");$("gs").classList.toggle("on")};
 
-// 🛠️ تغییر زبان
+// 🛠️ تغییر زبان بدون هنگ کردن
 $("langToggle").onclick = () => {
     currentLang = currentLang === 'fa' ? 'en' : 'fa';
     LS("bs_lang", currentLang);
@@ -739,7 +758,7 @@ if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controlle
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
 $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
-$("ver").textContent="v"+BUILD;$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
+$("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
 
@@ -778,65 +797,4 @@ $("showHist").onclick = async () => {
                 checksHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; direction:ltr; align-items:center;">
                     ${countBadge}` + 
                     s.checks.map(c => `
-                        <span style="font-size:10px; padding:2px 6px; border-radius:4px; 
-                            background:rgba(46,154,105,0.15); 
-                            color:var(--gb); 
-                            border:1px solid rgba(46,154,105,0.3);"
-                            title="${trFail(c.l)}">
-                            ✓ ${trFail(c.l).split(' ')[0]}
-                        </span>`).join('') + `</div>`;
-            }
-
-            return `
-            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
-                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
-                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
-                        <span style="color:var(--mu);">${timeStr}</span>
-                    </div>
-                </div>
-                ${checksHtml}
-            </div>`;
-        }).join("");
-
-    } catch(e) {
-        list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
-    }
-};
-$("closeHist").onclick = () => { $("histModal").style.display = "none"; };
-
-// 🛠️ راه‌اندازی اولیه زبان
-applyLanguage();
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-    const { LocalNotifications } = window.Capacitor.Plugins;
-    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
-    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
-  }
-});
-</script>
-<script id="hardcoded-settings">
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const ghr = document.getElementById('ghr');
-      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
-        ghr.value = 'massud2020/Balanced-Screener';
-        ghr.dispatchEvent(new Event('change')); 
-      }
-      
-      const ght = document.getElementById('ght');
-      if (ght && !ght.value) {
-        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-        ght.dispatchEvent(new Event('change')); 
-      }
-    }, 800); 
-  });
-</script>
-
-</body></html>
+                        <span style="font-size:10px; padding
