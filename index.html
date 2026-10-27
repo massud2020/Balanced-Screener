@@ -113,7 +113,7 @@ main{padding-bottom:28px}
 .rn-right .sym{font-weight:700;font-size:15px;color:var(--tx);}
 .rn-right .why{font-size:12px;color:var(--mu);}
 .rn-left{display:flex;align-items:center;gap:12px;}
-.rn-left .score{font-size:13px;font-variant-numeric:tabular-nums;color:var(--tx2);}
+.rn-left .score{font-size:13px;font-variant-numeric:tabular-nums;}
 .ring-box{position:relative;width:44px;height:44px;display:grid;place-items:center;}
 .ring-box svg{position:absolute;inset:0;}
 .ring-box .inner-pill{width:10px;height:22px;border-radius:99px;z-index:1;}
@@ -254,15 +254,15 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
   <div id="an"></div>
   <div id="ci"></div>
 </div>
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=35"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
-const BUILD=34,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+// 🛠️ نسخه به 35 تغییر کرد
+const BUILD=35,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
 const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 
-// 🛠️ تابع دریافت فایل از گیت‌هاب
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
     let lastError = null;
@@ -315,6 +315,8 @@ async function scan() {
     rows.forEach(r => {
         if (r.a && r.h) {
             D[r.id] = { id: r.id, a: r.a, h: r.h, dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] }; 
+        } else {
+            D[r.id] = { id: r.id, a: [], h: [], dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] }; 
         }
     });
 
@@ -367,46 +369,51 @@ return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}
 <div class="r-grid"><div><i>Entry</i><b>${f(r.entry)}</b></div><div><i>SL</i><b class="neg">${f(r.sl)}</b></div><div><i>Exit</i><b class="pos">واگرایی RSI</b></div></div>
 <div class="r-foot"><span>ریسک <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>${a?`<span>${a}</span>`:""}</div></article>`}
 
-// 🛠️ تولید دایره‌های خط‌چین به صورت کاملاً داینامیک بر اساس شروط استراتژی
+// 🛠️ تولید دایره‌های خط‌چین با طیف رنگی (قرمز -> زرد -> سبز)
 function noneHtml(r){
     let color = 'rgba(255,255,255,0.1)';
+    let textColor = 'var(--tx2)';
     
-    // خواندن تعداد کل شرط‌ها مستقیماً از سرور (اگر نبود، ۴ شرط پایه)
-    let N = (r.total !== undefined && r.total > 0) ? r.total : 4;
-    let P = (r.pass !== undefined && r.pass > 0) ? r.pass : 0;
+    let N = 4; 
+    if (r.total && r.total > 0) N = r.total;
+    else if (r.checks && Array.isArray(r.checks) && r.checks.length > 0) N = r.checks.length;
+    
+    let P = 0;
+    if (r.pass && r.pass > 0) P = r.pass;
+    else if (r.checks && Array.isArray(r.checks)) P = r.checks.filter(c => c.ok).length;
     
     const ratio = N > 0 ? P / N : 0;
+    
     if (P > 0) {
-        if (P === N) color = 'var(--gb)';
-        else if (ratio >= 0.6) color = '#ffb020';
-        else color = 'var(--rb)';
+        if (P === N) {
+            color = 'hsl(145, 80%, 55%)'; 
+            textColor = 'hsl(145, 80%, 65%)';
+        } else {
+            const hue = ratio * 120; 
+            color = `hsl(${hue}, 85%, 55%)`;
+            textColor = `hsl(${hue}, 85%, 65%)`;
+        }
     }
     
     const R = 15, cx = 22, cy = 22;
-    
     let paths = '';
     if (N > 0) {
         const anglePerSeg = 360 / N;
         const gapAngle = Math.min(16, anglePerSeg * 0.4);
         const arcAngle = anglePerSeg - gapAngle;
-        
         for (let i = 0; i < N; i++) {
             const startAngle = i * anglePerSeg - 90 + (gapAngle/2);
             const endAngle = startAngle + arcAngle;
-            
             const x1 = cx + R * Math.cos(startAngle * Math.PI / 180);
             const y1 = cy + R * Math.sin(startAngle * Math.PI / 180);
             const x2 = cx + R * Math.cos(endAngle * Math.PI / 180);
             const y2 = cy + R * Math.sin(endAngle * Math.PI / 180);
-            
             const isPassed = i < P;
             const strokeColor = isPassed ? color : 'rgba(255,255,255,0.1)';
             const largeArcFlag = arcAngle > 180 ? 1 : 0;
-            
             paths += `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round"/>`;
         }
     }
-
     return `
     <div class="row none" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
         <div class="rn-right">
@@ -414,11 +421,9 @@ function noneHtml(r){
             <span class="why">${r.fail || ""}</span>
         </div>
         <div class="rn-left">
-            <span class="score">${P}/${N}</span>
+            <span class="score" style="color:${textColor}">${P}/${N}</span>
             <div class="ring-box">
-                <svg width="44" height="44" viewBox="0 0 44 44">
-                    ${paths}
-                </svg>
+                <svg width="44" height="44" viewBox="0 0 44 44">${paths}</svg>
                 <div class="inner-pill" style="background:${P > 0 ? color : 'rgba(255,255,255,0.1)'}"></div>
             </div>
         </div>
@@ -476,14 +481,82 @@ $("go").onclick=scan;
 let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e8736d",R=26,C=2*Math.PI*R;return`<svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}"/></svg>`}
-function renderAnalysis(ex,dg,mode){const el=$("an");if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?ex.err:"تحلیل در دسترس نیست"}</div></div>`;return}
-const full=ex.total>0&&ex.pass===ex.total,f=v=>Number(v).toFixed(dg),L=ex.dir==="LONG";let body="";
-body=ex.checks.map(c=>`<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${c.label}</b><span>${c.txt||""}</span></div></div>`).join("");
-if(ex.rsi!=null)body+=`<div class="ck inf"><div class="cs">i</div><div class="lb"><b>RSI</b><span>${ex.rsi.toFixed(1)}</span></div><div class="viz"><div class="gg"><i style="left:${clamp(ex.rsi,0,100)}%"></i></div><div class="gl"><span>0</span><span>30</span><span>70</span><span>100</span></div></div></div>`;
-el.innerHTML=`<div class="an"><div class="an-h"><div class="ring">${ringSvg(ex.pass,ex.total)}<b>${fa(ex.pass)}/${fa(ex.total)}</b></div><div class="an-t"><b>${full?"همه‌ی شرایط برقرار است ✓":fa(ex.pass)+" از "+fa(ex.total)+" شرط برقرار است"}</b><small>بررسی برای ${L?"▲ لانگ":"▼ شورت"} · ${mode}</small></div></div>${body}</div>`}
-function render(id){const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=>v.toFixed(d.dg);try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,"الگوی ۳+۱")}catch(e){$("an").innerHTML=""}
-$("ci").innerHTML=`<div class="kv"><div><i>قیمت</i><b>${f(x.price)}</b></div>${r.side?`<div><i>Entry</i><b>${f(r.entry)}</b></div><div><i>SL</i><b class="neg">${f(r.sl)}</b></div><div><i>Exit</i><b>واگرایی RSI</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>سیگنال</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 سیگنال خرید (LONG)":"🔴 سیگنال فروش (SHORT)"} روی آخرین کندل بسته‌شده</div>`:`<div class="nosig" style="margin-top:10px">سیگنال فعلی ندارد · ${r.fail||"-"}</div>`)+
-`<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">آخرین آپدیت ${new Date().toLocaleTimeString("fa-IR")} · سیگنال‌های بسته‌شده اخیر روی چارت: ${fa(x.n)} · ▲▼ ورود، ● خروج</div>`}
+
+// 🛠️ بازگرداندن نمودارها و نوارهای تحلیل
+function renderAnalysis(ex,dg,mode){
+    const el=$("an");
+    if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?ex.err:"تحلیل در دسترس نیست"}</div></div>`;return}
+    const full=ex.total>0&&ex.pass===ex.total, f=v=>Number(v).toFixed(dg), L=ex.dir==="LONG";
+    let body="";
+    
+    body=ex.checks.map(c=>{
+        let vizHtml = "";
+        if (c.viz) {
+            if (c.viz.t === "dist") {
+                const v = c.viz.v;
+                const pct = Math.min(50, (Math.abs(v) / 5) * 50); 
+                const left = v >= 0 ? 50 : 50 - pct;
+                vizHtml = `<div class="viz"><div class="dist ${c.ok?'ok':'no'}"><u style="left:${left}%; width:${pct}%"></u></div></div>`;
+            } else if (c.viz.t === "pat") {
+                const pat = c.viz.c; 
+                const th = c.viz.th;
+                const ratio = c.viz.ratio;
+                const rp = Math.min(100, (ratio / 1) * 100);
+                const tp = th * 100;
+                const cHtml = pat.map(k => {
+                    const isB = k.c > k.o;
+                    const col = isB ? "var(--gb)" : "var(--rb)";
+                    const top = Math.max(k.o, k.c);
+                    const bot = Math.min(k.o, k.c);
+                    const high = k.h;
+                    const low = k.l;
+                    const scale = 20 / (high - low || 1);
+                    const bodyH = Math.max(2, (top - bot) * scale);
+                    const bodyTop = (high - top) * scale;
+                    return `<div style="position:relative;width:6px;height:24px;margin:0 2px;">
+                        <div style="position:absolute;left:2px;top:0;width:2px;height:100%;background:${col};opacity:0.5;"></div>
+                        <div style="position:absolute;left:0;top:${bodyTop}px;width:6px;height:${bodyH}px;background:${col};border-radius:1px;"></div>
+                    </div>`;
+                }).join("");
+                vizHtml = `<div class="viz"><div class="pat"><div class="rb ${c.ok?'ok':''}"><u style="width:${rp}%"></u><s style="left:${tp}%"></s></div></div><div style="display:flex;gap:2px;margin-top:6px;align-items:center;justify-content:flex-start;direction:ltr;">${cHtml}</div></div>`;
+            }
+        }
+        return `<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${c.label}</b><span>${c.txt||""}</span></div>${vizHtml}</div>`;
+    }).join("");
+    
+    if(ex.rsi!=null){
+        body+=`<div class="ck inf"><div class="cs">i</div><div class="lb"><b>RSI</b><span>${ex.rsi.toFixed(1)}</span></div><div class="viz"><div class="gg"><i style="left:${clamp(ex.rsi,0,100)}%"></i></div><div class="gl"><span>0</span><span>30</span><span>70</span><span>100</span></div></div></div>`;
+    }
+    if (ex.slEst && ex.price) {
+        const slPct = (ex.slEst / ex.price) * 100;
+        const atrVal = ex.slEst / (ex.atr || 1); 
+        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>فاصله‌ی SL تخمینی</b><span>${slPct.toFixed(2)}% • ${atrVal.toFixed(1)}×ATR</span></div><div class="viz"><div class="dist"><u style="left:0%; width:${Math.min(100, slPct * 5)}%"></u></div></div></div>`;
+    }
+    
+    el.innerHTML=`<div class="an"><div class="an-h"><div class="ring">${ringSvg(ex.pass,ex.total)}<b>${fa(ex.pass)}/${fa(ex.total)}</b></div><div class="an-t"><b>${full?"همه‌ی شرایط برقرار است ✓":fa(ex.pass)+" از "+fa(ex.total)+" شرط برقرار است"}</b><small>بررسی برای ${L?"▲ لانگ":"▼ شورت"} · ${mode}</small></div></div>${body}</div>`;
+}
+
+function render(id){
+    const d=D[id];
+    if(!d){return}
+    let x; 
+    try {
+        x=drawChart($("cv"),d,SM(),Date.now()/1000);
+    } catch(e) {
+        $("an").innerHTML=`<div class="an"><div class="hint">دیتای چارت موجود نیست</div></div>`;
+        return;
+    }
+    const r=x.row, f=v=>v.toFixed(d.dg);
+    
+    try {
+        renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,"الگوی ۳+۱");
+    } catch(e) {
+        $("an").innerHTML=`<div class="an"><div class="hint">خطا در تحلیل</div></div>`;
+    }
+    
+    $("ci").innerHTML=`<div class="kv"><div><i>قیمت</i><b>${f(x.price)}</b></div>${r.side?`<div><i>Entry</i><b>${f(r.entry)}</b></div><div><i>SL</i><b class="neg">${f(r.sl)}</b></div><div><i>Exit</i><b>واگرایی RSI</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>سیگنال</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 سیگنال خرید (LONG)":"🔴 سیگنال فروش (SHORT)"} روی آخرین کندل بسته‌شده</div>`:`<div class="nosig" style="margin-top:10px">سیگنال فعلی ندارد · ${r.fail||"-"}</div>`)+
+    `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">آخرین آپدیت ${new Date().toLocaleTimeString("fa-IR")} · سیگنال‌های بسته‌شده اخیر روی چارت: ${fa(x.n)} · ▲▼ ورود، ● خروج</div>`
+}
 
 function tvSym(u){return u[1]?"BINANCE:"+u[0]:u[4]?"OANDA:"+u[4].replace("_",""):u[0]}
 function tvReset(){$("tf").style.display="none";$("tf").src="about:blank";$("cw").style.display="block";$("te").textContent="TradingView داخل اپ"}
