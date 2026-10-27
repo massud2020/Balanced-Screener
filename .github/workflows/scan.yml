@@ -1,13 +1,12 @@
 name: Balanced Screener Scan
 
 on:
-  workflow_dispatch: # اجرای دستی
+  workflow_dispatch:
   schedule:
-    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
+    - cron: '*/15 * * * *'
 
-# 🛠️ این خط برای اجازه دادن به اکشن جهت کامیت کردن و ذخیره فایل data.json است
 permissions:
-  contents: write 
+  contents: write # 🛠️ دسترسی نوشتن در ریپازیتوری
 
 jobs:
   scan:
@@ -22,6 +21,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Dependencies
+        run: npm install
+
       - name: Run Scanner
         env:
           OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
@@ -30,11 +32,11 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: node scan.js
 
-      - name: Commit and Push Data
+      # 🛠️ این بخش را اصلاح کردم: حالا همیشه فایل‌ها را ذخیره می‌کند
+      - name: Commit and push
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          # 🛠️ این خط تمام فایل‌های تغییر یافته را اضافه می‌کند (حتی اگر جدید باشند)
-          git add -A
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json history.json latest_signal.txt
           git commit -m "Update market data [skip ci]" || echo "No changes to commit"
           git push
