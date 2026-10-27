@@ -8,12 +8,13 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
   TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
 
-// 🛠️ خواندن تنظیمات از محیط گیت‌هاب
+// 🛠️ خواندن تنظیمات فیلترها از گیت‌هاب (با مقادیر پیش‌فرض امن)
 const F15 = process.env.M15 !== "0";
 const FH1 = process.env.H1 !== "0";
 const RSI_ON = process.env.RSI !== "0";
 const RSI_L = +(process.env.RSI_L || 40);
 const RSI_S = +(process.env.RSI_S || 60);
+const STRICT = process.env.H1_STRICT === "1";
 
 const MODES = (process.env.MODES || "pattern")
   .split(",").map(x => x.trim()).filter(x => x === "pattern");
@@ -114,6 +115,7 @@ async function once(now) {
   const modes = enabledModes();
   const allRows = [];
   
+  // خواندن تاریخچه قبلی
   let history = [];
   try { history = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch(e) {}
   
@@ -133,7 +135,7 @@ async function once(now) {
         
         let foundSignal = false;
         for (const mode of modes) {
-          // 🛠️ پاس دادن صحیح فیلتر RSI به موتور
+          // پاس دادن صحیح فیلتر RSI به موتور
           const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
           const r = evaluate(u[0], a, h, opts, now);
           
@@ -145,7 +147,6 @@ async function once(now) {
             let totalActive = 0;
             
             try {
-                // 🛠️ پاس دادن صحیح فیلتر RSI به موتور برای گزارش‌گیری
                 const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
                 if (exp && exp.checks) {
                     checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
@@ -190,6 +191,7 @@ async function once(now) {
     }
   }));
   
+  // پاک کردن تاریخچه‌های قدیمی‌تر از ۳ روز
   const threeDaysAgo = now - (3 * 24 * 3600);
   history = history.filter(h => h.time > threeDaysAgo);
   
