@@ -27,7 +27,7 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 .acts{display:flex;align-items:center;gap:6px;flex:none}
 button.p{background:linear-gradient(135deg,#2a8f5c,var(--g));border-color:transparent;color:#fff;font-weight:700;min-width:84px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 2px 14px rgba(47,157,104,.3)}
 button.p small{font-weight:500;opacity:.85;font-size:11.5px;background:rgba(0,0,0,.2);padding:1px 7px;border-radius:99px}
-button.ic{width:40px;min-width:40px;padding:0;font-size:18px;display:grid;place-items:center}
+button.ic{width:40px;min-width:40px;padding:0;font-size:16px;display:grid;place-items:center}
 button.ic.on{border-color:var(--gb);color:var(--gb)}
 a.ic{width:40px;min-width:40px;min-height:44px;display:grid;place-items:center;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--tx);text-decoration:none;font-size:18px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--bd);transition:background .3s}.dot.on{background:var(--gb);box-shadow:0 0 0 4px var(--gd);animation:pl 1.6s ease-in-out infinite}
@@ -113,7 +113,7 @@ main{padding-bottom:28px}
 .rn-right .sym{font-weight:700;font-size:15px;color:var(--tx);}
 .rn-right .why{font-size:12px;color:var(--mu);}
 .rn-left{display:flex;align-items:center;gap:12px;}
-.rn-left .score{font-size:13px;font-variant-numeric:tabular-nums;}
+.rn-left .score{font-size:13px;font-variant-numeric:tabular-nums;color:var(--tx2);}
 .ring-box{position:relative;width:44px;height:44px;display:grid;place-items:center;}
 .ring-box svg{position:absolute;inset:0;}
 .ring-box .inner-pill{width:10px;height:22px;border-radius:99px;z-index:1;}
@@ -161,6 +161,8 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 @keyframes sp{to{transform:rotate(360deg)}}@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}@keyframes pl{50%{opacity:.4}}
 @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes shm{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+/* 🛠️ استایل دکمه تغییر زبان */
+#langToggle { font-weight: 700; font-size: 13px; min-width: 44px; }
 </style>
 </head>
 <body>
@@ -168,51 +170,52 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 <header class="bar">
   <div class="brand"><i>◈</i><div class="bt">Balanced Screener <small id="ver"></small></div></div>
   <div class="acts">
-    <span class="dot" id="dot" title="اسکن خودکار"></span>
+    <span class="dot" id="dot" title="Auto Scan"></span>
     <button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button>
-    <button class="ic" id="showHist" aria-label="تاریخچه">📅</button>
-    <button class="ic" id="gs" aria-label="تنظیمات">⚙</button>
+    <button class="ic" id="showHist" aria-label="History">📅</button>
+    <button class="ic" id="langToggle" aria-label="Language">🌐 EN</button>
+    <button class="ic" id="gs" aria-label="Settings">⚙</button>
   </div>
 </header>
 <section class="ctl">
-  <div class="one" aria-label="استراتژی"><span class="od"></span><b>الگوی ۳+۱</b><small>EMA · M15 · H1 · RSI</small></div>
-  <div class="nav"><a href="alerts.html"><span>🔔</span>هشدار قیمت<i id="alN"></i></a><a href="backtest.html"><span>📊</span>بک‌تست</a></div>
-  <div class="chips" id="mkts" aria-label="بازارها"></div>
+  <div class="one" aria-label="Strategy"><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b><small>EMA · M15 · H1 · RSI</small></div>
+  <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span><i id="alN"></i></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
+  <div class="chips" id="mkts" aria-label="Markets"></div>
 </section>
 <div class="set" id="set">
-  <h3>فیلترها</h3>
-  <label><span>فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small></span><input type="checkbox" id="m15" checked></label>
-  <label><span>فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small></span><input type="checkbox" id="h1" checked></label>
-  <label><span>H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
-  <label><span>فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small></span><input type="checkbox" id="rsi" checked></label>
+  <h3 id="setFilters">فیلترها</h3>
+  <label><span id="setM15">فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small></span><input type="checkbox" id="m15" checked></label>
+  <label><span id="setH1">فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small></span><input type="checkbox" id="h1" checked></label>
+  <label><span id="setH1Strict">H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
+  <label><span id="setRsi">فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small></span><input type="checkbox" id="rsi" checked></label>
   <div style="display:flex; gap:10px; margin-top:-5px; margin-bottom:10px; padding: 0 14px;">
     <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
-      <span>خرید زیر:</span>
+      <span id="setRsiL">خرید زیر:</span>
       <input type="number" id="rsiL" value="40" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
     </div>
     <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
-      <span>فروش بالای:</span>
+      <span id="setRsiS">فروش بالای:</span>
       <input type="number" id="rsiS" value="60" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
     </div>
   </div>
-  <label><span>فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
-  <h3>منبع داده</h3>
-  <label><span>OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
-  <label><span>نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
-  <label><span>سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
-  <h3>برنامه</h3>
-  <label><span>نسخه‌ی اپ<small id="verl"></small></span><button id="upd">پاک‌کردن کش و به‌روزرسانی</button></label>
-  <h3>اعلان‌ها</h3>
-  <label><span>اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
-  <label><span>اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
-  <label><span>اسکن خودکار<small>هر ۶۰ ثانیه</small></span><input type="checkbox" id="auto"></label>
-  <h3>اعلان‌های تلگرام · وقتی اپ بسته است</h3>
-  <label><span>اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
-  <label><span>ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
-  <label><span>GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small></span><input type="password" id="ght" placeholder="github_pat_…" autocomplete="off"></label>
+  <label><span id="setOnly">فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
+  <h3 id="setSource">منبع داده</h3>
+  <label><span id="setOanda">OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
+  <label><span id="setOandaEnv">نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
+  <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
+  <h3 id="setApp">برنامه</h3>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd">پاک‌کردن کش و به‌روزرسانی</button></label>
+  <h3 id="setNotifs">اعلان‌ها</h3>
+  <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
+  <label><span id="setNotifVoice">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
+  <label><span id="setAuto">اسکن خودکار<small>هر ۶۰ ثانیه</small></span><input type="checkbox" id="auto"></label>
+  <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
+  <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
+  <label><span id="setGh">ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
+  <label><span id="setGhToken">GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small></span><input type="password" id="ght" placeholder="github_pat_…" autocomplete="off"></label>
   <label><span id="nHint">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</span><button id="nSave">ذخیره روی سرور</button></label>
   <div class="nout" id="nOut"></div>
-  <details><summary>راهنمای ساخت token</summary><p>در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده.</p></details>
+  <details><summary id="setGhGuide">راهنمای ساخت token</summary><p id="setGhGuideText">در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده.</p></details>
 </div>
 
 <!-- رادار و نوار لودینگ -->
@@ -239,7 +242,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 <div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
   <div style="max-width:600px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-      <h3 style="color:var(--gb); margin:0;">📅 سیگنال‌های امروز</h3>
+      <h3 id="histTitle" style="color:var(--gb); margin:0;">📅 سیگنال‌های امروز</h3>
       <button id="closeHist" style="min-height:32px; padding:0 12px;">✕ بستن</button>
     </div>
     <div id="histList" style="display:flex; flex-direction:column; gap:10px;"></div>
@@ -247,21 +250,170 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 </div>
 
 <div id="ov">
-  <div class="oh"><div><span id="ct"></span><span class="lv">● LIVE</span></div><button id="cx" aria-label="بستن">✕ بستن</button></div>
+  <div class="oh"><div><span id="ct"></span><span class="lv">● LIVE</span></div><button id="cx" aria-label="Close">✕ بستن</button></div>
   <div class="oa"><a class="btn tv" id="tv" target="_blank" rel="noopener">↗ TradingView</a><button id="te">TradingView داخل اپ</button></div>
   <iframe id="tf" referrerpolicy="no-referrer" allow="fullscreen"></iframe>
   <div id="cw"><canvas id="cv"></canvas></div>
   <div id="an"></div>
   <div id="ci"></div>
 </div>
-<script src="symbols.js?v=35"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
-// 🛠️ نسخه به 35 تغییر کرد
+// 🛠️ تنظیمات زبان
+const I18N = {
+  fa: {
+    scan: "اسکن", settings: "تنظیمات", history: "تاریخچه",
+    goFetch: "دریافت...", goScan: "اسکن",
+    long: "لانگ", short: "شورت", all: "همه",
+    noSignal: "بدون سیگنال", symbols: "نماد",
+    scanning: "در حال دریافت داده از سرور...", pleaseWait: "لطفاً صبر کنید",
+    scanDone: "تکمیل شد", lastScan: "آخرین اسکن سرور:",
+    signals: "سیگنال", ready: "آماده",
+    noSignalsYet: "فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد",
+    noSignalsFilter: "سیگنالی با این فیلتر نیست",
+    errFetch: "خطا در دریافت دیتا از سرور ابری. لطفاً بعداً تلاش کنید.",
+    risk: "ریسک", entry: "ورود", sl: "حد ضرر", exit: "خروج", rsiDiv: "واگرایی RSI",
+    minAgo: "دقیقه پیش", justNow: "همین الان",
+    price: "قیمت", signal: "سیگنال", noSignalNow: "سیگنال فعلی ندارد",
+    lastUpdate: "آخرین آپدیت", recentSignals: "سیگنال‌های بسته‌شده اخیر روی چارت:",
+    legend: "▲▼ ورود، ● خروج", close: "بستن", tvInside: "TradingView داخل اپ",
+    tvBack: "برگشت به چارت اپ",
+    condMet: "همه‌ی شرایط برقرار است ✓", condPartial: "از", condPartial2: "شرط برقرار است",
+    checkFor: "بررسی برای", estSl: "فاصله‌ی SL تخمینی",
+    histToday: "📅 سیگنال‌های امروز", histNone: "امروز هنوز هیچ سیگنال معتبری ثبت نشده است.",
+    histErr: "خطا در دریافت تاریخچه.", histLoading: "در حال دریافت...",
+    btnClose: "✕ بستن", btnSave: "ذخیره", btnSaved: "✓ ذخیره شد", btnEnable: "فعال‌سازی", btnEnabled: "فعال ✓", btnDenied: "رد شد", btnUnsupported: "پشتیبانی نمی‌شود",
+    btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
+    // Backend Fail Reasons
+    fail_pattern: "الگوی ۳+۱", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
+    fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
+    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص"
+  },
+  en: {
+    scan: "Scan", settings: "Settings", history: "History",
+    goFetch: "Fetching...", goScan: "Scan",
+    long: "LONG", short: "SHORT", all: "All",
+    noSignal: "No Signal", symbols: "Symbols",
+    scanning: "Fetching data from server...", pleaseWait: "Please wait",
+    scanDone: "Done", lastScan: "Last scan:",
+    signals: "Signals", ready: "Ready",
+    noSignalsYet: "No signals yet<br>Auto-scan continues",
+    noSignalsFilter: "No signals with this filter",
+    errFetch: "Error fetching data. Please try again later.",
+    risk: "Risk", entry: "Entry", sl: "SL", exit: "Exit", rsiDiv: "RSI Divergence",
+    minAgo: "mins ago", justNow: "Just now",
+    price: "Price", signal: "Signal", noSignalNow: "No current signal",
+    lastUpdate: "Last update", recentSignals: "Recent closed signals on chart:",
+    legend: "▲▼ Entry, ● Exit", close: "Close", tvInside: "TradingView in App",
+    tvBack: "Back to App Chart",
+    condMet: "All conditions met ✓", condPartial: "of", condPartial2: "conditions met",
+    checkFor: "Check for", estSl: "Est. SL Distance",
+    histToday: "📅 Today's Signals", histNone: "No valid signals recorded today.",
+    histErr: "Error loading history.", histLoading: "Loading...",
+    btnClose: "✕ Close", btnSave: "Save", btnSaved: "✓ Saved", btnEnable: "Enable", btnEnabled: "Enabled ✓", btnDenied: "Denied", btnUnsupported: "Unsupported",
+    btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
+    // Backend Fail Reasons
+    fail_pattern: "Pattern 3+1", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
+    fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
+    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error"
+  }
+};
+
+// 🛠️ ترجمه متن‌های فارسیِ دریافتی از سرور به کلیدهای انگلیسی
+const BACKEND_TO_KEY = {
+    "الگوی ۳+۱": "fail_pattern",
+    "هم‌راستایی EMA21/50": "fail_emaAlign",
+    "قیمت روی EMA200": "fail_priceEma200",
+    "شیب EMA": "fail_emaSlope",
+    "تقاطع EMA21/50": "fail_emaCross",
+    "فیلتر M15": "fail_m15",
+    "فیلتر H1": "fail_h1",
+    "فیلتر RSI": "fail_rsi",
+    "No Data": "fail_noData",
+    "Error": "fail_error",
+    "تاریخچه M5 کافی نیست": "fail_histM5",
+    "تاریخچه M15 کافی نیست": "fail_histM15",
+    "تاریخچه H1 کافی نیست": "fail_histH1",
+    "اندیکاتورها آماده نیست": "fail_notReady",
+    "خطای نامشخص": "fail_unknown"
+};
+
+let currentLang = LS("bs_lang") || "fa";
+const T = () => I18N[currentLang];
+
+function trFail(failStr) {
+    if (!failStr) return "";
+    if (currentLang === 'fa') return failStr; 
+    const key = BACKEND_TO_KEY[failStr];
+    return key ? I18N.en[key] : failStr;
+}
+
+function applyLanguage() {
+    document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+    document.documentElement.lang = currentLang;
+    const t = T();
+    
+    $("goT").textContent = t.scan;
+    $("langToggle").textContent = currentLang === 'fa' ? '🌐 EN' : '🌐 FA';
+    $("stratTitle").textContent = t.fail_pattern;
+    $("navAlerts").textContent = currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts";
+    $("navBacktest").textContent = currentLang === 'fa' ? "بک‌تست" : "Backtest";
+    
+    $("setFilters").textContent = currentLang === 'fa' ? "فیلترها" : "Filters";
+    $("setM15").innerHTML = currentLang === 'fa' ? "فیلتر M15<small>هم‌جهتی EMA21/50 در ۱۵ دقیقه</small>" : "M15 Filter<small>EMA21/50 alignment on 15m</small>";
+    $("setH1").innerHTML = currentLang === 'fa' ? "فیلتر H1<small>قیمت نسبت به EMA200 ساعتی</small>" : "H1 Filter<small>Price vs 1H EMA200</small>";
+    $("setH1Strict").textContent = currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict";
+    $("setRsi").innerHTML = currentLang === 'fa' ? "فیلتر RSI<small>خرید زیر حد مشخص و فروش بالای حد مشخص</small>" : "RSI Filter<small>Buy below limit, Sell above limit</small>";
+    $("setRsiL").textContent = currentLang === 'fa' ? "خرید زیر:" : "Buy below:";
+    $("setRsiS").textContent = currentLang === 'fa' ? "فروش بالای:" : "Sell above:";
+    $("setOnly").textContent = currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal";
+    
+    $("setSource").textContent = currentLang === 'fa' ? "منبع داده" : "Data Source";
+    $("setOanda").textContent = currentLang === 'fa' ? "OANDA توکن" : "OANDA Token";
+    $("setOandaEnv").textContent = currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env";
+    $("setExtraStocks").innerHTML = currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>";
+    
+    $("setApp").textContent = currentLang === 'fa' ? "برنامه" : "App";
+    $("setVer").innerHTML = currentLang === 'fa' ? "نسخه‌ی اپ<small id='verl'></small>" : "App Version<small id='verl'></small>";
+    $("upd").textContent = t.btnClearCache;
+    $("setNotifs").textContent = currentLang === 'fa' ? "اعلان‌ها" : "Notifications";
+    $("setNotifSys").textContent = currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound";
+    $("setNotifVoice").textContent = currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement";
+    $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۶۰ ثانیه</small>" : "Auto Scan<small>Every 60s</small>";
+    $("setTg").textContent = currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed";
+    $("setTgAlert").innerHTML = currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>";
+    $("setGh").innerHTML = currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>";
+    $("setGhToken").innerHTML = currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>";
+    $("nHint").textContent = currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving";
+    $("nSave").textContent = currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server";
+    $("setGhGuide").textContent = currentLang === 'fa' ? "راهنمای ساخت token" : "Token Guide";
+    
+    $("ls").textContent = t.scanning;
+    $("st").textContent = t.ready;
+    $("histTitle").textContent = t.histToday;
+    $("closeHist").textContent = t.btnClose;
+    $("cx").textContent = t.btnClose;
+    $("te").textContent = t.tvInside;
+    
+    // Re-render dynamic stuff
+    renderChips();
+    if(LAST) renderList();
+}
+
+function fmtNum(n) {
+    return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US");
+}
+function fmtDate(d) {
+    return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+// 🛠️ نسخه 35
 const BUILD=35,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
+const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
-const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+const $=i=>document.getElementById(i),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
@@ -271,20 +423,23 @@ async function fetchGitJson(filename) {
         try {
             const res = await fetch(url, { cache: 'no-store' });
             if (res.ok) return await res.json();
-            lastError = new Error(`HTTP ${res.status} — فایل ${filename} یافت نشد`);
+            lastError = new Error(`HTTP ${res.status} — File ${filename} not found`);
         } catch (e) {
             lastError = e;
         }
     }
-    throw lastError || new Error("خطای شبکه");
+    throw lastError || new Error("Network error");
 }
 
 let D={},MN={pattern:"۳+۱"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
-function renderChips(){const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
-$("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${MKT_LABEL[m]} <span class="cnt">${fa(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+'<button class="mini" id="mAll">همه</button><button class="mini" id="mNone">هیچ</button>';updCnt()}
-function updCnt(){const sel=selectedMkts();$("goC").textContent=fa(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
+function renderChips(){
+    const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
+    $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
+    updCnt();
+}
+function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
 $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
@@ -295,10 +450,10 @@ async function scan() {
   if (busy) return; 
   busy = true;
   $("go").disabled = true;
-  $("goT").textContent = "دریافت...";
+  $("goT").textContent = T().goFetch;
   $("ld").classList.add("on");
-  $("ls").textContent = "در حال دریافت داده از سرور...";
-  $("lp").textContent = "لطفاً صبر کنید";
+  $("ls").textContent = T().scanning;
+  $("lp").textContent = T().pleaseWait;
   setProg(50);
   
   try {
@@ -315,8 +470,6 @@ async function scan() {
     rows.forEach(r => {
         if (r.a && r.h) {
             D[r.id] = { id: r.id, a: r.a, h: r.h, dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] }; 
-        } else {
-            D[r.id] = { id: r.id, a: [], h: [], dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] }; 
         }
     });
 
@@ -332,8 +485,8 @@ async function scan() {
     renderList();
     
     const sigCount = rows.filter(r => r.side).length;
-    $("st").innerHTML = `آخرین اسکن سرور: ${new Date(json.time).toLocaleTimeString("fa-IR")} · ${sigCount} سیگنال`;
-    $("lp").textContent = "تکمیل شد";
+    $("st").innerHTML = `${T().lastScan} ${fmtDate(new Date(json.time))} · ${fmtNum(sigCount)} ${T().signals}`;
+    $("lp").textContent = T().scanDone;
 
     const ns = Date.now()/1000;
     let seen = {};
@@ -352,24 +505,33 @@ async function scan() {
     if (fresh.length) alertNow(fresh);
 
   } catch (e) {
-    $("st").textContent = "خطا در دریافت دیتا از سرور ابری. لطفاً بعداً تلاش کنید.";
-    $("list").innerHTML = `<div class="empty"><b>⚠</b>خطا: ${e.message}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
+    $("st").textContent = T().errFetch;
+    $("list").innerHTML = `<div class="empty"><b>⚠</b>${T().errFetch}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
   } finally {
     $("ld").classList.remove("on");
     setProg(0);
     busy = false;
     $("go").disabled = false;
-    $("goT").textContent = "اسکن";
+    $("goT").textContent = T().scan;
   }
 }
 
-function age(r){if(!r.bt)return"";const m=Math.max(0,Math.round((Date.now()/1000-(r.bt+300))/60));return m>=90?"":m<1?"همین الان":fa(m)+" دقیقه پیش"}
-function sigHtml(r){const d=r.d,f=x=>x.toFixed(d),L=r.side==="LONG",risk=Math.abs(r.entry-r.sl)/r.entry*100,a=age(r),mk=MKT_LABEL[r.mkt||"stock"];
-return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}" tabindex="0"><div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${r.side}</span></div>
-<div class="r-grid"><div><i>Entry</i><b>${f(r.entry)}</b></div><div><i>SL</i><b class="neg">${f(r.sl)}</b></div><div><i>Exit</i><b class="pos">واگرایی RSI</b></div></div>
-<div class="r-foot"><span>ریسک <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>${a?`<span>${a}</span>`:""}</div></article>`}
+function age(r){
+    if(!r.bt)return"";
+    const m=Math.max(0,Math.round((Date.now()/1000-(r.bt+300))/60));
+    if(m>=90) return "";
+    if(m<1) return T().justNow;
+    return `${fmtNum(m)} ${T().minAgo}`;
+}
 
-// 🛠️ تولید دایره‌های خط‌چین با طیف رنگی (قرمز -> زرد -> سبز)
+function sigHtml(r){
+    const d=r.d,f=x=>x.toFixed(d),L=r.side==="LONG",risk=Math.abs(r.entry-r.sl)/r.entry*100,a=age(r),mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+    return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
+    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
+    <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div>
+    <div class="r-foot"><span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>${a?`<span>${a}</span>`:""}</div></article>`;
+}
+
 function noneHtml(r){
     let color = 'rgba(255,255,255,0.1)';
     let textColor = 'var(--tx2)';
@@ -389,7 +551,7 @@ function noneHtml(r){
             color = 'hsl(145, 80%, 55%)'; 
             textColor = 'hsl(145, 80%, 65%)';
         } else {
-            const hue = ratio * 120; 
+            const hue = ratio * 120;
             color = `hsl(${hue}, 85%, 55%)`;
             textColor = `hsl(${hue}, 85%, 65%)`;
         }
@@ -418,7 +580,7 @@ function noneHtml(r){
     <div class="row none" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
         <div class="rn-right">
             <span class="sym">${r.id}</span>
-            <span class="why">${r.fail || ""}</span>
+            <span class="why">${trFail(r.fail)}</span>
         </div>
         <div class="rn-left">
             <span class="score" style="color:${textColor}">${P}/${N}</span>
@@ -448,33 +610,33 @@ function renderList(){
   });
 
   $("sum").style.display="flex";
-  $("sum").innerHTML=`<div class="cn"><span class="l">▲ ${fa(nl)} لانگ</span><span class="s">▼ ${fa(ns)} شورت</span></div><div class="seg" role="tablist">${[["all","همه"],["LONG","لانگ"],["SHORT","شورت"]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
+  $("sum").innerHTML=`<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg" role="tablist">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
   
-  $("list").innerHTML = (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>${all.length?"🔍":"🌙"}</b>${all.length?"سیگنالی با این فیلتر نیست":"فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد"}</div>`) + (!only&&no.length ? `<details class="nb"${noneOpen?" open":""}><summary><span>بدون سیگنال</span><span>${fa(no.length)} نماد</span></summary><div style="margin-top:10px;">${no.map(noneHtml).join("")}</div></details>` : "");
+  $("list").innerHTML = (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>${all.length?"🔍":"🌙"}</b>${all.length?T().noSignalsFilter:T().noSignalsYet}</div>`) + (!only&&no.length ? `<details class="nb"${noneOpen?" open":""}><summary><span>${T().noSignal}</span><span>${fmtNum(no.length)} ${T().symbols}</span></summary><div style="margin-top:10px;">${no.map(noneHtml).join("")}</div></details>` : "");
   
   const dt=$("list").querySelector("details");
   if(dt)dt.addEventListener("toggle",()=>{noneOpen=dt.open});
   
-  $("st").innerHTML=`آخرین اسکن ${time.toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} · ${fa(rows.length)} نماد`+(errs.length?` · <button class="link" id="eb">خطا در ${fa(errs.length)} نماد</button>`:"");
+  $("st").innerHTML=`${T().lastScan} ${fmtDate(time)} · ${fmtNum(rows.length)} ${T().symbols}`+(errs.length?` · <button class="link" id="eb">${errs.length} errors</button>`:"");
   $("el").textContent=errs.join(", ");
   
   const eb=$("eb");if(eb)eb.onclick=()=>$("el").classList.toggle("on");
   const hk=Object.keys(cnt||{}),bad=hk.filter(m=>cnt[m].ok<cnt[m].n);
-  $("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${MKT_LABEL[m]} <bdi dir="ltr">${fa(cnt[m].ok)}/${fa(cnt[m].n)}</bdi></span>`).join("");
+  $("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <bdi dir="ltr">${fmtNum(cnt[m].ok)}/${fmtNum(cnt[m].n)}</bdi></span>`).join("");
 }
 
 $("sum").onclick=e=>{const b=e.target.closest("button");if(!b)return;vf=b.dataset.v;renderList()};
 function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type="sine";g.gain.value=.25;[880,1175,880,1175].forEach((f,i)=>o.frequency.setValueAtTime(f,a.currentTime+i*.18));o.start();o.stop(a.currentTime+.75)}catch(e){}}
 var BL=[];
-function banner(fr){fr.forEach(r=>BL.unshift({id:r.id,mode:r.mode,side:r.side,t:new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}));BL.length=Math.min(BL.length,40);
-$("bn").innerHTML='<div class="hd"><b>🔔 اعلان جدید</b><button id="bx" aria-label="بستن">✕</button></div>'+BL.slice(0,3).map(x=>`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fa(BL.length-3)} مورد دیگر</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
-function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance("New signal. "+t);u.lang="en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function banner(fr){fr.forEach(r=>BL.unshift({id:r.id,mode:r.mode,side:r.side,t:fmtDate(new Date())}));BL.length=Math.min(BL.length,40);
+$("bn").innerHTML='<div class="hd"><b>🔔 '+(currentLang==='fa'?"اعلان جدید":"New Alert")+'</b><button id="bx" aria-label="Close">✕</button></div>'+BL.slice(0,3).map(x=>`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side==="LONG"?T().long:T().short} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fmtNum(BL.length-3)} ${currentLang==='fa'?"مورد دیگر":"more"}</div>`:"");$("bn").classList.add("on");$("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")}}
+function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance((currentLang==='fa'?"سیگنال جدید. ":"New signal. ")+t);u.lang=currentLang==='fa'?"fa-IR":"en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function alertNow(fr){beep();banner(fr);say(fr);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}
-if(window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id+" · "+MN[r.mode],{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
+if(window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id,{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
 $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 $("sp").checked=LS("bs_sp")!=="false";$("sp").onchange=()=>LS("bs_sp",$("sp").checked);
-$("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?"فعال ✓":"رد شد"}catch(e){$("nt").textContent="پشتیبانی نمی‌شود"}};
-if(window.Notification&&Notification.permission==="granted")$("nt").textContent="فعال ✓";
+$("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?T().btnEnabled:T().btnDenied}catch(e){$("nt").textContent=T().btnUnsupported}};
+if(window.Notification&&Notification.permission==="granted")$("nt").textContent=T().btnEnabled;
 $("go").onclick=scan;
 
 /* chart overlay */
@@ -482,10 +644,9 @@ let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e8736d",R=26,C=2*Math.PI*R;return`<svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}"/></svg>`}
 
-// 🛠️ بازگرداندن نمودارها و نوارهای تحلیل
 function renderAnalysis(ex,dg,mode){
     const el=$("an");
-    if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?ex.err:"تحلیل در دسترس نیست"}</div></div>`;return}
+    if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?trFail(ex.err):(currentLang==='fa'?"تحلیل در دسترس نیست":"Analysis unavailable")}</div></div>`;return}
     const full=ex.total>0&&ex.pass===ex.total, f=v=>Number(v).toFixed(dg), L=ex.dir==="LONG";
     let body="";
     
@@ -521,7 +682,7 @@ function renderAnalysis(ex,dg,mode){
                 vizHtml = `<div class="viz"><div class="pat"><div class="rb ${c.ok?'ok':''}"><u style="width:${rp}%"></u><s style="left:${tp}%"></s></div></div><div style="display:flex;gap:2px;margin-top:6px;align-items:center;justify-content:flex-start;direction:ltr;">${cHtml}</div></div>`;
             }
         }
-        return `<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${c.label}</b><span>${c.txt||""}</span></div>${vizHtml}</div>`;
+        return `<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${trFail(c.label)}</b><span>${c.txt||""}</span></div>${vizHtml}</div>`;
     }).join("");
     
     if(ex.rsi!=null){
@@ -530,43 +691,37 @@ function renderAnalysis(ex,dg,mode){
     if (ex.slEst && ex.price) {
         const slPct = (ex.slEst / ex.price) * 100;
         const atrVal = ex.slEst / (ex.atr || 1); 
-        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>فاصله‌ی SL تخمینی</b><span>${slPct.toFixed(2)}% • ${atrVal.toFixed(1)}×ATR</span></div><div class="viz"><div class="dist"><u style="left:0%; width:${Math.min(100, slPct * 5)}%"></u></div></div></div>`;
+        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>${T().estSl}</b><span>${slPct.toFixed(2)}% • ${atrVal.toFixed(1)}×ATR</span></div><div class="viz"><div class="dist"><u style="left:0%; width:${Math.min(100, slPct * 5)}%"></u></div></div></div>`;
     }
     
-    el.innerHTML=`<div class="an"><div class="an-h"><div class="ring">${ringSvg(ex.pass,ex.total)}<b>${fa(ex.pass)}/${fa(ex.total)}</b></div><div class="an-t"><b>${full?"همه‌ی شرایط برقرار است ✓":fa(ex.pass)+" از "+fa(ex.total)+" شرط برقرار است"}</b><small>بررسی برای ${L?"▲ لانگ":"▼ شورت"} · ${mode}</small></div></div>${body}</div>`;
+    el.innerHTML=`<div class="an"><div class="an-h"><div class="ring">${ringSvg(ex.pass,ex.total)}<b>${fmtNum(ex.pass)}/${fmtNum(ex.total)}</b></div><div class="an-t"><b>${full?T().condMet:fmtNum(ex.pass)+" "+T().condPartial+" "+fmtNum(ex.total)+" "+T().condPartial2}</b><small>${T().checkFor} ${L?"▲ "+T().long:"▼ "+T().short} · ${mode}</small></div></div>${body}</div>`;
 }
 
 function render(id){
-    const d=D[id];
-    if(!d){return}
-    let x; 
-    try {
-        x=drawChart($("cv"),d,SM(),Date.now()/1000);
-    } catch(e) {
-        $("an").innerHTML=`<div class="an"><div class="hint">دیتای چارت موجود نیست</div></div>`;
-        return;
-    }
-    const r=x.row, f=v=>v.toFixed(d.dg);
-    
-    try {
-        renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,"الگوی ۳+۱");
-    } catch(e) {
-        $("an").innerHTML=`<div class="an"><div class="hint">خطا در تحلیل</div></div>`;
-    }
-    
-    $("ci").innerHTML=`<div class="kv"><div><i>قیمت</i><b>${f(x.price)}</b></div>${r.side?`<div><i>Entry</i><b>${f(r.entry)}</b></div><div><i>SL</i><b class="neg">${f(r.sl)}</b></div><div><i>Exit</i><b>واگرایی RSI</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>سیگنال</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 سیگنال خرید (LONG)":"🔴 سیگنال فروش (SHORT)"} روی آخرین کندل بسته‌شده</div>`:`<div class="nosig" style="margin-top:10px">سیگنال فعلی ندارد · ${r.fail||"-"}</div>`)+
-    `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">آخرین آپدیت ${new Date().toLocaleTimeString("fa-IR")} · سیگنال‌های بسته‌شده اخیر روی چارت: ${fa(x.n)} · ▲▼ ورود، ● خروج</div>`
+    const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=>v.toFixed(d.dg);
+    try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,T().fail_pattern)}catch(e){$("an").innerHTML=""}
+    $("ci").innerHTML=`<div class="kv"><div><i>${T().price}</i><b>${f(x.price)}</b></div>${r.side?`<div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b>${T().rsiDiv}</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>${T().signal}</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 "+T().long:"🔴 "+T().short}</div>`:`<div class="nosig" style="margin-top:10px">${T().noSignalNow} · ${trFail(r.fail)}</div>`)+
+    `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">${T().lastUpdate} ${fmtDate(new Date())} · ${T().recentSignals} ${fmtNum(x.n)} · ${T().legend}</div>`;
 }
 
 function tvSym(u){return u[1]?"BINANCE:"+u[0]:u[4]?"OANDA:"+u[4].replace("_",""):u[0]}
-function tvReset(){$("tf").style.display="none";$("tf").src="about:blank";$("cw").style.display="block";$("te").textContent="TradingView داخل اپ"}
-$("te").onclick=()=>{if($("tf").style.display!=="block"){const sy=encodeURIComponent(tvSym(D[liveId].u));$("tf").src=`https://s.tradingview.com/widgetembed/?symbol=${sy}&interval=5&theme=dark&style=1&timezone=Etc%2FUTC&locale=en&allow_symbol_change=1&withdateranges=1&hide_side_toolbar=0`;$("tf").style.display="block";$("cw").style.display="none";$("te").textContent="برگشت به چارت اپ"}else tvReset()};
-function openChart(id,mode){tvReset();$("tv").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(tvSym(D[id].u))+"&interval=5";document.body.style.overflow="hidden";$("ov").style.display="block";$("ov").scrollTop=0;$("ct").textContent=id+" · الگوی ۳+۱";render(id);liveId=id;}
+function tvReset(){$("tf").style.display="none";$("tf").src="about:blank";$("cw").style.display="block";$("te").textContent=T().tvInside}
+$("te").onclick=()=>{if($("tf").style.display!=="block"){const sy=encodeURIComponent(tvSym(D[liveId].u));$("tf").src=`https://s.tradingview.com/widgetembed/?symbol=${sy}&interval=5&theme=dark&style=1&timezone=Etc%2FUTC&locale=en&allow_symbol_change=1&withdateranges=1&hide_side_toolbar=0`;$("tf").style.display="block";$("cw").style.display="none";$("te").textContent=T().tvBack}else tvReset()};
+function openChart(id,mode){tvReset();$("tv").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(tvSym(D[id].u))+"&interval=5";document.body.style.overflow="hidden";$("ov").style.display="block";$("ov").scrollTop=0;$("ct").textContent=id+" · "+T().fail_pattern;render(id);liveId=id;}
 function closeChart(){tvReset();document.body.style.overflow="";$("ov").style.display="none";liveId=null;}
 const openRow=e=>{const w=e.target.closest(".row");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 $("list").onclick=openRow;$("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openRow(e)}};$("cx").onclick=closeChart;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()});
 $("gs").onclick=()=>{$("set").classList.toggle("on");$("gs").classList.toggle("on")};
+
+// 🛠️ تغییر زبان
+$("langToggle").onclick = () => {
+    currentLang = currentLang === 'fa' ? 'en' : 'fa';
+    LS("bs_lang", currentLang);
+    applyLanguage();
+    if(liveId) render(liveId); // update chart overlay if open
+};
+
 ["m15","h1","h1s","rsi"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);scan()});
 ["rsiL","rsiS"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).value);scan()});
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
@@ -576,15 +731,15 @@ $("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.tri
 $("tok").value=LS("bs_tok")||atob("MjY2NWFkZTVjOGFmMzdmNTU5M2U5M2UzODk1NmFjZTUtNjMyODNkYmFkZGM0YzA5NTZiNDg1YjM0ZTdkMzg1ZGQ=");
 $("env").value=LS("bs_env")||"practice";
 $("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};
-$("saveTok").onclick=()=>{const t=$("tok").value.trim();LS("bs_tok",t);const b=$("saveTok");b.style.background="#2e9a69";b.style.borderColor="#2e9a69";b.style.color="#fff";b.textContent="✓ ذخیره شد";setTimeout(()=>{b.style.background="var(--card2)";b.style.borderColor="var(--bd)";b.style.color="var(--tx)";b.textContent="ذخیره";},2500);scan();};
+$("saveTok").onclick=()=>{const t=$("tok").value.trim();LS("bs_tok",t);const b=$("saveTok");b.style.background="#2e9a69";b.style.borderColor="#2e9a69";b.style.color="#fff";b.textContent=T().btnSaved;setTimeout(()=>{b.style.background="var(--card2)";b.style.borderColor="var(--bd)";b.style.color="var(--tx)";b.textContent=T().btnSave;},2500);scan();};
 $("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
 ["m15","h1","h1s","rsi","only"].forEach(i=>{const v=LS("bs_"+i);if(v!=null){$(i).type==="checkbox"?$(i).checked=v==="true":$(i).value=v}});
 ["rsiL","rsiS"].forEach(i=>{const v=LS("bs_"+i);if(v!=null)$(i).value=v});
 if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controller;let rl=false;
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
-$("upd").onclick=async()=>{$("upd").textContent="در حال پاک‌سازی…";try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
-$("ver").textContent="v"+BUILD;$("verl").textContent="نسخه‌ی فعلی: v"+BUILD;
+$("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
+$("ver").textContent="v"+BUILD;$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
 
@@ -593,7 +748,7 @@ $("showHist").onclick = async () => {
     const modal = $("histModal");
     const list = $("histList");
     modal.style.display = "block";
-    list.innerHTML = '<div style="text-align:center;color:var(--mu);">در حال دریافت...</div>';
+    list.innerHTML = `<div style="text-align:center;color:var(--mu);">${T().histLoading}</div>`;
 
     try {
         const data = await fetchGitJson('history.json');
@@ -605,7 +760,7 @@ $("showHist").onclick = async () => {
         const todaysSignals = (data.history || []).filter(h => h.time >= todayTs);
         
         if (todaysSignals.length === 0) {
-            list.innerHTML = '<div style="text-align:center;color:var(--mu);padding:20px;">امروز هنوز هیچ سیگنال معتبری ثبت نشده است.</div>';
+            list.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
             return;
         }
 
@@ -614,7 +769,7 @@ $("showHist").onclick = async () => {
         list.innerHTML = todaysSignals.map(s => {
             const isL = s.side === "LONG";
             const date = new Date(s.time * 1000);
-            const timeStr = date.toLocaleTimeString("fa-IR", {hour: '2-digit', minute:'2-digit'});
+            const timeStr = date.toLocaleTimeString(currentLang==='fa'?"fa-IR":"en-US", {hour: '2-digit', minute:'2-digit'});
             
             let checksHtml = '';
             if (s.checks && s.checks.length > 0) {
@@ -627,8 +782,8 @@ $("showHist").onclick = async () => {
                             background:rgba(46,154,105,0.15); 
                             color:var(--gb); 
                             border:1px solid rgba(46,154,105,0.3);"
-                            title="${c.l}">
-                            ✓ ${c.l.split(' ')[0]}
+                            title="${trFail(c.l)}">
+                            ✓ ${trFail(c.l).split(' ')[0]}
                         </span>`).join('') + `</div>`;
             }
 
@@ -637,10 +792,10 @@ $("showHist").onclick = async () => {
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
-                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? 'LONG' : 'SHORT'}</span>
+                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
-                        <span style="color:var(--mu);">Entry: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
+                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
                         <span style="color:var(--mu);">${timeStr}</span>
                     </div>
                 </div>
@@ -649,10 +804,13 @@ $("showHist").onclick = async () => {
         }).join("");
 
     } catch(e) {
-        list.innerHTML = '<div style="text-align:center;color:var(--rb);padding:20px;">خطا در دریافت تاریخچه.</div>';
+        list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
     }
 };
 $("closeHist").onclick = () => { $("histModal").style.display = "none"; };
+
+// 🛠️ راه‌اندازی اولیه زبان
+applyLanguage();
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
