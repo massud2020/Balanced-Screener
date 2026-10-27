@@ -256,13 +256,29 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 </div>
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
-const BASE_URL = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/"; // 🛠️ لینک خام گیت‌هاب
-
 const BUILD=34,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
 const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+
+// 🛠️ تابع دریافت فایل از گیت‌هاب
+async function fetchGitJson(filename) {
+    const branches = ['main', 'master'];
+    let lastError = null;
+    for (const branch of branches) {
+        const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
+        try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (res.ok) return await res.json();
+            lastError = new Error(`HTTP ${res.status} — فایل ${filename} یافت نشد`);
+        } catch (e) {
+            lastError = e;
+        }
+    }
+    throw lastError || new Error("خطای شبکه");
+}
+
 let D={},MN={pattern:"۳+۱"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
@@ -287,10 +303,7 @@ async function scan() {
   
   try {
     const startTime = Date.now();
-    // 🛠️ تغییر آدرس به لینک کامل گیت‌هاب
-    const res = await fetch(BASE_URL + 'data.json?t=' + new Date().getTime());
-    if (!res.ok) throw new Error("Data not found");
-    const json = await res.json();
+    const json = await fetchGitJson('data.json');
     
     const elapsed = Date.now() - startTime;
     if (elapsed < 1500) {
@@ -338,7 +351,7 @@ async function scan() {
 
   } catch (e) {
     $("st").textContent = "خطا در دریافت دیتا از سرور ابری. لطفاً بعداً تلاش کنید.";
-    $("list").innerHTML = '<div class="empty"><b>⚠</b>سرور در حال اسکن است<br>لطفاً چند دقیقه دیگر دکمه اسکن را بزنید.</div>';
+    $("list").innerHTML = `<div class="empty"><b>⚠</b>خطا: ${e.message}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">${BASE_URL}data.json</span></div>`;
   } finally {
     $("ld").classList.remove("on");
     setProg(0);
@@ -366,7 +379,7 @@ function noneHtml(r){
     
     const R = 15, cx = 22, cy = 22;
     const N = r.total > 0 ? r.total : 7;
-    const P = r.pass;
+    const P = r.pass > 0 ? r.pass : 0;
     
     let paths = '';
     if (N > 0) {
@@ -398,7 +411,7 @@ function noneHtml(r){
             <span class="why">${r.fail || ""}</span>
         </div>
         <div class="rn-left">
-            <span class="score">${r.pass}/${r.total}</span>
+            <span class="score">${P}/${N}</span>
             <div class="ring-box">
                 <svg width="44" height="44" viewBox="0 0 44 44">
                     ${paths}
@@ -507,10 +520,7 @@ $("showHist").onclick = async () => {
     list.innerHTML = '<div style="text-align:center;color:var(--mu);">در حال دریافت...</div>';
 
     try {
-        // 🛠️ تغییر آدرس به لینک کامل گیت‌هاب
-        const res = await fetch(BASE_URL + 'history.json?t=' + new Date().getTime());
-        if(!res.ok) throw new Error("No history");
-        const data = await res.json();
+        const data = await fetchGitJson('history.json');
         
         const todayStart = new Date();
         todayStart.setHours(0,0,0,0);
