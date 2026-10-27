@@ -8,7 +8,7 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
   TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
 
-// 🛠️ خواندن تنظیمات فیلترها از گیت‌هاب (با مقادیر پیش‌فرض امن)
+// 🛠️ خواندن تنظیمات فیلترها از گیت‌هاب
 const F15 = process.env.M15 !== "0";
 const FH1 = process.env.H1 !== "0";
 const RSI_ON = process.env.RSI !== "0";
@@ -115,7 +115,6 @@ async function once(now) {
   const modes = enabledModes();
   const allRows = [];
   
-  // خواندن تاریخچه قبلی
   let history = [];
   try { history = JSON.parse(fs.readFileSync("history.json", "utf8")); } catch(e) {}
   
@@ -127,7 +126,7 @@ async function once(now) {
       try {
         const [a, h] = await loadCached(u, now);
         if (a.length < 50) {
-            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", mode: modes[0], u: u });
+            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u });
             continue;
         }
         const cl = dropForming(a, 300, now);
@@ -135,7 +134,6 @@ async function once(now) {
         
         let foundSignal = false;
         for (const mode of modes) {
-          // پاس دادن صحیح فیلتر RSI به موتور
           const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
           const r = evaluate(u[0], a, h, opts, now);
           
@@ -144,13 +142,13 @@ async function once(now) {
             
             let checksData = [];
             let isValid = false;
-            let totalActive = 0;
+            let totalActive = 7; // 🛠️ پیش‌فرض
             
             try {
                 const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
                 if (exp && exp.checks) {
                     checksData = exp.checks.map(c => ({ l: c.label, o: c.ok ? 1 : 0 }));
-                    totalActive = exp.total || exp.checks.length;
+                    if (exp.total > 0) totalActive = exp.total;
                     
                     if (exp.pass === totalActive && totalActive > 0) {
                         isValid = true;
@@ -183,15 +181,30 @@ async function once(now) {
         if (!foundSignal) {
             const opts = { mode: modes[0], m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
             const r = evaluate(u[0], a, h, opts, now);
-            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "", pass: r.pass || 0, total: r.total || 0, mode: modes[0], u: u });
+            let totalActive = 7;
+            let passCount = 0;
+            let failReason = r.fail || "";
+            
+            try {
+                const exp = explain(u[0], a, h, { ...opts, dg: u[3] }, now);
+                if (exp) {
+                    if (exp.total > 0) totalActive = exp.total;
+                    if (exp.pass > 0) passCount = exp.pass;
+                    if (exp.checks && exp.checks.length > 0) {
+                        const failed = exp.checks.find(c => !c.ok);
+                        if (failed) failReason = failed.label;
+                    }
+                }
+            } catch(e) {}
+
+            allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: failReason, pass: passCount, total: totalActive, mode: modes[0], u: u });
         }
       } catch (e) {
-          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", mode: modes[0], u: u });
+          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", pass: 0, total: 7, mode: modes[0], u: u });
       }
     }
   }));
   
-  // پاک کردن تاریخچه‌های قدیمی‌تر از ۳ روز
   const threeDaysAgo = now - (3 * 24 * 3600);
   history = history.filter(h => h.time > threeDaysAgo);
   
