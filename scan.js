@@ -106,7 +106,6 @@ async function once(now) {
   const modes = enabledModes();
   const allRows = [];
   
-  // 🛠️ اصلاح خواندن تاریخچه
   let history = [];
   try {
     const rawHistory = fs.readFileSync("history.json", "utf8");
@@ -174,7 +173,9 @@ async function once(now) {
                 fail: r.fail || "خطای نامشخص", 
                 pass: r.pass || 0, 
                 total: r.total || 7,
-                mode: modes[0], u: u 
+                mode: modes[0], u: u,
+                a: a.slice(-250), // 🛠️ دیتای کندل‌ها برای نمایش چارت
+                h: h.slice(-250)
             });
         }
       } catch (e) {
@@ -183,7 +184,6 @@ async function once(now) {
     }
   }));
   
-  // 🛠️ فیلتر کردن تاریخچه
   const threeDaysAgo = now - (3 * 24 * 3600);
   history = history.filter(h => h.time > threeDaysAgo);
   
