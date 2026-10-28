@@ -1,20 +1,18 @@
 name: Balanced Screener Scan
 
 on:
-  # 🛠️ اجرای دستی
   workflow_dispatch:
 
-  # 🛠️ زمان‌بندی داخلی (هر ۵ دقیقه)
+  # 🛠️ زمان‌بندی پشتیبان (هر ۱۵ دقیقه)
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
 
-# 🛠️ جلوگیری از اجرای همزمان چند اسکن
 concurrency:
   group: scan-market
   cancel-in-progress: false
 
 permissions:
-  contents: write # دسترسی نوشتن برای کامیت کردن
+  contents: write
 
 jobs:
   run_scan:
@@ -50,6 +48,5 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json history.json
           git commit -m "Update market data [skip ci]" || echo "No changes to commit"
-          # 🛠️ این خط بسیار مهم است: اگر فایل توسط اسکن قبلی تغییر کرده، اول آن را دریافت کن
           git pull --rebase origin main
           git push
