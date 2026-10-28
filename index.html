@@ -148,7 +148,7 @@ main{padding-bottom:28px}
 .r-foot{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mu)}
 .r-foot span:first-child{color:var(--tx2)}
 
-/* استایل اختصاصی کارت‌های بدون سیگنال */
+/* 🛠️ استایل اختصاصی کارت‌های بدون سیگنال */
 .row.none{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;margin-bottom:8px;background:var(--card);border:1px solid var(--bd2);border-radius:var(--rad);cursor:pointer;transition:background .15s;}
 .row.none:hover{background:var(--card2);}
 .rn-right{display:flex;flex-direction:column;gap:4px;}
@@ -224,8 +224,9 @@ body[dir="ltr"] .ci { direction: ltr; }
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
     <div class="ai-avatar">🤖</div>
-    <div class="ai-text" id="ai-text">در حال راه‌اندازی سیستم...</div>
+    <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
+    <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px; display:none;">شروع (Start)</button>
 </div>
 
 <header class="bar">
@@ -395,7 +396,7 @@ const I18N = {
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
     fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "در کول‌داون ۲۰ دقیقه‌ای",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
-    ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد."
+    ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد.", ai_ready: "برای شروع لطفاً کلیک کنید..."
   },
   en: {
     scan: "Scan", settings: "Settings", history: "History",
@@ -424,7 +425,7 @@ const I18N = {
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
     fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "In 20m cooldown",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
-    ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated."
+    ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated.", ai_ready: "Tap to start..."
   }
 };
 
@@ -514,41 +515,55 @@ function detectMarketRegime() {
     return avgAdx > 22 ? "pattern" : "range";
 }
 
+// 🛠️ تغییرات: اضافه کردن دکمه استارت برای فعال کردن صدا و اسکن همه بازارها
 async function initAI() {
     const t = T();
     const splash = $("ai-splash");
     const loading = $("ai-loading");
+    const startBtn = $("start-ai-btn");
     
-    // 1. خوشامدگویی
-    speakAI(t.ai_welcome);
-    await typeText("ai-text", t.ai_welcome);
-    await new Promise(r => setTimeout(r, 1000));
+    // نمایش پیام اولیه و دکمه شروع
+    await typeText("ai-text", t.ai_ready);
+    startBtn.style.display = "block";
     
-    // 2. شروع اسکن
-    loading.classList.add("on");
-    speakAI(t.ai_scan);
-    await typeText("ai-text", t.ai_scan);
-    
-    await scan(true); 
-    
-    // 3. تحلیل و انتخاب استراتژی
-    const regime = detectMarketRegime();
-    if (regime === "pattern") {
-        speakAI(t.ai_trend);
-        await typeText("ai-text", t.ai_trend);
-        setMode("pattern");
-    } else {
-        speakAI(t.ai_range);
-        await typeText("ai-text", t.ai_range);
-        setMode("range");
-    }
-    
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // 4. بستن صفحه خوشامدگویی
-    splash.classList.add("hidden");
-    
-    if (LAST) renderList();
+    startBtn.onclick = async () => {
+        startBtn.style.display = "none";
+        
+        // 🛠️ اسکن همه بازارها هنگام شروع
+        LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
+        renderChips();
+
+        // 1. خوشامدگویی صوتی (حالا که کاربر کلیک کرده، مجاز است)
+        speakAI(t.ai_welcome);
+        await typeText("ai-text", t.ai_welcome);
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // 2. شروع اسکن
+        loading.classList.add("on");
+        speakAI(t.ai_scan);
+        await typeText("ai-text", t.ai_scan);
+        
+        await scan(true); 
+        
+        // 3. تحلیل و انتخاب استراتژی
+        const regime = detectMarketRegime();
+        if (regime === "pattern") {
+            speakAI(t.ai_trend);
+            await typeText("ai-text", t.ai_trend);
+            setMode("pattern");
+        } else {
+            speakAI(t.ai_range);
+            await typeText("ai-text", t.ai_range);
+            setMode("range");
+        }
+        
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // 4. بستن صفحه خوشامدگویی
+        splash.classList.add("hidden");
+        
+        if (LAST) renderList();
+    };
 }
 
 function renderCondChips() {
@@ -685,7 +700,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=38,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=39,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -713,7 +728,7 @@ const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.datase
 function renderChips(){
     if (typeof U === "undefined" || !Array.isArray(U)) return;
     try {
-        const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
+        const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(Object.keys(MKT_LABEL));
         $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
         updCnt();
     } catch(e) { console.warn("Chips error", e); }
