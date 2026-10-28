@@ -4,17 +4,18 @@ on:
   # 🛠️ اجرای دستی
   workflow_dispatch:
 
-  # 🛠️ زمان‌بندی داخلی پشتیبان (هر ۱۵ دقیقه، تا با cron-job تداخل نداشته باشد)
+  # 🛠️ زمان‌بندی داخلی گیت‌هاب (پشتیبان - هر ۱۵ دقیقه)
+  # کارهای ۵ دقیقه‌ای توسط cron-job.org انجام می‌شود
   schedule:
     - cron: '*/15 * * * *'
 
-# 🛠️ جلوگیری از اجرای همزمان چند اسکن
+# 🛠️ جلوگیری از اجرای همزمان
 concurrency:
   group: scan-market
   cancel-in-progress: false
 
 permissions:
-  contents: write # دسترسی نوشتن برای کامیت کردن
+  contents: write
 
 jobs:
   run_scan:
@@ -44,11 +45,26 @@ jobs:
           RSI_S: "60"
         run: node scan.js
         
-      # 🛠️ استفاده از اکشن استاندارد برای کامیت و پوش (بدون خطا و تداخل)
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Update market data [skip ci]"
-          file_pattern: "data.json history.json"
-          commit_user_name: "github-actions[bot]"
-          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+      # 🛠️ اسکریپت نهایی و ضدخطا برای ذخیره فایل
+      - name: Force Commit and Push
+        run: |
+          # ۱. فایل‌های جدیدی که اسکنر ساخت را در یک پوشه موقت کپی می‌کنیم
+          cp data.json /tmp/data.json
+          cp history.json /tmp/history.json
+          
+          # ۲. ریپازیتوری را به آخرین نسخه گیت‌هاب برمی‌گردانیم (حذف کامل تغییرات قدیمی)
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # ۳. فایل‌های جدید خودمان را جایگزین می‌کنیم
+          cp /tmp/data.json data.json
+          cp /tmp/history.json history.json
+          
+          # ۴. تنظیمات گیت و کامیت کردن
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json history.json
+          git commit -m "Update market data [skip ci]" || echo "No changes to commit"
+          
+          # ۵. پوش کردن به گیت‌هاب
+          git push origin main
