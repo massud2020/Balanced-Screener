@@ -463,7 +463,7 @@ function evalRow(r) {
             pat: COND.pat,
             m15: COND.m15,
             h1: COND.h1,
-            h1Strict: $("h1s").checked,
+            h1Strict: $("h1s") ? $("h1s").checked : false,
             rsi: COND.rsi,
             rsiL: +$("rsiL").value || 40,
             rsiS: +$("rsiS").value || 60
@@ -578,7 +578,7 @@ function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
 $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
-const S=()=>({mode:"pattern",trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s").checked,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
+const S=()=>({mode:"pattern",trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
 async function scan() {
@@ -850,8 +850,14 @@ $("langToggle").onclick = () => {
     if(liveId) render(liveId);
 };
 
-["m15","h1","h1s","rsi"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);if(LAST)renderList()});
-["rsiL","rsiS"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).value);if(LAST)renderList()});
+// 🛠️ اصلاح باگ کرش کردن (بررسی وجود المان قبل از اتصال رویداد)
+["h1s", "rsiL", "rsiS"].forEach(i=>{
+    const el = $(i);
+    if(el) el.onchange = () => {
+        LS("bs_"+i, el.type==="checkbox"?el.checked:el.value);
+        if(LAST) renderList();
+    };
+});
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
 $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);if($("auto").checked)timer=setInterval(scan,180000)};
 $("auto").checked=LS("bs_auto")!=="false";if($("auto").checked)timer=setInterval(scan,180000);
@@ -861,8 +867,16 @@ $("env").value=LS("bs_env")||"practice";
 $("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};
 $("saveTok").onclick=()=>{const t=$("tok").value.trim();LS("bs_tok",t);const b=$("saveTok");b.style.background="#2e9a69";b.style.borderColor="#2e9a69";b.style.color="#fff";b.textContent=T().btnSaved;setTimeout(()=>{b.style.background="var(--card2)";b.style.borderColor="var(--bd)";b.style.color="var(--tx)";b.textContent=T().btnSave;},2500);scan();};
 $("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
-["m15","h1","h1s","rsi","only"].forEach(i=>{const v=LS("bs_"+i);if(v!=null){$(i).type==="checkbox"?$(i).checked=v==="true":$(i).value=v}});
-["rsiL","rsiS"].forEach(i=>{const v=LS("bs_"+i);if(v!=null)$(i).value=v});
+
+// 🛠️ اصلاح باگ خواندن مقادیر از حافظه برای المان‌هایی که ممکن است وجود نداشته باشند
+["h1s","rsiL","rsiS","only"].forEach(i=>{
+    const v=LS("bs_"+i);
+    const el = $(i);
+    if(v!=null && el){
+        el.type==="checkbox" ? el.checked=v==="true" : el.value=v;
+    }
+});
+
 if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controller;let rl=false;
 navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
