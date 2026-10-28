@@ -35,7 +35,12 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 /* controls */
 .ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 
-/* 🛠️ کادر استراتژی (شامل نام و دکمه‌های شروط) */
+/* 🛠️ انتخاب استراتژی */
+.mode-switch{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);padding:4px;margin-bottom:4px}
+.mode-switch button{flex:1;min-height:36px;border:none;border-radius:6px;background:transparent;color:var(--mu);font-size:13px;font-weight:600;padding:0 10px;transition:background .2s,color .2s}
+.mode-switch button.on{background:var(--gd);color:var(--gb)}
+
+/* کادر استراتژی (شامل نام و دکمه‌های شروط) */
 .strategy-box{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px;min-height:44px}
 .strategy-title{display:flex;align-items:center;justify-content:space-between;}
 .strategy-title b{font-weight:700}
@@ -210,7 +215,13 @@ body[dir="ltr"] .ci { direction: ltr; }
 </header>
 
 <section class="ctl">
-  <!-- 🛠️ کادر استراتژی با دکمه‌های شروط داخل آن -->
+  <!-- 🛠️ دکمه‌های تغییر استراتژی -->
+  <div class="mode-switch">
+    <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
+    <button id="modeRange">استراتژی رنج</button>
+  </div>
+
+  <!-- کادر استراتژی با دکمه‌های شروط داخل آن -->
   <div class="strategy-box" aria-label="Strategy">
     <div class="strategy-title">
       <div><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b></div>
@@ -310,7 +321,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 <!-- 🛠️ بنر نمایش خطا (جهت دیباگ) -->
 <div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px; z-index:9999; font-size:12px; text-align:center;"></div>
 
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=36"></script><script src="chart.js?v=35"></script>
 <script>
 // 🛠️ سیستم رهگیری خطا
 window.addEventListener('error', function(e) {
@@ -353,10 +364,10 @@ const I18N = {
     histErr: "خطا در دریافت تاریخچه.", histLoading: "در حال دریافت...",
     btnClose: "✕ بستن", btnSave: "ذخیره", btnSaved: "✓ ذخیره شد", btnEnable: "فعال‌سازی", btnEnabled: "فعال ✓", btnDenied: "رد شد", btnUnsupported: "پشتیبانی نمی‌شود",
     btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
-    fail_pattern: "الگوی ۳+۱", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
+    fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
     fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص",
-    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر"
   },
   en: {
     scan: "Scan", settings: "Settings", history: "History",
@@ -381,15 +392,16 @@ const I18N = {
     histErr: "Error loading history.", histLoading: "Loading...",
     btnClose: "✕ Close", btnSave: "Save", btnSaved: "✓ Saved", btnEnable: "Enable", btnEnabled: "Enabled ✓", btnDenied: "Denied", btnUnsupported: "Unsupported",
     btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
-    fail_pattern: "Pattern 3+1", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
+    fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
     fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error",
-    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger"
   }
 };
 
 const BACKEND_TO_KEY = {
     "الگوی ۳+۱": "fail_pattern",
+    "استراتژی رنج": "fail_range",
     "هم‌راستایی EMA21/50": "fail_emaAlign",
     "قیمت روی EMA200": "fail_priceEma200",
     "شیب EMA": "fail_emaSlope",
@@ -421,7 +433,7 @@ function trFail(failStr) {
 }
 
 // 🛠️ وضعیت شروط (پیش‌فرض همه روشن) با ایمن‌سازی کامل
-let COND = {trend:true, emax:true, nc:true, pat:true, m15:true, h1:true, rsi:true};
+let COND = {trend:true, emax:true, nc:true, pat:true, adx:true, m15:true, h1:true, rsi:true};
 try {
     const savedCond = LS("bs_cond");
     if (savedCond) {
@@ -430,9 +442,16 @@ try {
     }
 } catch(e) { console.warn("Error loading conditions, using defaults."); }
 
+let currentMode = LS("bs_mode") || "pattern";
+
 function renderCondChips() {
     try {
-        const labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+        let labels = {};
+        if (currentMode === "range") {
+            labels = { adx: T().c_adx, rsi: T().c_rsi };
+        } else {
+            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, adx: T().c_adx, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+        }
         const el = $("condChips");
         if(el) {
             el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
@@ -451,16 +470,32 @@ $("condChips").onclick = e => {
     if (liveId) render(liveId); 
 };
 
+// 🛠️ تغییر استراتژی
+function setMode(mode) {
+    currentMode = mode;
+    LS("bs_mode", mode);
+    $("modePattern").classList.toggle("on", mode === "pattern");
+    $("modeRange").classList.toggle("on", mode === "range");
+    setText("stratTitle", mode === "range" ? T().fail_range : T().fail_pattern);
+    renderCondChips();
+    if (LAST) renderList();
+    if (liveId) render(liveId);
+}
+
+$("modePattern").onclick = () => setMode("pattern");
+$("modeRange").onclick = () => setMode("range");
+
 // 🛠️ تابع ارزیابی سمت کلاینت (با try-catch برای جلوگیری از کرش)
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     try {
         const opts = {
-            mode: "pattern",
+            mode: currentMode,
             trend: COND.trend,
             emax: COND.emax,
             nc: COND.nc,
             pat: COND.pat,
+            adx: COND.adx,
             m15: COND.m15,
             h1: COND.h1,
             h1Strict: $("h1s") ? $("h1s").checked : false,
@@ -469,7 +504,7 @@ function evalRow(r) {
             rsiS: +$("rsiS").value || 60
         };
         const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
-        return { ...r, side: res.side, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: res.fail, rsi: res.rsi, checks: res.checks || [] };
+        return { ...r, side: res.side, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: res.fail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
     } catch (e) {
         console.error("Eval error for", r.id, e);
         return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
@@ -484,7 +519,7 @@ function applyLanguage() {
         
         setText("goT", t.scan);
         setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
-        setText("stratTitle", t.fail_pattern);
+        setText("stratTitle", currentMode === 'range' ? t.fail_range : t.fail_pattern);
         setText("navAlerts", currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts");
         setText("navBacktest", currentLang === 'fa' ? "بک‌تست" : "Backtest");
         
@@ -541,7 +576,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=35,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=36,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -563,7 +598,7 @@ async function fetchGitJson(filename) {
     throw lastError || new Error("Network error");
 }
 
-let D={},MN={pattern:"۳+۱"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
+let D={},MN={pattern:"۳+۱",range:"رنج"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
 function renderChips(){
@@ -578,7 +613,7 @@ function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
 $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
-const S=()=>({mode:"pattern",trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
+const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
 async function scan() {
@@ -828,7 +863,7 @@ function renderAnalysis(ex,dg,mode){
 
 function render(id){
     const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=>v.toFixed(d.dg);
-    try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,T().fail_pattern)}catch(e){$("an").innerHTML=""}
+    try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,currentMode === 'range' ? T().fail_range : T().fail_pattern)}catch(e){$("an").innerHTML=""}
     $("ci").innerHTML=`<div class="kv"><div><i>${T().price}</i><b>${f(x.price)}</b></div>${r.side?`<div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b>${T().rsiDiv}</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>${T().signal}</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 "+T().long:"🔴 "+T().short}</div>`:`<div class="nosig" style="margin-top:10px">${T().noSignalNow} · ${trFail(r.fail)}</div>`)+
     `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">${T().lastUpdate} ${fmtDate(new Date())} · ${T().recentSignals} ${fmtNum(x.n)} · ${T().legend}</div>`;
 }
@@ -836,7 +871,7 @@ function render(id){
 function tvSym(u){return u[1]?"BINANCE:"+u[0]:u[4]?"OANDA:"+u[4].replace("_",""):u[0]}
 function tvReset(){$("tf").style.display="none";$("tf").src="about:blank";$("cw").style.display="block";$("te").textContent=T().tvInside}
 $("te").onclick=()=>{if($("tf").style.display!=="block"){const sy=encodeURIComponent(tvSym(D[liveId].u));$("tf").src=`https://s.tradingview.com/widgetembed/?symbol=${sy}&interval=5&theme=dark&style=1&timezone=Etc%2FUTC&locale=en&allow_symbol_change=1&withdateranges=1&hide_side_toolbar=0`;$("tf").style.display="block";$("cw").style.display="none";$("te").textContent=T().tvBack}else tvReset()};
-function openChart(id,mode){tvReset();$("tv").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(tvSym(D[id].u))+"&interval=5";document.body.style.overflow="hidden";$("ov").style.display="block";$("ov").scrollTop=0;$("ct").textContent=id+" · "+T().fail_pattern;render(id);liveId=id;}
+function openChart(id,mode){tvReset();$("tv").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(tvSym(D[id].u))+"&interval=5";document.body.style.overflow="hidden";$("ov").style.display="block";$("ov").scrollTop=0;$("ct").textContent=id+" · "+(currentMode === 'range' ? T().fail_range : T().fail_pattern);render(id);liveId=id;}
 function closeChart(){tvReset();document.body.style.overflow="";$("ov").style.display="none";liveId=null;}
 const openRow=e=>{const w=e.target.closest(".row");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 $("list").onclick=openRow;$("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openRow(e)}};$("cx").onclick=closeChart;
@@ -889,6 +924,7 @@ setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("
 setTimeout(() => {
     try { renderChips(); } catch(e) {}
     try { renderCondChips(); } catch(e) {}
+    try { setMode(currentMode); } catch(e) {}
 }, 500);
 
 $("showHist").onclick = async () => {
@@ -935,55 +971,4 @@ $("showHist").onclick = async () => {
             }
 
             return `
-            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
-                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
-                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
-                        <span style="color:var(--mu);">${timeStr}</span>
-                    </div>
-                </div>
-                ${checksHtml}
-            </div>`;
-        }).join("");
-
-    } catch(e) {
-        list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
-    }
-};
-$("closeHist").onclick = () => { $("histModal").style.display = "none"; };
-
-try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
-
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-    const { LocalNotifications } = window.Capacitor.Plugins;
-    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
-    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
-  }
-});
-</script>
-<script id="hardcoded-settings">
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const ghr = document.getElementById('ghr');
-      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
-        ghr.value = 'massud2020/Balanced-Screener';
-        ghr.dispatchEvent(new Event('change')); 
-      }
-      
-      const ght = document.getElementById('ght');
-      if (ght && !ght.value) {
-        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-        ght.dispatchEvent(new Event('change')); 
-      }
-    }, 800); 
-  });
-</script>
-
-</body></html>
+            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 
