@@ -477,9 +477,15 @@ async function scan() {
     
     const rows = json.rows || [];
     D = {}; 
+    // 🛠️ بازگردانی آرایه‌ها به آبجکت برای چارت
     rows.forEach(r => {
         if (r.a && r.h) {
-            D[r.id] = { id: r.id, a: r.a, h: r.h, dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] }; 
+            D[r.id] = { 
+                id: r.id, 
+                a: r.a.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c), 
+                h: r.h.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c), 
+                dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] 
+            }; 
         }
     });
 
@@ -734,7 +740,6 @@ $("langToggle").onclick = () => {
 ["m15","h1","h1s","rsi"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);scan()});
 ["rsiL","rsiS"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).value);scan()});
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
-// 🛠️ افزایش زمان اسکن خودکار به ۳ دقیقه (۱۸۰,۰۰۰ میلی‌ثانیه)
 $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);if($("auto").checked)timer=setInterval(scan,180000)};
 $("auto").checked=LS("bs_auto")!=="false";if($("auto").checked)timer=setInterval(scan,180000);
 $("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()};
@@ -751,7 +756,6 @@ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)
 $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
-// 🛠️ تغییر تایمر پس‌زمینه از ۶۰ ثانیه به ۳ دقیقه
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
 
 $("showHist").onclick = async () => {
