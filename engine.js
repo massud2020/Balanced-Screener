@@ -1,6 +1,6 @@
 // Port of src/lib/strategy/engine.ts (3+1 pattern strategy)
 const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14};
-const ENGINE_VER=35; // نسخه را بالا بردیم
+const ENGINE_VER=35;
 
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
@@ -16,7 +16,8 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     S={...DEF,...S};
     const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
     const price=raw5.length?raw5[raw5.length-1].close:0;
-    const row=(x={})=>({id,side:null,price,fail:null,...x});
+    // 🛠️ مقادیر پیش‌فرض pass, total, checks برای جلوگیری از کرش
+    const row=(x={})=>({id,side:null,price,fail:null,pass:0,total:0,checks:[],...x});
     
     if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
     
@@ -51,7 +52,6 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         }
     }
 
-    // 🛠️ بخش شمارش داینامیک شرط‌ها (با پشتیبانی از خاموش کردن شروط)
     let pass = 0, total = 0, checks = [], fail = null;
     
     const addCheck = (label, ok, failMsg) => {
