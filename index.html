@@ -401,16 +401,18 @@ try {
     const savedCond = LS("bs_cond");
     if (savedCond) {
         const parsed = JSON.parse(savedCond);
-        COND = { ...COND, ...parsed }; // ترکیب مقادیر ذخیره شده با مقادیر پیش‌فرض
+        COND = { ...COND, ...parsed };
     }
 } catch(e) { console.warn("Error loading conditions, using defaults."); }
 
 function renderCondChips() {
-    const labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
-    const el = $("condChips");
-    if(el) {
-        el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
-    }
+    try {
+        const labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+        const el = $("condChips");
+        if(el) {
+            el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
+        }
+    } catch(e) { console.warn("renderCondChips error", e); }
 }
 
 $("condChips").onclick = e => {
@@ -420,28 +422,33 @@ $("condChips").onclick = e => {
     COND[k] = !COND[k];
     LS("bs_cond", JSON.stringify(COND));
     renderCondChips();
-    if (LAST) renderList(); // Re-evaluate everything instantly
-    if (liveId) render(liveId); // Re-evaluate chart if open
+    if (LAST) renderList(); 
+    if (liveId) render(liveId); 
 };
 
-// 🛠️ تابع ارزیابی سمت کلاینت
+// 🛠️ تابع ارزیابی سمت کلاینت (با try-catch برای جلوگیری از کرش)
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
-    const opts = {
-        mode: "pattern",
-        trend: COND.trend,
-        emax: COND.emax,
-        nc: COND.nc,
-        pat: COND.pat,
-        m15: COND.m15,
-        h1: COND.h1,
-        h1Strict: $("h1s").checked,
-        rsi: COND.rsi,
-        rsiL: +$("rsiL").value || 40,
-        rsiS: +$("rsiS").value || 60
-    };
-    const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
-    return { ...r, side: res.side, entry: res.entry, sl: res.sl, pass: res.pass, total: res.total, fail: res.fail, rsi: res.rsi, checks: res.checks };
+    try {
+        const opts = {
+            mode: "pattern",
+            trend: COND.trend,
+            emax: COND.emax,
+            nc: COND.nc,
+            pat: COND.pat,
+            m15: COND.m15,
+            h1: COND.h1,
+            h1Strict: $("h1s").checked,
+            rsi: COND.rsi,
+            rsiL: +$("rsiL").value || 40,
+            rsiS: +$("rsiS").value || 60
+        };
+        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
+        return { ...r, side: res.side, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: res.fail, rsi: res.rsi, checks: res.checks || [] };
+    } catch (e) {
+        console.error("Eval error for", r.id, e);
+        return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
+    }
 }
 
 function applyLanguage() {
@@ -497,8 +504,8 @@ function applyLanguage() {
         $("ver").textContent = "v" + BUILD;
         if($("verl")) $("verl").textContent = (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v" + BUILD;
 
-        renderChips();
-        renderCondChips();
+        try { renderChips(); } catch(e) { console.warn("renderChips error", e); }
+        try { renderCondChips(); } catch(e) { console.warn("renderCondChips error", e); }
         if(LAST) renderList();
     } catch(e) {
         console.error("Language apply error", e);
@@ -534,9 +541,12 @@ let D={},MN={pattern:"۳+۱"},timer=null,busy=false,LAST=null,vf="all",noneOpen=
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
 function renderChips(){
-    const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
-    $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
-    updCnt();
+    if (typeof U === "undefined" || !Array.isArray(U)) return;
+    try {
+        const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(["crypto"]);
+        $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
+        updCnt();
+    } catch(e) { console.warn("Chips error", e); }
 }
 function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
@@ -567,7 +577,7 @@ async function scan() {
     const rows = json.rows || [];
     D = {}; 
     rows.forEach(r => {
-        if (r.a && r.h) {
+        if (Array.isArray(r.a) && Array.isArray(r.h)) {
             D[r.id] = { 
                 id: r.id, 
                 a: r.a.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c), 
@@ -679,7 +689,13 @@ function noneHtml(r){
 function renderList(){
   if(!LAST)return;
   
-  const evaluatedRows = LAST.rows.map(evalRow);
+  let evaluatedRows = [];
+  try {
+      evaluatedRows = LAST.rows.map(evalRow);
+  } catch(e) {
+      console.error("Map error", e);
+      evaluatedRows = LAST.rows; // fallback
+  }
   
   const{errs,time,cnt}=LAST,
         only=$("only").checked,
@@ -737,7 +753,7 @@ function renderAnalysis(ex,dg,mode){
     const full=ex.total>0&&ex.pass===ex.total, f=v=>Number(v).toFixed(dg), L=ex.dir==="LONG";
     let body="";
     
-    body=ex.checks.map(c=>{
+    body=(ex.checks||[]).map(c=>{
         let vizHtml = "";
         if (c.viz) {
             if (c.viz.t === "dist") {
