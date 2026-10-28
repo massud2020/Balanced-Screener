@@ -32,7 +32,14 @@ async function J(url, o = {}) {
 const okx = async (id, bar) => {
   const j = await J(`https://www.okx.com/api/v5/market/candles?instId=${id}&bar=${bar}&limit=300`);
   if (j.code !== "0") return [];
-  return j.data.map(r => ({ time: +r[0] / 1000, open: +r[1], high: +r[2], low: +r[3], close: +r[4] })).sort((a, b) => a.time - b.time);
+  // 🛠️ گرد کردن اعداد به ۵ رقم اعشار برای کاهش حجم
+  return j.data.map(r => ({ 
+    time: +r[0] / 1000, 
+    open: +Number(r[1]).toFixed(5), 
+    high: +Number(r[2]).toFixed(5), 
+    low: +Number(r[3]).toFixed(5), 
+    close: +Number(r[4]).toFixed(5) 
+  })).sort((a, b) => a.time - b.time);
 };
 
 const oanda = async (i, g) => {
@@ -40,7 +47,14 @@ const oanda = async (i, g) => {
   const j = await J(`https://${h}.oanda.com/v3/instruments/${i}/candles?granularity=${g}&count=300&price=M`, {
     headers: { Authorization: "Bearer " + TOK }
   });
-  return j.candles.map(c => ({ time: Date.parse(c.time) / 1000, open: +c.mid.o, high: +c.mid.h, low: +c.mid.l, close: +c.mid.c })).filter(c => isFinite(c.close));
+  // 🛠️ گرد کردن اعداد به ۵ رقم اعشار
+  return j.candles.map(c => ({ 
+    time: Date.parse(c.time) / 1000, 
+    open: +Number(c.mid.o).toFixed(5), 
+    high: +Number(c.mid.h).toFixed(5), 
+    low: +Number(c.mid.l).toFixed(5), 
+    close: +Number(c.mid.c).toFixed(5) 
+  })).filter(c => isFinite(c.close));
 };
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -54,7 +68,14 @@ async function yh(sy, iv, rg) {
   const q = res.indicators.quote[0], o = [];
   (res.timestamp || []).forEach((t, i) => {
     if ([q.open[i], q.high[i], q.low[i], q.close[i]].every(v => v != null))
-      o.push({ time: t, open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i] });
+      // 🛠️ گرد کردن اعداد به ۵ رقم اعشار
+      o.push({ 
+        time: t, 
+        open: +Number(q.open[i]).toFixed(5), 
+        high: +Number(q.high[i]).toFixed(5), 
+        low: +Number(q.low[i]).toFixed(5), 
+        close: +Number(q.close[i]).toFixed(5) 
+      });
   });
   return o;
 }
