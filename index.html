@@ -34,7 +34,17 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 
 /* controls */
 .ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-.one{display:flex;align-items:center;gap:9px;min-height:44px;padding:0 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px}.one b{font-weight:700}.one small{color:var(--mu);margin-inline-start:auto;font-size:11.5px;direction:ltr}.one .od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd)}
+
+/* 🛠️ کادر استراتژی جدید (شامل نام و دکمه‌های شروط) */
+.strategy-box{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px;min-height:44px}
+.strategy-title{display:flex;align-items:center;justify-content:space-between;}
+.strategy-title b{font-weight:700}
+.od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd);display:inline-block;margin-inline-end:8px}
+.cond-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cond-chips::-webkit-scrollbar{display:none}
+.c-chip{flex:none;min-height:28px;padding:0 10px;border-radius:6px;font-size:11.5px;font-weight:600;background:var(--card2);border:1px solid var(--bd);color:var(--mu);cursor:pointer;transition:all .15s}
+.c-chip.on{background:rgba(70,197,140,.15);border-color:rgba(70,197,140,.4);color:var(--gb)}
+
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px}.nav a{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--tx);text-decoration:none;font-size:14px}.nav a i{font-style:normal;background:var(--gd);color:var(--gb);border-radius:99px;padding:0 8px;font-size:12px;font-weight:700;min-width:22px;text-align:center}.nav a i:empty{display:none}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:2px 14px 4px;scroll-snap-type:x proximity}
 .chips::-webkit-scrollbar{display:none}
@@ -42,12 +52,6 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 .mkt .cnt{font-size:11px;font-weight:500;opacity:.75;direction:ltr}
 .mkt.on{background:var(--gd);border-color:rgba(61,202,133,.4);color:var(--gb)}
 .mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
-
-/* 🛠️ دکمه‌های شروط استراتژی */
-.cond-chips {display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin:0 -14px; padding:4px 14px 8px;}
-.cond-chips::-webkit-scrollbar {display:none;}
-.c-chip {flex:none; min-height:34px; padding:0 12px; border-radius:8px; font-size:12px; font-weight:600; background:var(--card); border:1px solid var(--bd); color:var(--mu); cursor:pointer; transition:all .15s;}
-.c-chip.on {background:rgba(70,197,140,.15); border-color:rgba(70,197,140,.4); color:var(--gb);}
 
 /* settings */
 .set{display:none;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:4px 14px 8px;margin-top:12px;animation:fade .2s ease}
@@ -206,12 +210,16 @@ body[dir="ltr"] .ci { direction: ltr; }
 </header>
 
 <section class="ctl">
-  <div class="one" aria-label="Strategy"><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b><small>EMA · M15 · H1 · RSI</small></div>
+  <!-- 🛠️ کادر استراتژی با دکمه‌های شروط داخل آن -->
+  <div class="strategy-box" aria-label="Strategy">
+    <div class="strategy-title">
+      <div><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b></div>
+    </div>
+    <div class="cond-chips" id="condChips"></div>
+  </div>
+
   <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span><i id="alN"></i></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
   <div class="chips" id="mkts" aria-label="Markets"></div>
-  
-  <!-- 🛠️ دکمه‌های شروط استراتژی -->
-  <div class="cond-chips" id="condChips"></div>
 </section>
 
 <div class="set" id="set">
