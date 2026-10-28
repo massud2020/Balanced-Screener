@@ -215,13 +215,11 @@ body[dir="ltr"] .ci { direction: ltr; }
 </header>
 
 <section class="ctl">
-  <!-- 🛠️ دکمه‌های تغییر استراتژی -->
   <div class="mode-switch">
     <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
     <button id="modeRange">استراتژی رنج</button>
   </div>
 
-  <!-- کادر استراتژی با دکمه‌های شروط داخل آن -->
   <div class="strategy-box" aria-label="Strategy">
     <div class="strategy-title">
       <div><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b></div>
@@ -321,7 +319,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 <!-- 🛠️ بنر نمایش خطا (جهت دیباگ) -->
 <div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px; z-index:9999; font-size:12px; text-align:center;"></div>
 
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=36"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=37"></script><script src="chart.js?v=35"></script>
 <script>
 // 🛠️ سیستم رهگیری خطا
 window.addEventListener('error', function(e) {
@@ -576,7 +574,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=36,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=37,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -683,8 +681,13 @@ function age(r){
     return `${fmtNum(m)} ${T().minAgo}`;
 }
 
+// 🛠️ اصلاح اصلی: تابع ایمن برای جلوگیری از کرش در صورت null بودن مقدار
 function sigHtml(r){
-    const d=r.d,f=x=>x.toFixed(d),L=r.side==="LONG",risk=Math.abs(r.entry-r.sl)/r.entry*100,a=age(r),mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+    const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
+    const L=r.side==="LONG";
+    const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
+    const a=age(r);
+    const mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
     return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
     <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
     <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div>
@@ -811,7 +814,7 @@ function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e
 function renderAnalysis(ex,dg,mode){
     const el=$("an");
     if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?trFail(ex.err):(currentLang==='fa'?"تحلیل در دسترس نیست":"Analysis unavailable")}</div></div>`;return}
-    const full=ex.total>0&&ex.pass===ex.total, f=v=>Number(v).toFixed(dg), L=ex.dir==="LONG";
+    const full=ex.total>0&&ex.pass===ex.total, f=v=> (v == null || isNaN(v)) ? "-" : Number(v).toFixed(dg), L=ex.dir==="LONG";
     let body="";
     
     body=(ex.checks||[]).map(c=>{
@@ -862,7 +865,7 @@ function renderAnalysis(ex,dg,mode){
 }
 
 function render(id){
-    const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=>v.toFixed(d.dg);
+    const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=> (v == null || isNaN(v)) ? "-" : Number(v).toFixed(d.dg);
     try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,currentMode === 'range' ? T().fail_range : T().fail_pattern)}catch(e){$("an").innerHTML=""}
     $("ci").innerHTML=`<div class="kv"><div><i>${T().price}</i><b>${f(x.price)}</b></div>${r.side?`<div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b>${T().rsiDiv}</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>${T().signal}</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 "+T().long:"🔴 "+T().short}</div>`:`<div class="nosig" style="margin-top:10px">${T().noSignalNow} · ${trFail(r.fail)}</div>`)+
     `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">${T().lastUpdate} ${fmtDate(new Date())} · ${T().recentSignals} ${fmtNum(x.n)} · ${T().legend}</div>`;
