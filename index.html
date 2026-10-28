@@ -19,6 +19,17 @@ button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);
 button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default;transform:none}
 button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
 
+/* 🛠️ صفحه خوشامدگویی هوش مصنوعی */
+#ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
+#ai-splash.hidden{opacity:0;visibility:hidden}
+.ai-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1f6f47,var(--gb));display:grid;place-items:center;font-size:40px;box-shadow:0 0 40px rgba(70,197,140,.4);margin-bottom:20px;animation:pulse 2s infinite}
+.ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s}
+.ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:20px;overflow:hidden;display:none}
+.ai-loading.on{display:block}
+.ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s ease-in-out infinite}
+@keyframes pulse {0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
+@keyframes loadbar {0%{width:0}50%{width:100%}100%{width:0}}
+
 /* هدر */
 .bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
 .bar::after{content:"";position:absolute;bottom:-1px;inset-inline-start:0;height:2px;width:var(--prog,0%);background:linear-gradient(90deg,var(--g),var(--gb));transition:width .3s}
@@ -29,13 +40,17 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 .logo-row{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;letter-spacing:-0.5px;background:linear-gradient(90deg, #46c58c, #e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
 .logo-row i{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;-webkit-text-fill-color:#06150d;font-style:normal;font-size:14px;box-shadow:0 0 12px rgba(70,197,140,.4)}
 .brand small{color:var(--mu);font-size:10px;font-weight:500;margin-top:2px}
-button.ic{width:38px;min-width:38px;padding:0;font-size:16px;display:grid;place-items:center}
+button.ic{width:38px;min-width:38px;padding:0;font-size:16px;display:grid;place-items:center;position:relative}
 button.ic.on{border-color:var(--gb);color:var(--gb)}
+
+/* نشانگر سیگنال‌های خوانده نشده */
+.badge{position:absolute;top:-4px;right:-4px;background:var(--rb);color:#fff;font-size:10px;font-weight:bold;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);z-index:10;direction:ltr}
+.badge.on{display:flex;animation:pop .3s ease}
 
 /* controls */
 .ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 
-/* 🛠️ انتخاب استراتژی */
+/* انتخاب استراتژی */
 .mode-switch{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);padding:4px;margin-bottom:4px}
 .mode-switch button{flex:1;min-height:36px;border:none;border-radius:6px;background:transparent;color:var(--mu);font-size:13px;font-weight:600;padding:0 10px;transition:background .2s,color .2s}
 .mode-switch button.on{background:var(--gd);color:var(--gb)}
@@ -133,7 +148,7 @@ main{padding-bottom:28px}
 .r-foot{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mu)}
 .r-foot span:first-child{color:var(--tx2)}
 
-/* 🛠️ استایل اختصاصی کارت‌های بدون سیگنال */
+/* استایل اختصاصی کارت‌های بدون سیگنال */
 .row.none{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;margin-bottom:8px;background:var(--card);border:1px solid var(--bd2);border-radius:var(--rad);cursor:pointer;transition:background .15s;}
 .row.none:hover{background:var(--card2);}
 .rn-right{display:flex;flex-direction:column;gap:4px;}
@@ -189,6 +204,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 .meta{margin-top:8px;font-size:11.5px;color:var(--mu)}
 @keyframes sp{to{transform:rotate(360deg)}}@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}@keyframes pl{50%{opacity:.4}}
 @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes shm{to{background-position:-200% 0}}
+@keyframes pop{0%{transform:scale(0.8);opacity:0}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 #langToggle { font-weight: 700; font-size:13px; }
 body[dir="ltr"] .an { direction: ltr; text-align: left; }
@@ -197,6 +213,13 @@ body[dir="ltr"] .ci { direction: ltr; }
 </style>
 </head>
 <body>
+
+<!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
+<div id="ai-splash">
+    <div class="ai-avatar">🤖</div>
+    <div class="ai-text" id="ai-text">در حال راه‌اندازی سیستم...</div>
+    <div class="ai-loading" id="ai-loading"><u></u></div>
+</div>
 
 <header class="bar">
   <div class="acts left">
@@ -209,7 +232,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   </div>
   
   <div class="acts right">
-    <button class="ic" id="showHist" aria-label="History">📅</button>
+    <button class="ic" id="showHist" aria-label="History">📅<span id="unreadBadge" class="badge">0</span></button>
     <button class="ic" id="gs" aria-label="Settings">⚙</button>
   </div>
 </header>
@@ -265,7 +288,6 @@ body[dir="ltr"] .ci { direction: ltr; }
   <details><summary id="setGhGuide">راهنمای ساخت token</summary><p id="setGhGuideText">در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده.</p></details>
 </div>
 
-<!-- رادار و نوار لودینگ -->
 <div class="ld" id="ld">
   <div class="rd"><i></i></div>
   <div class="lt">
@@ -280,11 +302,8 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <div class="bn" id="bn"></div>
-
-<!-- لانگ، شورت و فیلترها -->
 <div class="sum" id="sum" style="display:none"></div>
 
-<!-- 🛠️ دکمه اسکن جدید -->
 <div class="scan-container">
   <button class="big-scan" id="go">
     <span id="goT">اسکن</span>
@@ -316,25 +335,30 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<!-- 🛠️ بنر نمایش خطا (جهت دیباگ) -->
-<div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px; z-index:9999; font-size:12px; text-align:center;"></div>
+<div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px 15px; z-index:9999; font-size:12px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.2);">
+    <span id="err-text" style="flex:1; margin-right:10px; direction:ltr; text-align:left;"></span>
+    <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
+</div>
 
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=37"></script><script src="chart.js?v=35"></script>
 <script>
 // 🛠️ سیستم رهگیری خطا
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
-    if (el) {
-        el.style.display = 'block';
-        el.textContent = 'Error: ' + e.message + ' (Line ' + e.lineno + ')';
+    const txt = document.getElementById('err-text');
+    if (el && txt) {
+        el.style.display = 'flex';
+        txt.textContent = 'Error: ' + e.message + ' (Line ' + e.lineno + ')';
     }
 });
+document.getElementById('close-err').onclick = () => {
+    document.getElementById('err-banner').style.display = 'none';
+};
 
 // 🛠️ توابع پایه
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 
-// 🛠️ توابع ایمن برای آپدیت DOM
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 
@@ -364,8 +388,9 @@ const I18N = {
     btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
     fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
-    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص",
-    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر"
+    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "در کول‌داون ۲۰ دقیقه‌ای",
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
+    ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد."
   },
   en: {
     scan: "Scan", settings: "Settings", history: "History",
@@ -392,28 +417,19 @@ const I18N = {
     btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
     fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
-    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error",
-    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger"
+    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "In 20m cooldown",
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
+    ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated."
   }
 };
 
 const BACKEND_TO_KEY = {
-    "الگوی ۳+۱": "fail_pattern",
-    "استراتژی رنج": "fail_range",
-    "هم‌راستایی EMA21/50": "fail_emaAlign",
-    "قیمت روی EMA200": "fail_priceEma200",
-    "شیب EMA": "fail_emaSlope",
-    "تقاطع EMA21/50": "fail_emaCross",
-    "فیلتر M15": "fail_m15",
-    "فیلتر H1": "fail_h1",
-    "فیلتر RSI": "fail_rsi",
-    "No Data": "fail_noData",
-    "Error": "fail_error",
-    "تاریخچه M5 کافی نیست": "fail_histM5",
-    "تاریخچه M15 کافی نیست": "fail_histM15",
-    "تاریخچه H1 کافی نیست": "fail_histH1",
-    "اندیکاتورها آماده نیست": "fail_notReady",
-    "خطای نامشخص": "fail_unknown"
+    "الگوی ۳+۱": "fail_pattern", "استراتژی رنج": "fail_range", "هم‌راستایی EMA21/50": "fail_emaAlign",
+    "قیمت روی EMA200": "fail_priceEma200", "شیب EMA": "fail_emaSlope", "تقاطع EMA21/50": "fail_emaCross",
+    "فیلتر M15": "fail_m15", "فیلتر H1": "fail_h1", "فیلتر RSI": "fail_rsi", "No Data": "fail_noData",
+    "Error": "fail_error", "تاریخچه M5 کافی نیست": "fail_histM5", "تاریخچه M15 کافی نیست": "fail_histM15",
+    "تاریخچه H1 کافی نیست": "fail_histH1", "اندیکاتورها آماده نیست": "fail_notReady",
+    "خطای نامشخص": "fail_unknown", "در کول‌داون ۲۰ دقیقه‌ای": "fail_cooldown"
 };
 
 let currentLang = LS("bs_lang");
@@ -441,6 +457,84 @@ try {
 } catch(e) { console.warn("Error loading conditions, using defaults."); }
 
 let currentMode = LS("bs_mode") || "pattern";
+let COOLDOWNS = {};
+try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) {}
+let UNREAD = parseInt(LS("bs_unread") || "0");
+
+function updateUnreadBadge() {
+    const b = $("unreadBadge");
+    if (b) {
+        if (UNREAD > 0) {
+            b.textContent = UNREAD > 99 ? "99+" : UNREAD;
+            b.classList.add("on");
+        } else {
+            b.classList.remove("on");
+        }
+    }
+}
+
+// 🛠️ انیمیشن تایپ هوش مصنوعی
+async function typeText(elementId, text, speed = 40) {
+    const el = $(elementId);
+    if(!el) return;
+    el.textContent = "";
+    for (let i = 0; i < text.length; i++) {
+        el.textContent += text.charAt(i);
+        await new Promise(r => setTimeout(r, speed));
+    }
+}
+
+// 🛠️ منطق تشخیص وضعیت بازار برای هوش مصنوعی
+function detectMarketRegime() {
+    if (!LAST || !LAST.rows) return "pattern";
+    let totalAdx = 0, count = 0;
+    // بررسی نمادهای اصلی برای تشخیص وضعیت کلی بازار
+    const sample = LAST.rows.filter(r => ["BTCUSDT", "ETHUSDT", "EURUSD", "XAUUSD", "US30"].includes(r.id) && D[r.id]);
+    sample.forEach(r => {
+        try {
+            const res = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern" }, Date.now()/1000);
+            if (res.adx) { totalAdx += res.adx; count++; }
+        } catch(e) {}
+    });
+    const avgAdx = count ? (totalAdx / count) : 25;
+    return avgAdx > 22 ? "pattern" : "range";
+}
+
+// 🛠️ راه‌اندازی اولیه به همراه صفحه خوشامدگویی AI
+async function initAI() {
+    const t = T();
+    const splash = $("ai-splash");
+    const loading = $("ai-loading");
+    
+    // 1. خوشامدگویی
+    await typeText("ai-text", t.ai_welcome);
+    await new Promise(r => setTimeout(r, 800));
+    
+    // 2. شروع اسکن
+    loading.classList.add("on");
+    await typeText("ai-text", t.ai_scan);
+    
+    // اجرای اسکن در پس‌زمینه (بدون نمایش لودینگ اصلی)
+    await scan(true); 
+    
+    // 3. تحلیل و انتخاب استراتژی
+    const regime = detectMarketRegime();
+    if (regime === "pattern") {
+        await typeText("ai-text", t.ai_trend);
+        setMode("pattern");
+    } else {
+        await typeText("ai-text", t.ai_range);
+        setMode("range");
+    }
+    
+    await new Promise(r => setTimeout(r, 1500));
+    
+    // 4. بستن صفحه خوشامدگویی
+    splash.classList.add("hidden");
+    
+    // رندر مجدد لیست پس از بستن صفحه
+    if (LAST) renderList();
+}
 
 function renderCondChips() {
     try {
@@ -468,7 +562,6 @@ $("condChips").onclick = e => {
     if (liveId) render(liveId); 
 };
 
-// 🛠️ تغییر استراتژی
 function setMode(mode) {
     currentMode = mode;
     LS("bs_mode", mode);
@@ -483,26 +576,29 @@ function setMode(mode) {
 $("modePattern").onclick = () => setMode("pattern");
 $("modeRange").onclick = () => setMode("range");
 
-// 🛠️ تابع ارزیابی سمت کلاینت (با try-catch برای جلوگیری از کرش)
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     try {
         const opts = {
-            mode: currentMode,
-            trend: COND.trend,
-            emax: COND.emax,
-            nc: COND.nc,
-            pat: COND.pat,
-            adx: COND.adx,
-            m15: COND.m15,
-            h1: COND.h1,
-            h1Strict: $("h1s") ? $("h1s").checked : false,
-            rsi: COND.rsi,
-            rsiL: +$("rsiL").value || 40,
-            rsiS: +$("rsiS").value || 60
+            mode: currentMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat, adx: COND.adx,
+            m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
+            rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
         };
         const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
-        return { ...r, side: res.side, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: res.fail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
+        let finalSide = res.side;
+        let finalFail = res.fail;
+
+        const now = Date.now() / 1000;
+        if (finalSide) {
+            const lastTime = COOLDOWNS[r.id] || 0;
+            if (now - lastTime < 1200) {
+                finalSide = null;
+                finalFail = T().fail_cooldown;
+                res.pass = res.total > 0 ? res.total - 1 : 0;
+            }
+        }
+
+        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
     } catch (e) {
         console.error("Eval error for", r.id, e);
         return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
@@ -574,7 +670,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=37,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=38,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -614,15 +710,18 @@ $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id===
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
-async function scan() {
+// 🛠️ تابع اسکن با قابلیت اجرای بی‌صدا (برای هوش مصنوعی)
+async function scan(isAISilent = false) {
   if (busy) return; 
   busy = true;
-  $("go").disabled = true;
-  $("goT").textContent = T().goFetch;
-  $("ld").classList.add("on");
-  $("ls").textContent = T().scanning;
-  $("lp").textContent = T().pleaseWait;
-  setProg(50);
+  if(!isAISilent) {
+      $("go").disabled = true;
+      $("goT").textContent = T().goFetch;
+      $("ld").classList.add("on");
+      $("ls").textContent = T().scanning;
+      $("lp").textContent = T().pleaseWait;
+      setProg(50);
+  }
   
   try {
     const startTime = Date.now();
@@ -661,15 +760,43 @@ async function scan() {
     $("st").innerHTML = `${T().lastScan} ${fmtDate(new Date(json.time))} · ${fmtNum(sigCount)} ${T().signals}`;
     $("lp").textContent = T().scanDone;
 
+    const ns = Date.now()/1000;
+    let seen = {};
+    try { seen = JSON.parse(LS("bs_seen") || "{}"); } catch(e){}
+    const fresh = [];
+    rows.forEach(r => {
+        if(!r.side) return;
+        if(ns - (r.bt + 300) > 1200) return;
+        const k = r.id + "|" + r.side + "|" + r.bt;
+        if(seen[k]) return;
+        seen[k] = ns; fresh.push(r);
+    });
+    Object.keys(seen).forEach(k => { if(ns - seen[k] > 86400) delete seen[k]; });
+    LS("bs_seen", JSON.stringify(seen));
+    
+    if (fresh.length) {
+        UNREAD += fresh.length;
+        LS("bs_unread", UNREAD);
+        updateUnreadBadge();
+        alertNow(fresh);
+
+        fresh.forEach(r => { COOLDOWNS[r.id] = Date.now() / 1000; });
+        LS("bs_cooldowns", JSON.stringify(COOLDOWNS));
+        
+        renderList();
+    }
+
   } catch (e) {
     $("st").textContent = T().errFetch;
-    $("list").innerHTML = `<div class="empty"><b>⚠</b>${T().errFetch}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
+    if(!isAISilent) $("list").innerHTML = `<div class="empty"><b>⚠</b>${T().errFetch}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
   } finally {
-    $("ld").classList.remove("on");
-    setProg(0);
+    if(!isAISilent) {
+        $("ld").classList.remove("on");
+        setProg(0);
+        $("go").disabled = false;
+        $("goT").textContent = T().scan;
+    }
     busy = false;
-    $("go").disabled = false;
-    $("goT").textContent = T().scan;
   }
 }
 
@@ -681,7 +808,6 @@ function age(r){
     return `${fmtNum(m)} ${T().minAgo}`;
 }
 
-// 🛠️ اصلاح اصلی: تابع ایمن برای جلوگیری از کرش در صورت null بودن مقدار
 function sigHtml(r){
     const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
     const L=r.side==="LONG";
@@ -804,7 +930,7 @@ $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openCh
 $("sp").checked=LS("bs_sp")!=="false";$("sp").onchange=()=>LS("bs_sp",$("sp").checked);
 $("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?T().btnEnabled:T().btnDenied}catch(e){$("nt").textContent=T().btnUnsupported}};
 if(window.Notification&&Notification.permission==="granted")$("nt").textContent=T().btnEnabled;
-$("go").onclick=scan;
+$("go").onclick=() => scan(false);
 
 /* chart overlay */
 let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
@@ -888,7 +1014,6 @@ $("langToggle").onclick = () => {
     if(liveId) render(liveId);
 };
 
-// 🛠️ اصلاح باگ کرش کردن (بررسی وجود المان قبل از اتصال رویداد)
 ["h1s", "rsiL", "rsiS"].forEach(i=>{
     const el = $(i);
     if(el) el.onchange = () => {
@@ -905,8 +1030,6 @@ $("env").value=LS("bs_env")||"practice";
 $("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()};
 $("saveTok").onclick=()=>{const t=$("tok").value.trim();LS("bs_tok",t);const b=$("saveTok");b.style.background="#2e9a69";b.style.borderColor="#2e9a69";b.style.color="#fff";b.textContent=T().btnSaved;setTimeout(()=>{b.style.background="var(--card2)";b.style.borderColor="var(--bd)";b.style.color="var(--tx)";b.textContent=T().btnSave;},2500);scan();};
 $("env").onchange=()=>{LS("bs_env",$("env").value);scan()};
-
-// 🛠️ اصلاح باگ خواندن مقادیر از حافظه برای المان‌هایی که ممکن است وجود نداشته باشند
 ["h1s","rsiL","rsiS","only"].forEach(i=>{
     const v=LS("bs_"+i);
     const el = $(i);
@@ -921,16 +1044,14 @@ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)
 $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
-setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
-
-// 🛠️ اجرای اجباری برای ساخت دکمه‌ها پس از لود کامل
-setTimeout(() => {
-    try { renderChips(); } catch(e) {}
-    try { renderCondChips(); } catch(e) {}
-    try { setMode(currentMode); } catch(e) {}
-}, 500);
+setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
+setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI error:", e); } }, 500);
 
 $("showHist").onclick = async () => {
+    UNREAD = 0;
+    LS("bs_unread", 0);
+    updateUnreadBadge();
+
     const modal = $("histModal");
     const list = $("histList");
     modal.style.display = "block";
