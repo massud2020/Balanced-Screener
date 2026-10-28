@@ -1,18 +1,20 @@
 name: Balanced Screener Scan
 
 on:
+  # 🛠️ اجرای دستی
   workflow_dispatch:
 
-  # 🛠️ زمان‌بندی پشتیبان (هر ۱۵ دقیقه)
+  # 🛠️ زمان‌بندی پشتیبان (هر ۵ دقیقه)
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
 
+# 🛠️ جلوگیری از اجرای همزمان چند اسکن
 concurrency:
   group: scan-market
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write # دسترسی نوشتن برای کامیت کردن
 
 jobs:
   run_scan:
@@ -46,7 +48,18 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # 🛠️ دریافت آخرین تغییرات از گیت‌هاب (برای اینکه اگر کد جدیدی اضافه کردید از دست نرود)
+          git fetch origin main
+          
+          # 🛠️ ریست کردن وضعیت لوکال به آخرین نسخه گیت‌هاب (اما فایل‌های تولید شده جدید ما دست نخورده باقی می‌مانند)
+          git reset --mixed origin/main
+          
+          # 🛠️ اضافه کردن فایل‌های جدید
           git add data.json history.json
+          
+          # 🛠️ کامیت کردن
           git commit -m "Update market data [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main
-          git push
+          
+          # 🛠️ پوش کردن
+          git push origin main
