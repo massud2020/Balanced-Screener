@@ -477,6 +477,19 @@ function updateUnreadBadge() {
     }
 }
 
+// 🛠️ تابع تولید صدا برای دستیار هوشمند
+function speakAI(text) {
+    if (!window.speechSynthesis) return;
+    try {
+        window.speechSynthesis.cancel(); // توقف صدای قبلی
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
+        u.rate = 1.0; // سرعت عادی
+        u.pitch = 1.1; // صدای کمی زیرتر (شبیه به AI)
+        window.speechSynthesis.speak(u);
+    } catch(e) { console.warn("TTS Error", e); }
+}
+
 async function typeText(elementId, text, speed = 40) {
     const el = $(elementId);
     if(!el) return;
@@ -506,24 +519,33 @@ async function initAI() {
     const splash = $("ai-splash");
     const loading = $("ai-loading");
     
+    // 1. خوشامدگویی
+    speakAI(t.ai_welcome);
     await typeText("ai-text", t.ai_welcome);
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 1000));
     
+    // 2. شروع اسکن
     loading.classList.add("on");
+    speakAI(t.ai_scan);
     await typeText("ai-text", t.ai_scan);
     
     await scan(true); 
     
+    // 3. تحلیل و انتخاب استراتژی
     const regime = detectMarketRegime();
     if (regime === "pattern") {
+        speakAI(t.ai_trend);
         await typeText("ai-text", t.ai_trend);
         setMode("pattern");
     } else {
+        speakAI(t.ai_range);
         await typeText("ai-text", t.ai_range);
         setMode("range");
     }
     
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000));
+    
+    // 4. بستن صفحه خوشامدگویی
     splash.classList.add("hidden");
     
     if (LAST) renderList();
@@ -966,7 +988,6 @@ function renderAnalysis(ex,dg,mode){
                 }).join("");
                 vizHtml = `<div class="viz"><div class="pat"><div class="rb ${c.ok?'ok':''}"><u style="width:${rp}%"></u><s style="left:${tp}%"></s></div></div><div style="display:flex;gap:2px;margin-top:6px;align-items:center;justify-content:flex-start;direction:ltr;">${cHtml}</div></div>`;
             } else if (c.viz.t === "range") {
-                // 🛠️ نمودار بصری ناحیه رنج
                 const price = c.viz.price;
                 const low = c.viz.low;
                 const high = c.viz.high;
