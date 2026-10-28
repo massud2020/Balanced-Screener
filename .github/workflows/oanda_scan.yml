@@ -1,10 +1,14 @@
 name: Balanced Screener Scan
 
 on:
-  # 🛠️ فقط اجرای دستی و از طریق API (برای cron-job.org)
+  # 🛠️ ۱. اجرای دستی (از داخل خود گیت‌هاب)
   workflow_dispatch:
 
-# 🛠️ جلوگیری از اجرای همزمان چند اسکن (تداخل در ذخیره فایل)
+  # 🛠️ ۲. زمان‌بندی داخلی گیت‌هاب (هر ۵ دقیقه)
+  schedule:
+    - cron: '*/5 * * * *'
+
+# 🛠️ جلوگیری از اجرای همزمان و بروز خطاهای تداخل (بسیار مهم)
 concurrency:
   group: scan-market
   cancel-in-progress: false
