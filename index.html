@@ -971,4 +971,55 @@ $("showHist").onclick = async () => {
             }
 
             return `
-            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 
+            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
+                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
+                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
+                        <span style="color:var(--mu);">${timeStr}</span>
+                    </div>
+                </div>
+                ${checksHtml}
+            </div>`;
+        }).join("");
+
+    } catch(e) {
+        list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
+    }
+};
+$("closeHist").onclick = () => { $("histModal").style.display = "none"; };
+
+try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
+
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
+    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
+  }
+});
+</script>
+<script id="hardcoded-settings">
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const ghr = document.getElementById('ghr');
+      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
+        ghr.value = 'massud2020/Balanced-Screener';
+        ghr.dispatchEvent(new Event('change')); 
+      }
+      
+      const ght = document.getElementById('ght');
+      if (ght && !ght.value) {
+        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
+        ght.dispatchEvent(new Event('change')); 
+      }
+    }, 800); 
+  });
+</script>
+
+</body></html>
