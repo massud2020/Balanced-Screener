@@ -1,21 +1,21 @@
 name: Balanced Screener Scan
 
 on:
-  # 🛠️ اجرای دستی
+  # 🛠️ ۱. اجرای دستی (از داخل خود گیت‌هاب)
   workflow_dispatch:
 
-  # 🛠️ زمان‌بندی داخلی گیت‌هاب (پشتیبان - هر ۱۵ دقیقه)
-  # کارهای ۵ دقیقه‌ای توسط cron-job.org انجام می‌شود
+  # 🛠️ ۲. زمان‌بندی داخلی پشتیبان (هر ۱۵ دقیقه)
+  # کارهای دقیق ۵ دقیقه‌ای توسط cron-job.org انجام می‌شود
   schedule:
     - cron: '*/15 * * * *'
 
-# 🛠️ جلوگیری از اجرای همزمان
+# 🛠️ جلوگیری از اجرای همزمان چند اسکن (صف‌بندی)
 concurrency:
   group: scan-market
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write # دسترسی نوشتن برای کامیت کردن فایل‌ها
 
 jobs:
   run_scan:
@@ -45,14 +45,14 @@ jobs:
           RSI_S: "60"
         run: node scan.js
         
-      # 🛠️ اسکریپت نهایی و ضدخطا برای ذخیره فایل
+      # 🛠️ مرحله نهایی: ذخیره فایل‌ها با استفاده از Force Push (کاملاً ضدخطا)
       - name: Force Commit and Push
         run: |
-          # ۱. فایل‌های جدیدی که اسکنر ساخت را در یک پوشه موقت کپی می‌کنیم
+          # ۱. فایل‌های تولید شده (دیتای جدید) را در یک پوشه موقت کپی می‌کنیم
           cp data.json /tmp/data.json
           cp history.json /tmp/history.json
           
-          # ۲. ریپازیتوری را به آخرین نسخه گیت‌هاب برمی‌گردانیم (حذف کامل تغییرات قدیمی)
+          # ۲. ریپازیتوری را به آخرین نسخه روی سرور (گیت‌هاب) برمی‌گردانیم تا هرگونه تداخلی پاک شود
           git fetch origin main
           git reset --hard origin/main
           
@@ -60,11 +60,11 @@ jobs:
           cp /tmp/data.json data.json
           cp /tmp/history.json history.json
           
-          # ۴. تنظیمات گیت و کامیت کردن
+          # ۴. تنظیمات و کامیت کردن
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json history.json
           git commit -m "Update market data [skip ci]" || echo "No changes to commit"
           
-          # ۵. پوش کردن به گیت‌هاب
-          git push origin main
+          # ۵. پوش اجباری (Force Push) برای جلوگیری از هرگونه خطای همزمانی
+          git push --force origin main
