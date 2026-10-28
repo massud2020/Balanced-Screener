@@ -1,12 +1,11 @@
 // Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range)
 const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,adx:true,adxMin:25,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,bbP:20,bbDev:2};
-const ENGINE_VER=36;
+const ENGINE_VER=37; // نسخه جدید برای پاک شدن کش
 
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
 function atr(cs,p){const o=Array(cs.length).fill(null);if(cs.length<=p)return o;const tr=cs.map((c,i)=>i?Math.max(c.high-c.low,Math.abs(c.high-cs[i-1].close),Math.abs(c.low-cs[i-1].close)):c.high-c.low);let s=0;for(let i=0;i<p;i++)s+=tr[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<tr.length;i++){pr=(pr*(p-1)+tr[i])/p;o[i]=pr}return o}
 
-// 🛠️ توابع جدید برای Bollinger Bands و ADX
 function sma(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;let s=0;for(let i=0;i<p;i++)s+=v[i];o[p-1]=s/p;for(let i=p;i<v.length;i++){s=s-v[i-p]+v[i];o[i]=s/p}return o}
 function stdDev(v,p){const m=sma(v,p),o=Array(v.length).fill(null);for(let i=p-1;i<v.length;i++){let s=0;for(let j=0;j<p;j++)s+=Math.pow(v[i-j]-m[i],2);o[i]=Math.sqrt(s/p)}return o}
 function adx(cs,p){
@@ -71,7 +70,7 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     const lowerBB = smaV - (S.bbDev * stdV);
     const sc=m5[m5.length-1].close;
 
-    let pass = 0, total = 0, checks = [], fail = null;
+    let pass = 0, total = 0, checks = [], fail = null, side = null;
     const addCheck = (label, ok, failMsg) => {
         total++;
         checks.push({ l: label, ok: !!ok });
@@ -81,18 +80,16 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
 
     // 🛠️ شاخه‌بندی بر اساس استراتژی انتخاب شده
     if (S.mode === "range") {
-        // استراتژی رنج (بازگشت به میانگین)
         if(S.adx !== false) addCheck(`ADX < ${S.adxMin} (بازار رنج)`, adxV < S.adxMin, `بازار روند دارد (ADX)`);
         if(S.rsi) addCheck(`RSI اشباع`, r < 35 || r > 65, `RSI در محدوده اشباع نیست`);
         addCheck(`برخورد به باند بولینگر`, sc <= lowerBB || sc >= upperBB, `قیمت به باندها برخورد نکرده`);
         
         if (pass === total && total > 0) {
-            if (sc <= lowerBB && r < 35) { /* LONG */ }
-            else if (sc >= upperBB && r > 65) { /* SHORT */ }
+            if (sc <= lowerBB && r < 35) { side = "LONG"; fail = null; }
+            else if (sc >= upperBB && r > 65) { side = "SHORT"; fail = null; }
             else { fail = "شرایط ورود رنج کامل نیست"; pass = 0; }
         }
     } else {
-        // استراتژی روند (الگوی ۳+۱)
         const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
         const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
         const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
@@ -127,13 +124,11 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
         if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
         if(S.rsi) addCheck(`فیلتر RSI`, isL ? r < S.rsiL : r > S.rsiS, `فیلتر RSI`);
-    }
 
-    let side = null;
-    if (pass === total && total > 0) {
-        const D = sc >= es ? "LONG" : "SHORT";
-        side = D;
-        fail = null;
+        if (pass === total && total > 0) {
+            side = D;
+            fail = null;
+        }
     }
 
     let sl=null;
@@ -141,9 +136,13 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         const sz=m5[m5.length-1].high-m5[m5.length-1].low;
         const d=sz*2;
         if(d>0) sl = side==="LONG" ? sc-d : sc+d;
+        if(!sl) { // Fallback if candle has no body
+            const atrV = a || (sc * 0.002);
+            sl = side==="LONG" ? sc - atrV : sc + atrV;
+        }
     }
 
-    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, pass, total, checks});
+    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, adx:adxV, pass, total, checks});
 }
 
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
