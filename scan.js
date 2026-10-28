@@ -32,7 +32,6 @@ async function J(url, o = {}) {
 const okx = async (id, bar) => {
   const j = await J(`https://www.okx.com/api/v5/market/candles?instId=${id}&bar=${bar}&limit=300`);
   if (j.code !== "0") return [];
-  // 🛠️ گرد کردن اعداد به ۵ رقم اعشار برای کاهش حجم
   return j.data.map(r => ({ 
     time: +r[0] / 1000, 
     open: +Number(r[1]).toFixed(5), 
@@ -47,7 +46,6 @@ const oanda = async (i, g) => {
   const j = await J(`https://${h}.oanda.com/v3/instruments/${i}/candles?granularity=${g}&count=300&price=M`, {
     headers: { Authorization: "Bearer " + TOK }
   });
-  // 🛠️ گرد کردن اعداد به ۵ رقم اعشار
   return j.candles.map(c => ({ 
     time: Date.parse(c.time) / 1000, 
     open: +Number(c.mid.o).toFixed(5), 
@@ -68,7 +66,6 @@ async function yh(sy, iv, rg) {
   const q = res.indicators.quote[0], o = [];
   (res.timestamp || []).forEach((t, i) => {
     if ([q.open[i], q.high[i], q.low[i], q.close[i]].every(v => v != null))
-      // 🛠️ گرد کردن اعداد به ۵ رقم اعشار
       o.push({ 
         time: t, 
         open: +Number(q.open[i]).toFixed(5), 
@@ -159,6 +156,9 @@ async function once(now) {
         
         let foundSignal = false;
         
+        // 🛠️ تابع کمکی برای فشرده‌سازی کندل‌ها به آرایه [time, open, high, low, close]
+        const packCandles = (arr) => arr.slice(-210).map(c => [c.time, c.open, c.high, c.low, c.close]);
+
         for (const mode of modes) {
           const opts = { mode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S };
           const r = evaluate(u[0], a, h, opts, now);
@@ -168,7 +168,7 @@ async function once(now) {
             const dataRow = {
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
                 pass: r.total || 7, total: r.total || 7, bt: bt, mode: mode, u: u,
-                a: a.slice(-210), h: h.slice(-210) // 🛠️ کاهش به ۲۱۰ برای حجم کمتر
+                a: packCandles(a), h: packCandles(h) // فشرده‌سازی
             };
             allRows.push(dataRow);
             
@@ -195,7 +195,7 @@ async function once(now) {
                 pass: r.pass || 0, 
                 total: r.total || 7,
                 mode: modes[0], u: u,
-                a: a.slice(-210), h: h.slice(-210) // 🛠️ کاهش به ۲۱۰ برای حجم کمتر
+                a: packCandles(a), h: packCandles(h) // فشرده‌سازی
             });
         }
       } catch (e) {
