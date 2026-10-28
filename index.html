@@ -35,7 +35,7 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 /* controls */
 .ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
 
-/* 🛠️ کادر استراتژی جدید (شامل نام و دکمه‌های شروط) */
+/* 🛠️ کادر استراتژی (شامل نام و دکمه‌های شروط) */
 .strategy-box{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px;min-height:44px}
 .strategy-title{display:flex;align-items:center;justify-content:space-between;}
 .strategy-title b{font-weight:700}
@@ -306,11 +306,28 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="an"></div>
   <div id="ci"></div>
 </div>
+
+<!-- 🛠️ بنر نمایش خطا (جهت دیباگ) -->
+<div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px; z-index:9999; font-size:12px; text-align:center;"></div>
+
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
+// 🛠️ سیستم رهگیری خطا
+window.addEventListener('error', function(e) {
+    const el = document.getElementById('err-banner');
+    if (el) {
+        el.style.display = 'block';
+        el.textContent = 'Error: ' + e.message + ' (Line ' + e.lineno + ')';
+    }
+});
+
 // 🛠️ توابع پایه
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
+
+// 🛠️ توابع ایمن برای آپدیت DOM
+const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
+const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 
 const I18N = {
   fa: {
@@ -465,52 +482,53 @@ function applyLanguage() {
         document.documentElement.lang = currentLang;
         const t = T();
         
-        $("goT").textContent = t.scan;
-        $("langToggle").textContent = currentLang === 'fa' ? 'EN' : 'FA';
-        $("stratTitle").textContent = t.fail_pattern;
-        $("navAlerts").textContent = currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts";
-        $("navBacktest").textContent = currentLang === 'fa' ? "بک‌تست" : "Backtest";
+        setText("goT", t.scan);
+        setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
+        setText("stratTitle", t.fail_pattern);
+        setText("navAlerts", currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts");
+        setText("navBacktest", currentLang === 'fa' ? "بک‌تست" : "Backtest");
         
-        $("setFilters").textContent = currentLang === 'fa' ? "تنظیمات پیشرفته" : "Advanced Settings";
-        $("setH1Strict").textContent = currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict";
-        $("setRsiL").textContent = currentLang === 'fa' ? "خرید زیر:" : "Buy below:";
-        $("setRsiS").textContent = currentLang === 'fa' ? "فروش بالای:" : "Sell above:";
-        $("setOnly").textContent = currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal";
+        setText("setFilters", currentLang === 'fa' ? "تنظیمات پیشرفته" : "Advanced Settings");
+        setText("setH1Strict", currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict");
+        setText("setRsiL", currentLang === 'fa' ? "خرید زیر:" : "Buy below:");
+        setText("setRsiS", currentLang === 'fa' ? "فروش بالای:" : "Sell above:");
+        setText("setOnly", currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal");
         
-        $("setSource").textContent = currentLang === 'fa' ? "منبع داده" : "Data Source";
-        $("setOanda").textContent = currentLang === 'fa' ? "OANDA توکن" : "OANDA Token";
-        $("setOandaEnv").textContent = currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env";
-        $("setExtraStocks").innerHTML = currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>";
+        setText("setSource", currentLang === 'fa' ? "منبع داده" : "Data Source");
+        setText("setOanda", currentLang === 'fa' ? "OANDA توکن" : "OANDA Token");
+        setText("setOandaEnv", currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env");
+        setHTML("setExtraStocks", currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>");
         
-        $("setApp").textContent = currentLang === 'fa' ? "برنامه" : "App";
-        if($("setVer").childNodes[0]) $("setVer").childNodes[0].nodeValue = currentLang === 'fa' ? "نسخه‌ی اپ" : "App Version";
-        $("upd").textContent = t.btnClearCache;
+        setText("setApp", currentLang === 'fa' ? "برنامه" : "App");
+        const setVerEl = $("setVer");
+        if(setVerEl && setVerEl.childNodes[0]) setVerEl.childNodes[0].nodeValue = currentLang === 'fa' ? "نسخه‌ی اپ" : "App Version";
+        setText("upd", t.btnClearCache);
         
-        $("setNotifs").textContent = currentLang === 'fa' ? "اعلان‌ها" : "Notifications";
-        $("setNotifSys").textContent = currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound";
-        $("setNotifVoice").textContent = currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement";
-        $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۳ دقیقه</small>" : "Auto Scan<small>Every 3 mins</small>";
+        setText("setNotifs", currentLang === 'fa' ? "اعلان‌ها" : "Notifications");
+        setText("setNotifSys", currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound");
+        setText("setNotifVoice", currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement");
+        setHTML("setAuto", currentLang === 'fa' ? "اسکن خودکار<small>هر ۳ دقیقه</small>" : "Auto Scan<small>Every 3 mins</small>");
         
-        $("setTg").textContent = currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed";
-        $("setTgAlert").innerHTML = currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>";
-        $("setGh").innerHTML = currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>";
-        $("setGhToken").innerHTML = currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>";
-        $("nHint").textContent = currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving";
-        $("nSave").textContent = currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server";
+        setText("setTg", currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed");
+        setHTML("setTgAlert", currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>");
+        setHTML("setGh", currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>");
+        setHTML("setGhToken", currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>");
+        setText("nHint", currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving");
+        setText("nSave", currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server");
         
-        $("setGhGuide").textContent = currentLang === 'fa' ? "راهنمای ساخت token" : "Token Guide";
-        $("setGhGuideText").innerHTML = currentLang === 'fa' ? "در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده." : "In GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. Select this repo only and set <b>Contents</b> to <b>Read and write</b> in Permissions. Token is saved locally. Without token, the Save button will show the config text to copy manually.";
+        setText("setGhGuide", currentLang === 'fa' ? "راهنمای ساخت token" : "Token Guide");
+        setHTML("setGhGuideText", currentLang === 'fa' ? "در GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. فقط همین ریپو رو انتخاب کن و در Permissions مقدار <b>Contents</b> را روی <b>Read and write</b> بذار. token فقط روی همین گوشی ذخیره می‌شه. بدون token هم می‌شه: دکمه‌ی ذخیره، متن تنظیمات رو برای کپی و گذاشتن توی GitHub نشون می‌ده." : "In GitHub: Settings ‹ Developer settings ‹ Personal access tokens ‹ Fine-grained tokens ‹ Generate. Select this repo only and set <b>Contents</b> to <b>Read and write</b> in Permissions. Token is saved locally. Without token, the Save button will show the config text to copy manually.");
         
-        $("ls").textContent = t.scanning;
-        $("st").textContent = t.ready;
-        $("histTitle").textContent = t.histToday;
-        $("closeHist").textContent = t.btnClose;
-        $("cx").textContent = t.btnClose;
-        $("te").textContent = t.tvInside;
-        $("saveTok").textContent = t.btnSave;
+        setText("ls", t.scanning);
+        setText("st", t.ready);
+        setText("histTitle", t.histToday);
+        setText("closeHist", t.btnClose);
+        setText("cx", t.btnClose);
+        setText("te", t.tvInside);
+        setText("saveTok", t.btnSave);
         
-        $("ver").textContent = "v" + BUILD;
-        if($("verl")) $("verl").textContent = (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v" + BUILD;
+        setText("ver", "v" + BUILD);
+        setText("verl", (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v" + BUILD);
 
         try { renderChips(); } catch(e) { console.warn("renderChips error", e); }
         try { renderCondChips(); } catch(e) { console.warn("renderCondChips error", e); }
@@ -852,6 +870,12 @@ $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=awa
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
+
+// 🛠️ اجرای اجباری برای ساخت دکمه‌ها پس از لود کامل
+setTimeout(() => {
+    try { renderChips(); } catch(e) {}
+    try { renderCondChips(); } catch(e) {}
+}, 500);
 
 $("showHist").onclick = async () => {
     const modal = $("histModal");
