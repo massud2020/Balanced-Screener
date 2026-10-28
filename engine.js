@@ -1,6 +1,6 @@
 // Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range)
 const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,adx:true,adxMin:25,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,bbP:20,bbDev:2};
-const ENGINE_VER=37; // نسخه جدید برای پاک شدن کش
+const ENGINE_VER=38; // نسخه جدید
 
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
@@ -70,6 +70,11 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     const lowerBB = smaV - (S.bbDev * stdV);
     const sc=m5[m5.length-1].close;
 
+    // 🛠️ محاسبه ناحیه رنج (سقف و کف ۵۰ کندل اخیر)
+    const lookback = m5.slice(-50);
+    const rangeHigh = Math.max(...lookback.map(c => c.high));
+    const rangeLow = Math.min(...lookback.map(c => c.low));
+
     let pass = 0, total = 0, checks = [], fail = null, side = null;
     const addCheck = (label, ok, failMsg) => {
         total++;
@@ -78,7 +83,6 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         else if (!fail) fail = failMsg;
     };
 
-    // 🛠️ شاخه‌بندی بر اساس استراتژی انتخاب شده
     if (S.mode === "range") {
         if(S.adx !== false) addCheck(`ADX < ${S.adxMin} (بازار رنج)`, adxV < S.adxMin, `بازار روند دارد (ADX)`);
         if(S.rsi) addCheck(`RSI اشباع`, r < 35 || r > 65, `RSI در محدوده اشباع نیست`);
@@ -136,13 +140,13 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         const sz=m5[m5.length-1].high-m5[m5.length-1].low;
         const d=sz*2;
         if(d>0) sl = side==="LONG" ? sc-d : sc+d;
-        if(!sl) { // Fallback if candle has no body
+        if(!sl) {
             const atrV = a || (sc * 0.002);
             sl = side==="LONG" ? sc - atrV : sc + atrV;
         }
     }
 
-    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, adx:adxV, pass, total, checks});
+    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, adx:adxV, rangeHigh, rangeLow, pass, total, checks});
 }
 
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
@@ -174,12 +178,20 @@ const smaV=last(smaA),stdV=last(stdA),adxV=last(adxA);
 if([ef,em,es,r,a,efp,emp,smaV,stdV,adxV].some(x=>x==null)){out.err="اندیکاتورها آماده نیست";return out}
 const i=m5.length-1,b=m5[i],sc=b.close,D=sc>=es?"LONG":"SHORT",L=D==="LONG",sl=(ef-efp)!==0&&(em-emp)!==0;
 out.dir=D;out.price=sc;out.rsi=r;out.atr=a;out.ef=ef;out.em=em;out.es=es;out.adx=adxV;
+
+// 🛠️ محاسبه ناحیه رنج
+const lookback = m5.slice(-50);
+out.rangeHigh = Math.max(...lookback.map(c => c.high));
+out.rangeLow = Math.min(...lookback.map(c => c.low));
+
 const add=(k,label,ok,txt,viz)=>{out.checks.push({k,label,ok:!!ok,txt,viz});out.total++;if(ok)out.pass++};
 
 if (S.mode === "range") {
     if(S.adx !== false) add("adx",`ADX < ${S.adxMin} (رنج)`,adxV < S.adxMin,adxV.toFixed(1),{t:"dist",v:(adxV-25)/25});
     if(S.rsi){const rsiOk=L?r<35:r>65;add("rsi",`RSI اشباع`,rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
     add("bb",`برخورد به باند بولینگر`,L?sc<=smaV-2*stdV:sc>=smaV+2*stdV,`${(sc-smaV).toFixed(2)}`,{t:"dist",v:(sc-smaV)/(stdV||1)/2});
+    // 🛠️ افزودن شرط بصری برای نمایش ناحیه رنج
+    add("range", `محدوده رنج`, true, `سقف: ${out.rangeHigh.toFixed(dg)} | کف: ${out.rangeLow.toFixed(dg)}`, {t:"range", price: sc, low: out.rangeLow, high: out.rangeHigh});
 } else {
     if(S.trend !== false) add("trend",`قیمت ${L?"بالای":"پایین"} EMA${S.es} و شیب EMA`,(L?sc>es:sc<es)&&sl,((sc-es)/a>=0?"+":"")+((sc-es)/a).toFixed(1)+"×ATR",{t:"dist",v:(sc-es)/a});
     const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio),nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp)),pp=L?pl:ps;
