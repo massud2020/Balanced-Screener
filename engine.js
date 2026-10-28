@@ -1,10 +1,49 @@
-// Port of src/lib/strategy/engine.ts (3+1 pattern strategy)
-const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14};
-const ENGINE_VER=35;
+// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range)
+const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,adx:true,adxMin:25,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,bbP:20,bbDev:2};
+const ENGINE_VER=36;
 
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
 function atr(cs,p){const o=Array(cs.length).fill(null);if(cs.length<=p)return o;const tr=cs.map((c,i)=>i?Math.max(c.high-c.low,Math.abs(c.high-cs[i-1].close),Math.abs(c.low-cs[i-1].close)):c.high-c.low);let s=0;for(let i=0;i<p;i++)s+=tr[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<tr.length;i++){pr=(pr*(p-1)+tr[i])/p;o[i]=pr}return o}
+
+// 🛠️ توابع جدید برای Bollinger Bands و ADX
+function sma(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;let s=0;for(let i=0;i<p;i++)s+=v[i];o[p-1]=s/p;for(let i=p;i<v.length;i++){s=s-v[i-p]+v[i];o[i]=s/p}return o}
+function stdDev(v,p){const m=sma(v,p),o=Array(v.length).fill(null);for(let i=p-1;i<v.length;i++){let s=0;for(let j=0;j<p;j++)s+=Math.pow(v[i-j]-m[i],2);o[i]=Math.sqrt(s/p)}return o}
+function adx(cs,p){
+  if(cs.length<p*2)return Array(cs.length).fill(null);
+  let trs=[],pDMs=[],nDMs=[];
+  for(let i=1;i<cs.length;i++){
+    let h=cs[i].high,l=cs[i].low,ph=cs[i-1].high,pl=cs[i-1].low,pc=cs[i-1].close;
+    let tr=Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc));
+    let pDM=(h-ph>pl-l&&h-ph>0)?h-ph:0;
+    let nDM=(pl-l>h-ph&&pl-l>0)?pl-l:0;
+    trs.push(tr);pDMs.push(pDM);nDMs.push(nDM);
+  }
+  let str=[],spDM=[],snDM=[];
+  let sTR=0,sPDM=0,sNDM=0;
+  for(let i=0;i<p;i++){sTR+=trs[i];sPDM+=pDMs[i];sNDM+=nDMs[i];}
+  str.push(sTR);spDM.push(sPDM);snDM.push(sNDM);
+  for(let i=p;i<trs.length;i++){
+    sTR=sTR-sTR/p+trs[i];sPDM=sPDM-sPDM/p+pDMs[i];sNDM=sNDM-sNDM/p+nDMs[i];
+    str.push(sTR);spDM.push(sPDM);snDM.push(sNDM);
+  }
+  let dx=[];
+  for(let i=0;i<str.length;i++){
+    let pDI=100*(spDM[i]/str[i]),nDI=100*(snDM[i]/str[i]);
+    let sum=pDI+nDI;
+    dx.push(sum===0?0:100*Math.abs(pDI-nDI)/sum);
+  }
+  let adxArr=Array(cs.length).fill(null);
+  let sDX=0;
+  for(let i=0;i<p;i++)sDX+=dx[i];
+  adxArr[p*2-1]=sDX/p;
+  for(let i=p;i<dx.length;i++){
+    let prev=adxArr[p*2-2+i];
+    adxArr[p*2-1+i]=(prev*(p-1)+dx[i])/p;
+  }
+  return adxArr;
+}
+
 const last=(a,n=0)=>{const v=a[a.length-1-n];return v==null||!isFinite(v)?null:v};
 function dropForming(c,sec,now){return c.length&&now<c[c.length-1].time+sec?c.slice(0,-1):c}
 function resample(c,min){const sz=min*60,m=new Map();for(const x of c){const b=Math.floor(x.time/sz)*sz;(m.get(b)||m.set(b,[]).get(b)).push(x)}return[...m.entries()].sort((a,b)=>a[0]-b[0]).map(([time,a])=>({time,open:a[0].open,high:Math.max(...a.map(x=>x.high)),low:Math.min(...a.map(x=>x.low)),close:a[a.length-1].close}))}
@@ -16,44 +55,23 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     S={...DEF,...S};
     const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
     const price=raw5.length?raw5[raw5.length-1].close:0;
-    // 🛠️ مقادیر پیش‌فرض pass, total, checks برای جلوگیری از کرش
     const row=(x={})=>({id,side:null,price,fail:null,pass:0,total:0,checks:[],...x});
     
     if(m5.length<S.es+3)return row({fail:"تاریخچه M5 کافی نیست"});
     
     const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP);
+    const smaA=sma(cl,S.bbP),stdA=stdDev(cl,S.bbP),adxA=adx(m5,S.rsiP);
+    
     const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
-    if([ef,em,es,r,a,efp,emp].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
+    const smaV=last(smaA),stdV=last(stdA),adxV=last(adxA);
     
-    const sc=m5[m5.length-1].close,pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
-    const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
-    const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
+    if([ef,em,es,r,a,efp,emp,smaV,stdV,adxV].some(x=>x==null))return row({fail:"اندیکاتورها آماده نیست"});
     
-    const D = sc >= es ? "LONG" : "SHORT";
-    const isL = D === "LONG";
-
-    let m15L=true,m15S=true;
-    if(S.m15){
-        const m=dropForming(resample(m5,15),900,now);
-        if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});
-        const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));
-        m15L=f>mm;m15S=f<mm;
-    }
-    
-    let h1L=true,h1S=true;
-    if(S.h1){
-        if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});
-        const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];
-        if(S.h1Strict){
-            const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));
-            h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs;
-        } else {
-            h1L=c>hs;h1S=c<hs;
-        }
-    }
+    const upperBB = smaV + (S.bbDev * stdV);
+    const lowerBB = smaV - (S.bbDev * stdV);
+    const sc=m5[m5.length-1].close;
 
     let pass = 0, total = 0, checks = [], fail = null;
-    
     const addCheck = (label, ok, failMsg) => {
         total++;
         checks.push({ l: label, ok: !!ok });
@@ -61,20 +79,59 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         else if (!fail) fail = failMsg;
     };
 
-    if (S.trend !== false) addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, isL ? ab : be, `قیمت روی EMA200`);
-    if (S.nc !== false) addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
-    if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
-    if (S.pat !== false) addCheck(`الگوی ۳+۱`, isL ? pl.ok : ps.ok, `الگوی ۳+۱`);
-    
-    if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
-    if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
-    if(S.rsi) {
-        const rsiOk = isL ? r < S.rsiL : r > S.rsiS;
-        addCheck(`فیلتر RSI`, rsiOk, `فیلتر RSI`);
+    // 🛠️ شاخه‌بندی بر اساس استراتژی انتخاب شده
+    if (S.mode === "range") {
+        // استراتژی رنج (بازگشت به میانگین)
+        if(S.adx !== false) addCheck(`ADX < ${S.adxMin} (بازار رنج)`, adxV < S.adxMin, `بازار روند دارد (ADX)`);
+        if(S.rsi) addCheck(`RSI اشباع`, r < 35 || r > 65, `RSI در محدوده اشباع نیست`);
+        addCheck(`برخورد به باند بولینگر`, sc <= lowerBB || sc >= upperBB, `قیمت به باندها برخورد نکرده`);
+        
+        if (pass === total && total > 0) {
+            if (sc <= lowerBB && r < 35) { /* LONG */ }
+            else if (sc >= upperBB && r > 65) { /* SHORT */ }
+            else { fail = "شرایط ورود رنج کامل نیست"; pass = 0; }
+        }
+    } else {
+        // استراتژی روند (الگوی ۳+۱)
+        const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
+        const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
+        const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
+        const D = sc >= es ? "LONG" : "SHORT";
+        const isL = D === "LONG";
+
+        let m15L=true,m15S=true;
+        if(S.m15){
+            const m=dropForming(resample(m5,15),900,now);
+            if(m.length<S.em+2)return row({rsi:r,fail:"تاریخچه M15 کافی نیست"});
+            const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));
+            m15L=f>mm;m15S=f<mm;
+        }
+        
+        let h1L=true,h1S=true;
+        if(S.h1){
+            if(h1.length<S.es+2)return row({rsi:r,fail:"تاریخچه H1 کافی نیست"});
+            const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];
+            if(S.h1Strict){
+                const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));
+                h1L=c>hs&&f>m&&m>hs;h1S=c<hs&&f<m&&m<hs;
+            } else {
+                h1L=c>hs;h1S=c<hs;
+            }
+        }
+
+        if (S.trend !== false) addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, isL ? ab : be, `قیمت روی EMA200`);
+        if (S.nc !== false) addCheck(`هم‌جهتی دو کندل (بدون تقاطع)`, nc, `تقاطع EMA21/50`);
+        if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
+        if (S.pat !== false) addCheck(`الگوی ۳+۱`, isL ? pl.ok : ps.ok, `الگوی ۳+۱`);
+        if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند قوی)`, adxV > S.adxMin, `بازار روند کافی ندارد (ADX)`);
+        if(S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
+        if(S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
+        if(S.rsi) addCheck(`فیلتر RSI`, isL ? r < S.rsiL : r > S.rsiS, `فیلتر RSI`);
     }
 
     let side = null;
     if (pass === total && total > 0) {
+        const D = sc >= es ? "LONG" : "SHORT";
         side = D;
         fail = null;
     }
@@ -112,21 +169,28 @@ return out}
 function explain(id,raw5,rawH1,S,now=Date.now()/1000){S={...DEF,...S};const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now),out={id,mode:S.mode,checks:[],pass:0,total:0,dir:null,err:null};
 if(m5.length<S.es+3){out.err="تاریخچه M5 کافی نیست";return out}
 const cl=m5.map(c=>c.close),efA=ema(cl,S.ef),emA=ema(cl,S.em),esA=ema(cl,S.es),rA=rsi(cl,S.rsiP),aA=atr(m5,S.atrP),dg=S.dg==null?5:S.dg;
+const smaA=sma(cl,S.bbP),stdA=stdDev(cl,S.bbP),adxA=adx(m5,S.rsiP);
 const ef=last(efA),em=last(emA),es=last(esA),r=last(rA),a=last(aA),efp=last(efA,1),emp=last(emA,1);
-if([ef,em,es,r,a,efp,emp].some(x=>x==null)){out.err="اندیکاتورها آماده نیست";return out}
+const smaV=last(smaA),stdV=last(stdA),adxV=last(adxA);
+if([ef,em,es,r,a,efp,emp,smaV,stdV,adxV].some(x=>x==null)){out.err="اندیکاتورها آماده نیست";return out}
 const i=m5.length-1,b=m5[i],sc=b.close,D=sc>=es?"LONG":"SHORT",L=D==="LONG",sl=(ef-efp)!==0&&(em-emp)!==0;
-out.dir=D;out.price=sc;out.rsi=r;out.atr=a;out.ef=ef;out.em=em;out.es=es;
+out.dir=D;out.price=sc;out.rsi=r;out.atr=a;out.ef=ef;out.em=em;out.es=es;out.adx=adxV;
 const add=(k,label,ok,txt,viz)=>{out.checks.push({k,label,ok:!!ok,txt,viz});out.total++;if(ok)out.pass++};
 
-if(S.trend !== false) add("trend",`قیمت ${L?"بالای":"پایین"} EMA${S.es} و شیب EMA`,(L?sc>es:sc<es)&&sl,((sc-es)/a>=0?"+":"")+((sc-es)/a).toFixed(1)+"×ATR",{t:"dist",v:(sc-es)/a});
-{const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio),nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp)),pp=L?pl:ps;
-if(S.emax !== false) add("emax",`EMA${S.ef} ${L?"بالای":"پایین"} EMA${S.em}`,L?ef>em:ef<em,((ef-em)/a>=0?"+":"")+((ef-em)/a).toFixed(2)+"×ATR",{t:"dist",v:(ef-em)/a});
-if(S.nc !== false) add("nc","هم‌جهتی دو کندل اخیر (بدون تقاطع)",nc,nc?"بله":"خیر");
-if(S.pat !== false) add("pat","الگوی ۳+۱",pp.ok,"نسبت "+pp.ratio.toFixed(2)+" از "+S.minRatio,{t:"pat",c:pat.slice().reverse().map(c=>({o:c.open,h:c.high,l:c.low,c:c.close})),ratio:pp.ratio,th:S.minRatio,ok:pp.ok});
-if(S.rsi){const rsiOk=L?r<S.rsiL:r>S.rsiS;add("rsi","فیلتر RSI ("+(L?"زیر "+S.rsiL:"بالای "+S.rsiS)+")",rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
- out.slEst=(b.high-b.low)*2}
-if(S.m15){const m=dropForming(resample(m5,15),900,now);if(m.length<S.em+2)add("m15","فیلتر M15",false,"تاریخچه کم");else{const mc=m.map(c=>c.close),f=last(ema(mc,S.ef)),mm=last(ema(mc,S.em));add("m15",`M15: EMA${S.ef} ${L?"بالای":"پایین"} EMA${S.em}`,L?f>mm:f<mm,((f-mm)/a>=0?"+":"")+((f-mm)/a).toFixed(2)+"×ATR",{t:"dist",v:(f-mm)/a})}}
-if(S.h1){if(h1.length<S.es+2)add("h1","فیلتر H1",false,"تاریخچه کم");else{const hc=h1.map(c=>c.close),hs=last(ema(hc,S.es)),c=hc[hc.length-1];let ok;if(S.h1Strict){const f=last(ema(hc,S.ef)),m=last(ema(hc,S.em));ok=L?c>hs&&f>m&&m>hs:c<hs&&f<m&&m<hs}else ok=L?c>hs:c<hs;add("h1",`H1: قیمت ${L?"بالای":"پایین"} EMA${S.es}${S.h1Strict?" (سخت‌گیرانه)":""}`,ok,((c-hs)/a>=0?"+":"")+((c-hs)/a).toFixed(1)+"×ATR",{t:"dist",v:(c-hs)/a})}}
+if (S.mode === "range") {
+    if(S.adx !== false) add("adx",`ADX < ${S.adxMin} (رنج)`,adxV < S.adxMin,adxV.toFixed(1),{t:"dist",v:(adxV-25)/25});
+    if(S.rsi){const rsiOk=L?r<35:r>65;add("rsi",`RSI اشباع`,rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
+    add("bb",`برخورد به باند بولینگر`,L?sc<=smaV-2*stdV:sc>=smaV+2*stdV,`${(sc-smaV).toFixed(2)}`,{t:"dist",v:(sc-smaV)/(stdV||1)/2});
+} else {
+    if(S.trend !== false) add("trend",`قیمت ${L?"بالای":"پایین"} EMA${S.es} و شیب EMA`,(L?sc>es:sc<es)&&sl,((sc-es)/a>=0?"+":"")+((sc-es)/a).toFixed(1)+"×ATR",{t:"dist",v:(sc-es)/a});
+    const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio),nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp)),pp=L?pl:ps;
+    if(S.emax !== false) add("emax",`EMA${S.ef} ${L?"بالای":"پایین"} EMA${S.em}`,L?ef>em:ef<em,((ef-em)/a>=0?"+":"")+((ef-em)/a).toFixed(2)+"×ATR",{t:"dist",v:(ef-em)/a});
+    if(S.nc !== false) add("nc","هم‌جهتی دو کندل اخیر",nc,nc?"بله":"خیر");
+    if(S.pat !== false) add("pat","الگوی ۳+۱",pp.ok,"نسبت "+pp.ratio.toFixed(2)+" از "+S.minRatio,{t:"pat",c:pat.slice().reverse().map(c=>({o:c.open,h:c.high,l:c.low,c:c.close})),ratio:pp.ratio,th:S.minRatio,ok:pp.ok});
+    if(S.adx !== false) add("adx",`ADX > ${S.adxMin} (روند)`,adxV > S.adxMin,adxV.toFixed(1),{t:"dist",v:(adxV-25)/25});
+    if(S.rsi){const rsiOk=L?r<S.rsiL:r>S.rsiS;add("rsi","فیلتر RSI",rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
+    out.slEst=(b.high-b.low)*2;
+}
 return out}
 
 if(typeof module!=="undefined")module.exports={explain,dropForming,marks,divExit,lci,evaluate,ema,rsi,atr,resample,checkPattern,DEF};
