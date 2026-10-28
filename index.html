@@ -182,6 +182,13 @@ details.nb summary::after{content:"▾";color:var(--mu);transition:transform .2s
 .gg{position:relative;height:10px;border-radius:99px;direction:ltr;background:linear-gradient(90deg,rgba(70,197,140,.6) 0 30%,rgba(255,255,255,.1) 30% 70%,rgba(232,115,109,.6) 70% 100%)}.gg i{position:absolute;top:-4px;width:4px;height:18px;border-radius:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 0 2px rgba(0,0,0,.45)}
 .gl{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);direction:ltr;margin-top:4px}
 
+/* 🛠️ استایل نمودار ناحیه رنج */
+.range-viz {display:flex;flex-direction:column;gap:6px;direction:ltr;margin-top:5px}
+.range-bar {position:relative;height:10px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid var(--bd)}
+.range-bar .level {position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--mu);transform:translateX(-50%)}
+.range-bar .price-dot {position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.range-labels {display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-top:2px}
+
 /* chart overlay */
 #ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto;padding:0 14px 24px;direction:ltr;animation:fade .2s ease}
 #ov .oh{position:sticky;top:0;z-index:5;margin:0 -14px 10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(11,13,17,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
@@ -340,9 +347,8 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
 </div>
 
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=37"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=38"></script><script src="chart.js?v=35"></script>
 <script>
-// 🛠️ سیستم رهگیری خطا
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
@@ -355,7 +361,6 @@ document.getElementById('close-err').onclick = () => {
     document.getElementById('err-banner').style.display = 'none';
 };
 
-// 🛠️ توابع پایه
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 
@@ -446,7 +451,6 @@ function trFail(failStr) {
     return failStr;
 }
 
-// 🛠️ وضعیت شروط (پیش‌فرض همه روشن) با ایمن‌سازی کامل
 let COND = {trend:true, emax:true, nc:true, pat:true, adx:true, m15:true, h1:true, rsi:true};
 try {
     const savedCond = LS("bs_cond");
@@ -473,7 +477,6 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ انیمیشن تایپ هوش مصنوعی
 async function typeText(elementId, text, speed = 40) {
     const el = $(elementId);
     if(!el) return;
@@ -484,11 +487,9 @@ async function typeText(elementId, text, speed = 40) {
     }
 }
 
-// 🛠️ منطق تشخیص وضعیت بازار برای هوش مصنوعی
 function detectMarketRegime() {
     if (!LAST || !LAST.rows) return "pattern";
     let totalAdx = 0, count = 0;
-    // بررسی نمادهای اصلی برای تشخیص وضعیت کلی بازار
     const sample = LAST.rows.filter(r => ["BTCUSDT", "ETHUSDT", "EURUSD", "XAUUSD", "US30"].includes(r.id) && D[r.id]);
     sample.forEach(r => {
         try {
@@ -500,24 +501,19 @@ function detectMarketRegime() {
     return avgAdx > 22 ? "pattern" : "range";
 }
 
-// 🛠️ راه‌اندازی اولیه به همراه صفحه خوشامدگویی AI
 async function initAI() {
     const t = T();
     const splash = $("ai-splash");
     const loading = $("ai-loading");
     
-    // 1. خوشامدگویی
     await typeText("ai-text", t.ai_welcome);
     await new Promise(r => setTimeout(r, 800));
     
-    // 2. شروع اسکن
     loading.classList.add("on");
     await typeText("ai-text", t.ai_scan);
     
-    // اجرای اسکن در پس‌زمینه (بدون نمایش لودینگ اصلی)
     await scan(true); 
     
-    // 3. تحلیل و انتخاب استراتژی
     const regime = detectMarketRegime();
     if (regime === "pattern") {
         await typeText("ai-text", t.ai_trend);
@@ -528,11 +524,8 @@ async function initAI() {
     }
     
     await new Promise(r => setTimeout(r, 1500));
-    
-    // 4. بستن صفحه خوشامدگویی
     splash.classList.add("hidden");
     
-    // رندر مجدد لیست پس از بستن صفحه
     if (LAST) renderList();
 }
 
@@ -710,7 +703,6 @@ $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id===
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
-// 🛠️ تابع اسکن با قابلیت اجرای بی‌صدا (برای هوش مصنوعی)
 async function scan(isAISilent = false) {
   if (busy) return; 
   busy = true;
@@ -973,6 +965,27 @@ function renderAnalysis(ex,dg,mode){
                     </div>`;
                 }).join("");
                 vizHtml = `<div class="viz"><div class="pat"><div class="rb ${c.ok?'ok':''}"><u style="width:${rp}%"></u><s style="left:${tp}%"></s></div></div><div style="display:flex;gap:2px;margin-top:6px;align-items:center;justify-content:flex-start;direction:ltr;">${cHtml}</div></div>`;
+            } else if (c.viz.t === "range") {
+                // 🛠️ نمودار بصری ناحیه رنج
+                const price = c.viz.price;
+                const low = c.viz.low;
+                const high = c.viz.high;
+                const range = high - low;
+                const pos = range > 0 ? ((price - low) / range) * 100 : 50;
+                const clampedPos = Math.max(0, Math.min(100, pos));
+                
+                vizHtml = `<div class="viz"><div class="range-viz">
+                    <div class="range-bar">
+                        <div class="level" style="left: 0%"></div>
+                        <div class="level" style="left: 100%"></div>
+                        <div class="price-dot" style="left: ${clampedPos}%; background: ${clampedPos > 70 ? 'var(--rb)' : clampedPos < 30 ? 'var(--gb)' : '#fff'};"></div>
+                    </div>
+                    <div class="range-labels">
+                        <span>${low.toFixed(dg)} (کف)</span>
+                        <span style="color:${clampedPos > 70 ? 'var(--rb)' : clampedPos < 30 ? 'var(--gb)' : '#fff'};font-weight:bold">قیمت</span>
+                        <span>${high.toFixed(dg)} (سقف)</span>
+                    </div>
+                </div></div>`;
             }
         }
         return `<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${trFail(c.label)}</b><span>${c.txt||""}</span></div>${vizHtml}</div>`;
