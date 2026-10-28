@@ -21,10 +21,10 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 /* app bar */
 .bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
 .bar::after{content:"";position:absolute;bottom:-1px;inset-inline-start:0;height:2px;width:var(--prog,0%);background:linear-gradient(90deg,var(--g),var(--gb));transition:width .3s}
-.brand{display:flex;align-items:center;gap:5px;font-weight:700;font-size:15px;min-width:0;flex-shrink:1;overflow:hidden}
+.brand{display:flex;align-items:center;gap:5px;font-weight:700;font-size:14px;flex:1;min-width:0;overflow:hidden}
 .brand i{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;font-style:normal;font-size:16px}
-.bt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}.brand small{color:var(--mu);font-size:11px;font-weight:500}
-.acts{display:flex;align-items:center;gap:5px;flex:none}
+.bt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand small{color:var(--mu);font-size:11px;font-weight:500}
+.acts{display:flex;align-items:center;gap:4px;flex:none}
 button.p{background:linear-gradient(135deg,#2a8f5c,var(--g));border-color:transparent;color:#fff;font-weight:700;min-width:76px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;gap:4px;box-shadow:0 2px 14px rgba(47,157,104,.3);font-size:13px}
 button.p small{font-weight:500;opacity:.85;font-size:11px;background:rgba(0,0,0,.2);padding:1px 6px;border-radius:99px}
 button.ic{width:36px;min-width:36px;padding:0;font-size:16px;display:grid;place-items:center}
@@ -174,7 +174,6 @@ body[dir="ltr"] .ci { direction: ltr; }
 <header class="bar">
   <div class="brand"><i>◈</i><div class="bt">Balanced Screener <small id="ver"></small></div></div>
   <div class="acts">
-    <span class="dot" id="dot" title="Auto Scan"></span>
     <button class="p" id="go"><span id="goT">اسکن</span><small id="goC"></small></button>
     <button class="ic" id="showHist" aria-label="History">📅</button>
     <button class="ic" id="langToggle" aria-label="Language">EN</button>
@@ -212,7 +211,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
   <label><span id="setNotifVoice">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
-  <label><span id="setAuto">اسکن خودکار<small>هر ۶۰ ثانیه</small></span><input type="checkbox" id="auto"></label>
+  <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
   <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
   <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
   <label><span id="setGh">ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
@@ -263,7 +262,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 <script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=35"></script><script src="chart.js?v=35"></script>
 <script>
-// 🛠️ توابع پایه (انتقال به بالای کد برای جلوگیری از خطای TDZ)
+// 🛠️ توابع پایه
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 
@@ -343,7 +342,6 @@ const BACKEND_TO_KEY = {
     "خطای نامشخص": "fail_unknown"
 };
 
-// 🛠️ مقداردهی اولیه امن زبان (حالا LS در دسترس است)
 let currentLang = LS("bs_lang");
 if (currentLang !== 'en') currentLang = 'fa';
 const T = () => (I18N[currentLang] || I18N.fa);
@@ -391,7 +389,7 @@ function applyLanguage() {
         $("setNotifs").textContent = currentLang === 'fa' ? "اعلان‌ها" : "Notifications";
         $("setNotifSys").textContent = currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound";
         $("setNotifVoice").textContent = currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement";
-        $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۶۰ ثانیه</small>" : "Auto Scan<small>Every 60s</small>";
+        $("setAuto").innerHTML = currentLang === 'fa' ? "اسکن خودکار<small>هر ۳ دقیقه</small>" : "Auto Scan<small>Every 3 mins</small>";
         
         $("setTg").textContent = currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed";
         $("setTgAlert").innerHTML = currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>";
@@ -730,19 +728,19 @@ $("list").onclick=openRow;$("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()});
 $("gs").onclick=()=>{$("set").classList.toggle("on");$("gs").classList.toggle("on")};
 
-// 🛠️ تغییر زبان بدون هنگ کردن
 $("langToggle").onclick = () => {
     currentLang = currentLang === 'fa' ? 'en' : 'fa';
     LS("bs_lang", currentLang);
     applyLanguage();
-    if(liveId) render(liveId); // update chart overlay if open
+    if(liveId) render(liveId);
 };
 
 ["m15","h1","h1s","rsi"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).type==="checkbox"?$(i).checked:$(i).value);scan()});
 ["rsiL","rsiS"].forEach(i=>$(i).onchange=()=>{LS("bs_"+i,$(i).value);scan()});
 $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
-$("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000)};
-$("auto").checked=LS("bs_auto")!=="false";$("dot").classList.toggle("on",$("auto").checked);if($("auto").checked)timer=setInterval(scan,60000);
+// 🛠️ افزایش زمان اسکن خودکار به ۳ دقیقه (۱۸۰,۰۰۰ میلی‌ثانیه)
+$("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);if($("auto").checked)timer=setInterval(scan,180000)};
+$("auto").checked=LS("bs_auto")!=="false";if($("auto").checked)timer=setInterval(scan,180000);
 $("ex").value=LS("bs_ex")||"";$("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()};
 $("tok").value=LS("bs_tok")||atob("MjY2NWFkZTVjOGFmMzdmNTU5M2U5M2UzODk1NmFjZTUtNjMyODNkYmFkZGM0YzA5NTZiNDg1YjM0ZTdkMzg1ZGQ=");
 $("env").value=LS("bs_env")||"practice";
@@ -757,7 +755,8 @@ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)
 $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(g=>g.unregister()));const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.href=location.pathname+"?r="+Date.now()};
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
-setInterval(()=>{if(!document.hidden)scan()},60000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
+// 🛠️ تغییر تایمر پس‌زمینه از ۶۰ ثانیه به ۳ دقیقه
+setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
 
 // تاریخچه
 $("showHist").onclick = async () => {
@@ -825,7 +824,6 @@ $("showHist").onclick = async () => {
 };
 $("closeHist").onclick = () => { $("histModal").style.display = "none"; };
 
-// 🛠️ اجرای اولیه زبان با try...catch برای جلوگیری از هنگ کردن کامل
 try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
 
 </script>
