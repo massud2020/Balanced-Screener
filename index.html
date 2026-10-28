@@ -44,9 +44,9 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 .mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
 
 /* 🛠️ دکمه‌های شروط استراتژی */
-.cond-chips {display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin:0 -14px; padding:2px 14px 8px;}
+.cond-chips {display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin:0 -14px; padding:4px 14px 8px;}
 .cond-chips::-webkit-scrollbar {display:none;}
-.c-chip {flex:none; min-height:32px; padding:0 12px; border-radius:8px; font-size:12px; font-weight:600; background:var(--card); border:1px solid var(--bd); color:var(--mu); cursor:pointer;}
+.c-chip {flex:none; min-height:34px; padding:0 12px; border-radius:8px; font-size:12px; font-weight:600; background:var(--card); border:1px solid var(--bd); color:var(--mu); cursor:pointer; transition:all .15s;}
 .c-chip.on {background:rgba(70,197,140,.15); border-color:rgba(70,197,140,.4); color:var(--gb);}
 
 /* settings */
@@ -267,7 +267,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 <!-- لانگ، شورت و فیلترها -->
 <div class="sum" id="sum" style="display:none"></div>
 
-<!-- 🛠️ دکمه اسکن جدید (اینجا قرار گرفته است) -->
+<!-- 🛠️ دکمه اسکن جدید -->
 <div class="scan-container">
   <button class="big-scan" id="go">
     <span id="goT">اسکن</span>
@@ -395,12 +395,22 @@ function trFail(failStr) {
     return failStr;
 }
 
-// 🛠️ وضعیت شروط (پیش‌فرض همه روشن)
-let COND = JSON.parse(LS("bs_cond") || '{"trend":true,"emax":true,"nc":true,"pat":true,"m15":true,"h1":true,"rsi":true}');
+// 🛠️ وضعیت شروط (پیش‌فرض همه روشن) با ایمن‌سازی کامل
+let COND = {trend:true, emax:true, nc:true, pat:true, m15:true, h1:true, rsi:true};
+try {
+    const savedCond = LS("bs_cond");
+    if (savedCond) {
+        const parsed = JSON.parse(savedCond);
+        COND = { ...COND, ...parsed }; // ترکیب مقادیر ذخیره شده با مقادیر پیش‌فرض
+    }
+} catch(e) { console.warn("Error loading conditions, using defaults."); }
 
 function renderCondChips() {
     const labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
-    $("condChips").innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
+    const el = $("condChips");
+    if(el) {
+        el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
+    }
 }
 
 $("condChips").onclick = e => {
@@ -414,7 +424,7 @@ $("condChips").onclick = e => {
     if (liveId) render(liveId); // Re-evaluate chart if open
 };
 
-// 🛠️ تابع ارزیابی سمت کلاینت (اجرای مجدد استراتژی روی گوشی)
+// 🛠️ تابع ارزیابی سمت کلاینت
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     const opts = {
@@ -669,7 +679,6 @@ function noneHtml(r){
 function renderList(){
   if(!LAST)return;
   
-  // 🛠️ ارزیابی مجدد تمام نمادها بر اساس شروط فعال
   const evaluatedRows = LAST.rows.map(evalRow);
   
   const{errs,time,cnt}=LAST,
