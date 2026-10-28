@@ -161,9 +161,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
 @keyframes sp{to{transform:rotate(360deg)}}@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}@keyframes pl{50%{opacity:.4}}
 @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes shm{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
-/* 🛠️ استایل دکمه تغییر زبان */
 #langToggle { font-weight: 700; font-size:12px; }
-/* اصلاح جهت‌ها در حالت انگلیسی */
 body[dir="ltr"] .an { direction: ltr; text-align: left; }
 body[dir="ltr"] .an-h { flex-direction: row; }
 body[dir="ltr"] .ci { direction: ltr; }
@@ -266,7 +264,6 @@ body[dir="ltr"] .ci { direction: ltr; }
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 
-// 🛠️ دیکشنری‌های زبان
 const I18N = {
   fa: {
     scan: "اسکن", settings: "تنظیمات", history: "تاریخچه",
@@ -422,7 +419,6 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-// 🛠️ نسخه 35
 const BUILD=35,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
@@ -758,7 +754,6 @@ $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==
 // 🛠️ تغییر تایمر پس‌زمینه از ۶۰ ثانیه به ۳ دقیقه
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});setTimeout(()=>{try{scan()}catch(e){}},2500);
 
-// تاریخچه
 $("showHist").onclick = async () => {
     const modal = $("histModal");
     const list = $("histList");
