@@ -21,6 +21,7 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
+/* 🛠️ لوگوی بزرگتر (280px) */
 .ai-avatar-img {
     width: 280px;
     height: 280px;
@@ -358,7 +359,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=54"></script><script src="alerts.js?v=54"></script><script src="engine.js?v=54"></script><script src="chart.js?v=54"></script>
+<script src="symbols.js?v=55"></script><script src="alerts.js?v=55"></script><script src="engine.js?v=55"></script><script src="chart.js?v=55"></script>
 <script>
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
@@ -484,7 +485,6 @@ async function speakAI(text) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
             const { TextToSpeech } = window.Capacitor.Plugins;
-            // اگر پلاگین وجود داشت، از آن استفاده کن
             await TextToSpeech.speak({
                 text: text,
                 lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
@@ -493,16 +493,16 @@ async function speakAI(text) {
                 volume: 1.0,
                 category: 'ambient'
             });
-            return; // اگر موفق بود، کد را ادامه نده
+            return; 
         } catch (e) {
             console.warn("Native TTS Plugin Error:", e);
-            alert("خطا در پلاگین صوتی: " + (e.message || "نامشخص") + "\nمطمئن شوید پلاگین را نصب کرده‌اید و زبان فارسی در گوشی موجود است.");
+            alert("خطا در پلاگین صوتی: " + (e.message || "نامشخص") + "\nمطمئن شوید زبان فارسی در گوشی موجود است.");
         }
     } else {
         console.warn("Capacitor TTS plugin NOT FOUND in this app.");
     }
 
-    // 2. روش جایگزین (Web Speech API) برای کامپیوتر یا وب
+    // 2. روش جایگزین (Web Speech API)
     if ('speechSynthesis' in window) {
         try {
             window.speechSynthesis.cancel(); 
@@ -747,7 +747,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=54,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=55,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
