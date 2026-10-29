@@ -23,22 +23,24 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ استایل عکس بدون حاشیه و بدون دایره */
+/* 🛠️ استایل عکس آواتار جدید */
 .ai-avatar-img {
-    width: 85%;
-    max-width: 320px;
-    height: auto;
-    max-height: 45vh;
-    object-fit: contain;
-    border-radius: 16px; /* فقط کمی گرد شده برای زیبایی، بدون حاشیه */
-    margin-bottom: 25px;
-    background: transparent;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--gb);
+    box-shadow: 0 0 30px rgba(70,197,140,.6);
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+    background: #000;
 }
 
 .ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s}
 .ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:20px;overflow:hidden;display:none}
 .ai-loading.on{display:block}
 .ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s ease-in-out infinite}
+@keyframes pulse {0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
 @keyframes loadbar {0%{width:0}50%{width:100%}100%{width:0}}
 
 /* هدر */
@@ -234,8 +236,8 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
-    <!-- 🛠️ عکس بدون دایره و بدون حاشیه -->
-    <img src="ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant">
+    <!-- 🛠️ استفاده از آدرس کامل برای جلوگیری از خطای لود در اپلیکیشن -->
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'">
     
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
@@ -361,16 +363,22 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
 </div>
 
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=35"></script><script src="engine.js?v=38"></script><script src="chart.js?v=35"></script>
+<script src="symbols.js?v=42"></script><script src="alerts.js?v=42"></script><script src="engine.js?v=42"></script><script src="chart.js?v=42"></script>
 <script>
+// 🛠️ مدیریت خطای بهتر برای پیدا کردن مشکل
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
     if (el && txt) {
         el.style.display = 'flex';
-        txt.textContent = 'Error: ' + e.message + ' (Line ' + e.lineno + ')';
+        if (e.target && (e.target.src || e.target.href)) {
+            txt.textContent = 'Failed to load: ' + (e.target.src || e.target.href);
+        } else {
+            txt.textContent = 'Error: ' + (e.message || 'Unknown error') + ' (Line ' + (e.lineno || '?') + ')';
+        }
     }
-});
+}, true); 
+
 document.getElementById('close-err').onclick = () => {
     document.getElementById('err-banner').style.display = 'none';
 };
@@ -491,14 +499,23 @@ function updateUnreadBadge() {
     }
 }
 
+// 🛠️ تابع تولید صدا (با اصلاح خطای عدم پشتیبانی زبان)
 function speakAI(text) {
     if (!window.speechSynthesis) return;
     try {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
-        u.rate = 1.0;
-        u.pitch = 1.1;
+        u.rate = 1.0; 
+        u.pitch = 1.1; 
+        
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0 && currentLang === 'fa') {
+            const hasFa = voices.some(v => v.lang.includes('fa'));
+            if (!hasFa) {
+                u.lang = "en-US"; // سوییچ به انگلیسی اگر فارسی نصب نباشد
+            }
+        }
         window.speechSynthesis.speak(u);
     } catch(e) { console.warn("TTS Error", e); }
 }
@@ -540,13 +557,17 @@ async function initAI() {
         startBtn.style.display = "none";
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
         renderChips();
+
         speakAI(t.ai_welcome);
         await typeText("ai-text", t.ai_welcome);
         await new Promise(r => setTimeout(r, 1000));
+        
         loading.classList.add("on");
         speakAI(t.ai_scan);
         await typeText("ai-text", t.ai_scan);
+        
         await scan(true); 
+        
         const regime = detectMarketRegime();
         if (regime === "pattern") {
             speakAI(t.ai_trend);
@@ -557,6 +578,7 @@ async function initAI() {
             await typeText("ai-text", t.ai_range);
             setMode("range");
         }
+        
         await new Promise(r => setTimeout(r, 2000));
         splash.classList.add("hidden");
         if (LAST) renderList();
@@ -614,6 +636,7 @@ function evalRow(r) {
         const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
         let finalSide = res.side;
         let finalFail = res.fail;
+
         const now = Date.now() / 1000;
         if (finalSide) {
             const lastTime = COOLDOWNS[r.id] || 0;
@@ -623,6 +646,7 @@ function evalRow(r) {
                 res.pass = res.total > 0 ? res.total - 1 : 0;
             }
         }
+
         return { ...r, side: finalSide, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
     } catch (e) {
         console.error("Eval error for", r.id, e);
@@ -695,7 +719,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=40,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=42,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -908,7 +932,7 @@ function renderList(){
       evaluatedRows = LAST.rows.map(evalRow);
   } catch(e) {
       console.error("Map error", e);
-      evaluatedRows = LAST.rows; // fallback
+      evaluatedRows = LAST.rows; 
   }
   
   const{errs,time,cnt}=LAST,
