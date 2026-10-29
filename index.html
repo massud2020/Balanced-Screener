@@ -293,12 +293,15 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setOanda">OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
   <label><span id="setOandaEnv">نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
-  <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd">پاک‌کردن کش و به‌روزرسانی</button></label>
+  
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
-  <label><span id="setNotifVoice">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
+  <!-- 🛠️ دکمه تست صدا -->
+  <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
+  <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
+  
   <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
+  
   <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
   <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
   <label><span id="setGh">ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
@@ -355,7 +358,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=52"></script><script src="alerts.js?v=52"></script><script src="engine.js?v=52"></script><script src="chart.js?v=52"></script>
+<script src="symbols.js?v=54"></script><script src="alerts.js?v=54"></script><script src="engine.js?v=54"></script><script src="chart.js?v=54"></script>
 <script>
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
@@ -473,69 +476,58 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع جدید صدا (با استفاده از Web Speech API و بیدار کردن AudioContext)
-let voicesLoaded = false;
-function loadVoices() {
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.getVoices();
-        voicesLoaded = true;
-    }
-}
-if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-}
-
-function speakAI(text) {
+// 🛠️ تابع صدا با استفاده از پلاگین کپاسیتور و لاگ خطا
+async function speakAI(text) {
     if (!text) return;
 
-    // 1. بیدار کردن موتور صوتی اندروید با یک بوق کوتاه
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.frequency.value = 440; // فرکانس بوق
-        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
-        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) {
-        console.warn("AudioContext Wake-up failed", e);
+    // 1. بررسی وجود پلاگین نیتیو کپاسیتور
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+        try {
+            const { TextToSpeech } = window.Capacitor.Plugins;
+            // اگر پلاگین وجود داشت، از آن استفاده کن
+            await TextToSpeech.speak({
+                text: text,
+                lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
+                rate: 0.9,
+                pitch: 1.0,
+                volume: 1.0,
+                category: 'ambient'
+            });
+            return; // اگر موفق بود، کد را ادامه نده
+        } catch (e) {
+            console.warn("Native TTS Plugin Error:", e);
+            alert("خطا در پلاگین صوتی: " + (e.message || "نامشخص") + "\nمطمئن شوید پلاگین را نصب کرده‌اید و زبان فارسی در گوشی موجود است.");
+        }
+    } else {
+        console.warn("Capacitor TTS plugin NOT FOUND in this app.");
     }
 
-    // 2. پخش صدا با موتور اصلی
+    // 2. روش جایگزین (Web Speech API) برای کامپیوتر یا وب
     if ('speechSynthesis' in window) {
         try {
-            window.speechSynthesis.cancel(); // قطع صدای قبلی
+            window.speechSynthesis.cancel(); 
             const u = new SpeechSynthesisUtterance(text);
             u.lang = currentLang === 'fa' ? 'fa-IR' : 'en-US';
             u.rate = 1.0;
             u.pitch = 1.1;
 
-            // تلاش برای پیدا کردن صدای فارسی
             const voices = window.speechSynthesis.getVoices();
             if (currentLang === 'fa' && voices.length > 0) {
                 const faVoice = voices.find(v => v.lang.includes('fa'));
                 if (faVoice) u.voice = faVoice;
-                else u.lang = 'en-US'; // اگر فارسی نبود انگلیسی بخوان
+                else u.lang = 'en-US';
             }
-
-            // بعد از یک تاخیر خیلی کوتاه پخش کن تا با بوق تداخل نکند
-            setTimeout(() => {
-                window.speechSynthesis.speak(u);
-            }, 150);
-
+            window.speechSynthesis.speak(u);
         } catch (e) {
-            console.warn("SpeechSynthesis failed:", e);
+            console.warn("Web TTS Error:", e);
         }
-    } else {
-        console.warn("SpeechSynthesis not supported in this WebView.");
     }
 }
+
+// 🛠️ دکمه تست صدا
+$("testVoiceBtn").onclick = () => {
+    speakAI("سلام! این یک تست صدای هوش مصنوعی است.");
+};
 
 async function typeText(elementId, text, speed = 40) {
     const el = $(elementId);
@@ -719,7 +711,8 @@ function applyLanguage() {
         
         setText("setNotifs", currentLang === 'fa' ? "اعلان‌ها" : "Notifications");
         setText("setNotifSys", currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound");
-        setText("setNotifVoice", currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement");
+        setText("setNotifVoice", currentLang === 'fa' ? "تست صدای هوش مصنوعی" : "Test AI Voice");
+        setText("setNotifVoiceToggle", currentLang === 'fa' ? "اعلام صوتی نام نماد" : "Voice Announcement");
         setHTML("setAuto", currentLang === 'fa' ? "اسکن خودکار<small>هر ۳ دقیقه</small>" : "Auto Scan<small>Every 3 mins</small>");
         
         setText("setTg", currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed");
@@ -754,7 +747,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=52,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=54,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
