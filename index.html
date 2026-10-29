@@ -23,15 +23,15 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ استایل عکس آواتار جدید */
+/* 🛠️ استایل عکس آواتار جدید (بزرگ‌تر شد) */
 .ai-avatar-img {
-    width: 110px;
-    height: 110px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--gb);
     box-shadow: 0 0 30px rgba(70,197,140,.6);
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     animation: pulse 2s infinite;
     background: #000;
 }
@@ -236,7 +236,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
-    <!-- 🛠️ استفاده از آدرس کامل برای جلوگیری از خطای لود در اپلیکیشن -->
+    <!-- 🛠️ استفاده از آدرس کامل و بزرگ‌تر کردن عکس -->
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'">
     
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
@@ -363,21 +363,26 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
 </div>
 
-<script src="symbols.js?v=42"></script><script src="alerts.js?v=42"></script><script src="engine.js?v=42"></script><script src="chart.js?v=42"></script>
+<script src="symbols.js?v=43"></script><script src="alerts.js?v=43"></script><script src="engine.js?v=43"></script><script src="chart.js?v=43"></script>
 <script>
-// 🛠️ مدیریت خطای بهتر برای پیدا کردن مشکل
+// 🛠️ مدیریت خطای دقیق‌تر
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
-    if (el && txt) {
-        el.style.display = 'flex';
-        if (e.target && (e.target.src || e.target.href)) {
-            txt.textContent = 'Failed to load: ' + (e.target.src || e.target.href);
-        } else {
-            txt.textContent = 'Error: ' + (e.message || 'Unknown error') + ' (Line ' + (e.lineno || '?') + ')';
-        }
+    if (!el || !txt) return;
+    
+    // نادیده گرفتن خطاهای لود شدن منابع (عکس، آیکون و ...) برای جلوگیری از مزاحمت
+    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT')) {
+        return; 
     }
-}, true); 
+    
+    el.style.display = 'flex';
+    if (e.message) {
+        txt.textContent = 'JS Error: ' + e.message + ' (Line ' + (e.lineno || '?') + ')';
+    } else {
+        txt.textContent = 'Unknown Error Occurred';
+    }
+}, true);
 
 document.getElementById('close-err').onclick = () => {
     document.getElementById('err-banner').style.display = 'none';
@@ -499,9 +504,12 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع تولید صدا (با اصلاح خطای عدم پشتیبانی زبان)
+// 🛠️ تابع تولید صدا (با مدیریت خطا و تغییر خودکار به انگلیسی در صورت نبود فارسی)
 function speakAI(text) {
-    if (!window.speechSynthesis) return;
+    if (!('speechSynthesis' in window)) {
+        console.warn("Speech Synthesis not supported in this WebView.");
+        return;
+    }
     try {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
@@ -510,14 +518,19 @@ function speakAI(text) {
         u.pitch = 1.1; 
         
         const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0 && currentLang === 'fa') {
+        if (currentLang === 'fa') {
             const hasFa = voices.some(v => v.lang.includes('fa'));
             if (!hasFa) {
-                u.lang = "en-US"; // سوییچ به انگلیسی اگر فارسی نصب نباشد
+                u.lang = "en-US"; 
             }
         }
+        u.onerror = function(event) {
+            console.warn("TTS Playback Error: ", event.error);
+        };
         window.speechSynthesis.speak(u);
-    } catch(e) { console.warn("TTS Error", e); }
+    } catch(e) { 
+        console.warn("TTS Exception: ", e); 
+    }
 }
 
 async function typeText(elementId, text, speed = 40) {
@@ -719,7 +732,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=42,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=43,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1212,6 +1225,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 800); 
   });
+</script>
+<!-- 🛠️ اسکریپت بررسی آپدیت خودکار Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            reg.update();
+        }).catch(err => console.warn('SW registration failed:', err));
+    });
+}
 </script>
 
 </body></html>
