@@ -21,9 +21,10 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
+/* 🛠️ لوگوی بزرگتر شده (280px) */
 .ai-avatar-img {
-    width: 230px;
-    height: 230px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--gb);
@@ -356,7 +357,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=48"></script><script src="alerts.js?v=48"></script><script src="engine.js?v=48"></script><script src="chart.js?v=48"></script>
+<script src="symbols.js?v=50"></script><script src="alerts.js?v=50"></script><script src="engine.js?v=50"></script><script src="chart.js?v=50"></script>
 <script>
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
@@ -474,28 +475,29 @@ function updateUnreadBadge() {
     }
 }
 
+// 🛠️ تابع صدا با استفاده از Google Translate TTS (کار روی همه دستگاه‌ها)
+let currentAudio = null;
 function speakAI(text) {
-    if (!('speechSynthesis' in window)) return;
     try {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
-        u.rate = 1.0; 
-        u.pitch = 1.1; 
+        if (!text) return;
         
-        const voices = window.speechSynthesis.getVoices();
-        if (currentLang === 'fa') {
-            const hasFa = voices.some(v => v.lang.includes('fa'));
-            if (!hasFa) {
-                u.lang = "en-US"; 
-            }
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
         }
-        u.onerror = function(event) {
-            console.warn("TTS Playback Error: ", event.error);
-        };
-        window.speechSynthesis.speak(u);
-    } catch(e) { 
-        console.warn("TTS Exception: ", e); 
+
+        const safeText = text.substring(0, 200); 
+        const lang = currentLang === 'fa' ? 'fa' : 'en';
+        
+        // استفاده از API گوگل ترنسلیت برای پخش صدا
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(safeText)}&tl=${lang}&client=tw-ob`;
+
+        currentAudio = new Audio(url);
+        currentAudio.play().catch(e => {
+            console.warn("Audio play failed (Autoplay blocked or no internet):", e);
+        });
+    } catch (e) {
+        console.warn("TTS Exception:", e);
     }
 }
 
@@ -530,7 +532,6 @@ async function initAI() {
     const startBtn = $("start-ai-btn");
     const skipBtn = $("skip-ai-btn");
 
-    // 🛠️ تابع اضطراری برای بستن صفحه
     const hideSplash = () => {
         splash.classList.add("hidden");
         setTimeout(() => splash.style.display = "none", 600);
@@ -543,7 +544,6 @@ async function initAI() {
         startBtn.style.display = "none";
         if(skipBtn) skipBtn.style.display = "none";
         
-        // 🛠️ تایمر اضطراری: اگر تا ۱۲ ثانیه صفحه بسته نشد، خودش می‌بندد
         const failsafe = setTimeout(() => {
             console.warn("AI Splash Failsafe Triggered");
             hideSplash();
@@ -578,8 +578,8 @@ async function initAI() {
         } catch(e) {
             console.error("AI Flow Error:", e);
         } finally {
-            clearTimeout(failsafe); // تایمر اضطراری را لغو کن
-            hideSplash();            // حتما صفحه را ببند
+            clearTimeout(failsafe);
+            hideSplash();
         }
     };
 }
@@ -718,13 +718,12 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=48,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=50,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
 
-// 🛠️ اضافه کردن تایمر برای جلوگیری از فریز شدن در صورت قطعی اینترنت
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
     let lastError = null;
@@ -732,7 +731,7 @@ async function fetchGitJson(filename) {
         const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // ۱۰ ثانیه تایم‌اوت
+            const timeoutId = setTimeout(() => controller.abort(), 10000); 
 
             const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
             clearTimeout(timeoutId);
@@ -1122,8 +1121,6 @@ $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=awa
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
-
-// 🛠️ اجرای initAI بعد از لود کامل صفحه
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
 $("showHist").onclick = async () => {
