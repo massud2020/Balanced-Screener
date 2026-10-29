@@ -21,7 +21,6 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ استایل عکس آواتار */
 .ai-avatar-img {
     width: 230px;
     height: 230px;
@@ -34,8 +33,8 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
     background: #000;
 }
 
-.ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s}
-.ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:20px;overflow:hidden;display:none}
+.ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s; margin-bottom: 20px;}
+.ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:10px;overflow:hidden;display:none}
 .ai-loading.on{display:block}
 .ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s ease-in-out infinite}
 @keyframes pulse {0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
@@ -237,7 +236,10 @@ body[dir="ltr"] .ci { direction: ltr; }
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant">
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
-    <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px; display:none;">شروع (Start)</button>
+    
+    <!-- دکمه‌ها از ابتدا نمایش داده می‌شوند تا برنامه گیر نکند -->
+    <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px;">شروع (Start)</button>
+    <button id="skip-ai-btn" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px;">رد کردن (Skip)</button>
 </div>
 
 <header class="bar">
@@ -354,38 +356,13 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=47"></script><script src="alerts.js?v=47"></script><script src="engine.js?v=47"></script><script src="chart.js?v=47"></script>
+<script src="symbols.js?v=48"></script><script src="alerts.js?v=48"></script><script src="engine.js?v=48"></script><script src="chart.js?v=48"></script>
 <script>
-// 🛠️ مدیریت خطا بدون فریز کردن
-window.addEventListener('error', function(e) {
-    if (!e.message) return; // نادیده گرفتن خطاهای منابع (مانند لود نشدن عکس)
-    
-    const el = document.getElementById('err-banner');
-    const txt = document.getElementById('err-text');
-    if (el && txt) {
-        el.style.display = 'flex';
-        txt.textContent = 'JS Error: ' + e.message + ' (Line ' + (e.lineno || '?') + ')';
-    }
-}, true);
-
-document.getElementById('close-err').onclick = () => {
-    document.getElementById('err-banner').style.display = 'none';
-};
-
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
-
-setTimeout(() => {
-    const splash = document.getElementById('ai-splash');
-    if (splash) {
-        splash.classList.remove('hidden');
-        splash.style.opacity = '1';
-        splash.style.visibility = 'visible';
-    }
-}, 100);
 
 const I18N = {
   fa: {
@@ -551,19 +528,34 @@ async function initAI() {
     const splash = $("ai-splash");
     const loading = $("ai-loading");
     const startBtn = $("start-ai-btn");
-    
-    await typeText("ai-text", t.ai_ready);
-    if(startBtn) startBtn.style.display = "block";
-    
+    const skipBtn = $("skip-ai-btn");
+
+    // 🛠️ تابع اضطراری برای بستن صفحه
+    const hideSplash = () => {
+        splash.classList.add("hidden");
+        setTimeout(() => splash.style.display = "none", 600);
+        if (LAST) renderList();
+    };
+
+    if(skipBtn) skipBtn.onclick = hideSplash;
+
     if(startBtn) startBtn.onclick = async () => {
+        startBtn.style.display = "none";
+        if(skipBtn) skipBtn.style.display = "none";
+        
+        // 🛠️ تایمر اضطراری: اگر تا ۱۲ ثانیه صفحه بسته نشد، خودش می‌بندد
+        const failsafe = setTimeout(() => {
+            console.warn("AI Splash Failsafe Triggered");
+            hideSplash();
+        }, 12000);
+
         try {
-            startBtn.style.display = "none";
             LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
             renderChips();
 
             speakAI(t.ai_welcome);
             await typeText("ai-text", t.ai_welcome);
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 500));
             
             if(loading) loading.classList.add("on");
             speakAI(t.ai_scan);
@@ -582,18 +574,12 @@ async function initAI() {
                 setMode("range");
             }
             
-            await new Promise(r => setTimeout(r, 2000));
-        } catch (err) {
-            // نمایش خطا روی صفحه خوشامدگویی در صورت بروز مشکل
-            const txtEl = document.getElementById("ai-text");
-            if (txtEl) txtEl.innerHTML = `<span style="color:#e8736d; font-size:14px; direction:ltr; font-family:monospace;">Error: ${err.message}</span>`;
-            alert("خطا در شروع: " + err.message);
+            await new Promise(r => setTimeout(r, 1000));
+        } catch(e) {
+            console.error("AI Flow Error:", e);
         } finally {
-            // همیشه صفحه خوشامدگویی بسته می‌شود، حتی اگر خطا رخ داده باشد
-            splash.classList.add("hidden");
-            if (LAST) {
-                try { renderList(); } catch(e) { alert("خطا در نمایش لیست: " + e.message); }
-            }
+            clearTimeout(failsafe); // تایمر اضطراری را لغو کن
+            hideSplash();            // حتما صفحه را ببند
         }
     };
 }
@@ -732,7 +718,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=47,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=48,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1136,7 +1122,9 @@ $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=awa
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
-setTimeout(() => { try { initAI(); } catch(e) { alert("Init AI Error: " + e.message); } }, 500);
+
+// 🛠️ اجرای initAI بعد از لود کامل صفحه
+setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
 $("showHist").onclick = async () => {
     UNREAD = 0;
