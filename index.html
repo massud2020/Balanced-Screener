@@ -22,12 +22,23 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 /* 🛠️ صفحه خوشامدگویی هوش مصنوعی */
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
-.ai-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1f6f47,var(--gb));display:grid;place-items:center;font-size:40px;box-shadow:0 0 40px rgba(70,197,140,.4);margin-bottom:20px;animation:pulse 2s infinite}
+
+/* 🛠️ استایل عکس بدون حاشیه و بدون دایره */
+.ai-avatar-img {
+    width: 85%;
+    max-width: 320px;
+    height: auto;
+    max-height: 45vh;
+    object-fit: contain;
+    border-radius: 16px; /* فقط کمی گرد شده برای زیبایی، بدون حاشیه */
+    margin-bottom: 25px;
+    background: transparent;
+}
+
 .ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s}
 .ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:20px;overflow:hidden;display:none}
 .ai-loading.on{display:block}
 .ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s ease-in-out infinite}
-@keyframes pulse {0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
 @keyframes loadbar {0%{width:0}50%{width:100%}100%{width:0}}
 
 /* هدر */
@@ -223,7 +234,9 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
-    <div class="ai-avatar">🤖</div>
+    <!-- 🛠️ عکس بدون دایره و بدون حاشیه -->
+    <img src="ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant">
+    
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px; display:none;">شروع (Start)</button>
@@ -478,15 +491,14 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع تولید صدا برای دستیار هوشمند
 function speakAI(text) {
     if (!window.speechSynthesis) return;
     try {
-        window.speechSynthesis.cancel(); // توقف صدای قبلی
+        window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
-        u.rate = 1.0; // سرعت عادی
-        u.pitch = 1.1; // صدای کمی زیرتر (شبیه به AI)
+        u.rate = 1.0;
+        u.pitch = 1.1;
         window.speechSynthesis.speak(u);
     } catch(e) { console.warn("TTS Error", e); }
 }
@@ -515,37 +527,26 @@ function detectMarketRegime() {
     return avgAdx > 22 ? "pattern" : "range";
 }
 
-// 🛠️ تغییرات: اضافه کردن دکمه استارت برای فعال کردن صدا و اسکن همه بازارها
 async function initAI() {
     const t = T();
     const splash = $("ai-splash");
     const loading = $("ai-loading");
     const startBtn = $("start-ai-btn");
     
-    // نمایش پیام اولیه و دکمه شروع
     await typeText("ai-text", t.ai_ready);
     startBtn.style.display = "block";
     
     startBtn.onclick = async () => {
         startBtn.style.display = "none";
-        
-        // 🛠️ اسکن همه بازارها هنگام شروع
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
         renderChips();
-
-        // 1. خوشامدگویی صوتی (حالا که کاربر کلیک کرده، مجاز است)
         speakAI(t.ai_welcome);
         await typeText("ai-text", t.ai_welcome);
         await new Promise(r => setTimeout(r, 1000));
-        
-        // 2. شروع اسکن
         loading.classList.add("on");
         speakAI(t.ai_scan);
         await typeText("ai-text", t.ai_scan);
-        
         await scan(true); 
-        
-        // 3. تحلیل و انتخاب استراتژی
         const regime = detectMarketRegime();
         if (regime === "pattern") {
             speakAI(t.ai_trend);
@@ -556,12 +557,8 @@ async function initAI() {
             await typeText("ai-text", t.ai_range);
             setMode("range");
         }
-        
         await new Promise(r => setTimeout(r, 2000));
-        
-        // 4. بستن صفحه خوشامدگویی
         splash.classList.add("hidden");
-        
         if (LAST) renderList();
     };
 }
@@ -617,7 +614,6 @@ function evalRow(r) {
         const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
         let finalSide = res.side;
         let finalFail = res.fail;
-
         const now = Date.now() / 1000;
         if (finalSide) {
             const lastTime = COOLDOWNS[r.id] || 0;
@@ -627,7 +623,6 @@ function evalRow(r) {
                 res.pass = res.total > 0 ? res.total - 1 : 0;
             }
         }
-
         return { ...r, side: finalSide, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
     } catch (e) {
         console.error("Eval error for", r.id, e);
@@ -700,7 +695,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=39,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=40,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
