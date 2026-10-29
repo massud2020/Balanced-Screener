@@ -21,7 +21,6 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ لوگوی بزرگتر شده (280px) */
 .ai-avatar-img {
     width: 280px;
     height: 280px;
@@ -238,7 +237,6 @@ body[dir="ltr"] .ci { direction: ltr; }
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     
-    <!-- دکمه‌ها از ابتدا نمایش داده می‌شوند تا برنامه گیر نکند -->
     <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px;">شروع (Start)</button>
     <button id="skip-ai-btn" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px;">رد کردن (Skip)</button>
 </div>
@@ -357,7 +355,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=50"></script><script src="alerts.js?v=50"></script><script src="engine.js?v=50"></script><script src="chart.js?v=50"></script>
+<script src="symbols.js?v=52"></script><script src="alerts.js?v=52"></script><script src="engine.js?v=52"></script><script src="chart.js?v=52"></script>
 <script>
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
@@ -475,29 +473,67 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع صدا با استفاده از Google Translate TTS (کار روی همه دستگاه‌ها)
-let currentAudio = null;
+// 🛠️ تابع جدید صدا (با استفاده از Web Speech API و بیدار کردن AudioContext)
+let voicesLoaded = false;
+function loadVoices() {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+        voicesLoaded = true;
+    }
+}
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+}
+
 function speakAI(text) {
+    if (!text) return;
+
+    // 1. بیدار کردن موتور صوتی اندروید با یک بوق کوتاه
     try {
-        if (!text) return;
-        
-        if (currentAudio) {
-            currentAudio.pause();
-            currentAudio.currentTime = 0;
-        }
-
-        const safeText = text.substring(0, 200); 
-        const lang = currentLang === 'fa' ? 'fa' : 'en';
-        
-        // استفاده از API گوگل ترنسلیت برای پخش صدا
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(safeText)}&tl=${lang}&client=tw-ob`;
-
-        currentAudio = new Audio(url);
-        currentAudio.play().catch(e => {
-            console.warn("Audio play failed (Autoplay blocked or no internet):", e);
-        });
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.frequency.value = 440; // فرکانس بوق
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
     } catch (e) {
-        console.warn("TTS Exception:", e);
+        console.warn("AudioContext Wake-up failed", e);
+    }
+
+    // 2. پخش صدا با موتور اصلی
+    if ('speechSynthesis' in window) {
+        try {
+            window.speechSynthesis.cancel(); // قطع صدای قبلی
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = currentLang === 'fa' ? 'fa-IR' : 'en-US';
+            u.rate = 1.0;
+            u.pitch = 1.1;
+
+            // تلاش برای پیدا کردن صدای فارسی
+            const voices = window.speechSynthesis.getVoices();
+            if (currentLang === 'fa' && voices.length > 0) {
+                const faVoice = voices.find(v => v.lang.includes('fa'));
+                if (faVoice) u.voice = faVoice;
+                else u.lang = 'en-US'; // اگر فارسی نبود انگلیسی بخوان
+            }
+
+            // بعد از یک تاخیر خیلی کوتاه پخش کن تا با بوق تداخل نکند
+            setTimeout(() => {
+                window.speechSynthesis.speak(u);
+            }, 150);
+
+        } catch (e) {
+            console.warn("SpeechSynthesis failed:", e);
+        }
+    } else {
+        console.warn("SpeechSynthesis not supported in this WebView.");
     }
 }
 
@@ -718,7 +754,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=50,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=52,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -866,10 +902,21 @@ function sigHtml(r){
     const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
     const a=age(r);
     const mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+    
+    // 🛠️ اضافه کردن تاریخ و زمان دقیق صدور سیگنال
+    const dateObj = new Date(r.bt * 1000);
+    const dateStr = dateObj.toLocaleDateString(currentLang === 'fa' ? "fa-IR" : "en-US", {month: '2-digit', day: '2-digit'});
+    const timeStr = dateObj.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit'});
+    const exactTime = `${dateStr} - ${timeStr}`;
+
     return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
     <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
     <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div>
-    <div class="r-foot"><span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>${a?`<span>${a}</span>`:""}</div></article>`;
+    <div class="r-foot">
+        <span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span>
+        <span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>
+        <span style="color:var(--tx2); font-size:11px; direction:ltr;">${exactTime}</span>
+    </div></article>`;
 }
 
 function noneHtml(r){
