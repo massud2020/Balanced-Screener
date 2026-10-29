@@ -23,10 +23,10 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ استایل عکس آواتار جدید (بزرگ‌تر شد) */
+/* 🛠️ استایل عکس آواتار (بزرگتر شد: 250 پیکسل) */
 .ai-avatar-img {
-    width: 180px;
-    height: 180px;
+    width: 250px;
+    height: 250px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--gb);
@@ -68,7 +68,7 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 .mode-switch button{flex:1;min-height:36px;border:none;border-radius:6px;background:transparent;color:var(--mu);font-size:13px;font-weight:600;padding:0 10px;transition:background .2s,color .2s}
 .mode-switch button.on{background:var(--gd);color:var(--gb)}
 
-/* کادر استراتژی (شامل نام و دکمه‌های شروط) */
+/* کادر استراتژی */
 .strategy-box{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px;min-height:44px}
 .strategy-title{display:flex;align-items:center;justify-content:space-between;}
 .strategy-title b{font-weight:700}
@@ -356,31 +356,38 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
+<!-- 🛠️ نوار قرمز خطا با نمایش دقیق متن خطا -->
 <div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px 15px; z-index:9999; font-size:12px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.2);">
     <span id="err-text" style="flex:1; margin-right:10px; direction:ltr; text-align:left;"></span>
     <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
 </div>
 
-<script src="symbols.js?v=44"></script><script src="alerts.js?v=44"></script><script src="engine.js?v=44"></script><script src="chart.js?v=44"></script>
+<script src="symbols.js?v=46"></script><script src="alerts.js?v=46"></script><script src="engine.js?v=46"></script><script src="chart.js?v=46"></script>
 <script>
-// 🛠️ هشدار برای پیدا کردن خطای اصلی
+// 🛠️ مدیریت خطای دقیق برای نمایش علت اصلی
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
     if (!el || !txt) return;
     
-    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG')) return;
-    
     el.style.display = 'flex';
-    let errorMsg = '';
-    if (e.target && e.target.tagName === 'SCRIPT') {
-        errorMsg = 'Failed to load script: ' + e.target.src;
-    } else {
-        errorMsg = 'JS Error: ' + (e.message || 'Unknown') + ' Line: ' + (e.lineno || '?');
-    }
     
-    txt.textContent = errorMsg;
-    alert(errorMsg); // این خط باعث می‌شود خطا را قطعا ببینید
+    // اگر خطا مربوط به یک فایل لود نشده (مثل عکس یا اسکریپت) باشد
+    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT')) {
+        txt.textContent = 'Failed to load: ' + (e.target.src || e.target.href);
+        // برای اینکه بفهمیم دقیقا چه فایلی مشکل داشته، هشدار هم می‌دهیم
+        alert('Missing File Error: ' + (e.target.src || e.target.href));
+    } 
+    // اگر خطای جاوااسکریپت باشد
+    else if (e.message) {
+        txt.textContent = 'JS Error: ' + e.message + ' (Line ' + (e.lineno || '?') + ')';
+        alert('JavaScript Error: ' + e.message + '\nLine: ' + e.lineno);
+    } 
+    // خطای ناشناخته
+    else {
+        txt.textContent = 'Unknown Error Occurred (Check Console)';
+        alert('Unknown Error Occurred');
+    }
 }, true);
 
 document.getElementById('close-err').onclick = () => {
@@ -513,25 +520,34 @@ function updateUnreadBadge() {
     }
 }
 
+// 🛠️ تقویت تابع صدا برای اپلیکیشن‌های اندرویدی
 function speakAI(text) {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window)) {
+        console.warn("Speech Synthesis not supported in this WebView.");
+        return;
+    }
+    
     try {
-        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel(); // قطع کردن صدای قبلی
         const u = new SpeechSynthesisUtterance(text);
+        
         u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
         u.rate = 1.0; 
         u.pitch = 1.1; 
         
+        // تلاش برای پیدا کردن صدای مناسب
         const voices = window.speechSynthesis.getVoices();
         if (currentLang === 'fa') {
             const hasFa = voices.some(v => v.lang.includes('fa'));
             if (!hasFa) {
-                u.lang = "en-US"; 
+                u.lang = "en-US"; // اگر فارسی نبود، انگلیسی بخوان
             }
         }
+        
         u.onerror = function(event) {
-            console.warn("TTS Playback Error: ", event.error);
+            console.warn("TTS Playback Error (Android limitation): ", event.error);
         };
+        
         window.speechSynthesis.speak(u);
     } catch(e) { 
         console.warn("TTS Exception: ", e); 
@@ -737,7 +753,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=44,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=46,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
