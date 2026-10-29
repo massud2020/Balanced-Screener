@@ -27,6 +27,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # 🛠️ این خط اضافه شد تا پلاگین صدای هوش مصنوعی نصب شود
+      - name: Install TTS Plugin
+        run: npm install @capacitor-community/text-to-speech
+
       - name: Build www folder
         run: node build-www.js
 
