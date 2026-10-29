@@ -6,8 +6,6 @@
 <meta name="theme-color" content="#0b0d11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
 <title>Balanced Screener</title>
 <style>
 :root{--bg:#0b0d11;--card:#12151b;--card2:#171b22;--bd:#232830;--bd2:#1b1f27;--tx:#e6e9ee;--tx2:#a7aebb;--mu:#78808d;--g:#2e9a69;--gb:#46c58c;--gd:rgba(47,157,104,.14);--r:#d4524c;--rb:#e8736d;--rd:rgba(209,75,69,.14);--rad:16px;--rs:12px;--font:"Segoe UI",system-ui,-apple-system,sans-serif}
@@ -23,10 +21,10 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 #ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
 #ai-splash.hidden{opacity:0;visibility:hidden}
 
-/* 🛠️ استایل عکس آواتار (بزرگتر شد: 250 پیکسل) */
+/* 🛠️ استایل عکس آواتار */
 .ai-avatar-img {
-    width: 250px;
-    height: 250px;
+    width: 230px;
+    height: 230px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--gb);
@@ -236,7 +234,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
-    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'">
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant">
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px; display:none;">شروع (Start)</button>
@@ -356,37 +354,17 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<!-- 🛠️ نوار قرمز خطا با نمایش دقیق متن خطا -->
-<div id="err-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--rb); color:#fff; padding:10px 15px; z-index:9999; font-size:12px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.2);">
-    <span id="err-text" style="flex:1; margin-right:10px; direction:ltr; text-align:left;"></span>
-    <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
-</div>
-
-<script src="symbols.js?v=46"></script><script src="alerts.js?v=46"></script><script src="engine.js?v=46"></script><script src="chart.js?v=46"></script>
+<script src="symbols.js?v=47"></script><script src="alerts.js?v=47"></script><script src="engine.js?v=47"></script><script src="chart.js?v=47"></script>
 <script>
-// 🛠️ مدیریت خطای دقیق برای نمایش علت اصلی
+// 🛠️ مدیریت خطا بدون فریز کردن
 window.addEventListener('error', function(e) {
+    if (!e.message) return; // نادیده گرفتن خطاهای منابع (مانند لود نشدن عکس)
+    
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
-    if (!el || !txt) return;
-    
-    el.style.display = 'flex';
-    
-    // اگر خطا مربوط به یک فایل لود نشده (مثل عکس یا اسکریپت) باشد
-    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT')) {
-        txt.textContent = 'Failed to load: ' + (e.target.src || e.target.href);
-        // برای اینکه بفهمیم دقیقا چه فایلی مشکل داشته، هشدار هم می‌دهیم
-        alert('Missing File Error: ' + (e.target.src || e.target.href));
-    } 
-    // اگر خطای جاوااسکریپت باشد
-    else if (e.message) {
+    if (el && txt) {
+        el.style.display = 'flex';
         txt.textContent = 'JS Error: ' + e.message + ' (Line ' + (e.lineno || '?') + ')';
-        alert('JavaScript Error: ' + e.message + '\nLine: ' + e.lineno);
-    } 
-    // خطای ناشناخته
-    else {
-        txt.textContent = 'Unknown Error Occurred (Check Console)';
-        alert('Unknown Error Occurred');
     }
 }, true);
 
@@ -400,7 +378,6 @@ const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); l
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 
-// 🛠️ اطمینان از باز ماندن صفحه خوشامدگویی در ابتدا
 setTimeout(() => {
     const splash = document.getElementById('ai-splash');
     if (splash) {
@@ -520,34 +497,25 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تقویت تابع صدا برای اپلیکیشن‌های اندرویدی
 function speakAI(text) {
-    if (!('speechSynthesis' in window)) {
-        console.warn("Speech Synthesis not supported in this WebView.");
-        return;
-    }
-    
+    if (!('speechSynthesis' in window)) return;
     try {
-        window.speechSynthesis.cancel(); // قطع کردن صدای قبلی
+        window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        
         u.lang = currentLang === 'fa' ? "fa-IR" : "en-US";
         u.rate = 1.0; 
         u.pitch = 1.1; 
         
-        // تلاش برای پیدا کردن صدای مناسب
         const voices = window.speechSynthesis.getVoices();
         if (currentLang === 'fa') {
             const hasFa = voices.some(v => v.lang.includes('fa'));
             if (!hasFa) {
-                u.lang = "en-US"; // اگر فارسی نبود، انگلیسی بخوان
+                u.lang = "en-US"; 
             }
         }
-        
         u.onerror = function(event) {
-            console.warn("TTS Playback Error (Android limitation): ", event.error);
+            console.warn("TTS Playback Error: ", event.error);
         };
-        
         window.speechSynthesis.speak(u);
     } catch(e) { 
         console.warn("TTS Exception: ", e); 
@@ -588,34 +556,45 @@ async function initAI() {
     if(startBtn) startBtn.style.display = "block";
     
     if(startBtn) startBtn.onclick = async () => {
-        startBtn.style.display = "none";
-        LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
-        renderChips();
+        try {
+            startBtn.style.display = "none";
+            LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
+            renderChips();
 
-        speakAI(t.ai_welcome);
-        await typeText("ai-text", t.ai_welcome);
-        await new Promise(r => setTimeout(r, 1000));
-        
-        if(loading) loading.classList.add("on");
-        speakAI(t.ai_scan);
-        await typeText("ai-text", t.ai_scan);
-        
-        await scan(true); 
-        
-        const regime = detectMarketRegime();
-        if (regime === "pattern") {
-            speakAI(t.ai_trend);
-            await typeText("ai-text", t.ai_trend);
-            setMode("pattern");
-        } else {
-            speakAI(t.ai_range);
-            await typeText("ai-text", t.ai_range);
-            setMode("range");
+            speakAI(t.ai_welcome);
+            await typeText("ai-text", t.ai_welcome);
+            await new Promise(r => setTimeout(r, 1000));
+            
+            if(loading) loading.classList.add("on");
+            speakAI(t.ai_scan);
+            await typeText("ai-text", t.ai_scan);
+            
+            await scan(true); 
+            
+            const regime = detectMarketRegime();
+            if (regime === "pattern") {
+                speakAI(t.ai_trend);
+                await typeText("ai-text", t.ai_trend);
+                setMode("pattern");
+            } else {
+                speakAI(t.ai_range);
+                await typeText("ai-text", t.ai_range);
+                setMode("range");
+            }
+            
+            await new Promise(r => setTimeout(r, 2000));
+        } catch (err) {
+            // نمایش خطا روی صفحه خوشامدگویی در صورت بروز مشکل
+            const txtEl = document.getElementById("ai-text");
+            if (txtEl) txtEl.innerHTML = `<span style="color:#e8736d; font-size:14px; direction:ltr; font-family:monospace;">Error: ${err.message}</span>`;
+            alert("خطا در شروع: " + err.message);
+        } finally {
+            // همیشه صفحه خوشامدگویی بسته می‌شود، حتی اگر خطا رخ داده باشد
+            splash.classList.add("hidden");
+            if (LAST) {
+                try { renderList(); } catch(e) { alert("خطا در نمایش لیست: " + e.message); }
+            }
         }
-        
-        await new Promise(r => setTimeout(r, 2000));
-        splash.classList.add("hidden");
-        if (LAST) renderList();
     };
 }
 
@@ -753,19 +732,25 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=46,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=47,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
 
+// 🛠️ اضافه کردن تایمر برای جلوگیری از فریز شدن در صورت قطعی اینترنت
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
     let lastError = null;
     for (const branch of branches) {
         const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
         try {
-            const res = await fetch(url, { cache: 'no-store' });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // ۱۰ ثانیه تایم‌اوت
+
+            const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+            clearTimeout(timeoutId);
+
             if (res.ok) return await res.json();
             lastError = new Error(`HTTP ${res.status} — File ${filename} not found`);
         } catch (e) {
@@ -959,45 +944,49 @@ function noneHtml(r){
 }
 
 function renderList(){
-  if(!LAST)return;
-  
-  let evaluatedRows = [];
   try {
-      evaluatedRows = LAST.rows.map(evalRow);
-  } catch(e) {
-      console.error("Map error", e);
-      evaluatedRows = LAST.rows; 
-  }
-  
-  const{errs,time,cnt}=LAST,
-        only=$("only").checked,
-        all=evaluatedRows.filter(r=>r.side),
-        nl=all.filter(r=>r.side==="LONG").length,
-        ns=all.length-nl,
-        sg=all.filter(r=>vf==="all"||r.side===vf);
-        
-  let no=evaluatedRows.filter(r=>!r.side);
-  
-  no.sort((a, b) => {
-      const ratioA = a.total > 0 ? a.pass / a.total : 0;
-      const ratioB = b.total > 0 ? b.pass / b.total : 0;
-      return ratioB - ratioA;
-  });
+      if(!LAST)return;
+      
+      let evaluatedRows = [];
+      try {
+          evaluatedRows = LAST.rows.map(evalRow);
+      } catch(e) {
+          console.error("Map error", e);
+          evaluatedRows = LAST.rows; 
+      }
+      
+      const{errs,time,cnt}=LAST,
+            only=$("only").checked,
+            all=evaluatedRows.filter(r=>r.side),
+            nl=all.filter(r=>r.side==="LONG").length,
+            ns=all.length-nl,
+            sg=all.filter(r=>vf==="all"||r.side===vf);
+            
+      let no=evaluatedRows.filter(r=>!r.side);
+      
+      no.sort((a, b) => {
+          const ratioA = a.total > 0 ? a.pass / a.total : 0;
+          const ratioB = b.total > 0 ? b.pass / b.total : 0;
+          return ratioB - ratioA;
+      });
 
-  $("sum").style.display="flex";
-  $("sum").innerHTML=`<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg" role="tablist">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
-  
-  $("list").innerHTML = (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>${all.length?"🔍":"🌙"}</b>${all.length?T().noSignalsFilter:T().noSignalsYet}</div>`) + (!only&&no.length ? `<details class="nb"${noneOpen?" open":""}><summary><span>${T().noSignal}</span><span>${fmtNum(no.length)} ${T().symbols}</span></summary><div style="margin-top:10px;">${no.map(noneHtml).join("")}</div></details>` : "");
-  
-  const dt=$("list").querySelector("details");
-  if(dt)dt.addEventListener("toggle",()=>{noneOpen=dt.open});
-  
-  $("st").innerHTML=`${T().lastScan} ${fmtDate(time)} · ${fmtNum(evaluatedRows.length)} ${T().symbols}`+(errs.length?` · <button class="link" id="eb">${errs.length} errors</button>`:"");
-  $("el").textContent=errs.join(", ");
-  
-  const eb=$("eb");if(eb)eb.onclick=()=>$("el").classList.toggle("on");
-  const hk=Object.keys(cnt||{}),bad=hk.filter(m=>cnt[m].ok<cnt[m].n);
-  $("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <bdi dir="ltr">${fmtNum(cnt[m].ok)}/${fmtNum(cnt[m].n)}</bdi></span>`).join("");
+      $("sum").style.display="flex";
+      $("sum").innerHTML=`<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg" role="tablist">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
+      
+      $("list").innerHTML = (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>${all.length?"🔍":"🌙"}</b>${all.length?T().noSignalsFilter:T().noSignalsYet}</div>`) + (!only&&no.length ? `<details class="nb"${noneOpen?" open":""}><summary><span>${T().noSignal}</span><span>${fmtNum(no.length)} ${T().symbols}</span></summary><div style="margin-top:10px;">${no.map(noneHtml).join("")}</div></details>` : "");
+      
+      const dt=$("list").querySelector("details");
+      if(dt)dt.addEventListener("toggle",()=>{noneOpen=dt.open});
+      
+      $("st").innerHTML=`${T().lastScan} ${fmtDate(time)} · ${fmtNum(evaluatedRows.length)} ${T().symbols}`+(errs.length?` · <button class="link" id="eb">${errs.length} errors</button>`:"");
+      $("el").textContent=errs.join(", ");
+      
+      const eb=$("eb");if(eb)eb.onclick=()=>$("el").classList.toggle("on");
+      const hk=Object.keys(cnt||{}),bad=hk.filter(m=>cnt[m].ok<cnt[m].n);
+      $("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <bdi dir="ltr">${fmtNum(cnt[m].ok)}/${fmtNum(cnt[m].n)}</bdi></span>`).join("");
+  } catch (err) {
+      alert("Render Error: " + err.message);
+  }
 }
 
 $("sum").onclick=e=>{const b=e.target.closest("button");if(!b)return;vf=b.dataset.v;renderList()};
@@ -1147,7 +1136,7 @@ $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=awa
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
-setTimeout(() => { try { initAI(); } catch(e) { alert("Init AI error: " + e.message); } }, 500);
+setTimeout(() => { try { initAI(); } catch(e) { alert("Init AI Error: " + e.message); } }, 500);
 
 $("showHist").onclick = async () => {
     UNREAD = 0;
