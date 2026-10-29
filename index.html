@@ -236,9 +236,7 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <!-- 🛠️ صفحه خوشامدگویی هوش مصنوعی -->
 <div id="ai-splash">
-    <!-- 🛠️ استفاده از آدرس کامل و بزرگ‌تر کردن عکس -->
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" onerror="this.src='https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'">
-    
     <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" style="margin-top:20px; width:200px; display:none;">شروع (Start)</button>
@@ -363,25 +361,26 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="close-err" style="background:rgba(0,0,0,0.2); border:none; color:#fff; min-height:24px; padding:0 10px; font-size:11px; border-radius:4px; cursor:pointer;">✕</button>
 </div>
 
-<script src="symbols.js?v=43"></script><script src="alerts.js?v=43"></script><script src="engine.js?v=43"></script><script src="chart.js?v=43"></script>
+<script src="symbols.js?v=44"></script><script src="alerts.js?v=44"></script><script src="engine.js?v=44"></script><script src="chart.js?v=44"></script>
 <script>
-// 🛠️ مدیریت خطای دقیق‌تر
+// 🛠️ هشدار برای پیدا کردن خطای اصلی
 window.addEventListener('error', function(e) {
     const el = document.getElementById('err-banner');
     const txt = document.getElementById('err-text');
     if (!el || !txt) return;
     
-    // نادیده گرفتن خطاهای لود شدن منابع (عکس، آیکون و ...) برای جلوگیری از مزاحمت
-    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT')) {
-        return; 
-    }
+    if (e.target && (e.target.tagName === 'LINK' || e.target.tagName === 'IMG')) return;
     
     el.style.display = 'flex';
-    if (e.message) {
-        txt.textContent = 'JS Error: ' + e.message + ' (Line ' + (e.lineno || '?') + ')';
+    let errorMsg = '';
+    if (e.target && e.target.tagName === 'SCRIPT') {
+        errorMsg = 'Failed to load script: ' + e.target.src;
     } else {
-        txt.textContent = 'Unknown Error Occurred';
+        errorMsg = 'JS Error: ' + (e.message || 'Unknown') + ' Line: ' + (e.lineno || '?');
     }
+    
+    txt.textContent = errorMsg;
+    alert(errorMsg); // این خط باعث می‌شود خطا را قطعا ببینید
 }, true);
 
 document.getElementById('close-err').onclick = () => {
@@ -393,6 +392,16 @@ const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); l
 
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
+
+// 🛠️ اطمینان از باز ماندن صفحه خوشامدگویی در ابتدا
+setTimeout(() => {
+    const splash = document.getElementById('ai-splash');
+    if (splash) {
+        splash.classList.remove('hidden');
+        splash.style.opacity = '1';
+        splash.style.visibility = 'visible';
+    }
+}, 100);
 
 const I18N = {
   fa: {
@@ -504,12 +513,8 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع تولید صدا (با مدیریت خطا و تغییر خودکار به انگلیسی در صورت نبود فارسی)
 function speakAI(text) {
-    if (!('speechSynthesis' in window)) {
-        console.warn("Speech Synthesis not supported in this WebView.");
-        return;
-    }
+    if (!('speechSynthesis' in window)) return;
     try {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
@@ -564,9 +569,9 @@ async function initAI() {
     const startBtn = $("start-ai-btn");
     
     await typeText("ai-text", t.ai_ready);
-    startBtn.style.display = "block";
+    if(startBtn) startBtn.style.display = "block";
     
-    startBtn.onclick = async () => {
+    if(startBtn) startBtn.onclick = async () => {
         startBtn.style.display = "none";
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
         renderChips();
@@ -575,7 +580,7 @@ async function initAI() {
         await typeText("ai-text", t.ai_welcome);
         await new Promise(r => setTimeout(r, 1000));
         
-        loading.classList.add("on");
+        if(loading) loading.classList.add("on");
         speakAI(t.ai_scan);
         await typeText("ai-text", t.ai_scan);
         
@@ -732,7 +737,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=43,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=44,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1126,7 +1131,7 @@ $("upd").onclick=async()=>{$("upd").textContent=T().btnClearing;try{const rs=awa
 $("ver").textContent="v"+BUILD;if($("verl"))$("verl").textContent=(currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD;
 
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
-setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI error:", e); } }, 500);
+setTimeout(() => { try { initAI(); } catch(e) { alert("Init AI error: " + e.message); } }, 500);
 
 $("showHist").onclick = async () => {
     UNREAD = 0;
@@ -1226,7 +1231,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 800); 
   });
 </script>
-<!-- 🛠️ اسکریپت بررسی آپدیت خودکار Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
