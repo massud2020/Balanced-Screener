@@ -125,6 +125,16 @@ jobs:
           echo '--- catch blocks after patch ---'
           grep -rn 'catch (' node_modules/capacitor-edge-tts --include=*.java || true
 
+      # چاپ API واقعی پلاگین در لاگ (برای تنظیم درست فراخوانی در index.html)
+      - name: Print capacitor-edge-tts API
+        run: |
+          echo "=== @PluginMethod ==="
+          grep -rn -A2 "@PluginMethod" node_modules/capacitor-edge-tts/android --include=*.java || true
+          echo "=== definitions ==="
+          cat node_modules/capacitor-edge-tts/dist/esm/definitions.d.ts 2>/dev/null | head -120 || true
+          echo "=== README ==="
+          head -150 node_modules/capacitor-edge-tts/README.md || true
+
       # ارتقای Gradle: خطای ASM ClassReader یعنی Gradle فعلی نمی‌تواند نسخه کلاس یکی از jarها را بخواند
       - name: Upgrade Gradle Wrapper
         working-directory: android
