@@ -27,8 +27,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install TTS Plugin
-        run: npm install @capacitor-community/text-to-speech --legacy-peer-deps
+      # 🛠️ نصب هر دو پلاگین صدا
+      - name: Install TTS Plugins
+        run: |
+          npm install @capacitor-community/text-to-speech --legacy-peer-deps
+          npm install capacitor-edge-tts --legacy-peer-deps
 
       - name: Build www folder
         run: node build-www.js
@@ -42,7 +45,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ این بخش جایگزین Update Gradle Wrapper شد
       - name: Set Gradle Version to 8.14.3
         run: |
           sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
