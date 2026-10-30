@@ -285,6 +285,8 @@ body[dir="ltr"] .ci { direction: ltr; }
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
+  <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
+  <label><span>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</span><select id="ttsMode"><option value="string">+٪ متنی</option><option value="number">عدد</option><option value="multiplier">ضریب (۱.۳)</option></select></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
   <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
@@ -470,11 +472,27 @@ function updateUnreadBadge() {
 
 // 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
 const TTS_CFG = {
-    rate: 18,    // سرعت: درصد نسبت به عادی (۰ = عادی، ۱۰ تا ۲۵ طبیعی‌تر است)
+    rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
+    mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
     pitch: 0,    // زیر و بمی
     faVoices: ['fa-IR-FaridNeural'],
     enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural', 'en-US-GuyNeural']
 };
+
+try {
+    const r = parseInt(LS("bs_tts_rate")); if (!isNaN(r)) TTS_CFG.rate = r;
+    const m = LS("bs_tts_mode"); if (m) TTS_CFG.mode = m;
+} catch (e) {}
+function ttsRateVariants() {
+    const n = TTS_CFG.rate;
+    const all = {
+        string: (n >= 0 ? "+" : "") + n + "%",
+        number: n,
+        multiplier: Math.round((1 + n / 100) * 100) / 100
+    };
+    const order = [TTS_CFG.mode, ...["string", "number", "multiplier"].filter(k => k !== TTS_CFG.mode)];
+    return order.map(k => all[k]);
+}
 
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
@@ -487,7 +505,7 @@ async function speakAI(text) {
             const fa = currentLang === 'fa';
             const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
             // چند ترکیب (صدا × فرمت سرعت) را به‌ترتیب امتحان می‌کند تا اولی که کار کرد
-            const rates = [TTS_CFG.rate, (TTS_CFG.rate >= 0 ? "+" : "") + TTS_CFG.rate + "%"];
+            const rates = ttsRateVariants();
             let lastErr = null, ok = false;
             outer: for (const voice of voices) {
                 for (const rate of rates) {
@@ -545,6 +563,13 @@ async function speakAI(text) {
         }
     }
 }
+
+(function initTtsUi() {
+    const sl = document.getElementById("ttsRate"), sv = document.getElementById("ttsRateVal"), md = document.getElementById("ttsMode");
+    if (sl) { sl.value = TTS_CFG.rate; if (sv) sv.textContent = TTS_CFG.rate;
+        sl.oninput = () => { TTS_CFG.rate = parseInt(sl.value); if (sv) sv.textContent = sl.value; LS("bs_tts_rate", sl.value); }; }
+    if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
+})();
 
 window.testVoice = () => { speakAI("سلام! این یک تست صدای هوش مصنوعی است."); };
 
