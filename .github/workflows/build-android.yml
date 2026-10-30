@@ -40,11 +40,11 @@ jobs:
       - name: Remove Old Android Folder
         run: rm -rf android
 
-      # 🛠️ بازسازی پوشه اندروید از صفر با تنظیمات پیش‌فرض Capacitor
+      # 🛠️ بازسازی پوشه اندروید از صفر
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ پیکربندی صحیح Jetifier برای نادیده گرفتن Bouncy Castle
+      # 🛠️ تنظیم Jetifier برای نادیده گرفتن کتابخانه Bouncy Castle
       - name: Configure Jetifier to Ignore BouncyCastle
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
