@@ -47,34 +47,44 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ ایجاد اسکریپت Init برای اجبار Gradle به استفاده از نسخه سازگار Bouncy Castle
+      # اجبار نسخه BouncyCastle (هم برای classpath خود بیلد، هم برای وابستگی‌های پروژه)
       - name: Force BouncyCastle Version via Init Script
         run: |
           mkdir -p ~/.gradle
           cat << 'EOF' > ~/.gradle/init.gradle
+          gradle.beforeProject { p ->
+              p.buildscript.configurations.classpath.resolutionStrategy.eachDependency { d ->
+                  if (d.requested.group == 'org.bouncycastle' && d.requested.name == 'bcprov-jdk18on') {
+                      d.useVersion '1.78.1'
+                  }
+              }
+          }
           allprojects {
               configurations.all {
-                  resolutionStrategy {
-                      force 'org.bouncycastle:bcprov-jdk18on:1.76'
+                  resolutionStrategy.eachDependency { d ->
+                      if (d.requested.group == 'org.bouncycastle' && d.requested.name == 'bcprov-jdk18on') {
+                          d.useVersion '1.78.1'
+                      }
                   }
               }
           }
           EOF
 
-      # 🛠️ پاک‌سازی کامل کش‌ها
-      - name: Clean All Caches
+      # غیرفعال‌کردن Jetifier (علت رایج شکست در پردازش jarهای جدید مثل bcprov با JDK 21)
+      - name: Tune gradle.properties
         run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf android/.gradle/
-          rm -rf android/build/
-          rm -rf android/app/build/
+          cat >> android/gradle.properties << 'EOF'
+          android.enableJetifier=false
+          android.useAndroidX=true
+          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
+          EOF
 
-      # 🛠️ بیلد نهایی
+      # بیلد نهایی
       - name: Build APK (Debug)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew clean assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
