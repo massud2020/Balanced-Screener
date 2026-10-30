@@ -223,7 +223,7 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px; z-index: 10000; position: relative; pointer-events: auto;">رد کردن (Skip)</button>
     
     <div id="debug-err" style="color:var(--rb); font-size:11px; position:absolute; bottom:10px; direction:ltr; z-index:99999; text-align:center; width:100%; padding:0 10px; word-break:break-all;"></div>
-    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 64 - Natural Voice</div>
+    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 65 - Fixed Voice</div>
 </div>
 
 <header class="bar">
@@ -285,7 +285,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
-  <label><span>سرعت صدا: <b id="ttsRateVal">0</b>%</span><input type="range" id="ttsRate" min="-50" max="50" step="5" value="0" style="width:55%"></label>
+  <label><span>سرعت صدا: <b id="ttsRateVal">15</b>%</span><input type="range" id="ttsRate" min="-50" max="50" step="5" value="15" style="width:55%"></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
   <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
@@ -346,7 +346,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=64"></script><script src="alerts.js?v=64"></script><script src="engine.js?v=64"></script><script src="chart.js?v=64"></script>
+<script src="symbols.js?v=65"></script><script src="alerts.js?v=65"></script><script src="engine.js?v=65"></script><script src="chart.js?v=65"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -471,7 +471,7 @@ function updateUnreadBadge() {
 
 // 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
 const TTS_CFG = {
-    rate: 0,    // 0 = سرعت عادی. (مثلاً 10 = ۱۰٪ سریع‌تر، -10 = ۱۰٪ آهسته‌تر)
+    rate: 15,    // 0 = سرعت عادی. (مثلاً 10 = ۱۰٪ سریع‌تر، -10 = ۱۰٪ آهسته‌تر)
     pitch: 0,    
     faVoices: ['fa-IR-FaridNeural'],
     enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural']
@@ -489,21 +489,43 @@ async function speakAI(text) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
             const fa = currentLang === 'fa';
+            const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
             
-            // Edge TTS requires rate as string formatted with "+" or "-" and "%"
-            const rateStr = (TTS_CFG.rate >= 0 ? "+" : "") + TTS_CFG.rate + "%";
+            // تست فرمت‌های مختلف سرعت تا زمانی که یکی جواب دهد
+            const n = TTS_CFG.rate;
+            const rateVariants = [
+                (n >= 0 ? "+" : "") + n + "%", // "+15%"
+                n, // 15
+                1 + (n / 100), // 1.15
+                "default"
+            ];
 
-            await EdgeTTS.speak({
-                text: text,
-                lang: fa ? 'fa-IR' : 'en-US',
-                voice: fa ? TTS_CFG.faVoices[0] : TTS_CFG.enVoices[0],
-                rate: rateStr,
-                pitch: TTS_CFG.pitch,
-                volume: 1
-            });
-            return;
+            let played = false;
+            for (const voice of voices) {
+                for (const rate of rateVariants) {
+                    if (played) break;
+                    try {
+                        // استفاده از Promise.race برای جلوگیری از فریز شدن اگر پلاگین پاسخ نداد
+                        const speakPromise = EdgeTTS.speak({
+                            text: text,
+                            lang: fa ? 'fa-IR' : 'en-US',
+                            voice: voice,
+                            rate: rate,
+                            pitch: TTS_CFG.pitch,
+                            volume: 1
+                        });
+                        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+                        await Promise.race([speakPromise, timeoutPromise]);
+                        played = true;
+                    } catch (e) {
+                        console.warn("EdgeTTS try failed with rate:", rate, e);
+                    }
+                }
+                if (played) break;
+            }
+            if (played) return;
         } catch (e) {
-            console.warn("EdgeTTS Plugin Error, falling back...", e);
+            console.warn("EdgeTTS Plugin Error:", e);
         }
     }
 
@@ -572,7 +594,6 @@ async function speakAndType(elementId, text) {
     await _wait(lead);
     
     await typeText(elementId, text, estMs / Math.max(1, text.length));
-    await sp;
     
     const left = lead + estMs - (Date.now() - t0);
     if (left > 0) await _wait(left);
@@ -791,7 +812,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=64,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=65,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1278,48 +1299,4 @@ if($("showHist")) $("showHist").onclick = async () => {
         }).join("");
 
     } catch(e) {
-        if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
-    }
-};
-if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
-
-try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
-
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-    const { LocalNotifications } = window.Capacitor.Plugins;
-    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
-    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
-  }
-});
-</script>
-<script id="hardcoded-settings">
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const ghr = document.getElementById('ghr');
-      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
-        ghr.value = 'massud2020/Balanced-Screener';
-        ghr.dispatchEvent(new Event('change')); 
-      }
-      
-      const ght = document.getElementById('ght');
-      if (ght && !ght.value) {
-        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-        ght.dispatchEvent(new Event('change')); 
-      }
-    }, 800); 
-  });
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-            reg.update();
-        }).catch(err => console.warn('SW registration failed:', err));
-    });
-}
-</script>
-
-</body></html>
+        if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:
