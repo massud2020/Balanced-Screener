@@ -38,10 +38,12 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      - name: Update AGP Version
+      # 🛠️ تنظیم نسخه AGP به 8.13.0
+      - name: Set AGP Version to 8.13.0
         run: |
           sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.13.0/' android/build.gradle
 
+      # 🛠️ تنظیم gradle.properties برای سازگاری
       - name: Update gradle.properties
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
@@ -53,6 +55,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # 🛠️ تنظیم نسخه Gradle به 8.14.3 (سازگار با AGP 8.13)
       - name: Set Gradle Version to 8.14.3
         run: |
           sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
