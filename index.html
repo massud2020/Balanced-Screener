@@ -502,13 +502,19 @@ async function speakAI(text) {
     const mark = (eng) => {
         window.__tts = eng;
         const el = document.getElementById("ttsInfo");
-        if (el) el.textContent = eng + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 70) : "");
+        if (el) el.textContent = eng + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 160) : "");
     };
     
     // 1. تلاش برای استفاده از پلاگین EdgeTTS
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
+            if (typeof EdgeTTS.speak !== 'function') {
+                // متدهای واقعی ثبت‌شده در پلاگین را پیدا کن تا معلوم شود API چیست
+                const hdr = (window.Capacitor.PluginHeaders || []).find(h => h.name === 'EdgeTTS');
+                const names = hdr ? hdr.methods.map(m => m.name).join(',') : Object.keys(EdgeTTS).join(',');
+                throw new Error('EdgeTTS methods: [' + names + ']');
+            }
             const fa = currentLang === 'fa';
             const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
             // چند ترکیب (صدا × فرمت سرعت) را به‌ترتیب امتحان می‌کند تا اولی که کار کرد
