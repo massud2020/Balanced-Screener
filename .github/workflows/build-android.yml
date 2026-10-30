@@ -39,16 +39,17 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ پاک‌سازی کامل کش Gradle برای جلوگیری از خطاهای ناشی از فایل‌های خراب
+      # 🛠️ پاک‌سازی کش Gradle برای جلوگیری از خطاهای ناشی از فایل‌های خراب قبلی
       - name: Clean Gradle Cache
         run: |
           rm -rf ~/.gradle/caches/
           rm -rf ~/.gradle/wrapper/
 
-      # 🛠️ تنظیم نسخه AGP به 8.13.0 (هماهنگ با Java 21 و Gradle 8.14.3)
-      - name: Set AGP Version to 8.13.0
+      # 🛠️ تنظیم نسخه‌های پایدار AGP و Gradle بدون تغییر ساختار فایل‌ها
+      - name: Set AGP Version
         run: |
-          sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.13.0/' android/build.gradle
+          sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.7.2/' android/build.gradle
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.11.1-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
 
       # 🛠️ تنظیم gradle.properties برای سازگاری و جلوگیری از خطای حافظه
       - name: Update gradle.properties
@@ -56,18 +57,12 @@ jobs:
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m" >> android/gradle.properties
-          echo "org.gradle.parallel=false" >> android/gradle.properties
 
       - name: Generate Android Icons and Splash
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
 
       - name: Sync Capacitor
         run: npx cap sync android
-
-      # 🛠️ تنظیم نسخه Gradle به 8.14.3 (هماهنگ با AGP 8.13.0)
-      - name: Set Gradle Version to 8.14.3
-        run: |
-          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Build APK (Debug)
         working-directory: android
