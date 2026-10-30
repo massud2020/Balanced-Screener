@@ -223,7 +223,7 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px; z-index: 10000; position: relative; pointer-events: auto;">رد کردن (Skip)</button>
     
     <div id="debug-err" style="color:var(--rb); font-size:11px; position:absolute; bottom:10px; direction:ltr; z-index:99999; text-align:center; width:100%; padding:0 10px; word-break:break-all;"></div>
-    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 60 - Ready</div>
+    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 63 - Edge TTS</div>
 </div>
 
 <header class="bar">
@@ -279,13 +279,11 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setOandaEnv">نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
-  <!-- 🛠️ بازگرداندن دکمه پاک‌سازی کش -->
   <h3 id="setApp">برنامه</h3>
   <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd" onclick="window.clearCache()" style="background:var(--card2);color:var(--tx);">پاک‌کردن کش</button></label>
 
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
-  <!-- 🛠️ دکمه تست صدا -->
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
@@ -347,20 +345,16 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=60"></script><script src="alerts.js?v=60"></script><script src="engine.js?v=60"></script><script src="chart.js?v=60"></script>
+<script src="symbols.js?v=63"></script><script src="alerts.js?v=63"></script><script src="engine.js?v=63"></script><script src="chart.js?v=63"></script>
 <script>
-// 🛠️ مدیریت خطای سراسری برای نمایش در صفحه
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
-    if(errBox) {
-        errBox.textContent = "ERROR: " + msg + " (Line " + line + ")";
-    }
+    if(errBox) errBox.textContent = "ERROR: " + msg + " (Line " + line + ")";
     return false;
 };
 
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
-
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 
@@ -474,11 +468,40 @@ function updateUnreadBadge() {
     }
 }
 
-// 🛠️ تابع صدا با نمایش دقیق خطا
+// 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
     if (!text) return;
     
-    // چک کردن پلاگین کپاسیتور
+    // 1. تلاش برای استفاده از پلاگین EdgeTTS
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
+        try {
+            const { EdgeTTS } = window.Capacitor.Plugins;
+            await EdgeTTS.speak({
+                text: text,
+                lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
+                voice: currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-AriaNeural',
+                rate: 0,
+                pitch: 0,
+                volume: 1
+            });
+            return; // اگر موفق بود، خروج
+        } catch (e) {
+            console.warn("EdgeTTS Plugin Error:", e);
+        }
+    }
+
+    // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
+    try {
+        const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-AriaNeural';
+        const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+        const audio = new Audio(url);
+        await audio.play();
+        return;
+    } catch (e) {
+        console.warn("Web EdgeTTS failed, falling back...", e);
+    }
+
+    // 3. در آخرین حالت، از پلاگین کپاسیتور استفاده کن
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
             const { TextToSpeech } = window.Capacitor.Plugins;
@@ -490,41 +513,12 @@ async function speakAI(text) {
             return; 
         } catch (e) {
             console.warn("Native TTS Error:", e);
-            alert("خطا در پلاگین صوتی: \n" + e.message + "\n\nلطفاً مطمئن شوید در تنظیمات گوشی (Text-to-Speech)، زبان فارسی نصب و فعال است.");
         }
-    } else {
-        console.warn("Capacitor TTS plugin NOT FOUND in this app.");
-    }
-
-    // چک کردن روش وب (Web Speech API)
-    if ('speechSynthesis' in window) {
-        try {
-            window.speechSynthesis.cancel(); 
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = currentLang === 'fa' ? 'fa-IR' : 'en-US';
-            u.rate = 1.0; u.pitch = 1.1;
-            const voices = window.speechSynthesis.getVoices();
-            if (currentLang === 'fa' && voices.length > 0) {
-                const faVoice = voices.find(v => v.lang.includes('fa'));
-                if (faVoice) u.voice = faVoice;
-                else {
-                    u.lang = 'en-US';
-                    console.warn("Persian voice not found in Web Speech API, switching to English.");
-                }
-            }
-            window.speechSynthesis.speak(u);
-        } catch (e) { 
-            console.warn("Web TTS Error:", e); 
-            alert("خطا در صدای وب: " + e.message);
-        }
-    } else {
-        alert("مرورگر یا اپلیکیشن شما از پخش صدای وب (SpeechSynthesis) پشتیبانی نمی‌کند.");
     }
 }
 
 window.testVoice = () => { speakAI("سلام! این یک تست صدای هوش مصنوعی است."); };
 
-// 🛠️ تابع پاک‌سازی کش (بازگردانده شده)
 window.clearCache = async () => {
     const btn = $("upd");
     if(btn) btn.textContent = T().btnClearing;
@@ -585,7 +579,7 @@ window.startApp = async () => {
     const failsafe = setTimeout(() => {
         console.warn("AI Splash Failsafe Triggered");
         window.hideSplash();
-    }, 12000);
+    }, 15000); // زمان بیشتر برای دانلود صدا
 
     try {
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
@@ -593,7 +587,7 @@ window.startApp = async () => {
 
         speakAI(t.ai_welcome);
         await typeText("ai-text", t.ai_welcome);
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 2000)); 
         
         if(loading) loading.classList.add("on");
         speakAI(t.ai_scan);
@@ -612,7 +606,7 @@ window.startApp = async () => {
             setMode("range");
         }
         
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500));
     } catch(err) {
         console.error("AI Flow Error:", err);
         const textEl = $("ai-text");
@@ -763,7 +757,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=60,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=63,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
