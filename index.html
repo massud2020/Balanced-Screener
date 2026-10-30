@@ -468,6 +468,14 @@ function updateUnreadBadge() {
     }
 }
 
+// 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
+const TTS_CFG = {
+    rate: 18,    // سرعت: درصد نسبت به عادی (۰ = عادی، ۱۰ تا ۲۵ طبیعی‌تر است)
+    pitch: 0,    // زیر و بمی
+    faVoices: ['fa-IR-FaridNeural'],
+    enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural', 'en-US-GuyNeural']
+};
+
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
     if (!text) return;
@@ -476,14 +484,31 @@ async function speakAI(text) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
-            await EdgeTTS.speak({
-                text: text,
-                lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
-                voice: currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-AriaNeural',
-                rate: 0,
-                pitch: 0,
-                volume: 1
-            });
+            const fa = currentLang === 'fa';
+            const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
+            // چند ترکیب (صدا × فرمت سرعت) را به‌ترتیب امتحان می‌کند تا اولی که کار کرد
+            const rates = [TTS_CFG.rate, (TTS_CFG.rate >= 0 ? "+" : "") + TTS_CFG.rate + "%"];
+            let lastErr = null, ok = false;
+            outer: for (const voice of voices) {
+                for (const rate of rates) {
+                    const t0 = Date.now();
+                    try {
+                        await EdgeTTS.speak({
+                            text: text,
+                            lang: fa ? 'fa-IR' : 'en-US',
+                            voice: voice,
+                            rate: rate,
+                            pitch: TTS_CFG.pitch,
+                            volume: 1
+                        });
+                        ok = true; break outer;
+                    } catch (e) {
+                        lastErr = e;
+                        if (Date.now() - t0 > 2500) { ok = true; break outer; } // صدا پخش شده بود
+                    }
+                }
+            }
+            if (!ok) throw lastErr || new Error("EdgeTTS failed");
             return; // اگر موفق بود، خروج
         } catch (e) {
             console.warn("EdgeTTS Plugin Error:", e);
@@ -492,7 +517,7 @@ async function speakAI(text) {
 
     // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
     try {
-        const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-AriaNeural';
+        const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-GuyNeural';
         const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
         const audio = new Audio(url);
         await new Promise((res, rej) => {
@@ -551,7 +576,7 @@ async function typeText(elementId, text, speed = 40) {
 // - تا پایان صدا صبر می‌کند تا جمله بعدی روی آن نیفتد
 async function speakAndType(elementId, text) {
     const _wait = ms => new Promise(r => setTimeout(r, ms));
-    const cps = currentLang === 'fa' ? 12 : 14;      // کاراکتر در ثانیه
+    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); // کاراکتر در ثانیه
     const lead = 900;                                // تأخیر ساخت صدا (ms)
     const estMs = Math.max(1200, text.length / cps * 1000);
     const t0 = Date.now();
