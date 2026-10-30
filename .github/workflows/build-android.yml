@@ -44,11 +44,13 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ غیرفعال کردن Jetifier برای جلوگیری از خطای Bouncy Castle با Java 21
-      - name: Disable Jetifier for Compatibility
+      # 🛠️ تنظیمات گریدل: فعال بودن جتیفایر + استثنا کردن BouncyCastle
+      - name: Configure Gradle Properties
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=false" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "android.jetifier.ignorelist=bcprov-jdk18on" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4096m" >> android/gradle.properties
 
       - name: Generate Android Icons and Splash
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
@@ -56,7 +58,7 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ پاک‌سازی کش Gradle و بیلد نهایی
+      # 🛠️ پاک‌سازی کش و بیلد نهایی
       - name: Clean Cache and Build APK
         working-directory: android
         run: |
