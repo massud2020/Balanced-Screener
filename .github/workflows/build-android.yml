@@ -18,12 +18,12 @@ jobs:
         with:
           node-version: 20
 
-      # 🛠️ استفاده از Java 17 (نسخه استاندارد و پایدار برای اندروید)
-      - name: Setup Java 17
+      # 🛠️ استفاده از Java 21 (مورد نیاز Capacitor 7)
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Install dependencies
         run: npm install
