@@ -40,18 +40,31 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
+      # 🛠️ تنظیم نسخه‌های پایدار AGP و Gradle
+      - name: Set AGP and Gradle Versions
+        run: |
+          sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.13.0/' android/build.gradle
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
+
+      # 🛠️ تنظیم gradle.properties برای رفع خطای Jetifier و حافظه
+      - name: Update gradle.properties
+        run: |
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "android.jetifier.blacklist=bcprov-jdk18on" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4096m" >> android/gradle.properties
+
       - name: Generate Android Icons and Splash
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ بیلد گرفتن
       - name: Build APK (Debug)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
