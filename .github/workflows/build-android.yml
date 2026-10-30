@@ -79,6 +79,52 @@ jobs:
           org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
           EOF
 
+      # رفع خطای کامپایل capacitor-edge-tts روی Capacitor 6:
+      # "exception JSONException is never thrown in body of corresponding try statement"
+      # catch مربوط به JSONException عمومی می‌شود و catchهای تکراری حذف می‌شوند
+      - name: Patch capacitor-edge-tts Java source
+        run: |
+          test -d node_modules/capacitor-edge-tts || { echo 'capacitor-edge-tts not installed'; exit 1; }
+          cat > /tmp/patch_edge_tts.py << 'PYEOF'
+          import re, sys, pathlib
+
+          def block_end(s, i):
+              """index just after the matching '}' for the first '{' at/after i"""
+              j = s.index('{', i); d = 0
+              for k in range(j, len(s)):
+                  if s[k] == '{': d += 1
+                  elif s[k] == '}':
+                      d -= 1
+                      if d == 0: return k + 1
+              raise ValueError('unbalanced')
+
+          def patch(s):
+              s = re.sub(r'catch\s*\(\s*JSONException\s+(\w+)\s*\)', r'catch (Exception \1)', s)
+              # remove a duplicated "catch (Exception ...)" that directly follows another one
+              while True:
+                  m = re.search(r'catch\s*\(\s*Exception\s+\w+\s*\)', s)
+                  done = True
+                  for m in re.finditer(r'catch\s*\(\s*Exception\s+\w+\s*\)', s):
+                      end = block_end(s, m.end())
+                      n = re.match(r'\s*catch\s*\(\s*Exception\s+\w+\s*\)', s[end:])
+                      if n:
+                          end2 = block_end(s, end + n.end())
+                          s = s[:end] + s[end2:]
+                          done = False
+                          break
+                  if done: return s
+
+          if __name__ == '__main__':
+              for f in pathlib.Path(sys.argv[1]).rglob('*.java'):
+                  old = f.read_text(encoding='utf-8')
+                  new = patch(old)
+                  if new != old:
+                      f.write_text(new, encoding='utf-8'); print('patched', f)
+          PYEOF
+          python3 /tmp/patch_edge_tts.py node_modules/capacitor-edge-tts
+          echo '--- catch blocks after patch ---'
+          grep -rn 'catch (' node_modules/capacitor-edge-tts --include=*.java || true
+
       # ارتقای Gradle: خطای ASM ClassReader یعنی Gradle فعلی نمی‌تواند نسخه کلاس یکی از jarها را بخواند
       - name: Upgrade Gradle Wrapper
         working-directory: android
