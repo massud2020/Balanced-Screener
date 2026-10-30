@@ -36,30 +36,34 @@ jobs:
       - name: Build www folder
         run: node build-www.js
 
-      # 🛠️ حذف پوشه اندروید قدیمی برای رفع کامل خطاهای ساختاری
+      # 🛠️ حذف پوشه اندروید قدیمی
       - name: Remove Old Android Folder
         run: rm -rf android
 
-      # 🛠️ بازسازی پوشه اندروید از صفر
+      # 🛠️ بازسازی پوشه اندروید
       - name: Add Capacitor Android platform
         run: npx cap add android
 
       - name: Generate Android Icons and Splash
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
 
-      # 🛠️ سینک کردن Capacitor (این مرحله ممکن است فایل gradle.properties را بازنویسی کند)
+      # 🛠️ سینک کردن Capacitor
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ تنظیمات را بعد از سینک اعمال می‌کنیم تا بازنویسی نشود
-      - name: Configure Jetifier to Ignore BouncyCastle
+      # 🛠️ غیرفعال کردن کامل Jetifier بعد از سینک (پاک کردن هرگونه تنظیم قبلی)
+      - name: Disable Jetifier Completely
         run: |
+          # حذف هر خطی که مربوط به jetifier یا ignorelist باشد
+          sed -i '/android.enableJetifier/d' android/gradle.properties
+          sed -i '/android.jetifier.ignorelist/d' android/gradle.properties
+          
+          # اضافه کردن تنظیمات قطعی
           echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "android.jetifier.ignorelist=bcprov-jdk18on,bcprov-jdk18on-1.79.jar" >> android/gradle.properties
+          echo "android.enableJetifier=false" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
 
-      # 🛠️ پاک‌سازی کامل تمام کش‌ها (هم کش سراسری و هم کش پروژه)
+      # 🛠️ پاک‌سازی کامل تمام کش‌ها
       - name: Clean All Caches
         run: |
           rm -rf ~/.gradle/caches/
@@ -73,7 +77,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew clean assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
