@@ -44,27 +44,35 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ تنظیم Jetifier برای نادیده گرفتن کتابخانه Bouncy Castle
+      - name: Generate Android Icons and Splash
+        run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
+
+      # 🛠️ سینک کردن Capacitor (این مرحله ممکن است فایل gradle.properties را بازنویسی کند)
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # 🛠️ تنظیمات را بعد از سینک اعمال می‌کنیم تا بازنویسی نشود
       - name: Configure Jetifier to Ignore BouncyCastle
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "android.jetifier.ignorelist=bcprov-jdk18on" >> android/gradle.properties
+          echo "android.jetifier.ignorelist=bcprov-jdk18on,bcprov-jdk18on-1.79.jar" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
 
-      - name: Generate Android Icons and Splash
-        run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
+      # 🛠️ پاک‌سازی کامل تمام کش‌ها (هم کش سراسری و هم کش پروژه)
+      - name: Clean All Caches
+        run: |
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
+          rm -rf android/.gradle/
+          rm -rf android/build/
+          rm -rf android/app/build/
 
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      # 🛠️ پاک‌سازی کامل کش Gradle و بیلد نهایی
-      - name: Clean Cache and Build APK
+      # 🛠️ بیلد نهایی
+      - name: Build APK (Debug)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --stop
-          rm -rf ~/.gradle/caches/
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
