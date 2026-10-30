@@ -95,7 +95,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log || {
             echo "=========== ROOT CAUSE ==========="
             grep -n -B2 -A12 "What went wrong" build.log | head -60
-            grep -n "Unsupported class file\|Caused by" build.log | head -20
+            echo "=========== JAVAC ERRORS ==========="
+            grep -n -B1 -A4 "error:" build.log | head -60
+            grep -n "Execution failed for task\|Unsupported class file" build.log | head -10
             exit 1
           }
 
