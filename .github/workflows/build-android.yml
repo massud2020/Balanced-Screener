@@ -36,22 +36,29 @@ jobs:
       - name: Build www folder
         run: node build-www.js
 
-      # 🛠️ ساخت پوشه اندروید از صفر
+      # 🛠️ حذف پوشه اندروید قدیمی برای رفع کامل خطاهای ناشی از فایل‌های خراب
+      - name: Remove Old Android Folder
+        run: rm -rf android
+
+      # 🛠️ بازسازی پوشه اندروید از صفر
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ تنظیم نسخه‌های پایدار AGP و Gradle
-      - name: Set AGP and Gradle Versions
+      # 🛠️ تنظیم نسخه AGP به 8.13.0 (نسخه استاندارد Capacitor 7)
+      - name: Set AGP Version to 8.13.0
         run: |
-          sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.13.0/' android/build.gradle
+          sed -i "s/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.13.0/" android/build.gradle
+
+      # 🛠️ تنظیم نسخه Gradle به 8.14.3 (سازگار با AGP 8.13.0)
+      - name: Set Gradle Version to 8.14.3
+        run: |
           sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
 
-      # 🛠️ تنظیم gradle.properties برای رفع خطای Jetifier و حافظه
+      # 🛠️ تنظیم gradle.properties برای جلوگیری از خطای حافظه و سازگاری
       - name: Update gradle.properties
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "android.jetifier.blacklist=bcprov-jdk18on" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m" >> android/gradle.properties
 
       - name: Generate Android Icons and Splash
@@ -60,11 +67,14 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build APK (Debug)
+      # 🛠️ پاک کردن کش Gradle و بیلد با نمایش هشدارها
+      - name: Clean Gradle Cache and Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew --stop
+          rm -rf ~/.gradle/caches/
+          ./gradlew assembleDebug --no-daemon --warning-mode all --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
