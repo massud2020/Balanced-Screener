@@ -223,7 +223,7 @@ body[dir="ltr"] .ci { direction: ltr; }
     <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px; z-index: 10000; position: relative; pointer-events: auto;">رد کردن (Skip)</button>
     
     <div id="debug-err" style="color:var(--rb); font-size:11px; position:absolute; bottom:10px; direction:ltr; z-index:99999; text-align:center; width:100%; padding:0 10px; word-break:break-all;"></div>
-    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 63 - Edge TTS</div>
+    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 64 - Natural Voice</div>
 </div>
 
 <header class="bar">
@@ -285,8 +285,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
-  <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
-  <label><span>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</span><select id="ttsMode"><option value="string">+٪ متنی</option><option value="number">عدد</option><option value="multiplier">ضریب (۱.۳)</option></select></label>
+  <label><span>سرعت صدا: <b id="ttsRateVal">0</b>%</span><input type="range" id="ttsRate" min="-50" max="50" step="5" value="0" style="width:55%"></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
   <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
@@ -347,7 +346,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=63"></script><script src="alerts.js?v=63"></script><script src="engine.js?v=63"></script><script src="chart.js?v=63"></script>
+<script src="symbols.js?v=64"></script><script src="alerts.js?v=64"></script><script src="engine.js?v=64"></script><script src="chart.js?v=64"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -472,103 +471,68 @@ function updateUnreadBadge() {
 
 // 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
 const TTS_CFG = {
-    rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
-    mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
-    pitch: 0,    // زیر و بمی
+    rate: 0,    // 0 = سرعت عادی. (مثلاً 10 = ۱۰٪ سریع‌تر، -10 = ۱۰٪ آهسته‌تر)
+    pitch: 0,    
     faVoices: ['fa-IR-FaridNeural'],
-    enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural', 'en-US-GuyNeural']
+    enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural']
 };
 
 try {
     const r = parseInt(LS("bs_tts_rate")); if (!isNaN(r)) TTS_CFG.rate = r;
-    const m = LS("bs_tts_mode"); if (m) TTS_CFG.mode = m;
 } catch (e) {}
-function ttsRateVariants() {
-    const n = TTS_CFG.rate;
-    const all = {
-        string: (n >= 0 ? "+" : "") + n + "%",
-        number: n,
-        multiplier: Math.round((1 + n / 100) * 100) / 100
-    };
-    const order = [TTS_CFG.mode, ...["string", "number", "multiplier"].filter(k => k !== TTS_CFG.mode)];
-    return order.map(k => all[k]);
-}
 
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
     if (!text) return;
     
-    // 1. تلاش برای استفاده از پلاگین EdgeTTS
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
             const fa = currentLang === 'fa';
-            const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
-            // چند ترکیب (صدا × فرمت سرعت) را به‌ترتیب امتحان می‌کند تا اولی که کار کرد
-            const rates = ttsRateVariants();
-            let lastErr = null, ok = false;
-            outer: for (const voice of voices) {
-                for (const rate of rates) {
-                    const t0 = Date.now();
-                    try {
-                        await EdgeTTS.speak({
-                            text: text,
-                            lang: fa ? 'fa-IR' : 'en-US',
-                            voice: voice,
-                            rate: rate,
-                            pitch: TTS_CFG.pitch,
-                            volume: 1
-                        });
-                        ok = true; break outer;
-                    } catch (e) {
-                        lastErr = e;
-                        if (Date.now() - t0 > 2500) { ok = true; break outer; } // صدا پخش شده بود
-                    }
-                }
-            }
-            if (!ok) throw lastErr || new Error("EdgeTTS failed");
-            return; // اگر موفق بود، خروج
+            
+            // Edge TTS requires rate as string formatted with "+" or "-" and "%"
+            const rateStr = (TTS_CFG.rate >= 0 ? "+" : "") + TTS_CFG.rate + "%";
+
+            await EdgeTTS.speak({
+                text: text,
+                lang: fa ? 'fa-IR' : 'en-US',
+                voice: fa ? TTS_CFG.faVoices[0] : TTS_CFG.enVoices[0],
+                rate: rateStr,
+                pitch: TTS_CFG.pitch,
+                volume: 1
+            });
+            return;
         } catch (e) {
-            console.warn("EdgeTTS Plugin Error:", e);
+            console.warn("EdgeTTS Plugin Error, falling back...", e);
         }
     }
 
-    // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
-    try {
-        const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-GuyNeural';
-        const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
-        const audio = new Audio(url);
-        await new Promise((res, rej) => {
-            audio.onended = res;
-            audio.onerror = () => rej(new Error("audio error"));
-            audio.play().catch(rej);
-        });
-        return;
-    } catch (e) {
-        console.warn("Web EdgeTTS failed, falling back...", e);
-    }
-
-    // 3. در آخرین حالت، از پلاگین کپاسیتور استفاده کن
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+    // Fallback to native web TTS
+    if ('speechSynthesis' in window) {
         try {
-            const { TextToSpeech } = window.Capacitor.Plugins;
-            await TextToSpeech.speak({
-                text: text,
-                lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
-                rate: 0.9, pitch: 1.0, volume: 1.0, category: 'ambient'
-            });
-            return; 
-        } catch (e) {
-            console.warn("Native TTS Error:", e);
+            window.speechSynthesis.cancel(); 
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = currentLang === 'fa' ? 'fa-IR' : 'en-US';
+            u.rate = 1 + (TTS_CFG.rate / 100); 
+            u.pitch = 1 + (TTS_CFG.pitch / 100);
+            window.speechSynthesis.speak(u);
+        } catch (e) { 
+            console.warn("Web TTS Error:", e); 
         }
     }
 }
 
 (function initTtsUi() {
-    const sl = document.getElementById("ttsRate"), sv = document.getElementById("ttsRateVal"), md = document.getElementById("ttsMode");
-    if (sl) { sl.value = TTS_CFG.rate; if (sv) sv.textContent = TTS_CFG.rate;
-        sl.oninput = () => { TTS_CFG.rate = parseInt(sl.value); if (sv) sv.textContent = sl.value; LS("bs_tts_rate", sl.value); }; }
-    if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
+    const sl = document.getElementById("ttsRate"), sv = document.getElementById("ttsRateVal");
+    if (sl) { 
+        sl.value = TTS_CFG.rate; 
+        if (sv) sv.textContent = TTS_CFG.rate;
+        sl.oninput = () => { 
+            TTS_CFG.rate = parseInt(sl.value); 
+            if (sv) sv.textContent = sl.value; 
+            LS("bs_tts_rate", sl.value); 
+        }; 
+    }
 })();
 
 window.testVoice = () => { speakAI("سلام! این یک تست صدای هوش مصنوعی است."); };
@@ -595,21 +559,22 @@ async function typeText(elementId, text, speed = 40) {
     }
 }
 
-// 🎯 صدا و متن را هماهنگ می‌کند:
-// - تایپ متن با سرعت تخمینی گفتار (نه ۴۰ms ثابت) انجام می‌شود
-// - تایپ بعد از تأخیر ساخت صدای ابری شروع می‌شود
-// - تا پایان صدا صبر می‌کند تا جمله بعدی روی آن نیفتد
+// 🎯 صدا و متن را هماهنگ می‌کند
 async function speakAndType(elementId, text) {
     const _wait = ms => new Promise(r => setTimeout(r, ms));
-    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); // کاراکتر در ثانیه
-    const lead = 900;                                // تأخیر ساخت صدا (ms)
+    // محاسبه سرعت تایپ بر اساس کاراکتر بر ثانیه (سرعت پایه: ۱۲ کاراکتر در ثانیه برای فارسی)
+    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); 
+    const lead = 900; // تاخیر برای دانلود و شروع پخش صدا
     const estMs = Math.max(1200, text.length / cps * 1000);
+    
     const t0 = Date.now();
     const sp = speakAI(text).catch(() => {});
     await _wait(lead);
+    
     await typeText(elementId, text, estMs / Math.max(1, text.length));
     await sp;
-    const left = lead + estMs - (Date.now() - t0);   // اگر پلاگین زود resolve شد
+    
+    const left = lead + estMs - (Date.now() - t0);
     if (left > 0) await _wait(left);
 }
 
@@ -651,7 +616,7 @@ window.startApp = async () => {
     const failsafe = setTimeout(() => {
         console.warn("AI Splash Failsafe Triggered");
         window.hideSplash();
-    }, 45000); // زمان بیشتر چون صدا و متن هماهنگ‌اند
+    }, 45000); 
 
     try {
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
@@ -661,7 +626,7 @@ window.startApp = async () => {
         await new Promise(r => setTimeout(r, 400));
         
         if(loading) loading.classList.add("on");
-        const scanP = scan(true);      // اسکن همزمان با پخش صدا
+        const scanP = scan(true); 
         scanP.catch(() => {});
         await speakAndType("ai-text", t.ai_scan);
         await scanP;
@@ -826,7 +791,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=63,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=64,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
