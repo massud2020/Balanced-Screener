@@ -79,12 +79,25 @@ jobs:
           org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
           EOF
 
-      # بیلد نهایی
+      # ارتقای Gradle: خطای ASM ClassReader یعنی Gradle فعلی نمی‌تواند نسخه کلاس یکی از jarها را بخواند
+      - name: Upgrade Gradle Wrapper
+        working-directory: android
+        run: |
+          sed -i 's#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip#' gradle/wrapper/gradle-wrapper.properties
+          cat gradle/wrapper/gradle-wrapper.properties
+
+      # بیلد نهایی (پیام اصلی خطا در انتهای لاگ دوباره چاپ می‌شود)
       - name: Build APK (Debug)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log || {
+            echo "=========== ROOT CAUSE ==========="
+            grep -n -B2 -A12 "What went wrong" build.log | head -60
+            grep -n "Unsupported class file\|Caused by" build.log | head -20
+            exit 1
+          }
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
