@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 20
 
-      # 🛠️ استفاده از Java 21
+      # 🛠️ استفاده از Java 21 (الزامی برای Capacitor 7)
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -40,15 +40,15 @@ jobs:
       - name: Remove Old Android Folder
         run: rm -rf android
 
-      # 🛠️ بازسازی پوشه اندروید از صفر (با نسخه‌های پیش‌فرض و سالم Capacitor)
+      # 🛠️ بازسازی پوشه اندروید از صفر با تنظیمات پیش‌فرض Capacitor
       - name: Add Capacitor Android platform
         run: npx cap add android
 
-      # 🛠️ پاک‌سازی کش Gradle برای جلوگیری از تداخل
-      - name: Clean Gradle Cache
+      # 🛠️ غیرفعال کردن Jetifier برای جلوگیری از خطای Bouncy Castle با Java 21
+      - name: Disable Jetifier for Compatibility
         run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf ~/.gradle/wrapper/
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=false" >> android/gradle.properties
 
       - name: Generate Android Icons and Splash
         run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
@@ -56,11 +56,13 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      # 🛠️ بیلد گرفتن (بدون هیچ تغییری در نسخه‌ها)
-      - name: Build APK (Debug)
+      # 🛠️ پاک‌سازی کش Gradle و بیلد نهایی
+      - name: Clean Cache and Build APK
         working-directory: android
         run: |
           chmod +x gradlew
+          ./gradlew --stop
+          rm -rf ~/.gradle/caches/
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
