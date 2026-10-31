@@ -24,19 +24,6 @@ const METALS = new Set(["XAUUSD", "XAGUSD", "XCUUSD"]),
 const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]) ? "commodity" : INDS.has(u[0]) ? "index" : (u[4] && u[4] !== 0) ? "forex" : "stock";
 const NAME = { pattern: "الگوی ۳+۱" };
 
-// 🛠️ تابع جدید بررسی باز بودن بازار
-function isMarketOpen(u) {
-  if (u[1]) return true; // کریپتو ۲۴/۷ باز است
-  const now = new Date();
-  const day = now.getUTCDay(); // 0=یکشنبه, 5=جمعه, 6=شنبه
-  const hour = now.getUTCHours();
-  
-  if (day === 6) return false; // شنبه
-  if (day === 5 && hour >= 21) return false; // جمعه شب
-  if (day === 0 && hour < 22) return false; // یکشنبه قبل از باز شدن
-  return true;
-}
-
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error("HTTP " + r.status);
@@ -126,6 +113,7 @@ const TH_SIG = String(process.env.TELEGRAM_SIGNALS_THREAD_ID || process.env.TELE
 const TH_ALR = String(process.env.TELEGRAM_ALERTS_THREAD_ID || process.env.TELEGRAM_ALERT_THREAD_ID || "").trim();
 const tgSleep = ms => new Promise(r => setTimeout(r, ms));
 
+// ارسال پیام تلگرام؛ true یعنی ارسال شد. اگر موضوع نامعتبر بود، یک‌بار بدون موضوع تلاش می‌کند.
 async function tg(text, thread) {
   const TOKEN = process.env.TELEGRAM_TOKEN, CHAT_ID = process.env.TELEGRAM_CHAT_ID;
   if (!TOKEN || !CHAT_ID) return false;
@@ -149,12 +137,14 @@ async function tg(text, thread) {
 async function notify(title, message) { return tg(title + "\n\n" + message, TH_SIG); }
 const fd = (x, d) => (x == null || !isFinite(x)) ? "-" : (d == null ? String(+Number(x).toPrecision(7)) : Number(x).toFixed(d));
 
+// وضعیت پایدار (داخل data.json ذخیره می‌شود تا بین اجراها بماند): پیام‌های ارسال‌شده و وضعیت هشدارهای قیمت
 let STATE = { sent: {}, alerts: {} };
 try {
   const d0 = JSON.parse(fs.readFileSync("data.json", "utf8"));
   if (d0 && d0.state) STATE = { sent: d0.state.sent || {}, alerts: d0.state.alerts || {} };
 } catch (e) {}
 
+// داده‌ی لحظه‌ای برای هشدارهای قیمت (حداکثر ۴۵ ثانیه کش)
 const AC = new Map();
 async function alertBars(sym, now) {
   const u = AL.resolve(sym, U), c = AC.get(u[0]);
@@ -177,7 +167,7 @@ async function processAlerts(now) {
   let n = 0;
   for (const o of out.slice(0, 20)) {
     const ok = await tg(o.title + "\n" + o.text, TH_ALR);
-    if (!ok && process.env.TELEGRAM_TOKEN) { delete STATE.alerts.fired[o.key]; if (STATE.alerts.armed && o.kind === "price") STATE.alerts.armed[o.key] = true; continue; }
+    if (!ok && process.env.TELEGRAM_TOKEN) { delete STATE.alerts.fired[o.key]; if (STATE.alerts.armed && o.kind === "price") STATE.alerts.armed[o.key] = true; continue; } // ارسال نشد → دور بعد دوباره
     n++;
   }
   return n;
@@ -208,12 +198,6 @@ async function once(now) {
       const u = U[i++];
       if (!u[1] && !u[2] && !(u[4] && TOK)) continue;
       
-      // 🛠️ بررسی تعطیلی بازار
-      if (!isMarketOpen(u)) {
-          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "بازار بسته است", pass: 0, total: 7, mode: modes[0], u: u });
-          continue;
-      }
-      
       try {
         const [a, h] = await loadCached(u, now);
         
@@ -227,6 +211,7 @@ async function once(now) {
         
         let foundSignal = false;
         
+        // 🛠️ تابع کمکی برای فشرده‌سازی کندل‌ها به آرایه [time, open, high, low, close]
         const packCandles = (arr) => arr.slice(-210).map(c => [c.time, c.open, c.high, c.low, c.close]);
 
         for (const mode of modes) {
@@ -238,7 +223,7 @@ async function once(now) {
             const dataRow = {
                 id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
                 pass: r.total || 7, total: r.total || 7, bt: bt, mode: mode, u: u,
-                a: packCandles(a), h: packCandles(h)
+                a: packCandles(a), h: packCandles(h) // فشرده‌سازی
             };
             allRows.push(dataRow);
             
@@ -250,7 +235,7 @@ async function once(now) {
                 history.push({ id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, bt: bt, k: key, d: u[3], checks: checksData, totalConds: r.total });
               const ageMin = Math.max(0, Math.round((now - (bt + 300)) / 60));
               const sent = await tg(`🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}\n${NAME[mode]}\nEntry ${fd(r.entry, u[3])} | SL ${fd(r.sl, u[3])}\nRSI ${fd(r.rsi, 1)} | کندل ${ageMin} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`, TH_SIG);
-              if (!sent && process.env.TELEGRAM_TOKEN) delete STATE.sent[key];
+              if (!sent && process.env.TELEGRAM_TOKEN) delete STATE.sent[key]; // ارسال نشد → دور بعد دوباره امتحان می‌شود
               fs.writeFileSync("latest_signal.txt", `${u[0]},${L ? "BUY" : "SELL"},${fd(r.entry, u[3])},${fd(r.sl, u[3])},0,${now}`);
             }
           }
@@ -266,7 +251,7 @@ async function once(now) {
                 pass: r.pass || 0, 
                 total: r.total || 7,
                 mode: modes[0], u: u,
-                a: packCandles(a), h: packCandles(h)
+                a: packCandles(a), h: packCandles(h) // فشرده‌سازی
             });
         }
       } catch (e) {
