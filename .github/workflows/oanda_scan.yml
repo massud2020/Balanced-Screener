@@ -36,6 +36,9 @@ jobs:
           OANDA_ENV: "practice"
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # شناسه‌ی موضوع‌ها (Topic) در سوپرگروه تلگرام. اگر اسم Secretهای شما فرق دارد (TELEGRAM_S… و TELEGRAM_A…) اینجا همان اسم کامل را بنویسید
+          TELEGRAM_SIGNALS_THREAD_ID: ${{ secrets.TELEGRAM_SIGNALS_THREAD_ID }}
+          TELEGRAM_ALERTS_THREAD_ID: ${{ secrets.TELEGRAM_ALERTS_THREAD_ID }}
           LOOP_SECONDS: 270
           INTERVAL: 60
           M15: "1"
