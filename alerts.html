@@ -72,14 +72,14 @@ button.p{background:linear-gradient(120deg,#c98a12,#f2b53b);border:none;color:#1
   <label>ریپازیتوری GitHub (user/repo)<input class="in" id="ghr" placeholder="user/repo" value="massud2020/Balanced-Screener" autocomplete="off"></label>
   <label>GitHub token (اختیاری، برای ذخیره‌ی خودکار)<input class="in" id="ght" type="password" placeholder="github_pat_…" autocomplete="off"></label>
   <label>منطقه‌ی زمانی ساعت‌ها<input class="in" id="tz" placeholder="Asia/Tehran" autocomplete="off"></label>
-  <div class="btns"><button id="push" style="display:none">ذخیره روی سرور</button><span style="color:var(--gb);font-size:13px;font-weight:bold;display:flex;align-items:center;gap:5px">✓ ذخیره خودکار فعال است</span><button id="pull">دریافت از سرور</button></div>
+  <div class="btns"><button id="push" style="display:none">ذخیره روی سرور</button><span id="autoTag" style="font-size:13px;font-weight:bold;display:flex;align-items:center;gap:5px"></span><button id="pull">دریافت از سرور</button></div>
   <div class="sy" id="sy"></div>
 </section>
 
 <div id="sh"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="symbols.js?v=34"></script><script src="alerts.js?v=34"></script><script src="ghsync.js?v=34"></script>
+<script src="symbols.js?v=65"></script><script src="alerts.js?v=65"></script><script src="ghsync.js?v=65"></script>
 <script>
 const $=i=>document.getElementById(i),fa=n=>Number(n).toLocaleString("fa-IR"),LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 const DAYS=[[6,"ش"],[0,"ی"],[1,"د"],[2,"س"],[3,"چ"],[4,"پ"],[5,"ج"]],DN={0:"یکشنبه",1:"دوشنبه",2:"سه‌شنبه",3:"چهارشنبه",4:"پنجشنبه",5:"جمعه",6:"شنبه"};
@@ -198,13 +198,15 @@ $("ft").onclick=e=>{const b=e.target.closest("button");if(!b)return;readForm();e
 $("fd").onclick=e=>{const b=e.target.closest("button");if(!b)return;const v=+b.dataset.d,i=edit.days.indexOf(v);i>=0?edit.days.splice(i,1):edit.days.push(v);b.classList.toggle("on")};
 if(edit.type==="time"){$("fadd").onclick=()=>{const t=$("fnt").value;if(!t)return;if(!edit.at.includes(t))edit.at.push(t);edit.at.sort();readForm();draw()};$("fa").onclick=e=>{const b=e.target.closest("button[data-r]");if(b){edit.at=edit.at.filter(x=>x!==b.dataset.r);readForm();draw()}}}
 else if(edit.type==="every"){$("fe2").onclick=e=>{const b=e.target.closest("button");if(!b)return;$("fev").value=b.dataset.n;[...$("fe2").children].forEach(x=>x.classList.toggle("on",x===b));warn()};$("fev").oninput=()=>{const n=+norm($("fev").value);[...$("fe2").children].forEach(x=>x.classList.toggle("on",+x.dataset.n===n));warn()};["ff","fto"].forEach(i=>$(i).onchange=warn);$("fd").addEventListener("click",warn)}
-else{const upd=async()=>{const s=($("fs").value||"").trim();if(s.length<2){$("cv").textContent="—";return}$("cv").textContent="…";const p=await getPrice(s);if(!$("cv"))return;if(p==null){$("cv").textContent="نامشخص";$("cq").innerHTML="";return}$("cv").textContent=AL.fmt(p);$("cq").innerHTML=[["−2%",.98],["−1%",.99],["+1%",1.01],["+2%",1.02]].map(([l,m])=>`<button type="button" data-m="${m}" data-p="${p}">${l}</button>`).join(" ")};
+else{const upd=async()=>{const s=($("fs").value||"").trim();if(s.length<2){$("cv").textContent="—";return}$("cv").textContent="…";const p=await getPrice(s);if(!$("cv"))return;if(p==null){$("cv").textContent="نامشخص";$("cq").innerHTML="";return}edit._px=p;$("cv").textContent=AL.fmt(p);$("cq").innerHTML=[["−2%",.98],["−1%",.99],["+1%",1.01],["+2%",1.02]].map(([l,m])=>`<button type="button" data-m="${m}" data-p="${p}">${l}</button>`).join(" ")};
 $("cgo").onclick=upd;$("cq").onclick=e=>{const b=e.target.closest("button[data-m]");if(b){const v=+b.dataset.p*+b.dataset.m;$("fp").value=String(+v.toPrecision(7))}};$("fs").onchange=upd}
-$("fsave").onclick=()=>{readForm();const a=edit,err=AL.validate(a);if(err){$("fe").textContent=err;return}
+$("fsave").onclick=()=>{let saveMsg="";readForm();const a=edit,err=AL.validate(a);if(err){$("fe").textContent=err;return}
 if(a.from&&a.to&&a.from===a.to){a.from=a.to=""}delete a._new;const clean={id:a.id,sym:a.sym,type:a.type,on:a.on!==false};
-if(a.type==="time")clean.at=a.at;else if(a.type==="every"){clean.every=a.every;if(a.from&&a.to){clean.from=a.from;clean.to=a.to}}else{clean.price=a.price;clean.repeat=a.repeat;if(a.repeat==="cool")clean.cool=a.cool;if(a.from&&a.to){clean.from=a.from;clean.to=a.to}}
+if(a.type==="time")clean.at=a.at;else if(a.type==="every"){clean.every=a.every;if(a.from&&a.to){clean.from=a.from;clean.to=a.to}}else{clean.price=a.price;clean.repeat=a.repeat;if(a.repeat==="cool")clean.cool=a.cool;if(a.from&&a.to){clean.from=a.from;clean.to=a.to}
+const prev=cfg.alerts.find(x=>x.id===a.id);if(a._px>0)clean.ref=a._px;else if(prev&&prev.ref&&prev.price===a.price&&prev.type===a.type)clean.ref=prev.ref;
+if(a._px>0&&((a.type==="above"&&a._px>=a.price)||(a.type==="below"&&a._px<=a.price)))saveMsg="قیمت فعلی از قبل از این سطح گذشته؛ هشدار بعد از برگشت قیمت و عبور دوباره فعال می‌شود"}
 if(a.days&&a.days.length&&a.days.length<7)clean.days=[...a.days].sort();if(a.note)clean.note=a.note;
-const i=cfg.alerts.findIndex(x=>x.id===a.id);i>=0?cfg.alerts[i]=clean:cfg.alerts.push(clean);persist();closeForm();toast("هشدار ذخیره شد ✓")}}
+const i=cfg.alerts.findIndex(x=>x.id===a.id);i>=0?cfg.alerts[i]=clean:cfg.alerts.push(clean);persist();closeForm();toast(saveMsg||"هشدار ذخیره شد ✓")}}
 $("add").onclick=()=>openForm(null);
 /* ---- server sync ---- */
 const slug=s=>/^[\w.-]+\/[\w.-]+$/.test(s);
@@ -218,20 +220,22 @@ if(!tok||!slug(repo)){if(!auto)manual(tok?"آدرس ریپو درست نیست (
 $("push").disabled=true;syShow("در حال ذخیره روی GitHub…");
 try{await ghPut("alerts.json",body(),repo,tok,"alerts: update");LS("bs_al_dirty","");syShow("✓ روی سرور ذخیره شد. از اجرای بعدی اسکن پس‌زمینه (حداکثر چند دقیقه) اعمال می‌شه.","ok");if(!auto)toast("روی سرور ذخیره شد ✓")}
 catch(e){manual("⚠ ذخیره‌ی خودکار انجام نشد: "+(e&&e.message||"خطا"))}$("push").disabled=false}
-function autoSync(){clearTimeout(timer);const repo=($("ghr").value||"").trim(),tok=($("ght").value||"").trim();if(tok&&slug(repo))timer=setTimeout(()=>push(true),900);else syShow(cfg.alerts.length?"تغییرات فقط روی همین گوشی ذخیره شد (اپ بازه چک می‌شه). برای اعلان وقتی اپ بسته است «ذخیره روی سرور» را بزن.":"")}
+function tagSync(){const t=$("autoTag");if(!t)return;const ok=($("ght").value||"").trim()&&slug(($("ghr").value||"").trim());t.style.color=ok?"var(--gb)":"#ffb020";t.textContent=ok?"✓ ذخیره خودکار فعال است":"⚠ بدون توکن: هشدارها فقط روی همین گوشی می‌مانند"}
+function autoSync(){tagSync();clearTimeout(timer);const repo=($("ghr").value||"").trim(),tok=($("ght").value||"").trim();if(tok&&slug(repo))timer=setTimeout(()=>push(true),900);else syShow(cfg.alerts.length?"تغییرات فقط روی همین گوشی ذخیره شد (اپ بازه چک می‌شه). برای اعلان وقتی اپ بسته است «ذخیره روی سرور» را بزن.":"")}
 async function pull(){const repo=($("ghr").value||"").trim(),tok=($("ght").value||"").trim();let txt=null;
 try{if(tok&&slug(repo)){const g=await ghGet("alerts.json",repo,tok);txt=g&&g.text}else{const r=await fetch("alerts.json?"+Date.now(),{cache:"no-store"});if(r.ok)txt=await r.text()}
 if(!txt){toast("فایل alerts.json روی سرور نیست",true);return}const c=JSON.parse(txt);if(!Array.isArray(c.alerts))throw new Error("قالب فایل درست نیست");cfg.alerts=c.alerts;if(c.tz){cfg.tz=c.tz;$("tz").value=c.tz}persist();toast("از سرور دریافت شد ✓")}catch(e){toast("دریافت ناموفق: "+(e&&e.message||"خطا"),true)}}
 $("push").onclick=()=>push(false);$("pull").onclick=pull;$("tz").onchange=persist;
 /* ---- init ---- */
 (async()=>{
-         const cSyms = JSON.parse(LS('bs_custom_syms') || '[]');
-         $("syms").innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-   $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());};
-   $("ghr").oninput=()=>{LS("bs_ghr",$("ghr").value.trim());};$("tz").value=cfg.tz;
+         let cSyms = [];try{cSyms = JSON.parse(LS('bs_custom_syms') || '[]')}catch(e){}
+         const sl = $("syms");if(sl) sl.innerHTML += cSyms.map(cs=>`<option value="${cs}">`).join("");
+         load();$("ghr").value=LS("bs_ghr")||"massud2020/Balanced-Screener";$("ght").value=LS("bs_ght")||"";
+   $("ght").oninput=()=>{LS("bs_ght",$("ght").value.trim());tagSync()};
+   $("ghr").oninput=()=>{LS("bs_ghr",$("ghr").value.trim());tagSync()};$("tz").value=cfg.tz;
 if(LS("bs_ght") && LS("bs_ghr")) autoSync();
 if(!cfg.alerts.length&&LS("bs_alerts")==null){try{const r=await fetch("alerts.json?"+Date.now(),{cache:"no-store"});if(r.ok){const c=await r.json();if(Array.isArray(c.alerts)&&c.alerts.length){cfg.alerts=c.alerts;if(c.tz)cfg.tz=c.tz;$("tz").value=cfg.tz;LS("bs_alerts",JSON.stringify({tz:cfg.tz,alerts:cfg.alerts}))}}}catch(e){}}
-render();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
+tagSync();render();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})})();
 </script>
 
 <script>
