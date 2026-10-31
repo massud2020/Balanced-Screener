@@ -1,7 +1,8 @@
 // Background scanner for GitHub Actions
 const fs = require("fs"),
   { evaluate, dropForming } = require("./engine.js"), 
-  { U } = require("./symbols.js");
+  { U } = require("./symbols.js"),
+  AL = require("./alerts.js");
 
 const TOK = process.env.OANDA_TOKEN,
   ENV = process.env.OANDA_ENV || "practice";
@@ -108,14 +109,68 @@ async function loadCached(u, now) {
   return [e.a || [], e.h || []];
 }
 
-async function notify(title, message) {
+const TH_SIG = String(process.env.TELEGRAM_SIGNALS_THREAD_ID || process.env.TELEGRAM_SIGNAL_THREAD_ID || process.env.TELEGRAM_THREAD_ID || "").trim();
+const TH_ALR = String(process.env.TELEGRAM_ALERTS_THREAD_ID || process.env.TELEGRAM_ALERT_THREAD_ID || "").trim();
+const tgSleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ارسال پیام تلگرام؛ true یعنی ارسال شد. اگر موضوع نامعتبر بود، یک‌بار بدون موضوع تلاش می‌کند.
+async function tg(text, thread) {
   const TOKEN = process.env.TELEGRAM_TOKEN, CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-  if (!TOKEN || !CHAT_ID) return;
+  if (!TOKEN || !CHAT_ID) return false;
   const url = `https://api.telegram.org/bot${TOKEN}/sendMessage`;
-  await fetch(url, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: String(CHAT_ID).trim(), text: title + "\n\n" + message })
-  }).catch(() => {});
+  let th = /^\d+$/.test(thread || "") ? +thread : null;
+  for (let i = 0; i < 4; i++) {
+    const body = { chat_id: String(CHAT_ID).trim(), text };
+    if (th) body.message_thread_id = th;
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) return true;
+      if (r.status === 429) { await tgSleep((((j.parameters || {}).retry_after) || 3) * 1000 + 300); continue; }
+      if (r.status === 400 && th && /thread/i.test(j.description || "")) { console.error("telegram: thread id invalid, sending without thread"); th = null; continue; }
+      console.error("telegram error:", r.status, j.description || "");
+      return false;
+    } catch (e) { await tgSleep(1000); }
+  }
+  return false;
+}
+async function notify(title, message) { return tg(title + "\n\n" + message, TH_SIG); }
+const fd = (x, d) => (x == null || !isFinite(x)) ? "-" : (d == null ? String(+Number(x).toPrecision(7)) : Number(x).toFixed(d));
+
+// وضعیت پایدار (داخل data.json ذخیره می‌شود تا بین اجراها بماند): پیام‌های ارسال‌شده و وضعیت هشدارهای قیمت
+let STATE = { sent: {}, alerts: {} };
+try {
+  const d0 = JSON.parse(fs.readFileSync("data.json", "utf8"));
+  if (d0 && d0.state) STATE = { sent: d0.state.sent || {}, alerts: d0.state.alerts || {} };
+} catch (e) {}
+
+// داده‌ی لحظه‌ای برای هشدارهای قیمت (حداکثر ۴۵ ثانیه کش)
+const AC = new Map();
+async function alertBars(sym, now) {
+  const u = AL.resolve(sym, U), c = AC.get(u[0]);
+  if (c && now - c.t < 45) return c;
+  let bars = [];
+  try { bars = await tf(u, "5m"); } catch (e) {}
+  if (!bars.length) return c && now - c.t < 900 ? c : null;
+  const e = { t: now, dg: u[3], bars: bars.slice(-60).map(b => ({ time: b.time, high: b.high, low: b.low, close: b.close })) };
+  AC.set(u[0], e);
+  return e;
+}
+async function processAlerts(now) {
+  let cfg;
+  try { cfg = JSON.parse(fs.readFileSync("alerts.json", "utf8")); } catch (e) { return 0; }
+  const list = (cfg.alerts || []).filter(a => a && a.on !== false && a.sym && a.id);
+  if (!list.length) return 0;
+  const data = {};
+  await Promise.all([...new Set(list.map(a => a.sym))].map(async s => { const e = await alertBars(s, now); if (e) data[s] = e; }));
+  const out = AL.check(list, data, now, STATE.alerts, cfg.tz || "Asia/Tehran");
+  let n = 0;
+  for (const o of out.slice(0, 20)) {
+    const ok = await tg(o.title + "\n" + o.text, TH_ALR);
+    if (!ok && process.env.TELEGRAM_TOKEN) { delete STATE.alerts.fired[o.key]; if (STATE.alerts.armed && o.kind === "price") STATE.alerts.armed[o.key] = true; continue; } // ارسال نشد → دور بعد دوباره
+    n++;
+  }
+  return n;
 }
 
 const LOOP = +(process.env.LOOP_SECONDS || 0), IV = +(process.env.INTERVAL || 60) * 1000, sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -172,16 +227,17 @@ async function once(now) {
             };
             allRows.push(dataRow);
             
-            const L = r.side === "LONG";
-            const checksData = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
-            
-            history.push({
-                id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, d: u[3],
-                checks: checksData, totalConds: r.total 
-            });
-            
-            await notify(`🌐 ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}`, `${NAME[mode]}\nEntry ${r.entry.toFixed(u[3])} | SL ${r.sl.toFixed(u[3])}\nRSI ${r.rsi.toFixed(1)}`);
-            fs.writeFileSync("latest_signal.txt", `${u[0]},${L?"BUY":"SELL"},${r.entry.toFixed(u[3])},${r.sl.toFixed(u[3])},0,${now}`);
+            const L = r.side === "LONG", key = `${u[0]}|${r.side}|${bt}`;
+            if (!STATE.sent[key]) {
+              STATE.sent[key] = now;
+              const checksData = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
+              if (!history.some(h => h.k === key))
+                history.push({ id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi, time: now, bt: bt, k: key, d: u[3], checks: checksData, totalConds: r.total });
+              const ageMin = Math.max(0, Math.round((now - (bt + 300)) / 60));
+              const sent = await tg(`🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}\n${NAME[mode]}\nEntry ${fd(r.entry, u[3])} | SL ${fd(r.sl, u[3])}\nRSI ${fd(r.rsi, 1)} | کندل ${ageMin} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`, TH_SIG);
+              if (!sent && process.env.TELEGRAM_TOKEN) delete STATE.sent[key]; // ارسال نشد → دور بعد دوباره امتحان می‌شود
+              fs.writeFileSync("latest_signal.txt", `${u[0]},${L ? "BUY" : "SELL"},${fd(r.entry, u[3])},${fd(r.sl, u[3])},0,${now}`);
+            }
           }
         }
         
@@ -204,16 +260,21 @@ async function once(now) {
     }
   }));
   
+  try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) { console.error("alerts failed", e.message); }
+  for (const k of Object.keys(STATE.sent)) if (now - STATE.sent[k] > 2 * 86400) delete STATE.sent[k];
+
   const threeDaysAgo = now - (3 * 24 * 3600);
   history = history.filter(h => h.time > threeDaysAgo);
   
-  fs.writeFileSync("data.json", JSON.stringify({ time: Date.now(), rows: allRows }));
+  fs.writeFileSync("data.json", JSON.stringify({ time: Date.now(), rows: allRows, state: STATE }));
   fs.writeFileSync("history.json", JSON.stringify({ time: Date.now(), history: history }));
   
   console.log(`Scan complete. Found ${allRows.filter(r => r.side).length} valid signals.`);
 }
 
 if (require.main === module) (async () => {
+  console.log("Settings:", JSON.stringify({ modes: MODES, m15: F15, h1: FH1, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, strict: STRICT,
+    telegram: !!(process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_CHAT_ID), signalsThread: !!TH_SIG, alertsThread: !!TH_ALR }));
   const t0 = Date.now();
   let k = 0;
   for (;;) {
@@ -226,3 +287,4 @@ if (require.main === module) (async () => {
     if (w > 0) await sleep(w);
   }
 })().catch(e => { console.error(e); process.exit(1); });
+if (require.main !== module) module.exports = { once, getState: () => STATE, setState: x => { STATE = x; } };
