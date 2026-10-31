@@ -1,6 +1,6 @@
 // Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range)
-const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,adx:true,adxMin:25,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,bbP:20,bbDev:2};
-const ENGINE_VER=38; // نسخه جدید
+const DEF={mode:"pattern",trend:true,emax:true,nc:true,pat:true,adx:true,adxMin:25,m15:true,h1:true,h1Strict:false,rsi:true,rsiL:40,rsiS:60,ef:21,em:50,es:200,rsiP:14,minRatio:.5,atrP:14,bbP:20,bbDev:2,rangeAdxMax:20,rangeMinATR:3,rangeMinTouches:3,rangeRsiL:35,rangeRsiS:65,rangeMinRR:1.5,rangeMaxRiskATR:3,rangeH1:true};
+const ENGINE_VER=39; // استراتژی رنج v2: تأیید برگشت، SL پشت اکستریم، TP باند میانی، اعتبارسنجی رنج
 
 function ema(v,p){const o=Array(v.length).fill(null);if(v.length<p)return o;const k=2/(p+1);let s=0;for(let i=0;i<p;i++)s+=v[i];let pr=s/p;o[p-1]=pr;for(let i=p;i<v.length;i++){pr=v[i]*k+pr*(1-k);o[i]=pr}return o}
 function rsi(c,p){const o=Array(c.length).fill(null);if(c.length<=p)return o;let g=0,l=0;for(let i=1;i<=p;i++){const d=c[i]-c[i-1];d>=0?g+=d:l-=d}let ag=g/p,al=l/p;o[p]=al===0?100:100-100/(1+ag/al);for(let i=p+1;i<c.length;i++){const d=c[i]-c[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o[i]=al===0?100:100-100/(1+ag/al)}return o}
@@ -50,6 +50,43 @@ function checkPattern(l4,dir,minRatio){let g=0,r=0,gs=0,rs=0;for(const c of l4){
 if(dir==="LONG"){if(g!==1||r!==3||!(l4[0].close>l4[0].open)||rs<=0)return{ok:false,ratio:0};const q=gs/rs;return{ok:q>=minRatio,ratio:q}}
 if(r!==1||g!==3||!(l4[0].close<l4[0].open)||gs<=0)return{ok:false,ratio:0};const q=rs/gs;return{ok:q>=minRatio,ratio:q}}
 
+
+// 🎯 استراتژی رنج v2 (برگشت به میانگین با تأیید) — مشترک بین evaluate و explain
+function rangeAnalyze(m5,h1,S,ind){
+  const {rA,aA,smaA,stdA,adxA}=ind,n=m5.length,i=n-1;
+  const b=m5[i],pv=m5[i-1],pv2=m5[i-2],sc=b.close;
+  const smaV=smaA[i],stdV=stdA[i],smaP=smaA[i-1],stdP=stdA[i-1];
+  const r=rA[i],rP=rA[i-1],rP2=rA[i-2],a=aA[i],adxV=adxA[i],adxB=adxA[i-3];
+  const up=smaV+S.bbDev*stdV,lo=smaV-S.bbDev*stdV,upP=smaP+S.bbDev*stdP,loP=smaP-S.bbDev*stdP;
+  // رنج از ۴۸ کندل قبل از دو کندل آخر ساخته می‌شود (کندل شکست/ماشه جزو آن نیست)
+  const lb=m5.slice(-50,-2),rh=Math.max(...lb.map(c=>c.high)),rl=Math.min(...lb.map(c=>c.low)),H=rh-rl;
+  const dir=pv.close<=loP?"LONG":pv.close>=upP?"SHORT":(sc<smaV?"LONG":"SHORT"),L=dir==="LONG";
+  const touches=f=>{let k=0,inn=false;for(const c of lb){const t=f(c);if(t&&!inn)k++;inn=t}return k};
+  const tTop=touches(c=>c.high>=rh-0.15*H),tBot=touches(c=>c.low<=rl+0.15*H);
+  const roomOk=H>=S.rangeMinATR*a,touchOk=tTop>=1&&tBot>=1&&tTop+tBot>=S.rangeMinTouches;
+  const broke=sc>rh+0.5*a||sc<rl-0.5*a,rangeOk=roomOk&&touchOk&&!broke;
+  const adxOk=adxV<S.rangeAdxMax||(adxV<S.adxMin&&adxB!=null&&adxV<adxB);
+  const trig=L?(pv.close<=loP&&sc>lo&&b.close>b.open):(pv.close>=upP&&sc<up&&b.close<b.open);
+  const rv=[r,rP,rP2].filter(x=>x!=null);
+  const rsiOk=L?(Math.min(...rv)<S.rangeRsiL&&r>rP):(Math.max(...rv)>S.rangeRsiS&&r<rP);
+  let h1Ok=true,h1adx=null;
+  if(S.rangeH1&&h1&&h1.length>=40){h1adx=last(adx(h1,14));if(h1adx!=null)h1Ok=h1adx<25}
+  // حد ضرر: پشت اکستریم کندل‌های برگشت + ۰.۵ ATR، حداقل ۱ ATR
+  const ext=L?Math.min(b.low,pv.low,pv2.low):Math.max(b.high,pv.high,pv2.high);
+  let sl=L?ext-0.5*a:ext+0.5*a;if(Math.abs(sc-sl)<a)sl=L?sc-a:sc+a;
+  const risk=Math.abs(sc-sl),tp=smaV,tp2=L?up:lo,reward=L?tp-sc:sc-tp,rr=risk>0?reward/risk:0;
+  const rrOk=reward>0&&rr>=S.rangeMinRR&&risk<=S.rangeMaxRiskATR*a;
+  const dg=ind.dg==null?5:ind.dg,checks=[];
+  const add=(k,label,ok,txt,fail,viz)=>checks.push({k,label,ok:!!ok,txt,fail,viz});
+  if(S.adx!==false)add("adx",`ADX < ${S.rangeAdxMax} (رنج)`,adxOk,adxV.toFixed(1),"بازار روند دارد (ADX)",{t:"dist",v:(adxV-S.rangeAdxMax)/25});
+  add("rng","رنج معتبر (برخورد به کف/سقف)",rangeOk,`${tBot} کف · ${tTop} سقف · ${(H/a).toFixed(1)}×ATR${broke?" · شکست":""}`,broke?"رنج شکسته شده":"رنج معتبر نیست");
+  add("trg","تأیید برگشت (بسته‌شدن داخل باند)",trig,trig?"بله":"خیر","برگشت تأیید نشده");
+  if(S.rsi!==false)add("rsi","RSI اشباع و در حال برگشت",rsiOk,r.toFixed(1),"RSI در محدوده اشباع نیست",{t:"dist",v:(r-50)/50});
+  if(S.rangeH1)add("h1","H1 بدون روند قوی",h1Ok,h1adx==null?"-":"ADX "+h1adx.toFixed(1),"H1 رونددار است");
+  add("rr","نسبت ریسک/ریوارد ≥ "+S.rangeMinRR,rrOk,"R:R "+rr.toFixed(2),"نسبت ریسک به ریوارد کافی نیست");
+  return{dir,checks,sl,tp,tp2,rr,rh,rl,risk,price:sc,low:rl,high:rh,dg};
+}
+
 function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
     S={...DEF,...S};
     const m5=dropForming(raw5,300,now),h1=dropForming(rawH1,3600,now);
@@ -83,16 +120,11 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         else if (!fail) fail = failMsg;
     };
 
+    let RA=null;
     if (S.mode === "range") {
-        if(S.adx !== false) addCheck(`ADX < ${S.adxMin} (بازار رنج)`, adxV < S.adxMin, `بازار روند دارد (ADX)`);
-        if(S.rsi) addCheck(`RSI اشباع`, r < 35 || r > 65, `RSI در محدوده اشباع نیست`);
-        addCheck(`برخورد به باند بولینگر`, sc <= lowerBB || sc >= upperBB, `قیمت به باندها برخورد نکرده`);
-        
-        if (pass === total && total > 0) {
-            if (sc <= lowerBB && r < 35) { side = "LONG"; fail = null; }
-            else if (sc >= upperBB && r > 65) { side = "SHORT"; fail = null; }
-            else { fail = "شرایط ورود رنج کامل نیست"; pass = 0; }
-        }
+        RA = rangeAnalyze(m5,h1,S,{rA,aA,smaA,stdA,adxA});
+        RA.checks.forEach(c=>addCheck(c.label,c.ok,c.fail));
+        if (pass === total && total > 0) { side = RA.dir; fail = null; }
     } else {
         const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio);
         const ab=sc>es,be=sc<es,slope=(ef-efp)!==0&&(em-emp)!==0;
@@ -135,8 +167,9 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         }
     }
 
-    let sl=null;
-    if(side){
+    let sl=null,tp=null,tp2=null,rr=null;
+    if(side && RA){ sl=RA.sl; tp=RA.tp; tp2=RA.tp2; rr=RA.rr; }
+    else if(side){
         const sz=m5[m5.length-1].high-m5[m5.length-1].low;
         const d=sz*2;
         if(d>0) sl = side==="LONG" ? sc-d : sc+d;
@@ -146,7 +179,7 @@ function evaluate(id,raw5,rawH1,S,now=Date.now()/1000){
         }
     }
 
-    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, fail, ef, em, es, adx:adxV, rangeHigh, rangeLow, pass, total, checks});
+    return row({side, rsi:r, atr:a, entry:side?sc:null, sl, tp, tp2, rr:rr!=null?+rr.toFixed(2):null, fail, ef, em, es, adx:adxV, rangeHigh:RA?RA.rh:rangeHigh, rangeLow:RA?RA.rl:rangeLow, pass, total, checks});
 }
 
 function lci(b,sec,asOf){let lo=0,hi=b.length-1,a=-1;while(lo<=hi){const m=(lo+hi)>>1;if(b[m].time+sec<=asOf){a=m;lo=m+1}else hi=m-1}return a}
@@ -187,11 +220,11 @@ out.rangeLow = Math.min(...lookback.map(c => c.low));
 const add=(k,label,ok,txt,viz)=>{out.checks.push({k,label,ok:!!ok,txt,viz});out.total++;if(ok)out.pass++};
 
 if (S.mode === "range") {
-    if(S.adx !== false) add("adx",`ADX < ${S.adxMin} (رنج)`,adxV < S.adxMin,adxV.toFixed(1),{t:"dist",v:(adxV-25)/25});
-    if(S.rsi){const rsiOk=L?r<35:r>65;add("rsi",`RSI اشباع`,rsiOk,r.toFixed(1),{t:"dist",v:(r-50)/50});}
-    add("bb",`برخورد به باند بولینگر`,L?sc<=smaV-2*stdV:sc>=smaV+2*stdV,`${(sc-smaV).toFixed(2)}`,{t:"dist",v:(sc-smaV)/(stdV||1)/2});
-    // 🛠️ افزودن شرط بصری برای نمایش ناحیه رنج
-    add("range", `محدوده رنج`, true, `سقف: ${out.rangeHigh.toFixed(dg)} | کف: ${out.rangeLow.toFixed(dg)}`, {t:"range", price: sc, low: out.rangeLow, high: out.rangeHigh});
+    const RA=rangeAnalyze(m5,h1,S,{rA,aA,smaA,stdA,adxA,dg});
+    out.dir=RA.dir;out.rangeHigh=RA.rh;out.rangeLow=RA.rl;out.slEst=RA.risk;out.tp=RA.tp;out.tp2=RA.tp2;out.rr=+RA.rr.toFixed(2);
+    RA.checks.forEach(c=>add(c.k,c.label,c.ok,c.txt,c.viz));
+    // نمایش بصری محدوده رنج (فقط نمایشی؛ در شمارش پاس/کل نمی‌آید)
+    out.checks.push({k:"range",label:"محدوده رنج",ok:true,txt:`سقف: ${RA.rh.toFixed(dg)} | کف: ${RA.rl.toFixed(dg)} | TP: ${RA.tp.toFixed(dg)}`,viz:{t:"range",price:sc,low:RA.rl,high:RA.rh}});
 } else {
     if(S.trend !== false) add("trend",`قیمت ${L?"بالای":"پایین"} EMA${S.es} و شیب EMA`,(L?sc>es:sc<es)&&sl,((sc-es)/a>=0?"+":"")+((sc-es)/a).toFixed(1)+"×ATR",{t:"dist",v:(sc-es)/a});
     const pat=m5.slice(-4).reverse(),pl=checkPattern(pat,"LONG",S.minRatio),ps=checkPattern(pat,"SHORT",S.minRatio),nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp)),pp=L?pl:ps;
