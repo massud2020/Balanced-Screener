@@ -290,6 +290,8 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span>موتور صدای استفاده‌شده در آخرین تست</span><b id="ttsInfo" style="font-size:12px;max-width:55%;word-break:break-word">—</b></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
+  <label><span>اسکن پس‌زمینه + آلارم<small>حتی با اپ بسته · ثبت در Documents/Signals</small></span><input type="checkbox" id="bgscan"></label>
+  <label><span>وضعیت اسکن پس‌زمینه<small id="bgInfo" style="display:block;white-space:normal;line-height:1.7">—</small></span><button id="bgCheck">بررسی</button></label>
   <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
   
   <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
@@ -972,7 +974,7 @@ async function scan(isAISilent = false) {
     const fresh = [];
     rows.forEach(r => {
         if(!r.side) return;
-        if(ns - (r.bt + 300) > 1200) return;
+        if(ns - (r.bt + 300) > 3600) return;
         const k = r.id + "|" + r.side + "|" + r.bt;
         if(seen[k]) return;
         seen[k] = ns; fresh.push(r);
@@ -1154,7 +1156,7 @@ if($("bn")) {
 }
 function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance((currentLang==='fa'?"سیگنال جدید. ":"New signal. ")+t);u.lang=currentLang==='fa'?"fa-IR":"en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function alertNow(fr){beep();banner(fr);say(fr);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}
-if(window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id,{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
+if(!window.__bgNative&&window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id,{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
 if($("bn")) $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 if($("sp")) { $("sp").checked=LS("bs_sp")!=="false"; $("sp").onchange=()=>LS("bs_sp",$("sp").checked); }
 if($("nt")) $("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?T().btnEnabled:T().btnDenied}catch(e){$("nt").textContent=T().btnUnsupported}};
@@ -1369,6 +1371,65 @@ try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // 🛰️ اسکن پس‌زمینه بومی (سرویس پیش‌زمینه اندروید)
+  (function initBgScan() {
+    const cb = document.getElementById('bgscan');
+    const P = window.Capacitor && window.Capacitor.Plugins;
+    const native = !!(P && P.BackgroundScanner);
+    if (!cb) return;
+    if (!native) { cb.disabled = true; cb.checked = false; return; } // مرورگر/PWA
+    const on = () => { window.__bgNative = true; };
+    async function startBg(askBattery) {
+      try { if (P.LocalNotifications) await P.LocalNotifications.requestPermissions(); } catch (e) {}
+      try {
+        await P.BackgroundScanner.start();
+        on();
+        if (askBattery && !localStorage.getItem('bs_batt_asked')) {
+          localStorage.setItem('bs_batt_asked', '1');
+          await P.BackgroundScanner.requestBatteryExemption(); // برای جلوگیری از قطع شدن در حالت Doze
+        }
+      } catch (e) { console.warn('BackgroundScanner start failed', e); cb.checked = false; localStorage.setItem('bs_bgscan', 'false'); window.__bgNative = false; }
+    }
+    cb.checked = localStorage.getItem('bs_bgscan') !== 'false'; // پیش‌فرض: روشن
+    if (cb.checked) startBg(true);
+    const info = document.getElementById('bgInfo'), chk = document.getElementById('bgCheck');
+    const ageMin = (t) => {
+      if (t === undefined || t === null || t === '' || t === 'null') return null;
+      let ms = (typeof t === 'number' || /^\d+(\.\d+)?$/.test(String(t))) ? Number(t) : Date.parse(t);
+      if (!isFinite(ms)) return null;
+      if (ms < 1e12) ms *= 1000;
+      return Math.round((Date.now() - ms) / 60000);
+    };
+    async function showStatus() {
+      if (!info) return;
+      try {
+        const st = await P.BackgroundScanner.getStatus();
+        let d = {}; try { d = JSON.parse(st.diag || '{}'); } catch (e) {}
+        const lines = [
+          'سرویس: ' + (st.enabled ? 'روشن ✅' : 'خاموش ❌') + ' · اعلان‌ها: ' + (st.notificationsEnabled ? 'مجاز ✅' : 'بسته ❌ (از تنظیمات گوشی باز کن)')
+        ];
+        if (d.last_run) {
+          const a = ageMin(d.data_time);
+          lines.push('آخرین اسکن: ' + d.last_run + (d.fetch_ok ? '' : ' · دریافت data.json ناموفق ❌'));
+          lines.push('ردیف‌ها: ' + d.rows + ' · دارای سیگنال: ' + d.with_side + ' · تازه: ' + d.fresh + ' · قدیمی‌شده: ' + d.stale);
+          lines.push('سن data.json: ' + (a === null ? 'نامشخص (' + d.data_time + ')' : a + ' دقیقه') );
+        } else lines.push('هنوز اسکنی انجام نشده');
+        info.innerHTML = lines.join('<br>');
+      } catch (e) { info.textContent = 'خطا: ' + (e.message || e); }
+    }
+    if (chk) chk.onclick = async () => {
+      info.textContent = 'در حال اسکن…';
+      try { await P.BackgroundScanner.scanNow(); } catch (e) {}
+      setTimeout(showStatus, 5000);
+    };
+    showStatus();
+    cb.onchange = async () => {
+      localStorage.setItem('bs_bgscan', cb.checked);
+      if (cb.checked) { await startBg(true); }
+      else { window.__bgNative = false; try { await P.BackgroundScanner.stop(); } catch (e) {} }
+    };
+  })();
+
   if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
     const { LocalNotifications } = window.Capacitor.Plugins;
     LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
