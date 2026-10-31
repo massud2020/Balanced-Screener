@@ -49,6 +49,8 @@ button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{out
 .logo-row i{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;-webkit-text-fill-color:#06150d;font-style:normal;font-size:14px;box-shadow:0 0 12px rgba(70,197,140,.4)}
 .brand small{color:var(--mu);font-size:10px;font-weight:500;margin-top:2px}
 button.ic{width:38px;min-width:38px;padding:0;font-size:16px;display:grid;place-items:center;position:relative}
+button.ic .ico{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s ease}
+button.ic.on .ico{transform:rotate(60deg)}
 button.ic.on{border-color:var(--gb);color:var(--gb)}
 
 .badge{position:absolute;top:-4px;right:-4px;background:var(--rb);color:#fff;font-size:10px;font-weight:bold;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);z-index:10;direction:ltr}
@@ -237,8 +239,8 @@ body[dir="ltr"] .ci { direction: ltr; }
   </div>
   
   <div class="acts right">
-    <button class="ic" id="showHist" aria-label="History">📅<span id="unreadBadge" class="badge">0</span></button>
-    <button class="ic" id="gs" aria-label="Settings">⚙</button>
+    <button class="ic" id="showHist" aria-label="History"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span id="unreadBadge" class="badge">0</span></button>
+    <button class="ic" id="gs" aria-label="Settings"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
   </div>
 </header>
 
@@ -354,7 +356,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=63"></script><script src="alerts.js?v=63"></script><script src="engine.js?v=63"></script><script src="chart.js?v=63"></script>
+<script src="symbols.js?v=64"></script><script src="alerts.js?v=64"></script><script src="engine.js?v=64"></script><script src="chart.js?v=64"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -913,7 +915,7 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=63,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=64,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1293,6 +1295,9 @@ function renderAnalysis(ex,dg,mode){
     if(ex.rsi!=null){
         body+=`<div class="ck inf"><div class="cs">i</div><div class="lb"><b>RSI</b><span>${ex.rsi.toFixed(1)}</span></div><div class="viz"><div class="gg"><i style="left:${clamp(ex.rsi,0,100)}%"></i></div><div class="gl"><span>0</span><span>30</span><span>70</span><span>100</span></div></div></div>`;
     }
+    if (ex.tp != null && ex.price) {
+        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>${currentLang === 'fa' ? 'حد سود (باند میانی)' : 'Target (mid band)'}</b><span>${Number(ex.tp).toFixed(dg)} • R:R ${ex.rr}</span></div></div>`;
+    }
     if (ex.slEst && ex.price) {
         const slPct = (ex.slEst / ex.price) * 100;
         const atrVal = ex.slEst / (ex.atr || 1); 
@@ -1357,7 +1362,11 @@ setText("ver", "v"+BUILD); setText("verl", (currentLang==='fa'?"نسخه‌ی ف
 setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
+updateUnreadBadge(); // بعد از باز کردن اپ، شمارنده ذخیره‌شده فوراً نمایش داده شود
+
 if($("showHist")) $("showHist").onclick = async () => {
+    // اول سیگنال‌های ثبت‌شده توسط سرویس پس‌زمینه را بگیر، بعد شمارنده را صفر کن
+    try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
     UNREAD = 0;
     LS("bs_unread", 0);
     updateUnreadBadge();
@@ -1546,9 +1555,4 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then(reg => {
             reg.update();
-        }).catch(err => console.warn('SW registration failed:', err));
-    });
-}
-</script>
-
-</body></html>
+        }).catch(err => console.warn('SW registration
