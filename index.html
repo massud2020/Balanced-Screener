@@ -75,10 +75,6 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 .mkt{flex:none;scroll-snap-align:start;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:99px;font-size:13px;font-weight:600;color:var(--mu)}
 .mkt .cnt{font-size:11px;font-weight:500;opacity:.75;direction:ltr}
 .mkt.on{background:var(--gd);border-color:rgba(61,202,133,.4);color:var(--gb)}
-/* 🛠️ استایل جدید برای دکمه‌های تعطیل شده */
-.mkt:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(100%);background:transparent;border-color:var(--bd)}
-.mkt:disabled .cnt{opacity:.3}
-
 .mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
 
 .set{display:none;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:4px 14px 8px;margin-top:12px;animation:fade .2s ease}
@@ -400,7 +396,6 @@ const I18N = {
     fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
     fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "در کول‌داون ۲۰ دقیقه‌ای",
-    fail_marketClosed: "بازار بسته است",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
     ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد.", ai_ready: "برای شروع لطفاً کلیک کنید..."
   },
@@ -430,7 +425,6 @@ const I18N = {
     fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
     fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "In 20m cooldown",
-    fail_marketClosed: "Market Closed",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
     ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated.", ai_ready: "Tap to start..."
   }
@@ -442,8 +436,7 @@ const BACKEND_TO_KEY = {
     "فیلتر M15": "fail_m15", "فیلتر H1": "fail_h1", "فیلتر RSI": "fail_rsi", "No Data": "fail_noData",
     "Error": "fail_error", "تاریخچه M5 کافی نیست": "fail_histM5", "تاریخچه M15 کافی نیست": "fail_histM15",
     "تاریخچه H1 کافی نیست": "fail_histH1", "اندیکاتورها آماده نیست": "fail_notReady",
-    "خطای نامشخص": "fail_unknown", "در کول‌داون ۲۰ دقیقه‌ای": "fail_cooldown",
-    "بازار بسته است": "fail_marketClosed"
+    "خطای نامشخص": "fail_unknown", "در کول‌داون ۲۰ دقیقه‌ای": "fail_cooldown"
 };
 
 let currentLang = LS("bs_lang");
@@ -488,9 +481,9 @@ function updateUnreadBadge() {
 
 // 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
 const TTS_CFG = {
-    rate: 35,    
-    mode: 'string', 
-    engine: 'android', 
+    rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
+    mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
+    engine: 'android', // android = موتور خود گوشی (رایگان و نامحدود) | auto = اول Edge
     pitch: 1.0,
     voiceIndex: -1,
     faVoices: ['fa-IR-FaridNeural'],
@@ -536,6 +529,7 @@ function ttsRateVariants() {
     return order.map(k => all[k]);
 }
 
+// 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
     if (!text) return;
     let _err = null, _info = "";
@@ -546,6 +540,7 @@ async function speakAI(text) {
     };
     
     const _native = TTS_CFG.engine === 'android';
+    // 1. تلاش برای استفاده از پلاگین EdgeTTS
     if (!_native && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
@@ -563,6 +558,7 @@ async function speakAI(text) {
             for (const voice of voices) {
                 const t0 = Date.now();
                 try {
+                    // نام پارامترها را با چند نام رایج می‌فرستیم؛ کلیدهای ناشناس نادیده گرفته می‌شوند
                     const res = await EdgeTTS[fn]({
                         text: text,
                         voice: voice, voiceName: voice, voiceId: voice, shortName: voice,
@@ -570,6 +566,7 @@ async function speakAI(text) {
                     });
                     const src = ttsExtractAudio(res);
                     if (src) {
+                        // سرعت را خودمان روی پخش اعمال می‌کنیم (مستقل از پلاگین، با حفظ زیر و بمی)
                         await new Promise((resolve, reject) => {
                             const au = new Audio(src);
                             au.playbackRate = 1 + TTS_CFG.rate / 100;
@@ -581,12 +578,13 @@ async function speakAI(text) {
                         _info = "synthesize→audio ✓";
                         mark("Edge"); return;
                     }
+                    // صدایی برنگشت: یا پلاگین خودش پخش کرده، یا خروجی را نمی‌شناسیم
                     if (Date.now() - t0 > 1200) { _info = "plugin played natively"; mark("Edge"); return; }
                     const keys = res && typeof res === 'object' ? Object.keys(res).join(',') : typeof res;
                     throw new Error('synthesize result keys: [' + keys + ']');
                 } catch (e) {
                     lastErr = e;
-                    if (Date.now() - t0 > 4000) { mark("Edge"); return; }
+                    if (Date.now() - t0 > 4000) { mark("Edge"); return; } // احتمالاً پخش شده بود
                 }
             }
             throw lastErr || new Error("EdgeTTS failed");
@@ -595,6 +593,7 @@ async function speakAI(text) {
         }
     }
 
+    // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
     if (!_native) try {
         const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-GuyNeural';
         const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
@@ -609,6 +608,7 @@ async function speakAI(text) {
         _err = _err || e; console.warn("Web EdgeTTS failed, falling back...", e);
     }
 
+    // 3. در آخرین حالت، از پلاگین کپاسیتور استفاده کن
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
             const { TextToSpeech } = window.Capacitor.Plugins;
@@ -641,7 +641,7 @@ async function speakAI(text) {
             vs.innerHTML = '<option value="">پیش‌فرض گوشی</option>';
             list.forEach((v, i) => {
                 const lang = String(v.lang || "");
-                if (!/^fa|^en/i.test(lang)) return;
+                if (!/^fa|^en/i.test(lang)) return;           // فقط فارسی/انگلیسی
                 const o = document.createElement("option");
                 o.value = i; o.textContent = (v.name || ("voice " + i)) + " · " + lang;
                 vs.appendChild(o);
@@ -684,17 +684,21 @@ async function typeText(elementId, text, speed = 40) {
     }
 }
 
+// 🎯 صدا و متن را هماهنگ می‌کند:
+// - تایپ متن با سرعت تخمینی گفتار (نه ۴۰ms ثابت) انجام می‌شود
+// - تایپ بعد از تأخیر ساخت صدای ابری شروع می‌شود
+// - تا پایان صدا صبر می‌کند تا جمله بعدی روی آن نیفتد
 async function speakAndType(elementId, text) {
     const _wait = ms => new Promise(r => setTimeout(r, ms));
-    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100);
-    const lead = TTS_CFG.engine === 'android' ? 250 : 900;
+    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); // کاراکتر در ثانیه
+    const lead = TTS_CFG.engine === 'android' ? 250 : 900; // تأخیر شروع صدا (ms)
     const estMs = Math.max(1200, text.length / cps * 1000);
     const t0 = Date.now();
     const sp = speakAI(text).catch(() => {});
     await _wait(lead);
     await typeText(elementId, text, estMs / Math.max(1, text.length));
     await sp;
-    const left = lead + estMs - (Date.now() - t0);
+    const left = lead + estMs - (Date.now() - t0);   // اگر پلاگین زود resolve شد
     if (left > 0) await _wait(left);
 }
 
@@ -736,7 +740,7 @@ window.startApp = async () => {
     const failsafe = setTimeout(() => {
         console.warn("AI Splash Failsafe Triggered");
         window.hideSplash();
-    }, 45000); 
+    }, 45000); // زمان بیشتر چون صدا و متن هماهنگ‌اند
 
     try {
         LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
@@ -746,7 +750,7 @@ window.startApp = async () => {
         await new Promise(r => setTimeout(r, 400));
         
         if(loading) loading.classList.add("on");
-        const scanP = scan(true);      
+        const scanP = scan(true);      // اسکن همزمان با پخش صدا
         scanP.catch(() => {});
         await speakAndType("ai-text", t.ai_scan);
         await scanP;
@@ -912,7 +916,7 @@ function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
 const BUILD=64,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
-const MKT_LABEL={crypto:"کریپتو",forex:"فارس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
+const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
@@ -941,38 +945,22 @@ async function fetchGitJson(filename) {
 let D={},MN={pattern:"۳+۱",range:"رنج"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
 const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
 const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
-
-// 🛠️ تابع بررسی باز بودن بازار در فرانت‌اند
-function isMarketOpenJS(m) {
-    if (m === "crypto") return true;
-    const now = new Date();
-    const utcDay = now.getUTCDay();
-    const utcHour = now.getUTCHours();
-    if (utcDay === 6) return false;
-    if (utcDay === 5 && utcHour >= 21) return false;
-    if (utcDay === 0 && utcHour < 22) return false;
-    return true;
-}
-
 function renderChips(){
     if (typeof U === "undefined" || !Array.isArray(U)) return;
     try {
         const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(Object.keys(MKT_LABEL));
-        $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m => {
-            const isOpen = isMarketOpenJS(m);
-            const isOn = on.has(m) && isOpen;
-            return `<button class="mkt${isOn?" on":""}" data-m="${m}" aria-pressed="${isOn}" ${!isOpen ? 'disabled title="بازار بسته است"' : ''}>${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`;
-        }).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
+        $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
         updCnt();
     } catch(e) { console.warn("Chips error", e); }
 }
 function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
-if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t||t.disabled)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
+if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
+// 📒 تاریخچه محلی سیگنال‌ها (برای دکمه 📅 «سیگنال‌های امروز»)
 const HISTL_KEY = "bs_hist_local";
 function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
 function saveLocalHist(a) {
@@ -1232,3 +1220,339 @@ function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const s
 function alertNow(fr){beep();banner(fr);say(fr);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}
 if(!window.__bgNative&&window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id,{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
 if($("bn")) $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
+if($("sp")) { $("sp").checked=LS("bs_sp")!=="false"; $("sp").onchange=()=>LS("bs_sp",$("sp").checked); }
+if($("nt")) $("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?T().btnEnabled:T().btnDenied}catch(e){$("nt").textContent=T().btnUnsupported}};
+if(window.Notification&&Notification.permission==="granted"&&$("nt"))$("nt").textContent=T().btnEnabled;
+if($("go")) $("go").onclick=() => scan(false);
+
+/* chart overlay */
+let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e8736d",R=26,C=2*Math.PI*R;return`<svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}"/></svg>`}
+
+function renderAnalysis(ex,dg,mode){
+    const el=$("an");
+    if(!el) return;
+    if(!ex||ex.err){el.innerHTML=`<div class="an"><div class="hint">${ex?trFail(ex.err):(currentLang==='fa'?"تحلیل در دسترس نیست":"Analysis unavailable")}</div></div>`;return}
+    const full=ex.total>0&&ex.pass===ex.total, f=v=> (v == null || isNaN(v)) ? "-" : Number(v).toFixed(dg), L=ex.dir==="LONG";
+    let body="";
+    
+    body=(ex.checks||[]).map(c=>{
+        let vizHtml = "";
+        if (c.viz) {
+            if (c.viz.t === "dist") {
+                const v = c.viz.v;
+                const pct = Math.min(50, (Math.abs(v) / 5) * 50); 
+                const left = v >= 0 ? 50 : 50 - pct;
+                vizHtml = `<div class="viz"><div class="dist ${c.ok?'ok':'no'}"><u style="left:${left}%; width:${pct}%"></u></div></div>`;
+            } else if (c.viz.t === "pat") {
+                const pat = c.viz.c; 
+                const th = c.viz.th;
+                const ratio = c.viz.ratio;
+                const rp = Math.min(100, (ratio / 1) * 100);
+                const tp = th * 100;
+                const cHtml = pat.map(k => {
+                    const isB = k.c > k.o;
+                    const col = isB ? "var(--gb)" : "var(--rb)";
+                    const top = Math.max(k.o, k.c);
+                    const bot = Math.min(k.o, k.c);
+                    const high = k.h;
+                    const low = k.l;
+                    const scale = 20 / (high - low || 1);
+                    const bodyH = Math.max(2, (top - bot) * scale);
+                    const bodyTop = (high - top) * scale;
+                    return `<div style="position:relative;width:6px;height:24px;margin:0 2px;">
+                        <div style="position:absolute;left:2px;top:0;width:2px;height:100%;background:${col};opacity:0.5;"></div>
+                        <div style="position:absolute;left:0;top:${bodyTop}px;width:6px;height:${bodyH}px;background:${col};border-radius:1px;"></div>
+                    </div>`;
+                }).join("");
+                vizHtml = `<div class="viz"><div class="pat"><div class="rb ${c.ok?'ok':''}"><u style="width:${rp}%"></u><s style="left:${tp}%"></s></div></div><div style="display:flex;gap:2px;margin-top:6px;align-items:center;justify-content:flex-start;direction:ltr;">${cHtml}</div></div>`;
+            } else if (c.viz.t === "range") {
+                const price = c.viz.price;
+                const low = c.viz.low;
+                const high = c.viz.high;
+                const range = high - low;
+                const pos = range > 0 ? ((price - low) / range) * 100 : 50;
+                const clampedPos = Math.max(0, Math.min(100, pos));
+                
+                vizHtml = `<div class="viz"><div class="range-viz">
+                    <div class="range-bar">
+                        <div class="level" style="left: 0%"></div>
+                        <div class="level" style="left: 100%"></div>
+                        <div class="price-dot" style="left: ${clampedPos}%; background: ${clampedPos > 70 ? 'var(--rb)' : clampedPos < 30 ? 'var(--gb)' : '#fff'};"></div>
+                    </div>
+                    <div class="range-labels">
+                        <span>${low.toFixed(dg)} (کف)</span>
+                        <span style="color:${clampedPos > 70 ? 'var(--rb)' : clampedPos < 30 ? 'var(--gb)' : '#fff'};font-weight:bold">قیمت</span>
+                        <span>${high.toFixed(dg)} (سقف)</span>
+                    </div>
+                </div></div>`;
+            }
+        }
+        return `<div class="ck ${c.ok?"ok":"no"}"><div class="cs">${c.ok?"✓":"✕"}</div><div class="lb"><b>${trFail(c.label)}</b><span>${c.txt||""}</span></div>${vizHtml}</div>`;
+    }).join("");
+    
+    if(ex.rsi!=null){
+        body+=`<div class="ck inf"><div class="cs">i</div><div class="lb"><b>RSI</b><span>${ex.rsi.toFixed(1)}</span></div><div class="viz"><div class="gg"><i style="left:${clamp(ex.rsi,0,100)}%"></i></div><div class="gl"><span>0</span><span>30</span><span>70</span><span>100</span></div></div></div>`;
+    }
+    if (ex.tp != null && ex.price) {
+        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>${currentLang === 'fa' ? 'حد سود (باند میانی)' : 'Target (mid band)'}</b><span>${Number(ex.tp).toFixed(dg)} • R:R ${ex.rr}</span></div></div>`;
+    }
+    if (ex.slEst && ex.price) {
+        const slPct = (ex.slEst / ex.price) * 100;
+        const atrVal = ex.slEst / (ex.atr || 1); 
+        body += `<div class="ck inf"><div class="cs">i</div><div class="lb"><b>${T().estSl}</b><span>${slPct.toFixed(2)}% • ${atrVal.toFixed(1)}×ATR</span></div><div class="viz"><div class="dist"><u style="left:0%; width:${Math.min(100, slPct * 5)}%"></u></div></div></div>`;
+    }
+    
+    el.innerHTML=`<div class="an"><div class="an-h"><div class="ring">${ringSvg(ex.pass,ex.total)}<b>${fmtNum(ex.pass)}/${fmtNum(ex.total)}</b></div><div class="an-t"><b>${full?T().condMet:fmtNum(ex.pass)+" "+T().condPartial+" "+fmtNum(ex.total)+" "+T().condPartial2}</b><small>${T().checkFor} ${L?"▲ "+T().long:"▼ "+T().short} · ${mode}</small></div></div>${body}</div>`;
+}
+
+function render(id){
+    const d=D[id],x=drawChart($("cv"),d,SM(),Date.now()/1000),r=x.row,f=v=> (v == null || isNaN(v)) ? "-" : Number(v).toFixed(d.dg);
+    try{renderAnalysis(explain(id,d.a,d.h,{...SM(),dg:d.dg},Date.now()/1000),d.dg,currentMode === 'range' ? T().fail_range : T().fail_pattern)}catch(e){if($("an"))$("an").innerHTML=""}
+    if($("ci")) $("ci").innerHTML=`<div class="kv"><div><i>${T().price}</i><b>${f(x.price)}</b></div>${r.side?`<div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b>${T().rsiDiv}</b></div><div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div>`:`<div><i>RSI</i><b>${r.rsi!=null?r.rsi.toFixed(1):"-"}</b></div><div><i>${T().signal}</i><b>${x.n}</b></div>`}</div>`+(r.side?`<div class="nosig" style="margin-top:10px;border-color:${r.side==="LONG"?"var(--g)":"var(--r)"}">${r.side==="LONG"?"🟢 "+T().long:"🔴 "+T().short}</div>`:`<div class="nosig" style="margin-top:10px">${T().noSignalNow} · ${trFail(r.fail)}</div>`)+
+    `<div class="lg"><span style="--c:#35e07b">EMA21</span><span style="--c:#ff6ec7">EMA50</span><span style="--c:#ff3b3b">EMA200</span></div><div class="meta">${T().lastUpdate} ${fmtDate(new Date())} · ${T().recentSignals} ${fmtNum(x.n)} · ${T().legend}</div>`;
+}
+
+function tvSym(u){return u[1]?"BINANCE:"+u[0]:u[4]?"OANDA:"+u[4].replace("_",""):u[0]}
+function tvReset(){if($("tf")){$("tf").style.display="none";$("tf").src="about:blank";}if($("cw"))$("cw").style.display="block";setText("te", T().tvInside)}
+if($("te")) $("te").onclick=()=>{if($("tf").style.display!=="block"){const sy=encodeURIComponent(tvSym(D[liveId].u));$("tf").src=`https://s.tradingview.com/widgetembed/?symbol=${sy}&interval=5&theme=dark&style=1&timezone=Etc%2FUTC&locale=en&allow_symbol_change=1&withdateranges=1&hide_side_toolbar=0`;$("tf").style.display="block";if($("cw"))$("cw").style.display="none";setText("te", T().tvBack)}else tvReset()};
+function openChart(id,mode){tvReset();if($("tv"))$("tv").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(tvSym(D[id].u))+"&interval=5";document.body.style.overflow="hidden";if($("ov")){$("ov").style.display="block";$("ov").scrollTop=0;}setText("ct", id+" · "+(currentMode === 'range' ? T().fail_range : T().fail_pattern));render(id);liveId=id;}
+function closeChart(){tvReset();document.body.style.overflow="";if($("ov"))$("ov").style.display="none";liveId=null;}
+const openRow=e=>{const w=e.target.closest(".row");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
+if($("list")) { $("list").onclick=openRow; $("list").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openRow(e)}}; }
+if($("cx")) $("cx").onclick=closeChart;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()});
+if($("gs")) $("gs").onclick=()=>{if($("set"))$("set").classList.toggle("on");$("gs").classList.toggle("on")};
+
+if($("langToggle")) $("langToggle").onclick = () => {
+    currentLang = currentLang === 'fa' ? 'en' : 'fa';
+    LS("bs_lang", currentLang);
+    applyLanguage();
+    if(liveId) render(liveId);
+};
+
+["h1s", "rsiL", "rsiS"].forEach(i=>{
+    const el = $(i);
+    if(el) el.onchange = () => {
+        LS("bs_"+i, el.type==="checkbox"?el.checked:el.value);
+        if(LAST) renderList();
+    };
+});
+if($("only")) $("only").onchange=()=>{LS("bs_only",$("only").checked);renderList()};
+if($("auto")) $("auto").onchange=()=>{clearInterval(timer);LS("bs_auto",$("auto").checked);if($("auto").checked)timer=setInterval(scan,180000)};
+if($("auto")) { $("auto").checked=LS("bs_auto")!=="false"; if($("auto").checked) timer=setInterval(scan,180000); }
+if($("ex")) { $("ex").value=LS("bs_ex")||""; $("ex").onchange=()=>{LS("bs_ex",$("ex").value.trim());renderChips();scan()}; }
+if($("tok")) { $("tok").value=LS("bs_tok")||atob("MjY2NWFkZTVjOGFmMzdmNTU5M2U5M2UzODk1NmFjZTUtNjMyODNkYmFkZGM0YzA5NTZiNDg1YjM0ZTdkMzg1ZGQ="); $("tok").onchange=()=>{LS("bs_tok",$("tok").value.trim());scan()}; }
+if($("env")) { $("env").value=LS("bs_env")||"practice"; $("env").onchange=()=>{LS("bs_env",$("env").value);scan()}; }
+if($("saveTok")) $("saveTok").onclick=()=>{const t=$("tok").value.trim();LS("bs_tok",t);const b=$("saveTok");b.style.background="#2e9a69";b.style.borderColor="#2e9a69";b.style.color="#fff";b.textContent=T().btnSaved;setTimeout(()=>{b.style.background="var(--card2)";b.style.borderColor="var(--bd)";b.style.color="var(--tx)";b.textContent=T().btnSave;},2500);scan();};
+["h1s","rsiL","rsiS","only"].forEach(i=>{
+    const v=LS("bs_"+i);
+    const el = $(i);
+    if(v!=null && el){
+        el.type==="checkbox" ? el.checked=v==="true" : el.value=v;
+    }
+});
+
+if("serviceWorker"in navigator){const hadCtl=!!navigator.serviceWorker.controller;let rl=false;
+navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventListener("visibilitychange",()=>{if(!document.hidden)g.update()})}).catch(()=>{});
+navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
+setText("ver", "v"+BUILD); setText("verl", (currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD);
+
+setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
+setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
+
+updateUnreadBadge(); // بعد از باز کردن اپ، شمارنده ذخیره‌شده فوراً نمایش داده شود
+
+if($("showHist")) $("showHist").onclick = async () => {
+    // اول سیگنال‌های ثبت‌شده توسط سرویس پس‌زمینه را بگیر، بعد شمارنده را صفر کن
+    try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
+    UNREAD = 0;
+    LS("bs_unread", 0);
+    updateUnreadBadge();
+
+    const modal = $("histModal");
+    const list = $("histList");
+    if(modal) modal.style.display = "block";
+    if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);">${T().histLoading}</div>`;
+
+    try {
+        try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
+        let remote = [], remoteFailed = false;
+        try { const data = await fetchGitJson('history.json'); remote = data.history || []; } catch (e) { remoteFailed = true; }
+
+        const todayStart = new Date();
+        todayStart.setHours(0,0,0,0);
+        const todayTs = todayStart.getTime() / 1000;
+
+        const todaysSignals = remote.filter(h => h.time >= todayTs);
+        loadLocalHist().filter(h => h.time >= todayTs).forEach(l => {
+            const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side && Math.abs(h.time - l.time) <= 900);
+            if (!dup) todaysSignals.push(l);
+        });
+        if (todaysSignals.length === 0 && remoteFailed) {
+            if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
+            return;
+        }
+        
+        if (todaysSignals.length === 0) {
+            if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
+            return;
+        }
+
+        todaysSignals.sort((a,b) => b.time - a.time);
+
+        if(list) list.innerHTML = todaysSignals.map(s => {
+            const isL = s.side === "LONG";
+            const date = new Date(s.time * 1000);
+            const timeStr = date.toLocaleTimeString(currentLang==='fa'?"fa-IR":"en-US", {hour: '2-digit', minute:'2-digit'});
+            
+            let checksHtml = '';
+            if (s.checks && s.checks.length > 0) {
+                const countBadge = `<span style="font-size:10px; background:var(--gb); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold; direction:ltr; margin-left: 5px;">${s.totalConds}/${s.totalConds}</span>`;
+                
+                checksHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; direction:ltr; align-items:center;">
+                    ${countBadge}` + 
+                    s.checks.map(c => `
+                        <span style="font-size:10px; padding:2px 6px; border-radius:4px; 
+                            background:rgba(46,154,105,0.15); 
+                            color:var(--gb); 
+                            border:1px solid rgba(46,154,105,0.3);"
+                            title="${trFail(c.l)}">
+                            ✓ ${trFail(c.l).split(' ')[0]}
+                        </span>`).join('') + `</div>`;
+            }
+
+            return `
+            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
+                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
+                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${typeof s.entry === 'number' ? s.entry.toFixed(s.d || 5) : '-'}</b></span>
+                        <span style="color:var(--mu);">${timeStr}</span>
+                    </div>
+                </div>
+                ${checksHtml}
+            </div>`;
+        }).join("");
+
+    } catch(e) {
+        if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
+    }
+};
+if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
+
+try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
+
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // 🛰️ اسکن پس‌زمینه بومی (سرویس پیش‌زمینه اندروید)
+  (function initBgScan() {
+    const cb = document.getElementById('bgscan');
+    const P = window.Capacitor && window.Capacitor.Plugins;
+    const native = !!(P && P.BackgroundScanner);
+    if (!cb) return;
+    if (!native) { cb.disabled = true; cb.checked = false; return; } // مرورگر/PWA
+    const on = () => { window.__bgNative = true; };
+    async function startBg(askBattery) {
+      try { if (P.LocalNotifications) await P.LocalNotifications.requestPermissions(); } catch (e) {}
+      try {
+        await P.BackgroundScanner.start();
+        on();
+        if (askBattery && !localStorage.getItem('bs_batt_asked')) {
+          localStorage.setItem('bs_batt_asked', '1');
+          await P.BackgroundScanner.requestBatteryExemption(); // برای جلوگیری از قطع شدن در حالت Doze
+        }
+      } catch (e) { console.warn('BackgroundScanner start failed', e); cb.checked = false; localStorage.setItem('bs_bgscan', 'false'); window.__bgNative = false; }
+    }
+    cb.checked = localStorage.getItem('bs_bgscan') !== 'false'; // پیش‌فرض: روشن
+    if (cb.checked) startBg(true);
+    async function pullNative() {
+      try {
+        const res = await P.BackgroundScanner.getSignals();
+        const arr = JSON.parse(res.signals || '[]');
+        const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
+        const fresh = arr.filter(x => x && x.k && !have.has(x.k));
+        if (!fresh.length) return;
+        fresh.forEach(x => loc.push(x));
+        saveLocalHist(loc);
+        UNREAD += fresh.length; LS('bs_unread', UNREAD); updateUnreadBadge();
+        try { beep(); } catch (e) {}
+        try { banner(fresh.map(x => ({ id: x.id, mode: x.mode, side: x.side }))); } catch (e) {}
+      } catch (e) { console.warn('pullNative', e); }
+    }
+    window.__pullNative = pullNative;
+    pullNative();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pullNative(); });
+    const info = document.getElementById('bgInfo'), chk = document.getElementById('bgCheck');
+    const ageMin = (t) => {
+      if (t === undefined || t === null || t === '' || t === 'null') return null;
+      let ms = (typeof t === 'number' || /^\d+(\.\d+)?$/.test(String(t))) ? Number(t) : Date.parse(t);
+      if (!isFinite(ms)) return null;
+      if (ms < 1e12) ms *= 1000;
+      return Math.round((Date.now() - ms) / 60000);
+    };
+    async function showStatus() {
+      if (!info) return;
+      try {
+        const st = await P.BackgroundScanner.getStatus();
+        let d = {}; try { d = JSON.parse(st.diag || '{}'); } catch (e) {}
+        const lines = [
+          'سرویس: ' + (st.enabled ? 'روشن ✅' : 'خاموش ❌') + ' · اعلان‌ها: ' + (st.notificationsEnabled ? 'مجاز ✅' : 'بسته ❌ (از تنظیمات گوشی باز کن)')
+        ];
+        if (d.last_run) {
+          const a = ageMin(d.data_time);
+          lines.push('آخرین اسکن: ' + d.last_run + (d.fetch_ok ? '' : ' · دریافت data.json ناموفق ❌'));
+          lines.push('ردیف‌ها: ' + d.rows + ' · دارای سیگنال: ' + d.with_side + ' · تازه: ' + d.fresh + ' · قدیمی‌شده: ' + d.stale);
+          lines.push('سن data.json: ' + (a === null ? 'نامشخص (' + d.data_time + ')' : a + ' دقیقه') );
+        } else lines.push('هنوز اسکنی انجام نشده');
+        info.innerHTML = lines.join('<br>');
+      } catch (e) { info.textContent = 'خطا: ' + (e.message || e); }
+    }
+    if (chk) chk.onclick = async () => {
+      info.textContent = 'در حال اسکن…';
+      try { await P.BackgroundScanner.scanNow(); } catch (e) {}
+      setTimeout(showStatus, 5000);
+    };
+    showStatus();
+    cb.onchange = async () => {
+      localStorage.setItem('bs_bgscan', cb.checked);
+      if (cb.checked) { await startBg(true); }
+      else { window.__bgNative = false; try { await P.BackgroundScanner.stop(); } catch (e) {} }
+    };
+  })();
+
+  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
+    const { LocalNotifications } = window.Capacitor.Plugins;
+    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
+    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
+  }
+});
+</script>
+<script id="hardcoded-settings">
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const ghr = document.getElementById('ghr');
+      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
+        ghr.value = 'massud2020/Balanced-Screener';
+        ghr.dispatchEvent(new Event('change')); 
+      }
+      
+      const ght = document.getElementById('ght');
+      if (ght && !ght.value) {
+        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
+        ght.dispatchEvent(new Event('change')); 
+      }
+    }, 800); 
+  });
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            reg.update();
+        }).catch(err => console.warn('SW registration
