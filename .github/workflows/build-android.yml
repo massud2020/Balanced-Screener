@@ -9,6 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -734,6 +736,38 @@ jobs:
           cat node_modules/capacitor-edge-tts/dist/esm/definitions.d.ts 2>/dev/null | head -120 || true
           echo "=== README ==="
           head -150 node_modules/capacitor-edge-tts/README.md || true
+
+      # امضای ثابت: هر بیلد با همان کلید امضا می‌شود تا اپ بدون حذف و نصب دوباره آپدیت شود
+      - name: Persistent signing key
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          mkdir -p ~/.android .ci
+          if [ -z "$KEYSTORE_PASS" ]; then
+            echo "::warning::Secret KEYSTORE_PASS is not set. A temporary key is used, so updating the app will require uninstalling it first."
+            exit 0
+          fi
+          if [ -f .ci/debug.keystore.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .ci/debug.keystore.enc -out ~/.android/debug.keystore -pass env:KEYSTORE_PASS
+            echo "Using stored signing key"
+          else
+            echo "Creating signing key (first time only)"
+            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 36500 -dname "CN=Android Debug,O=Android,C=US"
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in ~/.android/debug.keystore -out .ci/debug.keystore.enc -pass env:KEYSTORE_PASS
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .ci/debug.keystore.enc
+            git commit -m "ci: store signing key [skip ci]"
+            git pull --rebase origin main || true
+            git push origin HEAD:main || echo "::warning::Could not push the key; the next build will create a new one (reinstall needed)."
+          fi
+
+      # هر بیلد versionCode بزرگ‌تری دارد تا اندروید آن را به‌عنوان آپدیت بپذیرد
+      - name: Set versionCode
+        working-directory: android
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" app/build.gradle
+          grep -n "versionCode\|versionName" app/build.gradle
 
       # ارتقای Gradle: خطای ASM ClassReader یعنی Gradle فعلی نمی‌تواند نسخه کلاس یکی از jarها را بخواند
       - name: Upgrade Gradle Wrapper
