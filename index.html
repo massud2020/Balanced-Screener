@@ -484,6 +484,27 @@ try {
     const r = parseInt(LS("bs_tts_rate")); if (!isNaN(r)) TTS_CFG.rate = r;
     const m = LS("bs_tts_mode"); if (m) TTS_CFG.mode = m;
 } catch (e) {}
+function ttsExtractAudio(res) {
+    if (!res) return null;
+    if (typeof res === 'string') res = { audio: res };
+    if (typeof res !== 'object') return null;
+    const mime = res.mimeType || res.mime || res.contentType || 'audio/mpeg';
+    for (const k of ['audio', 'audioBase64', 'base64', 'audioData', 'data', 'content']) {
+        const v = res[k];
+        if (typeof v === 'string' && v.length > 200) {
+            return v.startsWith('data:') ? v : 'data:' + mime + ';base64,' + v;
+        }
+    }
+    for (const k of ['uri', 'url', 'path', 'filePath', 'file', 'audioPath']) {
+        const v = res[k];
+        if (typeof v === 'string' && v) {
+            if (/^(https?:|data:|blob:)/.test(v)) return v;
+            const cap = window.Capacitor;
+            return cap && cap.convertFileSrc ? cap.convertFileSrc(v) : v;
+        }
+    }
+    return null;
+}
 function ttsRateVariants() {
     const n = TTS_CFG.rate;
     const all = {
@@ -498,49 +519,61 @@ function ttsRateVariants() {
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
     if (!text) return;
-    let _err = null;
+    let _err = null, _info = "";
     const mark = (eng) => {
         window.__tts = eng;
         const el = document.getElementById("ttsInfo");
-        if (el) el.textContent = eng + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 160) : "");
+        if (el) el.textContent = eng + (_info ? " ✓ " + _info : "") + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 160) : "");
     };
     
     // 1. تلاش برای استفاده از پلاگین EdgeTTS
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
-            if (typeof EdgeTTS.speak !== 'function') {
-                // متدهای واقعی ثبت‌شده در پلاگین را پیدا کن تا معلوم شود API چیست
+            const fn = typeof EdgeTTS.synthesize === 'function' ? 'synthesize'
+                     : (typeof EdgeTTS.speak === 'function' ? 'speak' : null);
+            if (!fn) {
                 const hdr = (window.Capacitor.PluginHeaders || []).find(h => h.name === 'EdgeTTS');
                 const names = hdr ? hdr.methods.map(m => m.name).join(',') : Object.keys(EdgeTTS).join(',');
                 throw new Error('EdgeTTS methods: [' + names + ']');
             }
             const fa = currentLang === 'fa';
+            const lang = fa ? 'fa-IR' : 'en-US';
             const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
-            // چند ترکیب (صدا × فرمت سرعت) را به‌ترتیب امتحان می‌کند تا اولی که کار کرد
-            const rates = ttsRateVariants();
-            let lastErr = null, ok = false;
-            outer: for (const voice of voices) {
-                for (const rate of rates) {
-                    const t0 = Date.now();
-                    try {
-                        await EdgeTTS.speak({
-                            text: text,
-                            lang: fa ? 'fa-IR' : 'en-US',
-                            voice: voice,
-                            rate: rate,
-                            pitch: TTS_CFG.pitch,
-                            volume: 1
+            let lastErr = null;
+            for (const voice of voices) {
+                const t0 = Date.now();
+                try {
+                    // نام پارامترها را با چند نام رایج می‌فرستیم؛ کلیدهای ناشناس نادیده گرفته می‌شوند
+                    const res = await EdgeTTS[fn]({
+                        text: text,
+                        voice: voice, voiceName: voice, voiceId: voice, shortName: voice,
+                        lang: lang, locale: lang, language: lang
+                    });
+                    const src = ttsExtractAudio(res);
+                    if (src) {
+                        // سرعت را خودمان روی پخش اعمال می‌کنیم (مستقل از پلاگین، با حفظ زیر و بمی)
+                        await new Promise((resolve, reject) => {
+                            const au = new Audio(src);
+                            au.playbackRate = 1 + TTS_CFG.rate / 100;
+                            au.preservesPitch = true; au.webkitPreservesPitch = true;
+                            au.onended = resolve;
+                            au.onerror = () => reject(new Error('audio decode failed'));
+                            au.play().catch(reject);
                         });
-                        ok = true; break outer;
-                    } catch (e) {
-                        lastErr = e;
-                        if (Date.now() - t0 > 2500) { ok = true; break outer; } // صدا پخش شده بود
+                        _info = "synthesize→audio ✓";
+                        mark("Edge"); return;
                     }
+                    // صدایی برنگشت: یا پلاگین خودش پخش کرده، یا خروجی را نمی‌شناسیم
+                    if (Date.now() - t0 > 1200) { _info = "plugin played natively"; mark("Edge"); return; }
+                    const keys = res && typeof res === 'object' ? Object.keys(res).join(',') : typeof res;
+                    throw new Error('synthesize result keys: [' + keys + ']');
+                } catch (e) {
+                    lastErr = e;
+                    if (Date.now() - t0 > 4000) { mark("Edge"); return; } // احتمالاً پخش شده بود
                 }
             }
-            if (!ok) throw lastErr || new Error("EdgeTTS failed");
-            mark("Edge"); return; // اگر موفق بود، خروج
+            throw lastErr || new Error("EdgeTTS failed");
         } catch (e) {
             _err = e; console.warn("EdgeTTS Plugin Error:", e);
         }
