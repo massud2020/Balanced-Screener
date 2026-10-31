@@ -287,6 +287,10 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
   <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
   <label><span>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</span><select id="ttsMode"><option value="string">+٪ متنی</option><option value="number">عدد</option><option value="multiplier">ضریب (۱.۳)</option></select></label>
+  <label><span>موتور صدا</span><select id="ttsEngine"><option value="android">اندروید (رایگان، نامحدود)</option><option value="auto">خودکار (Edge اگر کار کرد)</option></select></label>
+  <label><span>صدای فارسی گوشی</span><select id="ttsVoice" style="max-width:60%"><option value="">پیش‌فرض گوشی</option></select></label>
+  <label><span>زیر و بمی: <b id="ttsPitchVal">1.0</b></span><input type="range" id="ttsPitch" min="0.6" max="1.3" step="0.05" value="1" style="width:55%"></label>
+  <label><span>بهبود کیفیت صدا<small style="display:block;white-space:normal">بسته صدای فارسی Google را نصب یا به‌روز کن</small></span><button id="ttsInstall">نصب صدا</button></label>
   <label><span>موتور صدای استفاده‌شده در آخرین تست</span><b id="ttsInfo" style="font-size:12px;max-width:55%;word-break:break-word">—</b></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
   
@@ -477,7 +481,9 @@ function updateUnreadBadge() {
 const TTS_CFG = {
     rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
     mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
-    pitch: 0,    // زیر و بمی
+    engine: 'android', // android = موتور خود گوشی (رایگان و نامحدود) | auto = اول Edge
+    pitch: 1.0,
+    voiceIndex: -1,
     faVoices: ['fa-IR-FaridNeural'],
     enVoices: ['en-US-AndrewMultilingualNeural', 'en-US-BrianMultilingualNeural', 'en-US-GuyNeural']
 };
@@ -485,6 +491,9 @@ const TTS_CFG = {
 try {
     const r = parseInt(LS("bs_tts_rate")); if (!isNaN(r)) TTS_CFG.rate = r;
     const m = LS("bs_tts_mode"); if (m) TTS_CFG.mode = m;
+    const en = LS("bs_tts_engine"); if (en) TTS_CFG.engine = en;
+    const pt = parseFloat(LS("bs_tts_pitch")); if (!isNaN(pt)) TTS_CFG.pitch = pt;
+    const vi = parseInt(LS("bs_tts_voice")); if (!isNaN(vi)) TTS_CFG.voiceIndex = vi;
 } catch (e) {}
 function ttsExtractAudio(res) {
     if (!res) return null;
@@ -528,8 +537,9 @@ async function speakAI(text) {
         if (el) el.textContent = eng + (_info ? " ✓ " + _info : "") + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 160) : "");
     };
     
+    const _native = TTS_CFG.engine === 'android';
     // 1. تلاش برای استفاده از پلاگین EdgeTTS
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
+    if (!_native && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
         try {
             const { EdgeTTS } = window.Capacitor.Plugins;
             const fn = typeof EdgeTTS.synthesize === 'function' ? 'synthesize'
@@ -582,7 +592,7 @@ async function speakAI(text) {
     }
 
     // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
-    try {
+    if (!_native) try {
         const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-GuyNeural';
         const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
         const audio = new Audio(url);
@@ -603,14 +613,43 @@ async function speakAI(text) {
             await TextToSpeech.speak({
                 text: text,
                 lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
-                rate: Math.min(2, 1 + TTS_CFG.rate / 100), pitch: 1.0, volume: 1.0, category: 'ambient'
+                rate: Math.min(2, 1 + TTS_CFG.rate / 100), pitch: TTS_CFG.pitch, volume: 1.0, category: 'ambient',
+                ...(TTS_CFG.voiceIndex >= 0 ? { voice: TTS_CFG.voiceIndex } : {})
             });
-            mark("Android"); return; 
+            _info = "voice " + (TTS_CFG.voiceIndex >= 0 ? TTS_CFG.voiceIndex : "default") + " · rate " + (1 + TTS_CFG.rate / 100).toFixed(2); mark("Android"); return; 
         } catch (e) {
             console.warn("Native TTS Error:", e);
         }
     }
 }
+
+(function initTtsExtra() {
+    const eng = document.getElementById("ttsEngine"), vs = document.getElementById("ttsVoice");
+    const pt = document.getElementById("ttsPitch"), pv = document.getElementById("ttsPitchVal"), ins = document.getElementById("ttsInstall");
+    if (eng) { eng.value = TTS_CFG.engine; eng.onchange = () => { TTS_CFG.engine = eng.value; LS("bs_tts_engine", eng.value); }; }
+    if (pt) { pt.value = TTS_CFG.pitch; if (pv) pv.textContent = TTS_CFG.pitch.toFixed(2);
+        pt.oninput = () => { TTS_CFG.pitch = parseFloat(pt.value); if (pv) pv.textContent = TTS_CFG.pitch.toFixed(2); LS("bs_tts_pitch", pt.value); }; }
+    const TT = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+    if (ins) ins.onclick = async () => { try { await TT.openInstall(); } catch (e) { alert("نصب صدا: Settings ▸ System ▸ Languages ▸ Text-to-speech output را باز کن"); } };
+    async function fillVoices() {
+        if (!TT || !vs) return;
+        try {
+            const r = await TT.getSupportedVoices();
+            const list = (r && r.voices) || [];
+            vs.innerHTML = '<option value="">پیش‌فرض گوشی</option>';
+            list.forEach((v, i) => {
+                const lang = String(v.lang || "");
+                if (!/^fa|^en/i.test(lang)) return;           // فقط فارسی/انگلیسی
+                const o = document.createElement("option");
+                o.value = i; o.textContent = (v.name || ("voice " + i)) + " · " + lang;
+                vs.appendChild(o);
+            });
+            vs.value = TTS_CFG.voiceIndex >= 0 ? String(TTS_CFG.voiceIndex) : "";
+            vs.onchange = () => { TTS_CFG.voiceIndex = vs.value === "" ? -1 : parseInt(vs.value); LS("bs_tts_voice", vs.value === "" ? "-1" : vs.value); };
+        } catch (e) { console.warn("getSupportedVoices", e); }
+    }
+    fillVoices();
+})();
 
 (function initTtsUi() {
     const sl = document.getElementById("ttsRate"), sv = document.getElementById("ttsRateVal"), md = document.getElementById("ttsMode");
@@ -650,7 +689,7 @@ async function typeText(elementId, text, speed = 40) {
 async function speakAndType(elementId, text) {
     const _wait = ms => new Promise(r => setTimeout(r, ms));
     const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); // کاراکتر در ثانیه
-    const lead = 900;                                // تأخیر ساخت صدا (ms)
+    const lead = TTS_CFG.engine === 'android' ? 250 : 900; // تأخیر شروع صدا (ms)
     const estMs = Math.max(1200, text.length / cps * 1000);
     const t0 = Date.now();
     const sp = speakAI(text).catch(() => {});
@@ -919,6 +958,26 @@ if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)re
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
+// 📒 تاریخچه محلی سیگنال‌ها (برای دکمه 📅 «سیگنال‌های امروز»)
+const HISTL_KEY = "bs_hist_local";
+function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
+function saveLocalHist(a) {
+    const lim = Date.now() / 1000 - 3 * 86400;
+    LS(HISTL_KEY, JSON.stringify(a.filter(x => x && x.time >= lim).slice(-300)));
+}
+function recordLocal(rows) {
+    try {
+        const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
+        rows.forEach(r => {
+            const k = r.id + "|" + r.side + "|" + (r.bt ? r.bt : "nobt");
+            if (have.has(k)) return;
+            loc.push({ id: r.id, side: r.side, entry: typeof r.entry === "number" ? r.entry : undefined,
+                       sl: r.sl, d: r.d, mode: r.mode, time: r.bt ? r.bt + 300 : Math.floor(Date.now() / 1000), k: k });
+        });
+        saveLocalHist(loc);
+    } catch (e) { console.warn("recordLocal", e); }
+}
+
 async function scan(isAISilent = false) {
   if (busy) return; 
   busy = true;
@@ -983,6 +1042,7 @@ async function scan(isAISilent = false) {
     LS("bs_seen", JSON.stringify(seen));
     
     if (fresh.length) {
+        recordLocal(fresh);
         UNREAD += fresh.length;
         LS("bs_unread", UNREAD);
         updateUnreadBadge();
@@ -1308,13 +1368,23 @@ if($("showHist")) $("showHist").onclick = async () => {
     if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);">${T().histLoading}</div>`;
 
     try {
-        const data = await fetchGitJson('history.json');
-        
+        try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
+        let remote = [], remoteFailed = false;
+        try { const data = await fetchGitJson('history.json'); remote = data.history || []; } catch (e) { remoteFailed = true; }
+
         const todayStart = new Date();
         todayStart.setHours(0,0,0,0);
         const todayTs = todayStart.getTime() / 1000;
-        
-        const todaysSignals = (data.history || []).filter(h => h.time >= todayTs);
+
+        const todaysSignals = remote.filter(h => h.time >= todayTs);
+        loadLocalHist().filter(h => h.time >= todayTs).forEach(l => {
+            const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side && Math.abs(h.time - l.time) <= 900);
+            if (!dup) todaysSignals.push(l);
+        });
+        if (todaysSignals.length === 0 && remoteFailed) {
+            if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
+            return;
+        }
         
         if (todaysSignals.length === 0) {
             if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
@@ -1352,7 +1422,7 @@ if($("showHist")) $("showHist").onclick = async () => {
                         <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
-                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${s.entry.toFixed(s.d)}</b></span>
+                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${typeof s.entry === 'number' ? s.entry.toFixed(s.d || 5) : '-'}</b></span>
                         <span style="color:var(--mu);">${timeStr}</span>
                     </div>
                 </div>
@@ -1392,6 +1462,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     cb.checked = localStorage.getItem('bs_bgscan') !== 'false'; // پیش‌فرض: روشن
     if (cb.checked) startBg(true);
+    async function pullNative() {
+      try {
+        const res = await P.BackgroundScanner.getSignals();
+        const arr = JSON.parse(res.signals || '[]');
+        const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
+        const fresh = arr.filter(x => x && x.k && !have.has(x.k));
+        if (!fresh.length) return;
+        fresh.forEach(x => loc.push(x));
+        saveLocalHist(loc);
+        UNREAD += fresh.length; LS('bs_unread', UNREAD); updateUnreadBadge();
+        try { beep(); } catch (e) {}
+        try { banner(fresh.map(x => ({ id: x.id, mode: x.mode, side: x.side }))); } catch (e) {}
+      } catch (e) { console.warn('pullNative', e); }
+    }
+    window.__pullNative = pullNative;
+    pullNative();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pullNative(); });
     const info = document.getElementById('bgInfo'), chk = document.getElementById('bgCheck');
     const ageMin = (t) => {
       if (t === undefined || t === null || t === '' || t === 'null') return null;
