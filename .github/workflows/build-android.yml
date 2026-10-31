@@ -289,6 +289,7 @@ jobs:
                           PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
                   SimpleDateFormat tf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
                   List<String> lines = new ArrayList<String>();
+                  List<JSONObject> histAdd = new ArrayList<JSONObject>();
                   int shown = 0;
                   for (JSONObject r : fresh) {
                       String id = r.optString("id", "?");
@@ -299,6 +300,21 @@ jobs:
                       String mode = r.optString("mode", "");
                       long bt = r.optLong("bt", 0L);
                       boolean lg = "LONG".equalsIgnoreCase(side);
+                      boolean hasBt2 = r.has("bt") && !r.isNull("bt");
+
+                      JSONObject h = new JSONObject();
+                      h.put("id", id);
+                      h.put("side", side);
+                      h.put("d", d);
+                      h.put("mode", mode);
+                      double ev = r.optDouble("entry", Double.NaN);
+                      if (!Double.isNaN(ev)) h.put("entry", ev);
+                      double sv = r.optDouble("sl", Double.NaN);
+                      if (!Double.isNaN(sv)) h.put("sl", sv);
+                      h.put("time", hasBt2 ? bt + 300L : ns);
+                      h.put("k", id + "|" + side + "|" + (hasBt2 ? String.valueOf(bt) : "nobt"));
+                      h.put("ts", ns);
+                      histAdd.add(h);
 
                       lines.add(tf.format(new Date()) + "," + id + "," + side + "," + entry + "," + sl + ","
                               + mode + "," + (bt > 0 ? tf.format(new Date(bt * 1000L)) : ""));
@@ -317,6 +333,22 @@ jobs:
                                   .build();
                           nm.notify((id + side + bt).hashCode(), n);
                       }
+                  }
+                  try {
+                      JSONArray hist;
+                      try {
+                          hist = new JSONArray(sp.getString("hist", "[]"));
+                      } catch (Exception e) {
+                          hist = new JSONArray();
+                      }
+                      JSONArray out = new JSONArray();
+                      for (int i = 0; i < hist.length(); i++) {
+                          JSONObject o = hist.optJSONObject(i);
+                          if (o != null && ns - o.optLong("ts", ns) <= 86400L) out.put(o);
+                      }
+                      for (JSONObject h : histAdd) out.put(h);
+                      sp.edit().putString("hist", out.toString()).apply();
+                  } catch (Exception ignore) {
                   }
                   SignalLog.append(this, lines);
               }
@@ -524,6 +556,13 @@ jobs:
                   } catch (Exception e) {
                       call.reject("scanNow failed: " + e.getMessage());
                   }
+              }
+
+              @PluginMethod
+              public void getSignals(PluginCall call) {
+                  JSObject r = new JSObject();
+                  r.put("signals", getContext().getSharedPreferences(ScanService.PREFS, 0).getString("hist", "[]"));
+                  call.resolve(r);
               }
 
               @PluginMethod
