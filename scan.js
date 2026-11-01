@@ -369,17 +369,24 @@ async function once(now) {
 if (require.main === module) (async () => {
   console.log("Settings:", JSON.stringify({
     modes: MODES, m15: F15, h1: FH1, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, strict: STRICT,
-    telegram: !!(process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_CHAT_ID), signalsThread: !!TH_SIG, alertsThread: !!TH_ALR
+    telegram: !!(process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_CHAT_ID), signalsThread: !!TH_SIG, alertsThread: !!TH_ALR,
+    loopSec: LOOP, intervalMs: IV
   }));
   const t0 = Date.now();
-  let k = 0;
+  // LOOP=0 → یک‌بار اسکن و خروج | LOOP>0 → حداکثر LOOP ثانیه، هر INTERVAL یک اسکن
   for (;;) {
     try { await once(Date.now() / 1000); } catch (e) { console.error("scan failed", e.message); }
-    if (!LOOP) break;
-    k++;
-    const wait = Math.max(0, IV - (Date.now() - t0 - k * IV));
+    if (!LOOP) break; // فقط یک پاس
+    const elapsed = Date.now() - t0;
+    if (elapsed >= LOOP * 1000) {
+      console.log(`Loop finished after ${(elapsed/1000).toFixed(0)}s (limit ${LOOP}s)`);
+      break;
+    }
+    const wait = Math.min(IV, Math.max(0, LOOP * 1000 - elapsed));
+    if (wait <= 0) break;
     await sleep(wait);
   }
+  console.log("Scanner process exiting cleanly.");
 })();
 
 if (require.main !== module) module.exports = { once, getState: () => STATE, setState: x => { STATE = x; } };
