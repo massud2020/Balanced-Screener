@@ -227,15 +227,16 @@ body[dir="ltr"] .ci { direction: ltr; }
 <body>
 
 <div id="ai-splash">
-    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant">
-    <div class="ai-text" id="ai-text">برای شروع لطفاً کلیک کنید...</div>
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
+    <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
+    <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
-    
-    <button id="start-ai-btn" class="big-scan" onclick="window.startApp()" style="margin-top:20px; width:200px; z-index: 10000; position: relative; pointer-events: auto;">شروع (Start)</button>
-    <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:15px; background:transparent; border:1px solid var(--mu); color:var(--tx2); padding:8px 20px; border-radius:99px; font-size:13px; z-index: 10000; position: relative; pointer-events: auto;">رد کردن (Skip)</button>
-    
-    <div id="debug-err" style="color:var(--rb); font-size:11px; position:absolute; bottom:10px; direction:ltr; z-index:99999; text-align:center; width:100%; padding:0 10px; word-break:break-all;"></div>
-    <div style="color:var(--mu); font-size:10px; position:absolute; bottom:30px; z-index:99999; width:100%; text-align:center;">Version 63 - Edge TTS</div>
+    <button id="start-ai-btn" class="big-scan" onclick="window.startApp()" style="margin-top:22px;width:min(240px,80%);z-index:10000;position:relative;pointer-events:auto">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10000;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
+    <label style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
+      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> بدون صدا
+    </label>
+    <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
 
 <header class="bar">
@@ -304,7 +305,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span>زیر و بمی: <b id="ttsPitchVal">1.0</b></span><input type="range" id="ttsPitch" min="0.6" max="1.3" step="0.05" value="1" style="width:55%"></label>
   <label><span>بهبود کیفیت صدا<small style="display:block;white-space:normal">بسته صدای فارسی Google را نصب یا به‌روز کن</small></span><button id="ttsInstall">نصب صدا</button></label>
   <label><span>موتور صدای استفاده‌شده در آخرین تست</span><b id="ttsInfo" style="font-size:12px;max-width:55%;word-break:break-word">—</b></label>
-  <label><span id="setNotifVoiceToggle">اعلام صوتی نام نماد</span><input type="checkbox" id="sp" checked></label>
+  <label><span id="setNotifVoiceToggle">اعلام صوتی نماد<small>انگلیسی · بدون نیاز به TTS فارسی</small></span><input type="checkbox" id="sp" checked></label>
   
   <label><span>اسکن پس‌زمینه + آلارم<small>حتی با اپ بسته · ثبت در Documents/Signals</small></span><input type="checkbox" id="bgscan"></label>
   <label><span>وضعیت اسکن پس‌زمینه<small id="bgInfo" style="display:block;white-space:normal;line-height:1.7">—</small></span><button id="bgCheck">بررسی</button></label>
@@ -407,7 +408,7 @@ const I18N = {
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
     fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "سیگنال باز / کول‌داون",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
-    ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد.", ai_ready: "برای شروع لطفاً کلیک کنید..."
+    ai_welcome: "خوش آمدید", ai_scan: "در حال اسکن…", ai_trend: "رژیم: روند", ai_range: "رژیم: رنج", ai_ready: "برای ورود ضربه بزنید"
   },
   en: {
     scan: "Scan", settings: "Settings", history: "History",
@@ -436,7 +437,7 @@ const I18N = {
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
     fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "Open signal / cooldown",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
-    ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated.", ai_ready: "Tap to start..."
+    ai_welcome: "Welcome", ai_scan: "Scanning…", ai_trend: "Regime: Trend", ai_range: "Regime: Range", ai_ready: "Tap to enter"
   }
 };
 
@@ -578,98 +579,10 @@ function ttsRateVariants() {
 
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function speakAI(text) {
-    if (!text) return;
-    let _err = null, _info = "";
-    const mark = (eng) => {
-        window.__tts = eng;
-        const el = document.getElementById("ttsInfo");
-        if (el) el.textContent = eng + (_info ? " ✓ " + _info : "") + (_err ? " ⚠ " + String(_err.message || _err).slice(0, 160) : "");
-    };
-    
-    const _native = TTS_CFG.engine === 'android';
-    // 1. تلاش برای استفاده از پلاگین EdgeTTS
-    if (!_native && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.EdgeTTS) {
-        try {
-            const { EdgeTTS } = window.Capacitor.Plugins;
-            const fn = typeof EdgeTTS.synthesize === 'function' ? 'synthesize'
-                     : (typeof EdgeTTS.speak === 'function' ? 'speak' : null);
-            if (!fn) {
-                const hdr = (window.Capacitor.PluginHeaders || []).find(h => h.name === 'EdgeTTS');
-                const names = hdr ? hdr.methods.map(m => m.name).join(',') : Object.keys(EdgeTTS).join(',');
-                throw new Error('EdgeTTS methods: [' + names + ']');
-            }
-            const fa = currentLang === 'fa';
-            const lang = fa ? 'fa-IR' : 'en-US';
-            const voices = fa ? TTS_CFG.faVoices : TTS_CFG.enVoices;
-            let lastErr = null;
-            for (const voice of voices) {
-                const t0 = Date.now();
-                try {
-                    // نام پارامترها را با چند نام رایج می‌فرستیم؛ کلیدهای ناشناس نادیده گرفته می‌شوند
-                    const res = await EdgeTTS[fn]({
-                        text: text,
-                        voice: voice, voiceName: voice, voiceId: voice, shortName: voice,
-                        lang: lang, locale: lang, language: lang
-                    });
-                    const src = ttsExtractAudio(res);
-                    if (src) {
-                        // سرعت را خودمان روی پخش اعمال می‌کنیم (مستقل از پلاگین، با حفظ زیر و بمی)
-                        await new Promise((resolve, reject) => {
-                            const au = new Audio(src);
-                            au.playbackRate = 1 + TTS_CFG.rate / 100;
-                            au.preservesPitch = true; au.webkitPreservesPitch = true;
-                            au.onended = resolve;
-                            au.onerror = () => reject(new Error('audio decode failed'));
-                            au.play().catch(reject);
-                        });
-                        _info = "synthesize→audio ✓";
-                        mark("Edge"); return;
-                    }
-                    // صدایی برنگشت: یا پلاگین خودش پخش کرده، یا خروجی را نمی‌شناسیم
-                    if (Date.now() - t0 > 1200) { _info = "plugin played natively"; mark("Edge"); return; }
-                    const keys = res && typeof res === 'object' ? Object.keys(res).join(',') : typeof res;
-                    throw new Error('synthesize result keys: [' + keys + ']');
-                } catch (e) {
-                    lastErr = e;
-                    if (Date.now() - t0 > 4000) { mark("Edge"); return; } // احتمالاً پخش شده بود
-                }
-            }
-            throw lastErr || new Error("EdgeTTS failed");
-        } catch (e) {
-            _err = e; console.warn("EdgeTTS Plugin Error:", e);
-        }
-    }
-
-    // 2. اگر پلاگین نبود یا خطا داد، از API استریم المنتس (پروکسی وب) استفاده کن
-    if (!_native) try {
-        const voice = currentLang === 'fa' ? 'fa-IR-FaridNeural' : 'en-US-GuyNeural';
-        const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
-        const audio = new Audio(url);
-        await new Promise((res, rej) => {
-            audio.onended = res;
-            audio.onerror = () => rej(new Error("audio error"));
-            audio.play().catch(rej);
-        });
-        mark("Web"); return;
-    } catch (e) {
-        _err = _err || e; console.warn("Web EdgeTTS failed, falling back...", e);
-    }
-
-    // 3. در آخرین حالت، از پلاگین کپاسیتور استفاده کن
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-        try {
-            const { TextToSpeech } = window.Capacitor.Plugins;
-            await TextToSpeech.speak({
-                text: text,
-                lang: currentLang === 'fa' ? 'fa-IR' : 'en-US',
-                rate: Math.min(2, 1 + TTS_CFG.rate / 100), pitch: TTS_CFG.pitch, volume: 1.0, category: 'ambient',
-                ...(TTS_CFG.voiceIndex >= 0 ? { voice: TTS_CFG.voiceIndex } : {})
-            });
-            _info = "voice " + (TTS_CFG.voiceIndex >= 0 ? TTS_CFG.voiceIndex : "default") + " · rate " + (1 + TTS_CFG.rate / 100).toFixed(2); mark("Android"); return; 
-        } catch (e) {
-            console.warn("Native TTS Error:", e);
-        }
-    }
+  if (!text) return;
+  if (LS("bs_tts_off") === "1") return;
+  // ساده و پایدار: فقط TTS بومی — بدون Edge و بدون استریم ابری
+  speakNative(String(text));
 }
 
 (function initTtsExtra() {
@@ -707,7 +620,7 @@ async function speakAI(text) {
     if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
 })();
 
-window.testVoice = () => { speakAI("سلام! این یک تست صدای هوش مصنوعی است."); };
+window.testVoice = () => { speakNative("Voice test. Signal long euro, short gold."); };
 
 window.clearCache = async () => {
     const btn = $("upd");
@@ -736,17 +649,12 @@ async function typeText(elementId, text, speed = 40) {
 // - تایپ بعد از تأخیر ساخت صدای ابری شروع می‌شود
 // - تا پایان صدا صبر می‌کند تا جمله بعدی روی آن نیفتد
 async function speakAndType(elementId, text) {
-    const _wait = ms => new Promise(r => setTimeout(r, ms));
-    const cps = (currentLang === 'fa' ? 12 : 14) * (1 + TTS_CFG.rate / 100); // کاراکتر در ثانیه
-    const lead = TTS_CFG.engine === 'android' ? 250 : 900; // تأخیر شروع صدا (ms)
-    const estMs = Math.max(1200, text.length / cps * 1000);
-    const t0 = Date.now();
-    const sp = speakAI(text).catch(() => {});
-    await _wait(lead);
-    await typeText(elementId, text, estMs / Math.max(1, text.length));
-    await sp;
-    const left = lead + estMs - (Date.now() - t0);   // اگر پلاگین زود resolve شد
-    if (left > 0) await _wait(left);
+    // متن و صدا یکسان — برای TTS پایدار از عبارت انگلیسی جدا استفاده کنید
+    const el = $(elementId);
+    if (el) el.textContent = text;
+    const mute = ($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1";
+    if (mute || LS("bs_tts_off") === "1") return;
+    try { speakNative(text); } catch (e) {}
 }
 
 function detectMarketRegime() {
@@ -767,59 +675,66 @@ window.hideSplash = () => {
     const splash = $("ai-splash");
     if (splash) {
         splash.classList.add("hidden");
-        setTimeout(() => splash.style.display = "none", 600);
+        setTimeout(() => { splash.style.display = "none"; }, 350);
     }
-    if (LAST) renderList();
+    if (LAST) try { renderList(); } catch(e) {}
 };
+// اگر قبلاً وارد شده، اسپلش را نشان نده
+(function autoSkipSplash(){
+  try {
+    if (LS("bs_splash_seen") === "1") {
+      const s = document.getElementById("ai-splash");
+      if (s) { s.style.display = "none"; s.classList.add("hidden"); }
+    }
+  } catch(e) {}
+})();
 
 window.startApp = async () => {
-    const t = T();
     const startBtn = $("start-ai-btn");
     const skipBtn = $("skip-ai-btn");
     const loading = $("ai-loading");
-    
-    if(startBtn) {
-        startBtn.textContent = "در حال شروع...";
-        startBtn.disabled = true;
-    }
-    if(skipBtn) skipBtn.style.display = "none";
-    
-    const failsafe = setTimeout(() => {
-        console.warn("AI Splash Failsafe Triggered");
-        window.hideSplash();
-    }, 45000); // زمان بیشتر چون صدا و متن هماهنگ‌اند
+    if (startBtn) { startBtn.textContent = currentLang==='fa' ? "در حال ورود…" : "Entering…"; startBtn.disabled = true; }
+    if (skipBtn) skipBtn.style.display = "none";
+    if ($("splashMute")) LS("bs_splash_mute", $("splashMute").checked ? "1" : "0");
+
+    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 8000);
 
     try {
-        LS("bs_mkts", Object.keys(MKT_LABEL).join(","));
-        renderChips();
+        try { renderChips(); } catch(e) {}
 
-        await speakAndType("ai-text", t.ai_welcome);
-        await new Promise(r => setTimeout(r, 400));
-        
-        if(loading) loading.classList.add("on");
-        const scanP = scan(true);      // اسکن همزمان با پخش صدا
-        scanP.catch(() => {});
-        await speakAndType("ai-text", t.ai_scan);
-        await scanP;
-        
-        const regime = detectMarketRegime();
-        if (regime === "pattern") {
-            await speakAndType("ai-text", t.ai_trend);
-            setMode("pattern");
-        } else {
-            await speakAndType("ai-text", t.ai_range);
-            setMode("range");
+        // متن و صدا یکی هستند (انگلیسی) تا با TTS گوگل هماهنگ بماند
+        const lineScan = "Scanning markets";
+        const lineTrend = "Trend regime";
+        const lineRange = "Range regime";
+        const lineHi = "Welcome";
+
+        const mute = LS("bs_splash_mute") === "1" || ($("splashMute") && $("splashMute").checked);
+        if ($("ai-text")) $("ai-text").textContent = currentLang==='fa' ? "در حال اسکن…" : lineScan;
+        if (!mute) {
+          // همان چیزی که روی صفحه است (نسخه انگلیسی پایدار) خوانده می‌شود
+          try { speakNative(lineHi + ". " + lineScan); } catch(e) {}
         }
-        
-        await new Promise(r => setTimeout(r, 1500));
-    } catch(err) {
-        console.error("AI Flow Error:", err);
-        const textEl = $("ai-text");
-        if(textEl) textEl.innerHTML = `<span style="color:var(--rb);font-size:14px;">Error: ${err.message}</span>`;
-        await new Promise(r => setTimeout(r, 3000));
+
+        if (loading) loading.classList.add("on");
+        const scanP = scan(true).catch(() => {});
+        await Promise.race([scanP, new Promise(r => setTimeout(r, 1200))]);
+        try {
+            const regime = detectMarketRegime();
+            setMode(regime === "pattern" ? "pattern" : "range");
+            const line = regime === "pattern" ? lineTrend : lineRange;
+            if ($("ai-text")) $("ai-text").textContent = currentLang==='fa'
+              ? (regime === "pattern" ? "رژیم: روند" : "رژیم: رنج")
+              : line;
+            if (!mute) { try { speakNative(line); } catch(e) {} }
+        } catch(e) {}
+        await new Promise(r => setTimeout(r, 500));
+    } catch (err) {
+        console.error("startApp", err);
     } finally {
         clearTimeout(failsafe);
+        LS("bs_splash_seen", "1");
         window.hideSplash();
+        if (startBtn) { startBtn.disabled = false; startBtn.textContent = currentLang==='fa' ? "ورود به اسکرینر" : "Enter"; }
     }
 };
 
@@ -1385,9 +1300,94 @@ if($("bn")) {
     if($("bx")) $("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")};
 }
 }
-function say(fr){if(!$("sp").checked||!window.speechSynthesis)return;try{const seen=new Set(),uq=fr.filter(r=>{const k=r.id+r.side;if(seen.has(k))return false;seen.add(k);return true}),t=uq.slice(0,3).map(r=>(r.side==="LONG"?"long ":"short ")+r.id.replace(/USDT$|USD$/,"").split("").join(" ")).join(". ")+(uq.length>3?". and "+(uq.length-3)+" more":""),u=new SpeechSynthesisUtterance((currentLang==='fa'?"سیگنال جدید. ":"New signal. ")+t);u.lang=currentLang==='fa'?"fa-IR":"en-US";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
-function alertNow(fr){beep();banner(fr);say(fr);try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}
-if(!window.__bgNative&&window.Notification&&Notification.permission==="granted"&&navigator.serviceWorker){navigator.serviceWorker.ready.then(g=>fr.slice(0,5).forEach(r=>g.showNotification((r.side==="LONG"?"🟢 LONG ":"🔴 SHORT ")+r.id,{body:`Entry ${r.entry.toFixed(r.d)} | SL ${r.sl.toFixed(r.d)}`,icon:"icon-192.png",tag:"s-"+r.id,requireInteraction:true}))).catch(()=>{})}}
+// اعلان صوتی ساده: فقط نام نماد + جهت، با TTS بومی (بدون Edge/وب)
+function say(fr){
+  try {
+    if (!$("sp") || !$("sp").checked) return;
+    if (LS("bs_tts_off") === "1") return;
+    const seen = new Set();
+    const uq = (fr || []).filter(r => {
+      const k = r.id + "|" + r.side;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return !!r.side;
+    }).slice(0, 3);
+    if (!uq.length) return;
+    // اعلان همیشه انگلیسی — بدون وابستگی به TTS فارسی
+    const parts = uq.map(r => {
+      const side = r.side === "LONG" ? "long" : "short";
+      const name = String(r.id).replace(/USDT$|USD$|_USD$/i, "");
+      return side + " " + name;
+    });
+    const extra = (fr.length > 3) ? (" and " + (fr.length - 3) + " more") : "";
+    const text = "Signal: " + parts.join(", ") + extra;
+    speakNative(text);
+  } catch (e) { console.warn("say", e); }
+}
+// زبان گفتار اعلان‌ها: همیشه انگلیسی (پایدار روی همه گوشی‌ها)
+// چون Google TTS معمولاً فارسی ندارد و نمادها هم لاتین‌اند
+function speakLang() {
+  return "en-US";
+}
+function speakNative(text, forceLang) {
+  const lang = forceLang || speakLang();
+  // 1) Capacitor Android TTS
+  try {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+      const { TextToSpeech } = window.Capacitor.Plugins;
+      const opts = {
+        text: String(text),
+        lang: lang,
+        rate: 1.0,
+        pitch: 1.0,
+        volume: 1.0,
+        category: "ambient"
+      };
+      if (TTS_CFG.voiceIndex >= 0) opts.voice = TTS_CFG.voiceIndex;
+      TextToSpeech.speak(opts).catch(() => {
+        // اگر voice خاص شکست خورد، بدون voice دوباره
+        delete opts.voice;
+        TextToSpeech.speak(opts).catch(() => {});
+      });
+      return;
+    }
+  } catch (e) {}
+  // 2) Web Speech API
+  try {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = lang;
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    // انتخاب بهترین voice انگلیسی در دسترس
+    try {
+      const voices = speechSynthesis.getVoices() || [];
+      const en = voices.find(v => /^en(-|_|$)/i.test(v.lang) && /US|GB|United/i.test(v.lang + v.name))
+        || voices.find(v => /^en/i.test(v.lang));
+      if (en) u.voice = en;
+    } catch (e) {}
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function alertNow(fr){
+  try { beep(); } catch(e) {}
+  try { banner(fr); } catch(e) {}
+  try { say(fr); } catch(e) {}
+  try { navigator.vibrate && navigator.vibrate([180, 80, 180]); } catch(e) {}
+  try {
+    if (!window.__bgNative && window.Notification && Notification.permission === "granted" && navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then(g =>
+        (fr || []).slice(0, 5).forEach(r =>
+          g.showNotification(
+            (r.side === "LONG" ? "🟢 LONG " : "🔴 SHORT ") + r.id,
+            { body: `Entry ${Number(r.entry).toFixed(r.d || 5)} | SL ${Number(r.sl).toFixed(r.d || 5)}`, icon: "icon-192.png", tag: "s-" + r.id, requireInteraction: true }
+          )
+        )
+      ).catch(() => {});
+    }
+  } catch(e) {}
+}
 if($("bn")) $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 if($("sp")) { $("sp").checked=LS("bs_sp")!=="false"; $("sp").onchange=()=>LS("bs_sp",$("sp").checked); }
 if($("nt")) $("nt").onclick=async()=>{beep();try{const p=await Notification.requestPermission();$("nt").textContent=p==="granted"?T().btnEnabled:T().btnDenied}catch(e){$("nt").textContent=T().btnUnsupported}};
