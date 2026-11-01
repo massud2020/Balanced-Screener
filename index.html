@@ -75,6 +75,9 @@ button.ic.on{border-color:var(--gb);color:var(--gb)}
 .mkt{flex:none;scroll-snap-align:start;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:99px;font-size:13px;font-weight:600;color:var(--mu)}
 .mkt .cnt{font-size:11px;font-weight:500;opacity:.75;direction:ltr}
 .mkt.on{background:var(--gd);border-color:rgba(61,202,133,.4);color:var(--gb)}
+.mkt.closed{opacity:.38;pointer-events:none;filter:grayscale(.7);cursor:not-allowed}
+.mkt.closed .cnt{opacity:.5}
+.mkt .sess{font-size:9px;font-weight:500;opacity:.7;margin-inline-start:2px}
 .mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
 
 .set{display:none;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:4px 14px 8px;margin-top:12px;animation:fade .2s ease}
@@ -356,7 +359,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=65"></script><script src="alerts.js?v=65"></script><script src="engine.js?v=65"></script><script src="chart.js?v=65"></script>
+<script src="symbols.js?v=66"></script><script src="alerts.js?v=66"></script><script src="engine.js?v=66"></script><script src="presets.js?v=66"></script><script src="chart.js?v=66"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -915,11 +918,58 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=65,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<32?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=66,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<40?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
+
+// ===== ساعات باز بودن بازارها (UTC) =====
+function utcNowParts(){
+  const d=new Date();
+  return {dow:d.getUTCDay(), h:d.getUTCHours()+d.getUTCMinutes()/60, day:d.getUTCDay()};
+}
+// forex/metal: یکشنبه ۲۲:۰۰ تا جمعه ۲۲:۰۰ UTC باز
+function isForexSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===6) return false;                 // شنبه کامل بسته
+  if(dow===0) return h>=22;                 // یکشنبه از ۲۲ باز
+  if(dow===5) return h<22;                  // جمعه تا ۲۲ باز
+  return true;                              // دوشنبه تا پنج‌شنبه
+}
+// سهام آمریکا: دوشنبه–جمعه ۱۴:۳۰–۲۱:۰۰ UTC
+function isUSStockSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===0||dow===6) return false;
+  return h>=14.5 && h<21;
+}
+// شاخص‌ها: ترکیبی (آسیا + اروپا + آمریکا) — روزهای کاری با پوشش گسترده
+function isIndexSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===0||dow===6) return false;
+  // آسیا ~۰۰–۰۸ ، اروپا ~۰۷–۱۶ ، آمریکا ۱۴:۳۰–۲۱
+  return (h>=0 && h<8) || (h>=7 && h<16.5) || (h>=14.5 && h<21);
+}
+// کالا (نفت و ...): تقریباً یکشنبه‌شب تا جمعه
+function isCommoditySession(){
+  return isForexSession();
+}
+function isMarketOpen(m){
+  if(m==="crypto") return true;
+  if(m==="forex"||m==="metal") return isForexSession();
+  if(m==="commodity") return isCommoditySession();
+  if(m==="index") return isIndexSession();
+  if(m==="stock") return isUSStockSession();
+  return true;
+}
+function openMarkets(){return Object.keys(MKT_LABEL).filter(isMarketOpen)}
+function sessionHint(m){
+  if(m==="crypto") return "۲۴/۷";
+  if(!isMarketOpen(m)) return currentLang==='fa'?"بسته":"Closed";
+  return currentLang==='fa'?"باز":"Open";
+}
+
+
 
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
@@ -948,14 +998,34 @@ const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.datase
 function renderChips(){
     if (typeof U === "undefined" || !Array.isArray(U)) return;
     try {
-        const saved=LS("bs_mkts"),on=saved!=null?new Set(saved.split(",")):new Set(Object.keys(MKT_LABEL));
-        $("mkts").innerHTML=Object.keys(MKT_LABEL).map(m=>`<button class="mkt${on.has(m)?" on":""}" data-m="${m}" aria-pressed="${on.has(m)}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${fmtNum(U.filter(u=>mktOf(u)===m).length+(m==="stock"?extraList().length:0))}</span></button>`).join("")+`<button class="mini" id="mAll">${currentLang==='fa'?"همه":"All"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
+        const today = new Date().toISOString().slice(0,10);
+        const lastDay = LS("bs_mkts_day");
+        let on;
+        // هر روز جدید: فقط بازارهای باز را روشن کن
+        if (lastDay !== today) {
+            on = new Set(openMarkets());
+            LS("bs_mkts_day", today);
+            LS("bs_mkts", [...on].join(","));
+        } else {
+            const saved = LS("bs_mkts");
+            on = saved != null ? new Set(saved.split(",").filter(Boolean)) : new Set(openMarkets());
+            // بازارهای بسته‌شده را از انتخاب حذف کن
+            for (const m of [...on]) if (!isMarketOpen(m)) on.delete(m);
+        }
+        $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
+            const open = isMarketOpen(m);
+            const active = open && on.has(m);
+            const cls = "mkt" + (active ? " on" : "") + (open ? "" : " closed");
+            const cnt = fmtNum(U.filter(u => mktOf(u) === m).length + (m === "stock" ? extraList().length : 0));
+            const hint = sessionHint(m);
+            return `<button class="${cls}" data-m="${m}" aria-pressed="${active}" ${open ? "" : "disabled"} title="${hint}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${cnt}</span><span class="sess">${hint}</span></button>`;
+        }).join("") + `<button class="mini" id="mAll">${currentLang==='fa'?"بازها":"Open"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
         updCnt();
     } catch(e) { console.warn("Chips error", e); }
 }
 function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
-if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{x.classList.toggle("on",t.id==="mAll");x.setAttribute("aria-pressed",t.id==="mAll")})}else if(t.classList.contains("mkt")){t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
+if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{const open=isMarketOpen(x.dataset.m);const turn=t.id==="mAll"&&open;x.classList.toggle("on",turn);x.setAttribute("aria-pressed",turn)});}else if(t.classList.contains("mkt")){if(t.classList.contains("closed")||!isMarketOpen(t.dataset.m))return;t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
@@ -1359,7 +1429,11 @@ navigator.serviceWorker.register("sw.js").then(g=>{g.update();document.addEventL
 navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)return;rl=true;location.reload()})}
 setText("ver", "v"+BUILD); setText("verl", (currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD);
 
-setInterval(()=>{if(!document.hidden)scan()},180000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
+setInterval(()=>{if(!document.hidden)scan()},180000);
+
+// هر ۵ دقیقه وضعیت باز/بسته بازارها را تازه کن
+setInterval(()=>{ try{ renderChips(); }catch(e){} }, 5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
 updateUnreadBadge(); // بعد از باز کردن اپ، شمارنده ذخیره‌شده فوراً نمایش داده شود
