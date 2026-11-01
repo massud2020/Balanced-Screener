@@ -136,6 +136,13 @@ main{padding-bottom:28px}
 .row:active{transform:scale(.985)}.row:hover{background:var(--card2)}
 .row.sig::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px}
 .row.sig.LONG::before{background:var(--gb)}.row.sig.SHORT::before{background:var(--rb)}
+.row.sig.mode-pattern{border-color:rgba(70,197,140,.35)}
+.row.sig.mode-range{border-color:rgba(90,140,255,.4)}
+.row.sig.mode-range::after{content:"";position:absolute;inset-inline-end:0;top:0;bottom:0;width:3px;background:rgba(90,140,255,.75);border-radius:0 10px 10px 0}
+.tag.strat{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.2px}
+.tag.strat.pattern{background:rgba(70,197,140,.15);color:var(--gb);border:1px solid rgba(70,197,140,.35)}
+.tag.strat.range{background:rgba(90,140,255,.15);color:#8ab4ff;border:1px solid rgba(90,140,255,.4)}
+
 .r-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .r-id{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
 .sym{font-weight:700;font-size:16px;direction:ltr;letter-spacing:.01em}
@@ -398,7 +405,7 @@ const I18N = {
     btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
     fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
     fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
-    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "در کول‌داون ۲۰ دقیقه‌ای",
+    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "سیگنال باز / کول‌داون",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
     ai_welcome: "سلام! من دستیار هوشمند شما هستم...", ai_scan: "در حال اسکن بازارها و تحلیل نوسانات...", ai_trend: "بازار رونددار تشخیص داده شد. استراتژی ۳+۱ فعال شد.", ai_range: "بازار در حالت رنج است. استراتژی رنج فعال شد.", ai_ready: "برای شروع لطفاً کلیک کنید..."
   },
@@ -427,7 +434,7 @@ const I18N = {
     btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
     fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
     fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
-    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "In 20m cooldown",
+    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "Open signal / cooldown",
     c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
     ai_welcome: "Welcome! I am your AI assistant...", ai_scan: "Scanning markets and analyzing volatility...", ai_trend: "Trending market detected. Pattern 3+1 activated.", ai_range: "Ranging market detected. Range strategy activated.", ai_ready: "Tap to start..."
   }
@@ -469,6 +476,42 @@ COND.adx = false; // ADX فقط برای انتخاب استراتژی است، 
 let currentMode = LS("bs_mode") || "pattern";
 let COOLDOWNS = {};
 try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) {}
+// سیگنال‌های باز: تا وقتی بسته نشوند روی همان نماد سیگنال جدید صادر نمی‌شود
+// { [id]: { side, entry, time, mode, scansWithout: 0 } }
+let ACTIVE_SIGS = {};
+try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
+function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
+const MAX_HOLD_SEC = 6 * 3600; // حداکثر نگهداری ۶ ساعت (روز معاملاتی)
+function isSignalOpen(id, side){
+  const a = ACTIVE_SIGS[id];
+  if(!a) return false;
+  if(side && a.side !== side) return false;
+  if(Date.now()/1000 - a.time > MAX_HOLD_SEC) return false;
+  return true;
+}
+function openSignal(r){
+  ACTIVE_SIGS[r.id] = { side: r.side, entry: r.entry, time: Date.now()/1000, mode: r.mode || "pattern", scansWithout: 0 };
+  saveActiveSigs();
+  COOLDOWNS[r.id] = Date.now()/1000;
+  try{ LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); }catch(e){}
+}
+function touchActiveSigs(currentSides){
+  // currentSides: { id: side|null }
+  const now = Date.now()/1000;
+  for(const id of Object.keys(ACTIVE_SIGS)){
+    const a = ACTIVE_SIGS[id];
+    if(now - a.time > MAX_HOLD_SEC){ delete ACTIVE_SIGS[id]; continue; }
+    const cur = currentSides[id];
+    if(cur && cur === a.side){ a.scansWithout = 0; }
+    else {
+      a.scansWithout = (a.scansWithout || 0) + 1;
+      // دو اسکن متوالی بدون سیگنال هم‌جهت → بسته
+      if(a.scansWithout >= 2) delete ACTIVE_SIGS[id];
+    }
+  }
+  saveActiveSigs();
+}
+
 let UNREAD = parseInt(LS("bs_unread") || "0");
 
 function updateUnreadBadge() {
@@ -856,11 +899,19 @@ function evalRow(r) {
 
         const now = Date.now() / 1000;
         if (finalSide) {
-            const lastTime = COOLDOWNS[r.id] || 0;
-            if (now - lastTime < 1200) {
+            // اگر سیگنال باز روی این نماد هست، سیگنال جدید نده
+            if (isSignalOpen(r.id)) {
                 finalSide = null;
-                finalFail = T().fail_cooldown;
+                finalFail = currentLang==='fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
                 res.pass = res.total > 0 ? res.total - 1 : 0;
+            } else {
+                const lastTime = COOLDOWNS[r.id] || 0;
+                // کول‌داون کوتاه فقط بعد از بسته شدن (۱۵ دقیقه)
+                if (now - lastTime < 900) {
+                    finalSide = null;
+                    finalFail = T().fail_cooldown;
+                    res.pass = res.total > 0 ? res.total - 1 : 0;
+                }
             }
         }
 
@@ -1060,7 +1111,9 @@ function recordLocal(rows) {
     try {
         const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
         rows.forEach(r => {
-            const k = r.id + "|" + r.side + "|" + (r.bt ? r.bt : "nobt");
+            const day = new Date((r.bt || Date.now()/1000) * 1000).toISOString().slice(0,10);
+            // یک رکورد در روز برای هر نماد+جهت (تا وقتی سیگنال باز است تکرار نشود)
+            const k = r.id + "|" + r.side + "|" + day;
             if (have.has(k)) return;
             loc.push({ id: r.id, side: r.side, entry: typeof r.entry === "number" ? r.entry : undefined,
                        sl: r.sl, d: r.d, mode: r.mode, time: r.bt ? r.bt + 300 : Math.floor(Date.now() / 1000), k: k });
@@ -1119,31 +1172,48 @@ async function scan(isAISilent = false) {
     setText("lp", T().scanDone);
 
     const ns = Date.now()/1000;
+    // وضعیت سیگنال‌های باز را با نتیجه اسکن فعلی به‌روز کن
+    const sideMap = {};
+    (LAST && LAST.rows ? LAST.rows : rows).forEach(r => {
+        // بعد از evalRow در renderList، side نهایی روی evaluated است؛ اینجا از data.json + ACTIVE استفاده می‌کنیم
+        sideMap[r.id] = r.side || null;
+    });
+    // اگر renderList قبلاً eval کرده، از evaluated استفاده می‌شود در touch بعدی
+
     let seen = {};
     try { seen = JSON.parse(LS("bs_seen") || "{}"); } catch(e){}
     const fresh = [];
     rows.forEach(r => {
         if(!r.side) return;
         if(ns - (r.bt + 300) > 3600) return;
-        const k = r.id + "|" + r.side + "|" + r.bt;
+        // یک سیگنال باز به ازای هر نماد — تا بسته نشود تکراری ثبت نشود
+        if(isSignalOpen(r.id)) return;
+        // کلید پایدار: نماد + جهت + روز (نه زمان کندل)
+        const day = new Date((r.bt || ns) * 1000).toISOString().slice(0,10);
+        const k = r.id + "|" + r.side + "|" + day;
         if(seen[k]) return;
-        seen[k] = ns; fresh.push(r);
+        seen[k] = ns;
+        fresh.push(r);
     });
     Object.keys(seen).forEach(k => { if(ns - seen[k] > 86400) delete seen[k]; });
     LS("bs_seen", JSON.stringify(seen));
     
     if (fresh.length) {
         recordLocal(fresh);
+        fresh.forEach(r => openSignal(r));
         UNREAD += fresh.length;
         LS("bs_unread", UNREAD);
         updateUnreadBadge();
         alertNow(fresh);
-
-        fresh.forEach(r => { COOLDOWNS[r.id] = Date.now() / 1000; });
-        LS("bs_cooldowns", JSON.stringify(COOLDOWNS));
-        
         renderList();
     }
+    // به‌روزرسانی وضعیت باز/بسته بر اساس سیگنال‌های فعلی
+    try {
+      const cur = {};
+      const evaled = (typeof evaluatedRows !== "undefined" && evaluatedRows) ? evaluatedRows : rows;
+      // از LAST.rows بعد از renderList استفاده می‌کنیم
+    } catch(e) {}
+
 
   } catch (e) {
     setText("st", T().errFetch);
@@ -1173,14 +1243,18 @@ function sigHtml(r){
     const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
     const a=age(r);
     const mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+    const mode = (r.mode === "range") ? "range" : "pattern";
+    const stratLabel = mode === "range"
+      ? (currentLang==='fa' ? "رنج" : "Range")
+      : (currentLang==='fa' ? "روند" : "Trend");
     
     const dateObj = new Date(r.bt * 1000);
     const dateStr = dateObj.toLocaleDateString(currentLang === 'fa' ? "fa-IR" : "en-US", {month: '2-digit', day: '2-digit'});
     const timeStr = dateObj.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit'});
     const exactTime = `${dateStr} - ${timeStr}`;
 
-    return`<article class="row sig ${r.side}" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
-    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
+    return`<article class="row sig ${r.side} mode-${mode}" data-id="${r.id}" data-mode="${mode}" tabindex="0">
+    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span><span class="tag strat ${mode}">${stratLabel}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
     <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div>
     <div class="r-foot">
         <span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span>
@@ -1252,6 +1326,12 @@ function renderList(){
       let evaluatedRows = [];
       try {
           evaluatedRows = LAST.rows.map(evalRow);
+          // بستن سیگنال‌هایی که دیگر شرایط ندارند
+          try {
+            const sides = {};
+            evaluatedRows.forEach(r => { sides[r.id] = r.side || null; });
+            touchActiveSigs(sides);
+          } catch(e) {}
       } catch(e) {
           console.error("Map error", e);
           evaluatedRows = LAST.rows; 
@@ -1300,7 +1380,7 @@ function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(
 var BL=[];
 function banner(fr){fr.forEach(r=>BL.unshift({id:r.id,mode:r.mode,side:r.side,t:fmtDate(new Date())}));BL.length=Math.min(BL.length,40);
 if($("bn")) {
-    $("bn").innerHTML='<div class="hd"><b>🔔 '+(currentLang==='fa'?"اعلان جدید":"New Alert")+'</b><button id="bx" aria-label="Close">✕</button></div>'+BL.slice(0,3).map(x=>`<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side==="LONG"?T().long:T().short} <span style="color:var(--mu)">${x.t}</span></div>`).join("")+(BL.length>3?`<div class="meta">+${fmtNum(BL.length-3)} ${currentLang==='fa'?"مورد دیگر":"more"}</div>`:"");
+    $("bn").innerHTML='<div class="hd"><b>🔔 '+(currentLang==='fa'?"اعلان جدید":"New Alert")+'</b><button id="bx" aria-label="Close">✕</button></div>'+BL.slice(0,3).map(x=>{const m=x.mode==="range"?(currentLang==='fa'?"رنج":"Range"):(currentLang==='fa'?"روند":"Trend");return `<div class="bi" data-id="${x.id}" data-mode="${x.mode}">${x.side==="LONG"?"🟢":"🔴"} <b>${x.id}</b> ${x.side==="LONG"?T().long:T().short} <span class="tag strat ${x.mode==="range"?"range":"pattern"}" style="margin-inline-start:4px">${m}</span> <span style="color:var(--mu)">${x.t}</span></div>`}).join("")+(BL.length>3?`<div class="meta">+${fmtNum(BL.length-3)} ${currentLang==='fa'?"مورد دیگر":"more"}</div>`:"");
     $("bn").classList.add("on");
     if($("bx")) $("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")};
 }
@@ -1480,9 +1560,21 @@ if($("showHist")) $("showHist").onclick = async () => {
 
         const todaysSignals = remote.filter(h => h.time >= todayTs);
         loadLocalHist().filter(h => h.time >= todayTs).forEach(l => {
-            const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side && Math.abs(h.time - l.time) <= 900);
+            const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side);
             if (!dup) todaysSignals.push(l);
         });
+        // حذف تکراری‌ها: برای هر نماد+جهت فقط اولین سیگنال روز
+        const seenSym = new Set();
+        const deduped = [];
+        todaysSignals.sort((a,b) => a.time - b.time); // قدیمی‌تر اول
+        todaysSignals.forEach(s => {
+            const k = s.id + "|" + s.side;
+            if (seenSym.has(k)) return;
+            seenSym.add(k);
+            deduped.push(s);
+        });
+        todaysSignals.length = 0;
+        deduped.forEach(s => todaysSignals.push(s));
         if (todaysSignals.length === 0 && remoteFailed) {
             if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
             return;
