@@ -5,37 +5,39 @@ const DEF = {
   emax: true,
   nc: true,
   pat: true,
-  adx: true,
-  adxMin: 25,
+  adx: false,           // فقط برای انتخاب رژیم
+  adxMin: 24,           // آستانه رژیم روند (متعادل)
   m15: true,
   h1: true,
   h1Strict: false,
   rsi: true,
-  rsiL: 45,
-  rsiS: 55,
+  rsiL: 46,             // کمی آزادتر برای پولبک لانگ
+  rsiS: 54,             // کمی آزادتر برای پولبک شورت
   ef: 21,
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.55,
+  minRatio: 0.48,       // پرایس‌اکشن کمی آزادتر → سیگنال بیشتر
   atrP: 14,
   bbP: 20,
   bbDev: 2,
-  maxDistATR: 3.5,
+
+  maxDistATR: 4.0,      // اجازه فاصله بیشتر از EMA200
   swingLook: 10,
   atrMultSL: 1.8,
   useConfluence: false,
   minConfluence: 7,
-  rangeAdxMax: 20,
-  rangeMinATR: 2.8,
-  rangeMinTouches: 3,
-  rangeRsiL: 32,
-  rangeRsiS: 68,
-  rangeMinRR: 1.6,
-  rangeMaxRiskATR: 2.8,
+
+  rangeAdxMax: 20,      // آستانه رژیم رنج
+  rangeMinATR: 2.5,     // رنج کمی آسان‌تر
+  rangeMinTouches: 2,   // حداقل ۲ برخورد (قبلاً ۳)
+  rangeRsiL: 34,
+  rangeRsiS: 66,
+  rangeMinRR: 1.4,      // RR کمی پایین‌تر → سیگنال بیشتر
+  rangeMaxRiskATR: 3.0,
   rangeH1: true,
-  rangeTouchPct: 0.12
-};
+  rangeTouchPct: 0.14
+}
 const ENGINE_VER = 40;
 
 function ema(v, p) {
@@ -204,7 +206,7 @@ function checkPriceAction(candles, dir, minRatio = 0.55) {
   if (dir === "LONG" && g === 1 && r === 3 && isBull && rs > 0) classicOk = (gs / rs) >= minRatio;
   if (dir === "SHORT" && r === 1 && g === 3 && isBear && gs > 0) classicOk = (rs / gs) >= minRatio;
   const score = (engulfs ? 2 : 0) + (pinOk ? 2 : 0) + (structureOk ? 1.5 : 0) + (classicOk ? 1 : 0) + (bodyRatio >= minRatio ? 1 : 0);
-  const ok = score >= 2.5;
+  const ok = score >= 2.0; // متعادل برای حجم سیگنال فارکس
   return { ok, ratio: bodyRatio, type: engulfs ? "engulf" : pinOk ? "pin" : classicOk ? "classic" : structureOk ? "structure" : "none", score };
 }
 
