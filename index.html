@@ -456,7 +456,7 @@ function trFail(failStr) {
     return failStr;
 }
 
-let COND = {trend:true, emax:true, nc:true, pat:true, adx:true, m15:true, h1:true, rsi:true};
+let COND = {trend:true, emax:true, nc:true, pat:true, adx:false, m15:true, h1:true, rsi:true};
 try {
     const savedCond = LS("bs_cond");
     if (savedCond) {
@@ -464,6 +464,7 @@ try {
         COND = { ...COND, ...parsed };
     }
 } catch(e) { console.warn("Error loading conditions, using defaults."); }
+COND.adx = false; // ADX فقط برای انتخاب استراتژی است، نه شرط ورود
 
 let currentMode = LS("bs_mode") || "pattern";
 let COOLDOWNS = {};
@@ -787,9 +788,9 @@ function renderCondChips() {
     try {
         let labels = {};
         if (currentMode === "range") {
-            labels = { adx: T().c_adx, rsi: T().c_rsi };
+            labels = { rsi: T().c_rsi };  // ADX فقط برای انتخاب رژیم
         } else {
-            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, adx: T().c_adx, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };  // بدون ADX
         }
         const el = $("condChips");
         if(el) {
@@ -803,7 +804,7 @@ if ($("condChips")) $("condChips").onclick = e => {
     if (!b) return;
     const k = b.dataset.k;
     COND[k] = !COND[k];
-    LS("bs_cond", JSON.stringify(COND));
+    COND.adx = false; LS("bs_cond", JSON.stringify(COND));
     renderCondChips();
     if (LAST) renderList(); 
     if (liveId) render(liveId); 
@@ -823,11 +824,29 @@ function setMode(mode) {
 if ($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
 if ($("modeRange")) $("modeRange").onclick = () => setMode("range");
 
+// حافظه رژیم هر نماد برای hysteresis سبک (جلوگیری از سوییچ مکرر)
+const REGIME_MEM = {};
+function pickModeByAdx(adxV, symbol) {
+    // هدف: حدود ۲۰–۲۵ سیگنال فارکس در روز — آستانه‌های متعادل + hysteresis
+    // روند قطعی: ADX >= 24 | رنج قطعی: ADX <= 20 | بین این دو: همان رژیم قبلی
+    if (adxV == null || !isFinite(adxV)) return REGIME_MEM[symbol] || currentMode || "pattern";
+    let mode;
+    if (adxV >= 24) mode = "pattern";
+    else if (adxV <= 20) mode = "range";
+    else mode = REGIME_MEM[symbol] || (adxV >= 22 ? "pattern" : "range");
+    REGIME_MEM[symbol] = mode;
+    return mode;
+}
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     try {
+        // یک بار با mode خنثی ADX را بگیر
+        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, Date.now()/1000);
+        const useMode = pickModeByAdx(probe.adx, r.id);
         const opts = {
-            mode: currentMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat, adx: COND.adx,
+            mode: useMode,
+            trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
+            adx: false,  // ADX دیگر شرط ورود نیست
             m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
             rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
         };
@@ -845,7 +864,7 @@ function evalRow(r) {
             }
         }
 
-        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, checks: res.checks || [], mode: currentMode };
+        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, rr: res.rr, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: useMode };
     } catch (e) {
         console.error("Eval error for", r.id, e);
         return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
@@ -1027,7 +1046,7 @@ function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(
 function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
 if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{const open=isMarketOpen(x.dataset.m);const turn=t.id==="mAll"&&open;x.classList.toggle("on",turn);x.setAttribute("aria-pressed",turn)});}else if(t.classList.contains("mkt")){if(t.classList.contains("closed")||!isMarketOpen(t.dataset.m))return;t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
 
-const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:COND.adx,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
+const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:false,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
 // 📒 تاریخچه محلی سیگنال‌ها (برای دکمه 📅 «سیگنال‌های امروز»)
