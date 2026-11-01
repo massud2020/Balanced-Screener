@@ -151,6 +151,13 @@ try {
     active: d0.state.active || {}
   };
 } catch (e) {}
+// پاکسازی کلیدهای قدیمی شکل id|side|bt (bt عدد بزرگ)
+try {
+  for (const k of Object.keys(STATE.sent || {})) {
+    const parts = k.split("|");
+    if (parts.length >= 3 && /^\d{9,}$/.test(parts[2])) delete STATE.sent[k];
+  }
+} catch (e) {}
 
 function dayKey(ts) {
   return new Date((ts || Date.now() / 1000) * 1000).toISOString().slice(0, 10);
@@ -167,12 +174,19 @@ function openSig(id, side, entry, mode, now) {
 function touchActives(currentSides, now) {
   for (const id of Object.keys(STATE.active)) {
     const a = STATE.active[id];
-    if (now - a.time > MAX_HOLD_SEC) { delete STATE.active[id]; continue; }
+    const close = () => {
+      const lockKey = `${id}|${a.side}`;
+      // قفل نماد|جهت را برنمی‌داریم تا پایان روز؛ فقط active بسته می‌شود
+      // برای اجازه سیگنال جدید بعد از بسته شدن واقعی، lockKey را پاک می‌کنیم:
+      delete STATE.sent[lockKey];
+      delete STATE.active[id];
+    };
+    if (now - a.time > MAX_HOLD_SEC) { close(); continue; }
     const cur = currentSides[id];
     if (cur && cur === a.side) a.scansWithout = 0;
     else {
       a.scansWithout = (a.scansWithout || 0) + 1;
-      if (a.scansWithout >= CLOSE_SCANS) delete STATE.active[id];
+      if (a.scansWithout >= CLOSE_SCANS) close();
     }
   }
 }
@@ -275,16 +289,20 @@ async function once(now) {
           });
 
           if (emitSide) {
-            // کلید پایدار: نماد|جهت|روز  (نه زمان کندل)
-            const key = `${u[0]}|${r.side}|${dayKey(now)}`;
-            if (!STATE.sent[key]) {
-              STATE.sent[key] = now;
+            // کلید قفل: فقط نماد|جهت — تا سیگنال باز است هیچ پیام تکراری نرود
+            const lockKey = `${u[0]}|${r.side}`;
+            const histKey = `${u[0]}|${r.side}|${dayKey(now)}`;
+            const alreadySent = STATE.sent[lockKey] || STATE.sent[histKey];
+            const alreadyOpen = isOpen(u[0]);
+            if (!alreadySent && !alreadyOpen) {
+              STATE.sent[lockKey] = now;
+              STATE.sent[histKey] = now;
               openSig(u[0], r.side, r.entry, useMode, now);
               const checksData = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
-              if (!history.some(h => h.k === key || (h.id === u[0] && h.side === r.side && dayKey(h.time) === dayKey(now)))) {
+              if (!history.some(h => h.id === u[0] && h.side === r.side && dayKey(h.time) === dayKey(now))) {
                 history.push({
                   id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi,
-                  time: now, bt: bt, k: key, d: u[3], mode: useMode,
+                  time: now, bt: bt, k: histKey, d: u[3], mode: useMode,
                   checks: checksData, totalConds: r.total
                 });
               }
@@ -295,11 +313,17 @@ async function once(now) {
                 `🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}\n${modeName}\nEntry ${fd(r.entry, u[3])} | SL ${fd(r.sl, u[3])}\nRSI ${fd(r.rsi, 1)} | کندل ${ageMin} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`,
                 TH_SIG
               );
+              // اگر تلگرام شکست خورد، فقط sent را بردار — active را نگه دار تا دوباره اسپم نشود
               if (!sent && process.env.TELEGRAM_TOKEN) {
-                delete STATE.sent[key];
-                delete STATE.active[u[0]];
+                delete STATE.sent[lockKey];
+                delete STATE.sent[histKey];
+                // یک‌بار دیگر در اجرای بعد تلاش می‌شود، ولی active مانع اسپم می‌شود
               }
-              fs.writeFileSync("latest_signal.txt", `${u[0]},${L ? "BUY" : "SELL"},${fd(r.entry, u[3])},${fd(r.sl, u[3])},0,${now}`);
+              try {
+                fs.writeFileSync("latest_signal.txt", `${u[0]},${L ? "BUY" : "SELL"},${fd(r.entry, u[3])},${fd(r.sl, u[3])},0,${now}`);
+              } catch (e) {}
+            } else if (alreadyOpen || alreadySent) {
+              // سیگنال باز است؛ فقط data ردیف بدون side جدید
             }
           }
         } else {
