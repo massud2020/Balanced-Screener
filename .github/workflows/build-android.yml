@@ -37,6 +37,11 @@ jobs:
       - name: Build www folder
         run: node build-www.js
 
+      # هر بیلد sw.js را تغییر می‌دهد تا مرورگر حتماً service worker جدید را نصب کند
+      - name: Stamp service worker
+        run: |
+          if [ -f www/sw.js ]; then echo "// build ${{ github.run_number }}" >> www/sw.js; tail -2 www/sw.js; else echo "no www/sw.js"; fi
+
       - name: Remove Old Android Folder
         run: rm -rf android
 
@@ -609,15 +614,48 @@ jobs:
           cat > "$PKG_DIR/MainActivity.java" << 'JAVAEOF'
           package com.massud2020.balancedscreener;
 
+          import android.content.SharedPreferences;
+          import android.content.pm.PackageInfo;
           import android.os.Bundle;
 
+          import androidx.core.content.pm.PackageInfoCompat;
+
           import com.getcapacitor.BridgeActivity;
+
+          import java.io.File;
 
           public class MainActivity extends BridgeActivity {
               @Override
               public void onCreate(Bundle savedInstanceState) {
+                  clearStaleWebCaches();
                   registerPlugin(BackgroundScannerPlugin.class);
                   super.onCreate(savedInstanceState);
+              }
+
+              /** بعد از هر آپدیت اپ، کش service worker قدیمی پاک می‌شود تا فایل‌های جدید فوراً نمایش داده شوند (تنظیمات و localStorage دست‌نخورده می‌مانند). */
+              private void clearStaleWebCaches() {
+                  try {
+                      PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+                      long vc = PackageInfoCompat.getLongVersionCode(pi);
+                      SharedPreferences sp = getSharedPreferences("bs_boot", 0);
+                      if (sp.getLong("vc", -1L) != vc) {
+                          deleteRec(new File(getApplicationInfo().dataDir, "app_webview/Default/Service Worker"));
+                          deleteRec(new File(getCacheDir(), "WebView"));
+                          sp.edit().putLong("vc", vc).apply();
+                      }
+                  } catch (Throwable ignore) {
+                  }
+              }
+
+              private static void deleteRec(File f) {
+                  if (f == null || !f.exists()) return;
+                  if (f.isDirectory()) {
+                      File[] c = f.listFiles();
+                      if (c != null) {
+                          for (File x : c) deleteRec(x);
+                      }
+                  }
+                  f.delete();
               }
           }
           JAVAEOF
