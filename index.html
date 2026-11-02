@@ -304,7 +304,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
   <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
   <label><span>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</span><select id="ttsMode"><option value="string">+٪ متنی</option><option value="number">عدد</option><option value="multiplier">ضریب (۱.۳)</option></select></label>
-  <label><span>موتور صدا</span><select id="ttsEngine"><option value="android">اندروید (رایگان، نامحدود)</option><option value="auto">خودکار (Edge اگر کار کرد)</option></select></label>
+  <label><span>موتور صدا</span><select id="ttsEngine"><option value="auto">خودکار (کیفیت بالا · Edge)</option><option value="android">فقط اندروید</option></select></label>
   <label><span>صدای فارسی گوشی</span><select id="ttsVoice" style="max-width:60%"><option value="">پیش‌فرض گوشی</option></select></label>
   <label><span>زیر و بمی: <b id="ttsPitchVal">1.0</b></span><input type="range" id="ttsPitch" min="0.6" max="1.3" step="0.05" value="1" style="width:55%"></label>
   <label><span>بهبود کیفیت صدا<small style="display:block;white-space:normal">بسته صدای فارسی Google را نصب یا به‌روز کن</small></span><button id="ttsInstall">نصب صدا</button></label>
@@ -560,7 +560,7 @@ function updateUnreadBadge() {
 const TTS_CFG = {
     rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
     mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
-    engine: 'android', // android = موتور خود گوشی (رایگان و نامحدود) | auto = اول Edge
+    engine: 'auto', // auto = Edge/Neural اول، بعد اندروید
     pitch: 1.0,
     voiceIndex: -1,
     faVoices: ['fa-IR-FaridNeural'],
@@ -607,10 +607,82 @@ function ttsRateVariants() {
 }
 
 // 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
+async function playAudioUrl(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const audio = new Audio(url);
+      audio.preload = "auto";
+      let done = false;
+      const finish = () => { if (done) return; done = true; resolve(); };
+      audio.onended = finish;
+      audio.onerror = () => reject(new Error("audio error"));
+      // بعضی دستگاه‌ها onended نمی‌دهند
+      const guard = setTimeout(finish, 60000);
+      audio.play().then(() => {
+        // اگر metadata طول داشت، guard را دقیق‌تر کن
+        try {
+          if (audio.duration && isFinite(audio.duration)) {
+            clearTimeout(guard);
+            setTimeout(finish, Math.ceil(audio.duration * 1000) + 400);
+          }
+        } catch (e) {}
+      }).catch(reject);
+    } catch (e) { reject(e); }
+  });
+}
+
+// کیفیت بالا: Edge TTS (مایکروسافت) → استریم وب → در نهایت TTS گوشی
 async function speakAI(text) {
   if (!text) return;
   if (LS("bs_tts_off") === "1") return;
-  await speakNative(String(text));
+  const raw = String(text).trim();
+  if (!raw) return;
+  const fa = currentLang === "fa";
+  const voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
+  const engine = (TTS_CFG && TTS_CFG.engine) || "auto";
+
+  // 1) پلاگین EdgeTTS (Capacitor)
+  if (engine !== "android" && window.Capacitor && window.Capacitor.Plugins) {
+    const Edge = window.Capacitor.Plugins.EdgeTTS || window.Capacitor.Plugins.EdgeTts || window.Capacitor.Plugins.TextToSpeechEdge;
+    if (Edge && typeof Edge.synthesize === "function") {
+      try {
+        const rates = typeof ttsRateVariants === "function" ? ttsRateVariants() : ["+0%"];
+        let lastErr = null;
+        const t0 = Date.now();
+        for (const rate of rates) {
+          try {
+            const res = await Edge.synthesize({ text: raw, voice, rate: String(rate) });
+            const src = typeof ttsExtractAudio === "function" ? ttsExtractAudio(res) : null;
+            if (src) {
+              await playAudioUrl(src);
+              return;
+            }
+          } catch (e) {
+            lastErr = e;
+            if (Date.now() - t0 > 5000) return; // احتمالاً پخش شده
+          }
+        }
+        if (lastErr) console.warn("EdgeTTS plugin", lastErr);
+      } catch (e) {
+        console.warn("EdgeTTS plugin", e);
+      }
+    }
+  }
+
+  // 2) API وب (کیفیت عصبی مایکروسافت از طریق پروکسی)
+  if (engine !== "android") {
+    try {
+      const url = "https://api.streamelements.com/kappa/v2/speech?voice=" +
+        encodeURIComponent(voice) + "&text=" + encodeURIComponent(raw);
+      await playAudioUrl(url);
+      return;
+    } catch (e) {
+      console.warn("Web neural TTS failed", e);
+    }
+  }
+
+  // 3) TTS بومی گوشی (fallback)
+  await speakNative(raw, fa ? "fa-IR" : "en-US");
 }
 
 (function initTtsExtra() {
@@ -648,7 +720,7 @@ async function speakAI(text) {
     if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
 })();
 
-window.testVoice = async () => { if (currentLang==="fa") await speakNative("تست صدا. سیگنال لانگ یورو، شورت طلا.", "fa-IR"); else await speakNative("Voice test. Signal long euro, short gold.", "en-US"); };
+window.testVoice = async () => { if (currentLang==="fa") await speakAI("تست صدا. سیگنال لانگ یورو، شورت طلا."); else await speakAI("Voice test. Signal long euro, short gold."); };
 
 window.clearCache = async () => {
     const btn = $("upd");
@@ -835,25 +907,29 @@ window.startApp = async () => {
     const fa = currentLang === "fa";
 
     const lines = fa ? [
-      { show: "خوش آمدید", speak: "خوش آمدید. به برنامه بالانسد اسکرینر خوش آمدید." },
-      { show: "در حال اسکن بازارها…", speak: "در حال اسکن بازارها. لطفا صبر کنید." }
+      { show: "خوش آمدید", speak: "خوش آمدید به بالانسد اسکرینر." },
+      { show: "در حال اسکن بازارها…", speak: "در حال اسکن بازارها. لطفا صبر کنید." },
+      { show: "آماده‌سازی…", speak: "سیستم در حال آماده‌سازی است." }
     ] : [
       { show: "Welcome", speak: "Welcome to Balanced Screener." },
-      { show: "Scanning markets…", speak: "Scanning markets. Please wait." }
+      { show: "Scanning markets…", speak: "Scanning markets. Please wait." },
+      { show: "Preparing…", speak: "System is getting ready." }
     ];
 
-    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 45000);
+    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 90000);
 
     try {
         try { renderChips(); } catch(e) {}
 
-        for (const line of lines) {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
           if ($("ai-text")) $("ai-text").textContent = line.show;
           if (!mute) {
-            await speakNative(line.speak, fa ? "fa-IR" : "en-US");
-            await new Promise(r => setTimeout(r, 280));
+            // صبر تا صدای هر جمله کاملاً تمام شود (جمله آخر هم)
+            try { await speakAI(line.speak); } catch (e) { console.warn("speak line", e); }
+            await new Promise(r => setTimeout(r, 350));
           } else {
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 450));
           }
         }
 
@@ -874,12 +950,14 @@ window.startApp = async () => {
               : (isTrend ? "Market regime is trend." : "Market regime is range.");
             if ($("ai-text")) $("ai-text").textContent = shown;
             if (!mute) {
-              await speakNative(spoken, fa ? "fa-IR" : "en-US");
-              await new Promise(r => setTimeout(r, 200));
+              try { await speakAI(spoken); } catch (e) {}
+              await new Promise(r => setTimeout(r, 400));
             } else {
               await new Promise(r => setTimeout(r, 400));
             }
         } catch(e) {}
+        // مکث نهایی تا ته صدا قطع نشود
+        await new Promise(r => setTimeout(r, 300));
     } catch (err) {
         console.error("startApp", err);
     } finally {
@@ -1639,7 +1717,7 @@ function say(fr){
     const text = fa
       ? ("سیگنال " + parts.join("، ") + extra)
       : ("Signal: " + parts.join(", ") + extra);
-    speakNative(text, fa ? "fa-IR" : "en-US");
+    speakAI(text).catch(() => speakNative(text, fa ? "fa-IR" : "en-US"));
   } catch (e) { console.warn("say", e); }
 }
 // ---- TTS: کامل بخواند، کیفیت بهتر، Promise تا پایان ----
@@ -1654,7 +1732,7 @@ function speakNative(text, forceLang) {
 
     // زبان گفتار: صریح، یا بر اساس زبان اپ
     const lang = forceLang || (currentLang === "fa" ? "fa-IR" : "en-US");
-    const rate = 0.92;
+    const rate = 1.0; // سرعت طبیعی
     const pitch = 1.0;
     let finished = false;
     const finish = () => {
@@ -1781,11 +1859,7 @@ function speakNative(text, forceLang) {
 
 
 
-async function speakAI(text) {
-  if (!text) return;
-  if (LS("bs_tts_off") === "1") return;
-  await speakNative(String(text));
-}
+
 
 function alertNow(fr){
   try { beep(); } catch(e) {}
