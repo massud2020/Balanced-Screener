@@ -297,7 +297,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd" onclick="window.clearCache()" style="background:var(--card2);color:var(--tx);">پاک‌کردن کش</button></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd" onclick="window.clearCache()" style="background:var(--card2);color:var(--tx);">به‌روزرسانی</button></label>
 
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
@@ -387,7 +387,16 @@ body[dir="ltr"] .ci { direction: ltr; }
   <div id="ci"></div>
 </div>
 
-<script src="symbols.js?v=66"></script><script src="alerts.js?v=66"></script><script src="engine.js?v=66"></script><script src="presets.js?v=66"></script><script src="chart.js?v=66"></script>
+<script>
+window.__BS_LOCAL_BUILD = 67;
+window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
+window.__BS_ASSET_BASE = ""; // بعد از چک نسخه پر می‌شود
+</script>
+<script src="symbols.js?v=67"></script>
+<script src="alerts.js?v=67"></script>
+<script src="engine.js?v=67"></script>
+<script src="presets.js?v=67"></script>
+<script src="chart.js?v=67"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -643,15 +652,81 @@ window.testVoice = async () => { if (currentLang==="fa") await speakNative("تس
 
 window.clearCache = async () => {
     const btn = $("upd");
-    if(btn) btn.textContent = T().btnClearing;
+    if (btn) btn.textContent = (typeof T === "function" ? T().btnClearing : "…");
     try {
-        const rs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(rs.map(g => g.unregister()));
-        const ks = await caches.keys();
-        await Promise.all(ks.map(k => caches.delete(k)));
-    } catch(e) { console.warn("Cache clear error", e); }
-    location.href = location.pathname + "?r=" + Date.now();
+        if ("serviceWorker" in navigator) {
+            const rs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(rs.map(g => g.unregister()));
+        }
+        if (typeof caches !== "undefined") {
+            const ks = await caches.keys();
+            await Promise.all(ks.map(k => caches.delete(k)));
+        }
+    } catch (e) { console.warn("Cache clear error", e); }
+    try {
+        // فقط پرچم‌های کش/نسخه — تنظیمات کاربر پاک نشود
+        ["bs_splash_seen"].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+        sessionStorage.setItem("bs_force_refresh", String(Date.now()));
+    } catch (e) {}
+    try { await window.hotReloadFromGitHub(); } catch (e) {}
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 67);
+    location.replace(location.pathname + "?" + q);
 };
+
+// بررسی نسخه روی GitHub و اعمال بدون نصب مجدد
+window.checkRemoteUpdate = async (opts) => {
+    const silent = !!(opts && opts.silent);
+    try {
+        const url = (window.__BS_REMOTE || "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main") +
+            "/version.json?t=" + Date.now();
+        const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return false;
+        const ver = await res.json();
+        const remoteBuild = Number(ver && ver.build);
+        window.__BS_REMOTE_BUILD = remoteBuild;
+        const local = Number(typeof BUILD !== "undefined" ? BUILD : window.__BS_LOCAL_BUILD || 0);
+        if (!remoteBuild || remoteBuild <= local) {
+            if (!silent) console.log("Update: up to date", local, remoteBuild);
+            return false;
+        }
+        console.log("Update available:", local, "->", remoteBuild);
+        // نسخه جدید: کش را پاک کن و با پارامتر نسخه ریفرش کن
+        try {
+            if ("serviceWorker" in navigator) {
+                const rs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(rs.map(g => g.unregister()));
+            }
+            if (typeof caches !== "undefined") {
+                const ks = await caches.keys();
+                await Promise.all(ks.map(k => caches.delete(k)));
+            }
+        } catch (e) {}
+        sessionStorage.setItem("bs_remote_build", String(remoteBuild));
+        if (!silent) {
+            const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
+            try {
+                if ($("st")) $("st").textContent = fa
+                    ? ("نسخه جدید " + remoteBuild + " — در حال اعمال…")
+                    : ("Update " + remoteBuild + " — applying…");
+            } catch (e) {}
+        }
+        location.replace(location.pathname + "?r=" + Date.now() + "&v=" + remoteBuild);
+        return true;
+    } catch (e) {
+        console.warn("checkRemoteUpdate", e.message || e);
+        return false;
+    }
+};
+
+// هر بار باز شدن / برگشت به اپ
+(function initSoftUpdate() {
+    const run = () => { try { window.checkRemoteUpdate({ silent: true }); } catch (e) {} };
+    setTimeout(run, 2500);
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) setTimeout(run, 800);
+    });
+})();
+
 
 async function typeText(elementId, text, speed = 40) {
     const el = $(elementId);
@@ -699,14 +774,21 @@ window.hideSplash = () => {
     if (LAST) try { renderList(); } catch(e) {}
 };
 // اگر قبلاً وارد شده، اسپلش را نشان نده
-(function autoSkipSplash(){
+/* اسپلش هر بار باز شدن اپ نمایش داده می‌شود */
+(function forceShowSplashOnBoot(){
   try {
-    if (LS("bs_splash_seen") === "1") {
-      const s = document.getElementById("ai-splash");
-      if (s) { s.style.display = "none"; s.classList.add("hidden"); }
+    const s = document.getElementById("ai-splash");
+    if (s) {
+      s.classList.remove("hidden");
+      s.style.display = "flex";
+      s.style.opacity = "1";
+      s.style.visibility = "visible";
     }
+    // پرچم قبلی را پاک کن تا رفتار قدیمی نماند
+    try { localStorage.removeItem("bs_splash_seen"); } catch(e) {}
   } catch(e) {}
 })();
+
 
 
 function updateSplashLangUi() {
@@ -802,7 +884,6 @@ window.startApp = async () => {
         console.error("startApp", err);
     } finally {
         clearTimeout(failsafe);
-        LS("bs_splash_seen", "1");
         window.hideSplash();
         if (startBtn) { startBtn.disabled = false; startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
     }
@@ -974,7 +1055,54 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-const BUILD=66,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<40?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+
+// ---- به‌روزرسانی نرم فایل‌های حیاتی از GitHub (بدون حذف اپ) ----
+window.hotReloadFromGitHub = async function () {
+  const base = window.__BS_REMOTE || "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
+  try {
+    const ver = await fetch(base + "/version.json?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(8000) }).then(r => r.json());
+    const remoteBuild = Number(ver && ver.build) || 0;
+    const remoteEng = Number(ver && ver.engine) || 0;
+    window.__BS_REMOTE_BUILD = remoteBuild;
+    const localBuild = Number(typeof BUILD !== "undefined" ? BUILD : 0);
+    const localEng = Number(typeof ENGINE_VER !== "undefined" ? ENGINE_VER : 0);
+    // اگر نسخه ریموت جدیدتر است، engine را از GitHub تزریق کن
+    if (remoteEng > localEng || remoteBuild > localBuild) {
+      const files = ["engine.js"];
+      for (const f of files) {
+        try {
+          const code = await fetch(base + "/" + f + "?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(15000) }).then(r => {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.text();
+          });
+          // اجرای نسخه ریموت (منطق استراتژی / فیلترها)
+          (0, eval)(code + "\n//# sourceURL=remote-" + f);
+          console.log("Hot-loaded", f, "engine", typeof ENGINE_VER !== "undefined" ? ENGINE_VER : "?");
+        } catch (e) {
+          console.warn("hot load failed", f, e.message || e);
+        }
+      }
+      try {
+        if ($("verl")) $("verl").textContent = " · build " + localBuild + " → " + remoteBuild + " · eng " + (typeof ENGINE_VER !== "undefined" ? ENGINE_VER : "?");
+        if ($("st")) $("st").textContent = (typeof currentLang !== "undefined" && currentLang === "fa")
+          ? ("به‌روزرسانی نرم اعمال شد · eng " + ENGINE_VER)
+          : ("Soft update applied · eng " + ENGINE_VER);
+      } catch (e) {}
+      return true;
+    }
+  } catch (e) {
+    console.warn("hotReloadFromGitHub", e.message || e);
+  }
+  return false;
+};
+// بعد از لود صفحه یک‌بار و هر بار برگشت به اپ
+(function scheduleHotReload() {
+  const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
+  setTimeout(run, 1800);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(run, 600); });
+})();
+
+const BUILD=67,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -2033,6 +2161,10 @@ if($("showHist")) $("showHist").onclick = async () => {
 if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
 
 try { applyLanguage(); updateSplashLangUi(); } catch(e) { console.error("Init lang error:", e); }
+try {
+  if ($("verl")) $("verl").textContent = " · build " + BUILD + (typeof ENGINE_VER !== "undefined" ? (" · eng " + ENGINE_VER) : "");
+  if ($("upd")) $("upd").textContent = currentLang === "fa" ? "به‌روزرسانی" : "Update";
+} catch(e) {}
 
 </script>
 <script>
