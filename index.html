@@ -227,14 +227,18 @@ body[dir="ltr"] .ci { direction: ltr; }
 <body>
 
 <div id="ai-splash">
+    <div id="splashLangBar" style="position:absolute;top:calc(env(safe-area-inset-top) + 12px);inset-inline-end:14px;z-index:10001;display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:4px">
+      <button type="button" id="splashLangFa" data-lang="fa" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">FA</button>
+      <button type="button" id="splashLangEn" data-lang="en" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">EN</button>
+    </div>
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
     <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
     <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" onclick="window.startApp()" style="margin-top:22px;width:min(240px,80%);z-index:10000;position:relative;pointer-events:auto">ورود به اسکرینر</button>
     <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10000;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
-    <label style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
-      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> بدون صدا
+    <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
+      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
     </label>
     <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
@@ -365,10 +369,11 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
   <div style="max-width:600px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-      <h3 id="histTitle" style="color:var(--gb); margin:0;">📅 سیگنال‌های امروز</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 id="histTitle" style="color:var(--gb); margin:0;">📅 نتایج امروز</h3>
       <button id="closeHist" style="min-height:32px; padding:0 12px;">✕ بستن</button>
     </div>
+    <div id="histSummary" style="display:none;margin-bottom:12px;padding:12px;border-radius:12px;background:var(--bg);border:1px solid var(--bd)"></div>
     <div id="histList" style="display:flex; flex-direction:column; gap:10px;"></div>
   </div>
 </div>
@@ -634,7 +639,7 @@ async function speakAI(text) {
     if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
 })();
 
-window.testVoice = async () => { await speakNative("Voice test. Signal long euro, short gold."); };
+window.testVoice = async () => { if (currentLang==="fa") await speakNative("تست صدا. سیگنال لانگ یورو، شورت طلا.", "fa-IR"); else await speakNative("Voice test. Signal long euro, short gold.", "en-US"); };
 
 window.clearCache = async () => {
     const btn = $("upd");
@@ -703,6 +708,39 @@ window.hideSplash = () => {
   } catch(e) {}
 })();
 
+
+function updateSplashLangUi() {
+  const fa = currentLang === "fa";
+  const btnFa = $("splashLangFa"), btnEn = $("splashLangEn");
+  const on = "var(--gd)", onTx = "var(--gb)", off = "transparent", offTx = "var(--mu)";
+  if (btnFa) {
+    btnFa.style.background = fa ? on : off;
+    btnFa.style.color = fa ? onTx : offTx;
+  }
+  if (btnEn) {
+    btnEn.style.background = !fa ? on : off;
+    btnEn.style.color = !fa ? onTx : offTx;
+  }
+  if ($("ai-text") && !($("start-ai-btn") && $("start-ai-btn").disabled)) {
+    $("ai-text").textContent = fa ? "برای ورود ضربه بزنید" : "Tap to enter";
+  }
+  if ($("start-ai-btn") && !$("start-ai-btn").disabled) {
+    $("start-ai-btn").textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
+  }
+  if ($("skip-ai-btn")) $("skip-ai-btn").textContent = fa ? "رد کردن" : "Skip";
+  if ($("splashMuteText")) $("splashMuteText").textContent = fa ? "بدون صدا" : "Mute";
+  document.body.dir = fa ? "rtl" : "ltr";
+  document.documentElement.lang = currentLang;
+}
+function setAppLanguage(lang) {
+  currentLang = (lang === "en") ? "en" : "fa";
+  LS("bs_lang", currentLang);
+  try { applyLanguage(); } catch (e) {}
+  try { updateSplashLangUi(); } catch (e) {}
+  try { if (typeof liveId !== "undefined" && liveId) render(liveId); } catch (e) {}
+  try { if (LAST) renderList(); } catch (e) {}
+}
+
 window.startApp = async () => {
     const startBtn = $("start-ai-btn");
     const skipBtn = $("skip-ai-btn");
@@ -712,10 +750,14 @@ window.startApp = async () => {
     if ($("splashMute")) LS("bs_splash_mute", $("splashMute").checked ? "1" : "0");
 
     const mute = LS("bs_splash_mute") === "1" || ($("splashMute") && $("splashMute").checked);
-    // جملات کامل انگلیسی — متن صفحه + صدا یکسان
-    const lines = [
-      { showFa: "خوش آمدید", showEn: "Welcome", speak: "Welcome to Balanced Screener." },
-      { showFa: "در حال اسکن بازارها…", showEn: "Scanning markets…", speak: "Scanning markets. Please wait." }
+    const fa = currentLang === "fa";
+
+    const lines = fa ? [
+      { show: "خوش آمدید", speak: "خوش آمدید. به برنامه بالانسد اسکرینر خوش آمدید." },
+      { show: "در حال اسکن بازارها…", speak: "در حال اسکن بازارها. لطفا صبر کنید." }
+    ] : [
+      { show: "Welcome", speak: "Welcome to Balanced Screener." },
+      { show: "Scanning markets…", speak: "Scanning markets. Please wait." }
     ];
 
     const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 45000);
@@ -724,11 +766,9 @@ window.startApp = async () => {
         try { renderChips(); } catch(e) {}
 
         for (const line of lines) {
-          const shown = currentLang === 'fa' ? line.showFa : line.showEn;
-          if ($("ai-text")) $("ai-text").textContent = shown;
+          if ($("ai-text")) $("ai-text").textContent = line.show;
           if (!mute) {
-            // صبر تا خواندن کامل تمام شود
-            await speakNative(line.speak);
+            await speakNative(line.speak, fa ? "fa-IR" : "en-US");
             await new Promise(r => setTimeout(r, 280));
           } else {
             await new Promise(r => setTimeout(r, 500));
@@ -736,7 +776,7 @@ window.startApp = async () => {
         }
 
         if (loading) loading.classList.add("on");
-        if ($("ai-text")) $("ai-text").textContent = currentLang==='fa' ? "در حال اسکن…" : "Scanning…";
+        if ($("ai-text")) $("ai-text").textContent = fa ? "در حال اسکن…" : "Scanning…";
         const scanP = scan(true).catch(() => {});
         await Promise.race([scanP, new Promise(r => setTimeout(r, 2500))]);
 
@@ -744,11 +784,15 @@ window.startApp = async () => {
             const regime = detectMarketRegime();
             setMode(regime === "pattern" ? "pattern" : "range");
             const isTrend = regime === "pattern";
-            const shown = currentLang==='fa' ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج") : (isTrend ? "Market regime: Trend" : "Market regime: Range");
-            const spoken = isTrend ? "Market regime is trend." : "Market regime is range.";
+            const shown = fa
+              ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+              : (isTrend ? "Market regime: Trend" : "Market regime: Range");
+            const spoken = fa
+              ? (isTrend ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+              : (isTrend ? "Market regime is trend." : "Market regime is range.");
             if ($("ai-text")) $("ai-text").textContent = shown;
             if (!mute) {
-              await speakNative(spoken);
+              await speakNative(spoken, fa ? "fa-IR" : "en-US");
               await new Promise(r => setTimeout(r, 200));
             } else {
               await new Promise(r => setTimeout(r, 400));
@@ -759,9 +803,8 @@ window.startApp = async () => {
     } finally {
         clearTimeout(failsafe);
         LS("bs_splash_seen", "1");
-        // فقط بعد از اتمام گفتار به صفحه اصلی می‌رود
         window.hideSplash();
-        if (startBtn) { startBtn.disabled = false; startBtn.textContent = currentLang==='fa' ? "ورود به اسکرینر" : "Enter"; }
+        if (startBtn) { startBtn.disabled = false; startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
     }
 };
 
@@ -872,6 +915,7 @@ function applyLanguage() {
         
         setText("goT", t.scan);
         setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
+        try { updateSplashLangUi(); } catch (e) {}
         setText("stratTitle", currentMode === 'range' ? t.fail_range : t.fail_pattern);
         setText("navAlerts", currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts");
         setText("navBacktest", currentLang === 'fa' ? "بک‌تست" : "Backtest");
@@ -1455,15 +1499,19 @@ function say(fr){
       return !!r.side;
     }).slice(0, 3);
     if (!uq.length) return;
-    // اعلان همیشه انگلیسی — بدون وابستگی به TTS فارسی
+    const fa = currentLang === "fa";
     const parts = uq.map(r => {
-      const side = r.side === "LONG" ? "long" : "short";
+      const side = r.side === "LONG" ? (fa ? "لانگ" : "long") : (fa ? "شورت" : "short");
       const name = String(r.id).replace(/USDT$|USD$|_USD$/i, "");
       return side + " " + name;
     });
-    const extra = (fr.length > 3) ? (" and " + (fr.length - 3) + " more") : "";
-    const text = "Signal: " + parts.join(", ") + extra;
-    speakNative(text);
+    const extra = (fr.length > 3)
+      ? (fa ? (" و " + (fr.length - 3) + " مورد دیگر") : (" and " + (fr.length - 3) + " more"))
+      : "";
+    const text = fa
+      ? ("سیگنال " + parts.join("، ") + extra)
+      : ("Signal: " + parts.join(", ") + extra);
+    speakNative(text, fa ? "fa-IR" : "en-US");
   } catch (e) { console.warn("say", e); }
 }
 // ---- TTS: کامل بخواند، کیفیت بهتر، Promise تا پایان ----
@@ -1476,8 +1524,8 @@ function speakNative(text, forceLang) {
     if (!raw) { done(); return; }
     if (LS("bs_tts_off") === "1") { done(); return; }
 
-    const lang = forceLang || "en-US";
-    // سرعت کمی آرام‌تر از پیش‌فرض برای وضوح بیشتر (حس انسانی‌تر)
+    // زبان گفتار: صریح، یا بر اساس زبان اپ
+    const lang = forceLang || (currentLang === "fa" ? "fa-IR" : "en-US");
     const rate = 0.92;
     const pitch = 1.0;
     let finished = false;
@@ -1486,25 +1534,54 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
-    // سقف ایمنی: اگر onend نیامد
-    const guard = setTimeout(finish, Math.min(20000, 800 + raw.length * 120));
+    const guard = setTimeout(finish, Math.min(22000, 900 + raw.length * 140));
 
-    // 1) Capacitor native TTS — منتظر اتمام
+    const pickVoice = (voices, wantLang) => {
+      const list = voices || [];
+      const isFa = /^fa/i.test(wantLang);
+      if (isFa) {
+        const prefer = [
+          v => /^fa/i.test(v.lang) && /Iran|IR|Persian|Farsi|فارسی/i.test(v.lang + v.name),
+          v => /^fa/i.test(v.lang),
+          v => /Persian|Farsi|فارسی/i.test(v.name)
+        ];
+        for (const fn of prefer) {
+          const hit = list.find(fn);
+          if (hit) return hit;
+        }
+        return null;
+      }
+      const preferEn = [
+        v => /en-US/i.test(v.lang) && /Google|Neural|Natural|Premium|Enhanced/i.test(v.name),
+        v => /en-US/i.test(v.lang) && /Samantha|Daniel|Alex|Microsoft/i.test(v.name),
+        v => /en-US/i.test(v.lang),
+        v => /^en/i.test(v.lang)
+      ];
+      for (const fn of preferEn) {
+        const hit = list.find(fn);
+        if (hit) return hit;
+      }
+      return null;
+    };
+
+    // 1) Capacitor native TTS
     try {
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         const { TextToSpeech } = window.Capacitor.Plugins;
-        const opts = {
+        const trySpeak = (useLang) => TextToSpeech.speak({
           text: raw,
-          lang: lang,
+          lang: useLang,
           rate: rate,
           pitch: pitch,
           volume: 1.0,
           category: "ambient"
-        };
-        TextToSpeech.speak(opts)
+        });
+        trySpeak(lang)
           .then(() => { clearTimeout(guard); finish(); })
           .catch(() => {
-            TextToSpeech.speak({ text: raw, lang: "en-US", rate: rate, pitch: pitch, volume: 1.0 })
+            // اگر فارسی نبود، انگلیسی
+            const fb = lang.startsWith("fa") ? "en-US" : "en-US";
+            trySpeak(fb)
               .then(() => { clearTimeout(guard); finish(); })
               .catch(() => { clearTimeout(guard); finish(); });
           });
@@ -1512,45 +1589,59 @@ function speakNative(text, forceLang) {
       }
     } catch (e) {}
 
-    // 2) Web Speech API — با بهترین صدای انگلیسی و onend
+    // 2) Web Speech API
     try {
       if (!window.speechSynthesis) { clearTimeout(guard); finish(); return; }
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(raw);
-      u.lang = lang;
-      u.rate = rate;
-      u.pitch = pitch;
-      u.volume = 1.0;
-      const pickVoice = () => {
-        try {
-          const voices = speechSynthesis.getVoices() || [];
-          const prefer = [
-            v => /en-US/i.test(v.lang) && /Google|Neural|Natural|Premium|Enhanced/i.test(v.name),
-            v => /en-US/i.test(v.lang) && /Samantha|Daniel|Alex|Microsoft/i.test(v.name),
-            v => /en-US/i.test(v.lang),
-            v => /^en/i.test(v.lang)
-          ];
-          for (const fn of prefer) {
-            const hit = voices.find(fn);
-            if (hit) return hit;
-          }
-        } catch (e) {}
-        return null;
-      };
-      const v = pickVoice();
-      if (v) u.voice = v;
-      u.onend = () => { clearTimeout(guard); finish(); };
-      u.onerror = () => { clearTimeout(guard); finish(); };
-      // بعضی مرورگرها voices را دیر لود می‌کنند
-      if (!(speechSynthesis.getVoices() || []).length) {
-        speechSynthesis.onvoiceschanged = () => {
-          const v2 = pickVoice();
-          if (v2) u.voice = v2;
-          speechSynthesis.speak(u);
-        };
-        setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) { clearTimeout(guard); finish(); } }, 250);
-      } else {
+
+      const speakWith = (useLang, spokenText) => {
+        const u = new SpeechSynthesisUtterance(spokenText);
+        u.lang = useLang;
+        u.rate = rate;
+        u.pitch = pitch;
+        u.volume = 1.0;
+        const v = pickVoice(speechSynthesis.getVoices() || [], useLang);
+        if (v) u.voice = v;
+        u.onend = () => { clearTimeout(guard); finish(); };
+        u.onerror = () => { clearTimeout(guard); finish(); };
         speechSynthesis.speak(u);
+      };
+
+      const start = () => {
+        const voices = speechSynthesis.getVoices() || [];
+        if (/^fa/i.test(lang)) {
+          const faV = pickVoice(voices, "fa-IR");
+          if (faV) {
+            speakWith("fa-IR", raw);
+            return;
+          }
+          // بدون voice فارسی: همان متن فارسی را با fa-IR امتحان کن؛ بعضی موتورها بدون لیست voice هم کار می‌کنند
+          const u = new SpeechSynthesisUtterance(raw);
+          u.lang = "fa-IR";
+          u.rate = rate;
+          u.pitch = pitch;
+          u.volume = 1.0;
+          let tried = false;
+          u.onend = () => { clearTimeout(guard); finish(); };
+          u.onerror = () => {
+            if (tried) { clearTimeout(guard); finish(); return; }
+            tried = true;
+            // fallback: اگر کاربر متن فارسی داد و voice نبود، ترجمهٔ کوتاه انگلیسی نخوان — سکوت بهتر از انگلیسی نامربوط نیست
+            // اما برای خوشامد، caller معمولاً speakEn جدا می‌فرستد
+            clearTimeout(guard);
+            finish();
+          };
+          speechSynthesis.speak(u);
+          return;
+        }
+        speakWith(lang, raw);
+      };
+
+      if (!(speechSynthesis.getVoices() || []).length) {
+        speechSynthesis.onvoiceschanged = () => { try { start(); } catch (e) { clearTimeout(guard); finish(); } };
+        setTimeout(() => { try { start(); } catch (e) { clearTimeout(guard); finish(); } }, 300);
+      } else {
+        start();
       }
       return;
     } catch (e) {
@@ -1559,6 +1650,8 @@ function speakNative(text, forceLang) {
     }
   });
 }
+
+
 
 async function speakAI(text) {
   if (!text) return;
@@ -1692,11 +1785,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&liveId)closeChart()
 if($("gs")) $("gs").onclick=()=>{if($("set"))$("set").classList.toggle("on");$("gs").classList.toggle("on")};
 
 if($("langToggle")) $("langToggle").onclick = () => {
-    currentLang = currentLang === 'fa' ? 'en' : 'fa';
-    LS("bs_lang", currentLang);
-    applyLanguage();
-    if(liveId) render(liveId);
+    setAppLanguage(currentLang === "fa" ? "en" : "fa");
 };
+if ($("splashLangFa")) $("splashLangFa").onclick = () => setAppLanguage("fa");
+if ($("splashLangEn")) $("splashLangEn").onclick = () => setAppLanguage("en");
+try { updateSplashLangUi(); } catch (e) {}
+
 
 ["h1s", "rsiL", "rsiS"].forEach(i=>{
     const el = $(i);
@@ -1733,6 +1827,163 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
 updateUnreadBadge(); // بعد از باز کردن اپ، شمارنده ذخیره‌شده فوراً نمایش داده شود
+
+
+function estimateOutcome(s) {
+  // اگر سرور نتیجه نداده، از دیتای کندل محلی/کش تخمین بزن
+  if (s.result) return s;
+  try {
+    const d = D && D[s.id];
+    if (!d || !d.a || !s.entry || s.sl == null) return s;
+    const risk = Math.abs(s.entry - s.sl);
+    if (!risk) return s;
+    const tp = s.tp != null ? s.tp : (s.side === "LONG" ? s.entry + 2 * risk : s.entry - 2 * risk);
+    const start = s.bt || s.time || 0;
+    for (const c of d.a) {
+      const t = c.time, hi = c.high, lo = c.low;
+      if (t < start) continue;
+      if (s.side === "LONG") {
+        if (lo <= s.sl) return { ...s, result: "loss", exit: s.sl, why: "SL", R: -1 };
+        if (hi >= tp) return { ...s, result: "win", exit: tp, why: "TP", R: 2 };
+      } else {
+        if (hi >= s.sl) return { ...s, result: "loss", exit: s.sl, why: "SL", R: -1 };
+        if (lo <= tp) return { ...s, result: "win", exit: tp, why: "TP", R: 2 };
+      }
+    }
+  } catch (e) {}
+  return s;
+}
+function buildEquitySeries(rows) {
+  // فقط معاملات بسته‌شده؛ مرتب بر اساس زمان
+  const closed = rows.filter(s => s.result === "win" || s.result === "loss" || s.result === "time" || s.why === "FADE" || s.why === "TIME")
+    .slice()
+    .sort((a, b) => (a.closeTime || a.time || 0) - (b.closeTime || b.time || 0));
+  let eq = 0;
+  const pts = [{ i: 0, eq: 0, label: "0" }];
+  closed.forEach((s, idx) => {
+    let r = 0;
+    if (s.R != null && isFinite(s.R)) r = Number(s.R);
+    else if (s.result === "win") r = 2;
+    else if (s.result === "loss") r = -1;
+    eq += r;
+    pts.push({ i: idx + 1, eq: +eq.toFixed(4), r, id: s.id, side: s.side });
+  });
+  return pts;
+}
+function equityChartSVG(pts, fa) {
+  if (!pts || pts.length < 2) {
+    return `<div style="text-align:center;color:var(--mu);font-size:12px;padding:16px 8px">${fa ? "هنوز معامله بسته‌شده‌ای برای نمودار نیست" : "No closed trades for chart yet"}</div>`;
+  }
+  const W = 320, H = 140, padL = 36, padR = 12, padT = 14, padB = 24;
+  const vals = pts.map(p => p.eq);
+  let minV = Math.min(...vals, 0), maxV = Math.max(...vals, 0);
+  if (minV === maxV) { minV -= 1; maxV += 1; }
+  const span = maxV - minV || 1;
+  const xOf = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR);
+  const yOf = (v) => padT + (1 - (v - minV) / span) * (H - padT - padB);
+  const poly = pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.eq).toFixed(1)}`).join(" ");
+  const zeroY = yOf(0);
+  const last = pts[pts.length - 1].eq;
+  const stroke = last >= 0 ? "#46c58c" : "#e05c5c";
+  const fill = last >= 0 ? "rgba(70,197,140,.18)" : "rgba(224,92,92,.15)";
+  // area path
+  const area = `M ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} L ` +
+    pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.eq).toFixed(1)}`).join(" ") +
+    ` L ${xOf(pts.length - 1).toFixed(1)} ${zeroY.toFixed(1)} Z`;
+  const grid = [0, 0.25, 0.5, 0.75, 1].map(t => {
+    const v = minV + span * t;
+    const y = yOf(v);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" /><text x="4" y="${(y + 3).toFixed(1)}" fill="rgba(255,255,255,.35)" font-size="9">${v.toFixed(1)}</text>`;
+  }).join("");
+  return `<div style="direction:ltr">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--mu)">${fa ? "نمودار رشد سرمایه (R)" : "Equity curve (R)"}</span>
+      <span style="font-size:12px;font-weight:700;color:${stroke}">${last >= 0 ? "+" : ""}${last.toFixed(2)}R</span>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="150" style="display:block;background:rgba(0,0,0,.2);border-radius:10px">
+      ${grid}
+      <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W - padR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,.2)" stroke-dasharray="4 4"/>
+      <path d="${area}" fill="${fill}" />
+      <polyline points="${poly}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${pts.map((p, i) => `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(p.eq).toFixed(1)}" r="2.5" fill="${p.eq >= 0 ? "#46c58c" : "#e05c5c"}"/>`).join("")}
+      <text x="${padL}" y="${H - 6}" fill="rgba(255,255,255,.35)" font-size="9">1</text>
+      <text x="${W - padR - 10}" y="${H - 6}" fill="rgba(255,255,255,.35)" font-size="9">#${pts.length - 1}</text>
+    </svg>
+  </div>`;
+}
+function renderDailyResults(listEl, sumEl, signals) {
+  const fa = currentLang === "fa";
+  const rows = (signals || []).map(estimateOutcome);
+  let wins = 0, losses = 0, openN = 0, totalR = 0;
+  rows.forEach(s => {
+    if (s.result === "win") { wins++; totalR += (s.R != null ? s.R : 2); }
+    else if (s.result === "loss") { losses++; totalR += (s.R != null ? s.R : -1); }
+    else if (s.result === "time" || s.result === "fade") {
+      totalR += (s.R != null ? s.R : 0);
+      if ((s.R || 0) > 0) wins++;
+      else if ((s.R || 0) < 0) losses++;
+      else openN++;
+    } else openN++;
+  });
+  const closed = wins + losses;
+  const wr = closed ? Math.round(wins / closed * 100) : 0;
+  const rCol = totalR > 0 ? "var(--gb)" : totalR < 0 ? "var(--rb)" : "var(--mu)";
+  const eqPts = buildEquitySeries(rows);
+  if (sumEl) {
+    sumEl.style.display = "block";
+    sumEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;direction:ltr">
+        <div><div style="font-size:11px;color:var(--mu)">${fa ? "تعداد" : "Total"}</div><b style="font-size:18px">${rows.length}</b></div>
+        <div><div style="font-size:11px;color:var(--mu)">${fa ? "برد" : "Win"}</div><b style="font-size:18px;color:var(--gb)">${wins}</b></div>
+        <div><div style="font-size:11px;color:var(--mu)">${fa ? "باخت" : "Loss"}</div><b style="font-size:18px;color:var(--rb)">${losses}</b></div>
+        <div><div style="font-size:11px;color:var(--mu)">${fa ? "کل R" : "Net R"}</div><b style="font-size:18px;color:${rCol}">${totalR >= 0 ? "+" : ""}${totalR.toFixed(2)}R</b></div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--mu);text-align:center">${fa ? "نرخ موفقیت" : "Win rate"}: <b style="color:var(--tx)">${wr}%</b> · ${fa ? "باز" : "Open"}: ${openN}</div>
+      <div style="margin-top:12px">${equityChartSVG(eqPts, fa)}</div>`;
+  }
+  if (!listEl) return;
+  if (!rows.length) {
+    listEl.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
+    return;
+  }
+  rows.sort((a, b) => (b.time || 0) - (a.time || 0));
+  listEl.innerHTML = rows.map(s => {
+    const isL = s.side === "LONG";
+    const date = new Date((s.time || 0) * 1000);
+    const timeStr = date.toLocaleTimeString(fa ? "fa-IR" : "en-US", { hour: "2-digit", minute: "2-digit" });
+    let badge = fa ? "باز" : "Open", bcol = "var(--mu)", border = "var(--bd)";
+    let rTxt = "—";
+    if (s.result === "win") { badge = fa ? "برد" : "WIN"; bcol = "var(--gb)"; border = "rgba(70,197,140,.45)"; rTxt = (s.R != null ? (s.R >= 0 ? "+" : "") + Number(s.R).toFixed(2) : "+2.00") + "R"; }
+    else if (s.result === "loss") { badge = fa ? "باخت" : "LOSS"; bcol = "var(--rb)"; border = "rgba(220,80,80,.45)"; rTxt = (s.R != null ? Number(s.R).toFixed(2) : "-1.00") + "R"; }
+    else if (s.result === "time" || s.why === "FADE" || s.why === "TIME") {
+      const r = s.R != null ? Number(s.R) : 0;
+      badge = fa ? "بسته" : "CLOSED"; bcol = r >= 0 ? "var(--gb)" : "var(--rb)"; border = "var(--bd)";
+      rTxt = (r >= 0 ? "+" : "") + r.toFixed(2) + "R";
+    }
+    const mode = s.mode === "range" ? (fa ? "رنج" : "Range") : (fa ? "روند" : "Trend");
+    const why = s.why ? ` · ${s.why}` : "";
+    const src = s.src ? String(s.src).toUpperCase() : "";
+    const srcBadge = src ? `<span style="font-size:9px;color:var(--mu);border:1px solid var(--bd);padding:2px 5px;border-radius:6px;letter-spacing:.3px">${src}</span>` : "";
+    return `<div style="display:flex;flex-direction:column;gap:6px;background:var(--bg);padding:12px;border-radius:12px;border:1px solid ${border}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <b style="direction:ltr;font-size:15px">${s.id}</b>
+          <span style="font-size:11px;color:${isL ? "var(--gb)" : "var(--rb)"};border:1px solid ${isL ? "var(--gb)" : "var(--rb)"};padding:2px 6px;border-radius:6px;font-weight:700">${isL ? T().long : T().short}</span>
+          <span style="font-size:10px;color:var(--mu);border:1px solid var(--bd);padding:2px 6px;border-radius:6px">${mode}</span>
+          ${srcBadge}
+        </div>
+        <span style="font-size:11px;font-weight:800;color:${bcol};border:1px solid ${bcol};padding:3px 8px;border-radius:8px">${badge}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;direction:ltr;color:var(--mu);flex-wrap:wrap;gap:6px">
+        <span>Entry <b style="color:var(--tx)">${typeof s.entry === "number" ? s.entry.toFixed(s.d || 5) : "-"}</b></span>
+        <span>SL <b style="color:var(--rb)">${typeof s.sl === "number" ? s.sl.toFixed(s.d || 5) : "-"}</b></span>
+        <span style="color:${bcol}"><b>${rTxt}</b>${why}</span>
+        <span>${timeStr}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
 
 if($("showHist")) $("showHist").onclick = async () => {
     // اول سیگنال‌های ثبت‌شده توسط سرویس پس‌زمینه را بگیر، بعد شمارنده را صفر کن
@@ -1772,62 +2023,16 @@ if($("showHist")) $("showHist").onclick = async () => {
         });
         todaysSignals.length = 0;
         deduped.forEach(s => todaysSignals.push(s));
-        if (todaysSignals.length === 0 && remoteFailed) {
-            if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
-            return;
-        }
-        
-        if (todaysSignals.length === 0) {
-            if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
-            return;
-        }
-
-        todaysSignals.sort((a,b) => b.time - a.time);
-
-        if(list) list.innerHTML = todaysSignals.map(s => {
-            const isL = s.side === "LONG";
-            const date = new Date(s.time * 1000);
-            const timeStr = date.toLocaleTimeString(currentLang==='fa'?"fa-IR":"en-US", {hour: '2-digit', minute:'2-digit'});
-            
-            let checksHtml = '';
-            if (s.checks && s.checks.length > 0) {
-                const countBadge = `<span style="font-size:10px; background:var(--gb); color:#000; padding:2px 6px; border-radius:4px; font-weight:bold; direction:ltr; margin-left: 5px;">${s.totalConds}/${s.totalConds}</span>`;
-                
-                checksHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; direction:ltr; align-items:center;">
-                    ${countBadge}` + 
-                    s.checks.map(c => `
-                        <span style="font-size:10px; padding:2px 6px; border-radius:4px; 
-                            background:rgba(46,154,105,0.15); 
-                            color:var(--gb); 
-                            border:1px solid rgba(46,154,105,0.3);"
-                            title="${trFail(c.l)}">
-                            ✓ ${trFail(c.l).split(' ')[0]}
-                        </span>`).join('') + `</div>`;
-            }
-
-            return `
-            <div style="display:flex; flex-direction:column; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--gb); margin-bottom: 8px; box-shadow: 0 0 10px rgba(46,154,105,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-weight:bold; direction:ltr; font-size:16px;">${s.id}</span>
-                        <span style="font-size:11px; color:${isL ? 'var(--gb)' : 'var(--rb)'}; border:1px solid ${isL ? 'var(--gb)' : 'var(--rb)'}; padding:2px 6px; border-radius:5px; font-weight:bold;">${isL ? T().long : T().short}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:12px; font-size:12px; direction:ltr;">
-                        <span style="color:var(--mu);">${T().entry}: <b style="color:var(--tx);">${typeof s.entry === 'number' ? s.entry.toFixed(s.d || 5) : '-'}</b></span>
-                        <span style="color:var(--mu);">${timeStr}</span>
-                    </div>
-                </div>
-                ${checksHtml}
-            </div>`;
-        }).join("");
-
+        const sum = $("histSummary");
+        renderDailyResults(list, sum, todaysSignals);
     } catch(e) {
         if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
+        const sum = $("histSummary"); if (sum) sum.style.display = "none";
     }
 };
 if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
 
-try { applyLanguage(); } catch(e) { console.error("Init lang error:", e); }
+try { applyLanguage(); updateSplashLangUi(); } catch(e) { console.error("Init lang error:", e); }
 
 </script>
 <script>
