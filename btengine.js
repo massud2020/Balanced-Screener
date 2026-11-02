@@ -1,10 +1,11 @@
 // Backtest engine: MT5 CSV parser + walk-forward simulation
 if (typeof require !== "undefined" && typeof module !== "undefined") {
   const E = require("./engine.js");
-  global.DEF = E.DEF; global.ema = E.ema; global.rsi = E.rsi; global.atr = E.atr;
+  global.DEF = E.DEF; global.ema = E.ema; global.rsi = E.rsi; global.atr = E.atr; global.adx = E.adx;
   global.resample = E.resample; global.lci = E.lci; global.checkPattern = E.checkPattern;
   global.checkPriceAction = E.checkPriceAction || E.checkPattern;
-  global.divExit = E.divExit;
+  global.divExit = E.divExit; global.evaluate = E.evaluate;
+  global.dailyBias = E.dailyBias; global.isInTradingSession = E.isInTradingSession;
 }
 function decodeBuf(buf){const u=new Uint8Array(buf);let enc="utf-8",s=0;
 if(u[0]===0xFF&&u[1]===0xFE){enc="utf-16le";s=2}else if(u[0]===0xFE&&u[1]===0xFF){enc="utf-16be";s=2}
@@ -38,34 +39,59 @@ return out}
 function candlesOf(ds){const n=ds.t.length,o=new Array(n);for(let i=0;i<n;i++)o[i]={time:ds.t[i],open:ds.o[i],high:ds.h[i],low:ds.l[i],close:ds.c[i]};return o}
 function btPrep(m5,S){S={...DEF,...S};const cl=m5.map(c=>c.close),m15=resample(m5,15),h1=resample(m5,60),mc=m15.map(c=>c.close),hc=h1.map(c=>c.close);
 return{m5,S,efA:ema(cl,S.ef),emA:ema(cl,S.em),esA:ema(cl,S.es),rA:rsi(cl,S.rsiP),aA:atr(m5,S.atrP),m15,h1,mf:ema(mc,S.ef),mm:ema(mc,S.em),hf:ema(hc,S.ef),hm:ema(hc,S.em),hs:ema(hc,S.es)}}
-function btSignals(P,mode,lo,hi){mode=mode||"pattern";const{m5,S,efA,emA,esA,rA,aA,m15,h1,mf,mm,hf,hm,hs}=P,out=[];
-const checkPA=(typeof checkPriceAction==="function")?checkPriceAction:checkPattern;
-for(let i=Math.max(lo,S.es+1,3);i<=hi;i++){const ef=efA[i],em=emA[i],es=esA[i],efp=efA[i-1],emp=emA[i-1],r=rA[i],a=aA[i];if([ef,em,es,efp,emp,r,a].some(x=>x==null)||a<=0)continue;
-const b=m5[i];
-const slope=(ef-efp)!==0&&(em-emp)!==0,ab=b.close>es,be=b.close<es;
-const l4=[b,m5[i-1],m5[i-2],m5[i-3]],pl=checkPA(l4,"LONG",S.minRatio),ps=checkPA(l4,"SHORT",S.minRatio);
-const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
-let rsiL=true,rsiS=true;
-if(S.rsi){const r1=rA[i-1],r2=rA[i-2];
-const wasOversold=(r1!=null&&r1<S.rsiL)||(r2!=null&&r2<S.rsiL)||r<S.rsiL+5;
-rsiL=wasOversold&&r>(r1!=null?r1-0.5:r)&&r<62;
-const wasOverbought=(r1!=null&&r1>S.rsiS)||(r2!=null&&r2>S.rsiS)||r>S.rsiS-5;
-rsiS=wasOverbought&&r<(r1!=null?r1+0.5:r)&&r>38}
-let L=ab&&ef>em&&nc&&slope&&pl.ok&&rsiL,Sh=be&&ef<em&&nc&&slope&&ps.ok&&rsiS;
-const distATR=a>0?Math.abs(b.close-es)/a:99;
-if(distATR>(S.maxDistATR||3.5)){L=false;Sh=false}
-if(!L&&!Sh)continue;
-let m15L=true,m15S=true;if(S.m15){const k=lci(m15,900,b.time+300),f=k>=0?mf[k]:null,m=k>=0?mm[k]:null;if(f==null||m==null)continue;m15L=f>m;m15S=f<m}
-let h1L=true,h1S=true;if(S.h1){const k=lci(h1,3600,b.time+300),s=k>=0?hs[k]:null;if(s==null)continue;const c=h1[k].close;if(S.h1Strict){const f=hf[k],m=hm[k];if(f==null||m==null)continue;h1L=c>s&&f>m&&m>s;h1S=c<s&&f<m&&m<s}else{h1L=c>s;h1S=c<s}}
-let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";if(!side)continue;
-const look=Math.min(S.swingLook||10,i),recent=m5.slice(i-look,i);
-const swingLow=Math.min(...recent.map(c=>c.low)),swingHigh=Math.max(...recent.map(c=>c.high));
-const atrSL=(S.atrMultSL||1.8)*a;
-let sl;if(side==="LONG")sl=Math.min(swingLow-0.25*a,b.close-atrSL);else sl=Math.max(swingHigh+0.25*a,b.close+atrSL);
-const minDist=1.1*a;if(Math.abs(b.close-sl)<minDist)sl=side==="LONG"?b.close-minDist:b.close+minDist;
-if(!(Math.abs(b.close-sl)>0))continue;
-out.push({i,side,entry:b.close,sl,tp:null})}
-return out}
+function btSignals(P,mode,lo,hi){
+  mode=mode||"pattern";
+  const {m5,S,h1}=P, out=[];
+  // اگر evaluate در دسترس است (engine v41+)، از همان منطق زنده استفاده کن — شامل range
+  if (typeof evaluate === "function") {
+    const step = mode === "range" ? 3 : 2; // کمی سبک‌تر برای سرعت
+    const start = Math.max(lo, (S.es||200)+5, 60);
+    for (let i = start; i <= hi; i += step) {
+      const now = m5[i].time + 299;
+      const raw5 = m5.slice(0, i + 1);
+      const rawH1 = (h1 || []).filter(c => c.time <= m5[i].time);
+      const r = evaluate("BT", raw5, rawH1, { ...S, mode, sessionFilter: false }, now);
+      if (r && r.side && r.sl != null) {
+        out.push({ i, side: r.side, entry: r.entry != null ? r.entry : m5[i].close, sl: r.sl, tp: r.tp != null ? r.tp : null, mode });
+      }
+    }
+    return out;
+  }
+  // fallback قدیمی فقط pattern
+  const {efA,emA,esA,rA,aA,m15,mf,mm,hf,hm,hs}=P;
+  const checkPA=(typeof checkPriceAction==="function")?checkPriceAction:checkPattern;
+  for(let i=Math.max(lo,S.es+1,3);i<=hi;i++){
+    const ef=efA[i],em=emA[i],es=esA[i],efp=efA[i-1],emp=emA[i-1],r=rA[i],a=aA[i];
+    if([ef,em,es,efp,emp,r,a].some(x=>x==null)||a<=0)continue;
+    const b=m5[i];
+    const slopeOk=a>0&&Math.abs(ef-efp)/a>=(S.minSlopeAtr||0.02);
+    const slopeDirL=(ef-efp)>0&&(em-emp)>=0, slopeDirS=(ef-efp)<0&&(em-emp)<=0;
+    const ab=b.close>es,be=b.close<es;
+    const l4=[b,m5[i-1],m5[i-2],m5[i-3]],pl=checkPA(l4,"LONG",S.minRatio,a),ps=checkPA(l4,"SHORT",S.minRatio,a);
+    const nc=ef!==em&&efp!==emp&&((ef>em&&efp>emp)||(ef<em&&efp<emp));
+    let rsiL=true,rsiS=true;
+    if(S.rsi){const r1=rA[i-1],r2=rA[i-2];
+      rsiL=((r1!=null&&r1<S.rsiL)||(r2!=null&&r2<S.rsiL)||r<S.rsiL+5)&&r<62;
+      rsiS=((r1!=null&&r1>S.rsiS)||(r2!=null&&r2>S.rsiS)||r>S.rsiS-5)&&r>38}
+    let L=ab&&ef>em&&nc&&slopeOk&&slopeDirL&&pl.ok&&rsiL;
+    let Sh=be&&ef<em&&nc&&slopeOk&&slopeDirS&&ps.ok&&rsiS;
+    const distATR=a>0?Math.abs(b.close-es)/a:99;
+    if(distATR>(S.maxDistATR||3.2)){L=false;Sh=false}
+    if(!L&&!Sh)continue;
+    let m15L=true,m15S=true;if(S.m15){const k=lci(m15,900,b.time+300),f=k>=0?mf[k]:null,m=k>=0?mm[k]:null;if(f==null||m==null)continue;m15L=f>m;m15S=f<m}
+    let h1L=true,h1S=true;if(S.h1){const k=lci(h1,3600,b.time+300),s=k>=0?hs[k]:null;if(s==null)continue;const c=h1[k].close;h1L=c>s;h1S=c<s}
+    let side=null;if(L&&m15L&&h1L)side="LONG";if(Sh&&m15S&&h1S)side="SHORT";if(!side)continue;
+    const look=Math.min(S.swingLook||10,i),recent=m5.slice(i-look,i);
+    const swingLow=Math.min(...recent.map(c=>c.low)),swingHigh=Math.max(...recent.map(c=>c.high));
+    const atrSL=(S.atrMultSL||1.8)*a, spreadBuf=(S.spreadAtr!=null?S.spreadAtr:0.25)*a;
+    let sl; if(side==="LONG")sl=Math.min(swingLow-0.25*a,b.close-atrSL)-spreadBuf; else sl=Math.max(swingHigh+0.25*a,b.close+atrSL)+spreadBuf;
+    const minDist=(S.minSlAtr||1.2)*a; if(Math.abs(b.close-sl)<minDist)sl=side==="LONG"?b.close-minDist-spreadBuf:b.close+minDist+spreadBuf;
+    const risk=Math.abs(b.close-sl), R=S.tpR||2;
+    const tp=side==="LONG"?b.close+risk*R:b.close-risk*R;
+    out.push({i,side,entry:b.close,sl,tp,mode:"pattern"});
+  }
+  return out;
+}
 function sessInfo(m,gapMin){const n=m.length,start=new Int32Array(n),end=new Int32Array(n),gs=gapMin*60;let s=0,cnt=0;
 for(let i=1;i<=n;i++){if(i===n||m[i].time-m[i-1].time>gs){for(let j=s;j<i;j++){start[j]=s;end[j]=i-1}s=i;if(i<n)cnt++}}return{start,end,gaps:cnt}}
 
