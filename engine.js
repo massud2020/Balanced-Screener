@@ -11,28 +11,28 @@ const DEF = {
   h1: true,
   h1Strict: false,
   rsi: true,
-  rsiL: 42,             // پولبک واقعی‌تر (نه شل)
-  rsiS: 58,
+  rsiL: 38,             // پولبک عمیق‌تر
+  rsiS: 62,
   ef: 21,
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.55,       // بدنهٔ قوی‌تر
+  minRatio: 0.58,       // بدنه قوی‌تر — کیفیت > کمیت
   atrP: 14,
   bbP: 20,
   bbDev: 2,
 
-  maxDistATR: 3.2,      // جلوگیری از chase
+  maxDistATR: 2.6,      // جلوگیری از chase
   swingLook: 10,
-  atrMultSL: 1.8,
-  minSlAtr: 1.2,        // کف فاصله SL نسبت به ATR
-  spreadAtr: 0.25,      // بافر اسپرد ≈ ۰.۲۵ ATR روی ریسک
+  atrMultSL: 2.0,
+  minSlAtr: 1.6,        // کف SL بزرگ‌تر — کمتر استاپ‌خوری نویز
+  spreadAtr: 0.40,      // بافر اسپرد واقعی‌تر
   tpR: 2.0,             // حد سود ثابت ۲R (هم‌راستا با تلگرام/موتور)
   exitMode: "tp_r",     // tp_r | rsi_div  — موتور: tp_r
   useConfluence: false,
   minConfluence: 7,
   requirePaStrong: true, // engulf / pin / classic اجباری (structure تنها کافی نیست)
-  minPaScore: 2.5,
+  minPaScore: 3.0,
   minSlopeAtr: 0.02,    // شیب EMA نسبت به ATR (نه فقط ≠۰)
   sessionFilter: true,  // فیلتر سشن جفت‌ارز
   d1Filter: false,      // پیش‌فرض خاموش — برای M5 سخت‌گیرانه بود
@@ -47,7 +47,7 @@ const DEF = {
   rangeH1: true,
   rangeTouchPct: 0.12
 }
-const ENGINE_VER = 41;
+const ENGINE_VER = 42;
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -245,7 +245,7 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal) {
   if (bodyRatio >= minRatio) score += 0.6;
 
   const strong = engulfs || pinOk || classicOk;
-  const ok = strong && score >= 2.5;
+  const ok = strong && score >= 3.0; // فقط engulf/pin/classic قوی
   const type = classicOk ? "classic" : engulfs ? "engulf" : pinOk ? "pin" : structureOk ? "structure" : "none";
   return { ok, ratio: bodyRatio, type, score, strong };
 }
@@ -351,6 +351,9 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (S.nc !== false) addCheck(`هم‌جهتی و شیب EMAها`, nc && slope && (isL ? slopeDirL : slopeDirS), `تقاطع یا شیب نامناسب`);
     if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
     if (S.pat !== false) addCheck(`پرایس‌اکشن تأیید`, isL ? pl.ok : ps.ok, `الگوی پرایس‌اکشن ضعیف`);
+    // فیلتر نرم ADX فقط در حالت روند — حذف نویز بازار مرده بدون سخت‌گیری شدید
+    const adxSoft = adxV != null && adxV >= 18;
+    addCheck(`ADX≥18 (نرم)`, adxSoft, `بازار بدون روند کافی (ADX)`);
     if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند)`, adxV > S.adxMin, `بازار روند کافی ندارد`);
     if (S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
     if (S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
@@ -384,15 +387,22 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     const look = Math.min(S.swingLook || 10, m5.length - 1);
     const recent = m5.slice(-look - 1, -1);
     const swingLow = Math.min(...recent.map(c => c.low)), swingHigh = Math.max(...recent.map(c => c.high));
-    const atrSL = (S.atrMultSL || 1.8) * a;
-    const minDist = (S.minSlAtr || 1.2) * a;
-    const spreadBuf = (S.spreadAtr != null ? S.spreadAtr : 0.25) * a;
+    const atrSL = (S.atrMultSL || 2.0) * a;
+    const spreadBuf = (S.spreadAtr != null ? S.spreadAtr : 0.4) * a;
+    // کف مطلق بر اساس کلاس نماد (اسپرد + نویز M5)
+    const sym = String(id || "").toUpperCase();
+    let floorDist = (S.minSlAtr || 1.6) * a;
+    if (/USDT$|BTC|ETH/.test(sym)) floorDist = Math.max(floorDist, sc * 0.005, 1.8 * a); // ≥۰.۵٪
+    else if (/JPY/.test(sym)) floorDist = Math.max(floorDist, 0.15, 1.7 * a); // ≥۱۵ پیپ
+    else if (/XAU|GOLD/.test(sym)) floorDist = Math.max(floorDist, 2.0, 1.7 * a);
+    else if (/XAG/.test(sym)) floorDist = Math.max(floorDist, 0.05, 1.7 * a);
+    else floorDist = Math.max(floorDist, 0.0012, 1.6 * a); // ≥۱۲ پیپ عمده
     if (side === "LONG") {
-      sl = Math.min(swingLow - 0.25 * a, sc - atrSL) - spreadBuf;
-      if (sc - sl < minDist) sl = sc - minDist - spreadBuf;
+      sl = Math.min(swingLow - 0.3 * a, sc - atrSL) - spreadBuf;
+      if (sc - sl < floorDist) sl = sc - floorDist;
     } else {
-      sl = Math.max(swingHigh + 0.25 * a, sc + atrSL) + spreadBuf;
-      if (sl - sc < minDist) sl = sc + minDist + spreadBuf;
+      sl = Math.max(swingHigh + 0.3 * a, sc + atrSL) + spreadBuf;
+      if (sl - sc < floorDist) sl = sc + floorDist;
     }
     const risk = Math.abs(sc - sl);
     const R = S.tpR || 2.0;
