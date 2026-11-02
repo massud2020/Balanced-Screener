@@ -1,7 +1,7 @@
 // Background scanner for GitHub Actions
 // v40: one open signal per symbol until closed + day-key history (no candle-time duplicates)
 const fs = require("fs"),
-  { evaluate, dropForming } = require("./engine.js"),
+  { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
   { U } = require("./symbols.js"),
   AL = require("./alerts.js");
 
@@ -85,16 +85,48 @@ async function yh(sy, iv, rg) {
 
 async function tf(u, which) {
   const m = which === "5m";
-  let a = [];
-  if (u[1]) { try { a = await okx(u[1], m ? "5m" : "1H"); } catch (e) {} }
-  else if (u[4] && TOK) { try { a = await oanda(u[4], m ? "M5" : "H1"); } catch (e) {} }
-  if (a.length < 210 && u[2]) {
+  let a = [], src = null;
+  // 1) OANDA اولویت برای فارکس / فلزات / شاخص‌ها
+  if (u[4] && TOK) {
+    try {
+      a = await oanda(u[4], m ? "M5" : "H1");
+      if (a.length >= 50) { a._src = "oanda"; return a; }
+    } catch (e) { console.warn("oanda", u[0], e.message || e); }
+  }
+  // 2) کریپتو: OKX
+  if (u[1]) {
+    try {
+      a = await okx(u[1], m ? "5m" : "1H");
+      if (a.length) { a._src = "okx"; return a; }
+    } catch (e) {}
+  }
+  // 3) Yahoo فقط به‌عنوان پشتیبان
+  if (u[2]) {
     try {
       const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo");
-      if (y.length > a.length) a = y;
+      if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; }
     } catch (e) {}
   }
   return a;
+}
+
+// کندل تازه از OANDA برای بستن سیگنال‌های باز
+async function fetchOandaBarsForActive(activeMap) {
+  const out = {};
+  if (!TOK) return out;
+  const byId = new Map(U.map(u => [u[0], u]));
+  const ids = Object.keys(activeMap || {});
+  await Promise.all(ids.map(async (id) => {
+    const u = byId.get(id);
+    if (!u || !u[4]) return;
+    try {
+      const bars = await oanda(u[4], "M5");
+      if (bars && bars.length) out[id] = bars;
+    } catch (e) {
+      console.warn("oanda active", id, e.message || e);
+    }
+  }));
+  return out;
 }
 
 const DC = new Map(), slot5 = t => Math.floor((t - 20) / 300);
@@ -107,8 +139,8 @@ async function loadCached(u, now) {
   const e = { ...c };
   e.try5 = now;
   await Promise.all([
-    need5 && tf(u, "5m").then(a => { if (a.length >= 50) { e.a = a; e.t5 = now; e.fail = 0; } else e.fail = (c.fail || 0) + 1; }).catch(() => { e.fail = (c.fail || 0) + 1; }),
-    need1 && tf(u, "1h").then(h => { if (h.length) { e.h = h; e.t1 = now; } }).catch(() => {}),
+    need5 && tf(u, "5m").then(a => { if (a.length >= 50) { e.a = a; e.t5 = now; e.fail = 0; e.src = a._src || e.src; } else e.fail = (c.fail || 0) + 1; }).catch(() => { e.fail = (c.fail || 0) + 1; }),
+    need1 && tf(u, "1h").then(h => { if (h.length) { e.h = h; e.t1 = now; e.src = h._src || e.src; } }).catch(() => {}),
   ]);
   DC.set(u[0], e);
   return [e.a || [], e.h || []];
@@ -168,25 +200,103 @@ function isOpen(id) {
   if (Date.now() / 1000 - a.time > MAX_HOLD_SEC) return false;
   return true;
 }
-function openSig(id, side, entry, mode, now) {
-  STATE.active[id] = { side, entry, mode, time: now, scansWithout: 0 };
+function openSig(id, side, entry, mode, now, extra) {
+  const e = extra || {};
+  const risk = (e.sl != null && entry != null) ? Math.abs(entry - e.sl) : null;
+  const tp = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 2 * risk : entry - 2 * risk) : null);
+  STATE.active[id] = {
+    side, entry, mode, time: now, scansWithout: 0,
+    sl: e.sl, tp, d: e.d, bt: e.bt
+  };
 }
-function touchActives(currentSides, now) {
+function calcR(side, entry, sl, exitPx) {
+  const risk = Math.abs(entry - sl);
+  if (!risk || !isFinite(risk)) return 0;
+  const L = side === "LONG";
+  return (L ? (exitPx - entry) : (entry - exitPx)) / risk;
+}
+
+function resolveFromBars(a, bars, now) {
+  // bars: [{time, high, low, close}]
+  if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
+  const risk = Math.abs(a.entry - a.sl);
+  const tp = a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk);
+  const start = a.bt || a.time;
+  for (const b of bars) {
+    if (b.time < start) continue;
+    if (a.side === "LONG") {
+      if (b.low <= a.sl) return { result: "loss", exit: a.sl, why: "SL", R: calcR(a.side, a.entry, a.sl, a.sl), closeTime: b.time };
+      if (b.high >= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
+    } else {
+      if (b.high >= a.sl) return { result: "loss", exit: a.sl, why: "SL", R: calcR(a.side, a.entry, a.sl, a.sl), closeTime: b.time };
+      if (b.low <= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
+    }
+  }
+  // timeout / signal faded: mark to market last close after start
+  const last = bars[bars.length - 1];
+  if (last && now - a.time >= MAX_HOLD_SEC) {
+    return { result: "time", exit: last.close, why: "TIME", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+  }
+  return null;
+}
+
+function applyOutcomeToHistory(history, id, side, day, outcome, now) {
+  // attach to matching history row
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (h.id === id && h.side === side && !h.result) {
+      h.result = outcome.result;
+      h.exit = outcome.exit;
+      h.why = outcome.why;
+      h.R = +Number(outcome.R).toFixed(2);
+      h.closeTime = outcome.closeTime || now;
+      return;
+    }
+  }
+  // if no open hist row, push closed record
+  history.push({
+    id, side, entry: null, result: outcome.result, exit: outcome.exit,
+    why: outcome.why, R: +Number(outcome.R).toFixed(2),
+    time: now, closeTime: outcome.closeTime || now, k: id + "|" + side + "|out|" + day
+  });
+}
+
+function touchActives(currentSides, now, barMap, history) {
+  const day = dayKey(now);
   for (const id of Object.keys(STATE.active)) {
     const a = STATE.active[id];
-    const close = () => {
-      const lockKey = `${id}|${a.side}`;
-      // قفل نماد|جهت را برنمی‌داریم تا پایان روز؛ فقط active بسته می‌شود
-      // برای اجازه سیگنال جدید بعد از بسته شدن واقعی، lockKey را پاک می‌کنیم:
-      delete STATE.sent[lockKey];
+    const bars = barMap && barMap[id];
+    //优先: hit TP/SL
+    const hit = resolveFromBars(a, bars, now);
+    if (hit && (hit.why === "SL" || hit.why === "TP")) {
+      applyOutcomeToHistory(history, id, a.side, day, hit, now);
+      delete STATE.sent[id + "|" + a.side];
+      delete STATE.active[id];
+      continue;
+    }
+    const close = (outcome) => {
+      if (outcome) applyOutcomeToHistory(history, id, a.side, day, outcome, now);
+      delete STATE.sent[id + "|" + a.side];
       delete STATE.active[id];
     };
-    if (now - a.time > MAX_HOLD_SEC) { close(); continue; }
+    if (now - a.time > MAX_HOLD_SEC) {
+      close(hit || resolveFromBars(a, bars, now) || { result: "time", exit: a.entry, why: "TIME", R: 0, closeTime: now });
+      continue;
+    }
     const cur = currentSides[id];
     if (cur && cur === a.side) a.scansWithout = 0;
     else {
       a.scansWithout = (a.scansWithout || 0) + 1;
-      if (a.scansWithout >= CLOSE_SCANS) close();
+      if (a.scansWithout >= CLOSE_SCANS) {
+        // faded: mark to market if bars exist
+        const o = resolveFromBars({ ...a, time: a.time - MAX_HOLD_SEC }, bars, now); // force time path unused
+        let outcome = null;
+        if (bars && bars.length) {
+          const last = bars[bars.length - 1];
+          outcome = { result: "time", exit: last.close, why: "FADE", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+        }
+        close(outcome);
+      }
     }
   }
 }
@@ -251,6 +361,7 @@ async function once(now) {
 
       try {
         const [a, h] = await loadCached(u, now);
+        const dataSrc = (a && a._src) || (DC.get(u[0]) && DC.get(u[0]).src) || (u[4] && TOK ? "oanda" : (u[1] ? "okx" : "yahoo"));
 
         if (a.length < 50) {
           allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u });
@@ -283,47 +394,22 @@ async function once(now) {
           currentSides[u[0]] = r.side;
           allRows.push({
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
-            pass: r.total || 7, total: r.total || 7, bt: bt, mode: useMode, u: u,
+            pass: r.total || 7, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
           if (emitSide) {
-            // کلید قفل: فقط نماد|جهت — تا سیگنال باز است هیچ پیام تکراری نرود
+            // فقط کاندید — ارسال تلگرام بعد از فیلتر همبستگی
             const lockKey = `${u[0]}|${r.side}`;
             const histKey = `${u[0]}|${r.side}|${dayKey(now)}`;
             const alreadySent = STATE.sent[lockKey] || STATE.sent[histKey];
             const alreadyOpen = isOpen(u[0]);
             if (!alreadySent && !alreadyOpen) {
-              STATE.sent[lockKey] = now;
-              STATE.sent[histKey] = now;
-              openSig(u[0], r.side, r.entry, useMode, now);
-              const checksData = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
-              if (!history.some(h => h.id === u[0] && h.side === r.side && dayKey(h.time) === dayKey(now))) {
-                history.push({
-                  id: u[0], side: r.side, entry: r.entry, sl: r.sl, rsi: r.rsi,
-                  time: now, bt: bt, k: histKey, d: u[3], mode: useMode,
-                  checks: checksData, totalConds: r.total
-                });
-              }
-              const L = r.side === "LONG";
-              const ageMin = Math.max(0, Math.round((now - (bt + 300)) / 60));
-              const modeName = NAME[useMode] || useMode;
-              const sent = await tg(
-                `🌐 [پس‌زمینه] ${L ? "🟢 LONG" : "🔴 SHORT"} ${u[0]}\n${modeName}\nEntry ${fd(r.entry, u[3])} | SL ${fd(r.sl, u[3])}\nRSI ${fd(r.rsi, 1)} | کندل ${ageMin} دقیقه پیش بسته شد\nخروج: اولین واگرایی RSI`,
-                TH_SIG
-              );
-              // اگر تلگرام شکست خورد، فقط sent را بردار — active را نگه دار تا دوباره اسپم نشود
-              if (!sent && process.env.TELEGRAM_TOKEN) {
-                delete STATE.sent[lockKey];
-                delete STATE.sent[histKey];
-                // یک‌بار دیگر در اجرای بعد تلاش می‌شود، ولی active مانع اسپم می‌شود
-              }
-              try {
-                fs.writeFileSync("latest_signal.txt", `${u[0]},${L ? "BUY" : "SELL"},${fd(r.entry, u[3])},${fd(r.sl, u[3])},0,${now}`);
-              } catch (e) {}
-            } else if (alreadyOpen || alreadySent) {
-              // سیگنال باز است؛ فقط data ردیف بدون side جدید
+              allRows[allRows.length - 1]._pendingNotify = true;
+              allRows[allRows.length - 1]._checks = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
+              allRows[allRows.length - 1]._lockKey = lockKey;
+              allRows[allRows.length - 1]._histKey = histKey;
             }
           }
         } else {
@@ -332,7 +418,7 @@ async function once(now) {
             id: u[0], side: null, d: u[3], mkt: mktOf(u),
             fail: r.fail || "خطای نامشخص",
             pass: r.pass || 0, total: r.total || 7,
-            mode: useMode, u: u,
+            mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h)
           });
         }
@@ -344,9 +430,80 @@ async function once(now) {
   }));
 
   // بستن سیگنال‌هایی که دیگر شرایط ندارند
-  touchActives(currentSides, now);
+  const barMap = {};
+  allRows.forEach(r => {
+    if (!r || !r.id || !r.a) return;
+    barMap[r.id] = (r.a || []).map(c => Array.isArray(c)
+      ? { time: c[0], open: c[1], high: c[2], low: c[3], close: c[4] }
+      : c);
+    if (r._src) barMap[r.id]._src = r._src;
+  });
+  // برای سیگنال‌های باز: کندل تازه از OANDA (دقیق‌تر برای TP/SL)
+  try {
+    const oandaBars = await fetchOandaBarsForActive(STATE.active);
+    Object.keys(oandaBars).forEach(id => {
+      barMap[id] = oandaBars[id];
+      barMap[id]._src = "oanda";
+    });
+  } catch (e) { console.warn("oanda refresh", e.message || e); }
+  touchActives(currentSides, now, barMap, history);
+  // سقف همبستگی: از هر گروه فقط یک سیگنال
+  try {
+    if (typeof filterCorrelated === "function") {
+      const active = allRows.filter(r => r && r.side);
+      const kept = new Set(filterCorrelated(active).map(r => r.id + "|" + r.side));
+      allRows.forEach(r => {
+        if (r.side && !kept.has(r.id + "|" + r.side)) {
+          r.side = null;
+          r.fail = r.fail || "حذف به‌خاطر همبستگی با سیگنال قوی‌تر";
+        }
+      });
+    }
+  } catch (e) { console.warn("corr filter", e.message); }
 
-  try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) { console.error("alerts failed", e.message); }
+
+  
+  // ارسال تلگرام فقط برای سیگنال‌های باقی‌مانده پس از همبستگی
+  for (const row of allRows) {
+    if (!row || !row.side || !row._pendingNotify) continue;
+    const lockKey = row._lockKey || (row.id + "|" + row.side);
+    const histKey = row._histKey || (row.id + "|" + row.side + "|" + dayKey(now));
+    if (STATE.sent[lockKey] || STATE.sent[histKey] || isOpen(row.id)) {
+      row._pendingNotify = false;
+      continue;
+    }
+    STATE.sent[lockKey] = now;
+    STATE.sent[histKey] = now;
+    openSig(row.id, row.side, row.entry, row.mode, now, { sl: row.sl, tp: row.tp, d: row.d, bt: row.bt });
+    const checksData = row._checks || [];
+    if (!history.some(h => h.id === row.id && h.side === row.side && dayKey(h.time) === dayKey(now))) {
+      history.push({
+        id: row.id, side: row.side, entry: row.entry, sl: row.sl, rsi: row.rsi,
+        time: now, bt: row.bt, k: histKey, d: row.d, mode: row.mode, src: row.src || "oanda",
+        checks: checksData, totalConds: row.total
+      });
+    }
+    const L = row.side === "LONG";
+    const ageMin = Math.max(0, Math.round((now - ((row.bt || now) + 300)) / 60));
+    const modeName = NAME[row.mode] || row.mode;
+    const sent = await tg(
+      "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
+      "\nEntry " + fd(row.entry, row.d) + " | SL " + fd(row.sl, row.d) +
+      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش بسته شد\nخروج: حد سود ۲R یا SL",
+      TH_SIG
+    );
+    if (!sent && process.env.TELEGRAM_TOKEN) {
+      delete STATE.sent[lockKey];
+      delete STATE.sent[histKey];
+    } else {
+      try {
+        fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + ",0," + now);
+      } catch (e) {}
+    }
+    row._pendingNotify = false;
+  }
+
+try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) { console.error("alerts failed", e.message); }
   for (const k of Object.keys(STATE.sent)) if (now - STATE.sent[k] > 2 * 86400) delete STATE.sent[k];
 
   const threeDaysAgo = now - (3 * 24 * 3600);
@@ -367,6 +524,7 @@ async function once(now) {
 }
 
 if (require.main === module) (async () => {
+  console.log("OANDA:", TOK ? "token OK" : "NO TOKEN");
   console.log("Settings:", JSON.stringify({
     modes: MODES, m15: F15, h1: FH1, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, strict: STRICT,
     telegram: !!(process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_CHAT_ID), signalsThread: !!TH_SIG, alertsThread: !!TH_ALR,
