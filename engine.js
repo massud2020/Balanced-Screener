@@ -5,40 +5,49 @@ const DEF = {
   emax: true,
   nc: true,
   pat: true,
-  adx: false,           // فقط برای انتخاب رژیم
-  adxMin: 24,           // آستانه رژیم روند (متعادل)
+  adx: false,           // فیلتر سخت ADX خاموش؛ برای رژیم جداگانه استفاده می‌شود
+  adxMin: 22,           // اگر adx روشن شود
   m15: true,
   h1: true,
   h1Strict: false,
   rsi: true,
-  rsiL: 46,             // کمی آزادتر برای پولبک لانگ
-  rsiS: 54,             // کمی آزادتر برای پولبک شورت
+  rsiL: 42,             // پولبک واقعی‌تر (نه شل)
+  rsiS: 58,
   ef: 21,
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.48,       // پرایس‌اکشن کمی آزادتر → سیگنال بیشتر
+  minRatio: 0.55,       // بدنهٔ قوی‌تر
   atrP: 14,
   bbP: 20,
   bbDev: 2,
 
-  maxDistATR: 4.0,      // اجازه فاصله بیشتر از EMA200
+  maxDistATR: 3.2,      // جلوگیری از chase
   swingLook: 10,
   atrMultSL: 1.8,
+  minSlAtr: 1.2,        // کف فاصله SL نسبت به ATR
+  spreadAtr: 0.25,      // بافر اسپرد ≈ ۰.۲۵ ATR روی ریسک
+  tpR: 2.0,             // حد سود ثابت ۲R (هم‌راستا با تلگرام/موتور)
+  exitMode: "tp_r",     // tp_r | rsi_div  — موتور: tp_r
   useConfluence: false,
   minConfluence: 7,
-
-  rangeAdxMax: 20,      // آستانه رژیم رنج
-  rangeMinATR: 2.5,     // رنج کمی آسان‌تر
-  rangeMinTouches: 2,   // حداقل ۲ برخورد (قبلاً ۳)
-  rangeRsiL: 34,
-  rangeRsiS: 66,
-  rangeMinRR: 1.4,      // RR کمی پایین‌تر → سیگنال بیشتر
-  rangeMaxRiskATR: 3.0,
+  requirePaStrong: true, // engulf / pin / classic اجباری (structure تنها کافی نیست)
+  minPaScore: 2.5,
+  minSlopeAtr: 0.02,    // شیب EMA نسبت به ATR (نه فقط ≠۰)
+  sessionFilter: true,  // فیلتر سشن جفت‌ارز
+  d1Filter: false,      // پیش‌فرض خاموش — برای M5 سخت‌گیرانه بود
+  rangeLookback: 96,    // ≈۸ ساعت M5 (نه ۵۰)
+  rangeAdxMax: 20,
+  rangeMinATR: 3.0,
+  rangeMinTouches: 3,
+  rangeRsiL: 32,
+  rangeRsiS: 68,
+  rangeMinRR: 1.6,
+  rangeMaxRiskATR: 2.8,
   rangeH1: true,
-  rangeTouchPct: 0.14
+  rangeTouchPct: 0.12
 }
-const ENGINE_VER = 40;
+const ENGINE_VER = 41;
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -115,42 +124,50 @@ function stdDev(v, p) {
   return o;
 }
 
-function adx(cs, p) {
-  if (cs.length < p * 2) return Array(cs.length).fill(null);
-  let trs = [], pDMs = [], nDMs = [];
-  for (let i = 1; i < cs.length; i++) {
+function adx(cs, p = 14) {
+  // Wilder ADX با هم‌ترازی صحیح روی ایندکس کندل (رفع باگ جابه‌جایی ~۱۳ کندل)
+  const n = cs.length;
+  const out = Array(n).fill(null);
+  if (n < p * 2 + 1) return out;
+  const tr = [], pdm = [], ndm = [];
+  for (let i = 1; i < n; i++) {
     const h = cs[i].high, l = cs[i].low, ph = cs[i - 1].high, pl = cs[i - 1].low, pc = cs[i - 1].close;
-    const tr = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
-    const pDM = (h - ph > pl - l && h - ph > 0) ? h - ph : 0;
-    const nDM = (pl - l > h - ph && pl - l > 0) ? pl - l : 0;
-    trs.push(tr); pDMs.push(pDM); nDMs.push(nDM);
+    tr.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+    const up = h - ph, dn = pl - l;
+    pdm.push(up > dn && up > 0 ? up : 0);
+    ndm.push(dn > up && dn > 0 ? dn : 0);
   }
-  let str = [], spDM = [], snDM = [];
-  let sTR = 0, sPDM = 0, sNDM = 0;
-  for (let i = 0; i < p; i++) { sTR += trs[i]; sPDM += pDMs[i]; sNDM += nDMs[i]; }
-  str.push(sTR); spDM.push(sPDM); snDM.push(sNDM);
-  for (let i = p; i < trs.length; i++) {
-    sTR = sTR - sTR / p + trs[i];
-    sPDM = sPDM - sPDM / p + pDMs[i];
-    sNDM = sNDM - sNDM / p + nDMs[i];
-    str.push(sTR); spDM.push(sPDM); snDM.push(sNDM);
+  // tr[k] مربوط به کندل k+1 است
+  let atr = 0, sp = 0, sn = 0;
+  for (let i = 0; i < p; i++) { atr += tr[i]; sp += pdm[i]; sn += ndm[i]; }
+  const dx = Array(tr.length).fill(null);
+  for (let i = p - 1; i < tr.length; i++) {
+    if (i >= p) {
+      atr = atr - atr / p + tr[i];
+      sp = sp - sp / p + pdm[i];
+      sn = sn - sn / p + ndm[i];
+    }
+    const pdi = atr ? 100 * (sp / atr) : 0;
+    const ndi = atr ? 100 * (sn / atr) : 0;
+    const s = pdi + ndi;
+    dx[i] = s === 0 ? 0 : 100 * Math.abs(pdi - ndi) / s;
   }
-  let dx = [];
-  for (let i = 0; i < str.length; i++) {
-    const pDI = 100 * (spDM[i] / str[i]);
-    const nDI = 100 * (snDM[i] / str[i]);
-    const sum = pDI + nDI;
-    dx.push(sum === 0 ? 0 : 100 * Math.abs(pDI - nDI) / sum);
+  let adxVal = 0, filled = 0;
+  for (let i = p - 1; i < tr.length; i++) {
+    if (dx[i] == null) continue;
+    if (filled < p) {
+      adxVal += dx[i];
+      filled++;
+      if (filled === p) {
+        adxVal /= p;
+        out[i + 1] = adxVal; // ایندکس کندل
+      }
+    } else {
+      adxVal = (adxVal * (p - 1) + dx[i]) / p;
+      out[i + 1] = adxVal;
+    }
   }
-  const adxArr = Array(cs.length).fill(null);
-  let sDX = 0;
-  for (let i = 0; i < p; i++) sDX += dx[i];
-  adxArr[p * 2 - 1] = sDX / p;
-  for (let i = p; i < dx.length; i++) {
-    const prev = adxArr[p * 2 - 2 + i];
-    adxArr[p * 2 - 1 + i] = (prev * (p - 1) + dx[i]) / p;
-  }
-  return adxArr;
+  return out;
 }
 
 const last = (a, n = 0) => {
@@ -173,41 +190,64 @@ function resample(c, min) {
   }));
 }
 
-function checkPriceAction(candles, dir, minRatio = 0.55) {
-  if (candles.length < 4) return { ok: false, ratio: 0, type: "none", score: 0 };
+function checkPriceAction(candles, dir, minRatio = 0.55, atrVal) {
+  // c0 = آخرین کندل بسته‌شده (تأیید)، c1..c3 قبل‌تر
+  if (!candles || candles.length < 4) return { ok: false, ratio: 0, type: "none", score: 0 };
   const [c0, c1, c2, c3] = candles;
   const body = Math.abs(c0.close - c0.open);
   const range = c0.high - c0.low;
   const bodyRatio = range > 0 ? body / range : 0;
   const isBull = c0.close > c0.open;
   const isBear = c0.close < c0.open;
-  if (dir === "LONG" && (!isBull || bodyRatio < minRatio * 0.7)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
-  if (dir === "SHORT" && (!isBear || bodyRatio < minRatio * 0.7)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
+  // حداقل بدنه معقول
+  if (dir === "LONG" && (!isBull || bodyRatio < minRatio * 0.75)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
+  if (dir === "SHORT" && (!isBear || bodyRatio < minRatio * 0.75)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
+
+  const prevBody = Math.abs(c1.close - c1.open);
   const engulfs = dir === "LONG"
-    ? (c0.close > c1.open && c0.open < c1.close && body > Math.abs(c1.close - c1.open) * 0.9)
-    : (c0.close < c1.open && c0.open > c1.close && body > Math.abs(c1.close - c1.open) * 0.9);
+    ? (c0.close >= c1.open && c0.open <= c1.close && body >= prevBody * 0.95 && isBull && c1.close < c1.open)
+    : (c0.close <= c1.open && c0.open >= c1.close && body >= prevBody * 0.95 && isBear && c1.close > c1.open);
+
   const upperWick = c0.high - Math.max(c0.open, c0.close);
   const lowerWick = Math.min(c0.open, c0.close) - c0.low;
-  const pinOk = dir === "LONG" ? (lowerWick > body * 1.4 && upperWick < body * 0.6) : (upperWick > body * 1.4 && lowerWick < body * 0.6);
+  const pinOk = dir === "LONG"
+    ? (lowerWick > body * 1.6 && upperWick < body * 0.5 && bodyRatio >= 0.25)
+    : (upperWick > body * 1.6 && lowerWick < body * 0.5 && bodyRatio >= 0.25);
+
+  // ساختار بر اساس ATR (نه ۰.۹۹۹ که تقریباً همیشه true است)
+  const pad = (atrVal && atrVal > 0) ? 0.15 * atrVal : (range * 0.25);
   let structureOk = false;
   if (dir === "LONG") {
-    const lows = [c1.low, c2.low, c3.low];
-    structureOk = c0.low >= Math.min(...lows) * 0.999;
+    const swingLow = Math.min(c1.low, c2.low, c3.low);
+    structureOk = c0.low >= swingLow - pad && c0.close > c1.high;
   } else {
-    const highs = [c1.high, c2.high, c3.high];
-    structureOk = c0.high <= Math.max(...highs) * 1.001;
+    const swingHigh = Math.max(c1.high, c2.high, c3.high);
+    structureOk = c0.high <= swingHigh + pad && c0.close < c1.low;
   }
+
+  // الگوی کلاسیک ۳+۱ واقعی
   let classicOk = false;
   let g = 0, r = 0, gs = 0, rs = 0;
   for (const c of candles) {
-    const s = c.high - c.low;
-    if (c.close > c.open) { g++; gs += s; } else if (c.close < c.open) { r++; rs += s; }
+    const s = Math.max(c.high - c.low, 1e-12);
+    if (c.close > c.open) { g++; gs += s; }
+    else if (c.close < c.open) { r++; rs += s; }
   }
-  if (dir === "LONG" && g === 1 && r === 3 && isBull && rs > 0) classicOk = (gs / rs) >= minRatio;
-  if (dir === "SHORT" && r === 1 && g === 3 && isBear && gs > 0) classicOk = (rs / gs) >= minRatio;
-  const score = (engulfs ? 2 : 0) + (pinOk ? 2 : 0) + (structureOk ? 1.5 : 0) + (classicOk ? 1 : 0) + (bodyRatio >= minRatio ? 1 : 0);
-  const ok = score >= 2.0; // متعادل برای حجم سیگنال فارکس
-  return { ok, ratio: bodyRatio, type: engulfs ? "engulf" : pinOk ? "pin" : classicOk ? "classic" : structureOk ? "structure" : "none", score };
+  if (dir === "LONG" && g === 1 && r === 3 && isBull && rs > 0) classicOk = (gs / rs) >= minRatio && bodyRatio >= minRatio * 0.9;
+  if (dir === "SHORT" && r === 1 && g === 3 && isBear && gs > 0) classicOk = (rs / gs) >= minRatio && bodyRatio >= minRatio * 0.9;
+
+  // امتیاز: structure به‌تنهایی کافی نیست
+  let score = 0;
+  if (engulfs) score += 2.2;
+  if (pinOk) score += 2.0;
+  if (classicOk) score += 2.5;
+  if (structureOk) score += 0.8; // فقط کمکی
+  if (bodyRatio >= minRatio) score += 0.6;
+
+  const strong = engulfs || pinOk || classicOk;
+  const ok = strong && score >= 2.5;
+  const type = classicOk ? "classic" : engulfs ? "engulf" : pinOk ? "pin" : structureOk ? "structure" : "none";
+  return { ok, ratio: bodyRatio, type, score, strong };
 }
 
 function checkPattern(l4, dir, minRatio) { return checkPriceAction(l4, dir, minRatio); }
@@ -219,7 +259,8 @@ function rangeAnalyze(m5, h1, S, ind) {
   const smaV = smaA[i], stdV = stdA[i], smaP = smaA[i - 1], stdP = stdA[i - 1];
   const r = rA[i], rP = rA[i - 1], rP2 = rA[i - 2], a = aA[i], adxV = adxA[i], adxB = adxA[i - 3];
   const up = smaV + S.bbDev * stdV, lo = smaV - S.bbDev * stdV, upP = smaP + S.bbDev * stdP, loP = smaP - S.bbDev * stdP;
-  const lb = m5.slice(-52, -2);
+  const lbN = Math.min(m5.length - 2, (S.rangeLookback || 96));
+  const lb = m5.slice(-lbN - 2, -2);
   const rh = Math.max(...lb.map(c => c.high)), rl = Math.min(...lb.map(c => c.low)), H = rh - rl;
   let dir = pv.close <= loP ? "LONG" : pv.close >= upP ? "SHORT" : (sc < smaV ? "LONG" : "SHORT");
   const L = dir === "LONG";
@@ -265,7 +306,7 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
   const smaV = last(smaA), stdV = last(stdA), adxV = last(adxA);
   if ([ef, em, es, r, a, efp, emp, smaV, stdV, adxV].some(x => x == null)) return row({ fail: "اندیکاتورها آماده نیست" });
   const sc = m5[m5.length - 1].close;
-  const lookback = m5.slice(-50);
+  const lookback = m5.slice(-(S.rangeLookback || 96));
   const rangeHigh = Math.max(...lookback.map(c => c.high)), rangeLow = Math.min(...lookback.map(c => c.low));
   let pass = 0, total = 0, checks = [], fail = null, side = null;
   const addCheck = (label, ok, failMsg) => { total++; checks.push({ l: label, ok: !!ok }); if (ok) pass++; else if (!fail) fail = failMsg; };
@@ -276,8 +317,13 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (pass === total && total > 0) { side = RA.dir; fail = null; }
   } else {
     const patCandles = m5.slice(-4).reverse();
-    const pl = checkPriceAction(patCandles, "LONG", S.minRatio), ps = checkPriceAction(patCandles, "SHORT", S.minRatio);
-    const ab = sc > es, be = sc < es, slope = (ef - efp) !== 0 && (em - emp) !== 0;
+    const pl = checkPriceAction(patCandles, "LONG", S.minRatio, a), ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a);
+    const ab = sc > es, be = sc < es;
+    // شیب واقعی نسبت به ATR (نه فقط ≠ صفر)
+    const slopeOk = a > 0 && Math.abs(ef - efp) / a >= (S.minSlopeAtr || 0.02) && Math.abs(em - emp) / a >= (S.minSlopeAtr || 0.02) * 0.5;
+    const slopeDirL = (ef - efp) > 0 && (em - emp) >= 0;
+    const slopeDirS = (ef - efp) < 0 && (em - emp) <= 0;
+    const slope = slopeOk;
     const nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp));
     const D = sc >= es ? "LONG" : "SHORT", isL = D === "LONG";
     let m15L = true, m15S = true;
@@ -302,7 +348,7 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
       else { const wasOverbought = (r1 != null && r1 > S.rsiS) || (r2 != null && r2 > S.rsiS) || r > S.rsiS - 5; rsiOk = wasOverbought && r < (r1 || r) + 0.5 && r > 38; }
     }
     if (S.trend !== false) addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, isL ? ab : be, `قیمت روی EMA200`);
-    if (S.nc !== false) addCheck(`هم‌جهتی EMAها (بدون تقاطع)`, nc && slope, `تقاطع یا شیب نامناسب`);
+    if (S.nc !== false) addCheck(`هم‌جهتی و شیب EMAها`, nc && slope && (isL ? slopeDirL : slopeDirS), `تقاطع یا شیب نامناسب`);
     if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
     if (S.pat !== false) addCheck(`پرایس‌اکشن تأیید`, isL ? pl.ok : ps.ok, `الگوی پرایس‌اکشن ضعیف`);
     if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند)`, adxV > S.adxMin, `بازار روند کافی ندارد`);
@@ -312,6 +358,26 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     addCheck(`فاصله منطقی از EMA200`, distOk, `فاصله از EMA200 زیاد است (${distATR.toFixed(1)} ATR)`);
     if (pass === total && total > 0) { side = D; fail = null; }
   }
+  // فیلتر سشن / رول‌اور
+  if (side && S.sessionFilter !== false && typeof isInTradingSession === "function") {
+    if (!isInTradingSession(id, now)) {
+      side = null;
+      fail = fail || "خارج از سشن معاملاتی / رول‌اور";
+    }
+  }
+  // فیلتر روند روزانه (اختیاری — پیش‌فرض خاموش)
+  // فقط وقتی D1 «قوی» خلاف جهت باشد حذف می‌کند؛ سقف/کف دیروز دیگر بلاک نمی‌کند
+  if (side && S.d1Filter === true) {
+    const db = dailyBias(m5, now);
+    if (db && db.e21 != null && db.e50 != null && a > 0) {
+      const sep = Math.abs(db.e21 - db.e50) / a; // قدرت جدایی میانگین روزانه
+      const strongDown = db.down && sep >= 0.8;
+      const strongUp = db.up && sep >= 0.8;
+      if (side === "LONG" && strongDown) { side = null; fail = fail || "خلاف روند روزانه قوی (D1)"; }
+      if (side === "SHORT" && strongUp) { side = null; fail = fail || "خلاف روند روزانه قوی (D1)"; }
+    }
+  }
+
   let sl = null, tp = null, tp2 = null, rr = null;
   if (side && RA) { sl = RA.sl; tp = RA.tp; tp2 = RA.tp2; rr = RA.rr; }
   else if (side) {
@@ -319,14 +385,20 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     const recent = m5.slice(-look - 1, -1);
     const swingLow = Math.min(...recent.map(c => c.low)), swingHigh = Math.max(...recent.map(c => c.high));
     const atrSL = (S.atrMultSL || 1.8) * a;
-    if (side === "LONG") sl = Math.min(swingLow - 0.25 * a, sc - atrSL);
-    else sl = Math.max(swingHigh + 0.25 * a, sc + atrSL);
-    const minDist = 1.1 * a;
-    if (Math.abs(sc - sl) < minDist) sl = side === "LONG" ? sc - minDist : sc + minDist;
+    const minDist = (S.minSlAtr || 1.2) * a;
+    const spreadBuf = (S.spreadAtr != null ? S.spreadAtr : 0.25) * a;
+    if (side === "LONG") {
+      sl = Math.min(swingLow - 0.25 * a, sc - atrSL) - spreadBuf;
+      if (sc - sl < minDist) sl = sc - minDist - spreadBuf;
+    } else {
+      sl = Math.max(swingHigh + 0.25 * a, sc + atrSL) + spreadBuf;
+      if (sl - sc < minDist) sl = sc + minDist + spreadBuf;
+    }
     const risk = Math.abs(sc - sl);
-    tp = side === "LONG" ? sc + risk * 2.0 : sc - risk * 2.0;
-    tp2 = side === "LONG" ? sc + risk * 3.0 : sc - risk * 3.0;
-    rr = 2.0;
+    const R = S.tpR || 2.0;
+    tp = side === "LONG" ? sc + risk * R : sc - risk * R;
+    tp2 = side === "LONG" ? sc + risk * (R + 1) : sc - risk * (R + 1);
+    rr = R;
   }
   return row({ side, rsi: r, atr: a, entry: side ? sc : null, sl, tp, tp2, rr: rr != null ? +rr.toFixed(2) : null, fail, ef, em, es, adx: adxV, rangeHigh: RA ? RA.rh : rangeHigh, rangeLow: RA ? RA.rl : rangeLow, pass, total, checks });
 }
@@ -402,7 +474,7 @@ function explain(id, raw5, rawH1, S, now = Date.now() / 1000, dg = 5) {
   if ([ef, em, es, r, a, efp, emp, smaV, stdV, adxV].some(x => x == null)) { out.err = "اندیکاتورها آماده نیست"; return out; }
   const i = m5.length - 1, b = m5[i], sc = b.close, D = sc >= es ? "LONG" : "SHORT", L = D === "LONG", sl = (ef - efp) !== 0 && (em - emp) !== 0;
   out.dir = D; out.price = sc; out.rsi = r; out.atr = a; out.ef = ef; out.em = em; out.es = es; out.adx = adxV;
-  const lookback = m5.slice(-50);
+  const lookback = m5.slice(-(S.rangeLookback || 96));
   out.rangeHigh = Math.max(...lookback.map(c => c.high)); out.rangeLow = Math.min(...lookback.map(c => c.low));
   const add = (k, label, ok, txt, viz) => { out.checks.push({ k, label, ok: !!ok, txt, viz }); out.total++; if (ok) out.pass++; };
   if (S.mode === "range") {
@@ -426,6 +498,74 @@ function explain(id, raw5, rawH1, S, now = Date.now() / 1000, dg = 5) {
   return out;
 }
 
+
+// ---- سشن معاملاتی (UTC) ----
+function sessionOfSymbol(id) {
+  const s = String(id || "").toUpperCase();
+  if (/JPY|AUD|NZD|HK|JP225|AU200/.test(s)) return "asia";
+  if (/GBP|EUR|CHF|DE30|UK100|FR40|EU50/.test(s)) return "london";
+  if (/USD|CAD|US30|NAS|SPX|XAU|XAG|WTI|BTC|ETH/.test(s)) return "ny";
+  return "london";
+}
+function isInTradingSession(id, nowSec) {
+  const d = new Date((nowSec || Date.now() / 1000) * 1000);
+  const day = d.getUTCDay(); // 0 Sun .. 6 Sat
+  const h = d.getUTCHours() + d.getUTCMinutes() / 60;
+  // جمعه بعد ۲۱ و یکشنبه قبل ۲۲: فارکس بسته
+  const isCrypto = /USDT$|BTC|ETH|BNB|XRP|SOL|ADA|DOGE/.test(String(id || "").toUpperCase());
+  if (!isCrypto) {
+    if (day === 6) return false; // شنبه
+    if (day === 5 && h >= 21) return false; // جمعه شب
+    if (day === 0 && h < 22) return false; // یکشنبه قبل باز شدن
+    // رول‌اور ۲۱–۲۳ UTC
+    if (h >= 21 && h < 23) return false;
+  }
+  const sess = sessionOfSymbol(id);
+  if (isCrypto) return true;
+  if (sess === "asia") return (h >= 0 && h < 9) || (h >= 23);
+  if (sess === "london") return h >= 7 && h < 16;
+  if (sess === "ny") return h >= 12 && h < 21;
+  return true;
+}
+
+// گروه‌های همبستگی ساده (ضد دلار / پناهگاه / ریسک)
+
+// ---- بایاس روزانه (D1 از M5) ----
+function dailyBias(m5, now) {
+  try {
+    const d1 = dropForming(resample(m5, 1440), 86400, now || Date.now() / 1000);
+    if (!d1 || d1.length < 25) return null;
+    const cl = d1.map(c => c.close);
+    const e21 = last(ema(cl, 21)), e50 = last(ema(cl, 50));
+    if (e21 == null || e50 == null) return null;
+    const cur = d1[d1.length - 1], prev = d1[d1.length - 2] || cur;
+    const up = cur.close > e21 && e21 >= e50;
+    const down = cur.close < e21 && e21 <= e50;
+    return { up, down, pdh: prev.high, pdl: prev.low, close: cur.close, e21, e50 };
+  } catch (e) { return null; }
+}
+function correlationGroup(id) {
+  const s = String(id || "").toUpperCase();
+  if (/EURUSD|GBPUSD|AUDUSD|NZDUSD|EURGBP/.test(s)) return "usd_risk_long"; // LONG ≈ short USD
+  if (/USDJPY|USDCAD|USDCHF/.test(s)) return "usd_long";
+  if (/XAU|XAG/.test(s)) return "metal";
+  if (/BTC|ETH|BNB|XRP|SOL|USDT/.test(s)) return "crypto";
+  if (/US30|NAS|SPX|US2000/.test(s)) return "us_index";
+  return s;
+}
+function filterCorrelated(signals) {
+  // از هر گروه همبسته فقط بهترین سیگنال (بالاترین pass/total) نگه داشته شود
+  const best = new Map();
+  for (const r of signals || []) {
+    if (!r || !r.side) continue;
+    const g = correlationGroup(r.id) + "|" + r.side;
+    const score = (r.pass || 0) / Math.max(1, r.total || 1);
+    const prev = best.get(g);
+    if (!prev || score > prev._cs) best.set(g, { ...r, _cs: score });
+  }
+  return [...best.values()].map(({ _cs, ...r }) => r);
+}
+
 if (typeof module !== "undefined") {
-  module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER };
+  module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, adx, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER, isInTradingSession, sessionOfSymbol, correlationGroup, filterCorrelated, dailyBias };
 }
