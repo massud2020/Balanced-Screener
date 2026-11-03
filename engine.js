@@ -17,7 +17,7 @@ const DEF = {
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.58,       // بدنه قوی‌تر — کیفیت > کمیت
+  minRatio: 0.52,       // متعادل: کیفیت خوب بدون خشکی کامل       // بدنه قوی‌تر — کیفیت > کمیت
   atrP: 14,
   bbP: 20,
   bbDev: 2,
@@ -25,14 +25,14 @@ const DEF = {
   maxDistATR: 2.6,      // جلوگیری از chase
   swingLook: 10,
   atrMultSL: 2.0,
-  minSlAtr: 1.6,        // کف SL بزرگ‌تر — کمتر استاپ‌خوری نویز
+  minSlAtr: 1.35,       // کف SL معقول (قبلاً ۱.۶ خیلی سخت بود)        // کف SL بزرگ‌تر — کمتر استاپ‌خوری نویز
   spreadAtr: 0.40,      // بافر اسپرد واقعی‌تر
   tpR: 2.0,             // حد سود ثابت ۲R (هم‌راستا با تلگرام/موتور)
   exitMode: "tp_r",     // tp_r | rsi_div  — موتور: tp_r
   useConfluence: false,
   minConfluence: 7,
   requirePaStrong: true, // engulf / pin / classic اجباری (structure تنها کافی نیست)
-  minPaScore: 3.0,
+  minPaScore: 2.2,      // engulf/pin قوی‌تر از قبل، نه غیرممکن
   minSlopeAtr: 0.02,    // شیب EMA نسبت به ATR (نه فقط ≠۰)
   sessionFilter: true,  // فیلتر سشن جفت‌ارز
   d1Filter: false,      // پیش‌فرض خاموش — برای M5 سخت‌گیرانه بود
@@ -46,15 +46,15 @@ const DEF = {
   rangeMaxRiskATR: 2.8,
   rangeH1: true,
   rangeTouchPct: 0.12,
-  rangeRequireVol: true,   // تأیید حجم نسبی در لبه باند
-  rangeVolMult: 1.15,      // حجم کندل تریگر > میانگین
+  rangeRequireVol: false,  // حجم در فارکس/OANDA اغلب نیست — خاموش تا سیگنال رنج نميرد
+  rangeVolMult: 1.10,      // اگر بعداً روشن شد
   // مدیریت خروج انعطاف‌پذیر (برای سرور/اسکنر)
   trailAfterR: 1.0,        // بعد از +1R تریل فعال شود
   trailAtr: 1.2,           // فاصله تریل از قیمت بر حسب ATR
   maxHoldSoftSec: 6 * 3600,
   maxHoldStrongSec: 18 * 3600  // روند قوی تا ۱۸ ساعت
 }
-const ENGINE_VER = 43;
+const ENGINE_VER = 44;
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -277,10 +277,11 @@ function rangeAnalyze(m5, h1, S, ind) {
   const roomOk = H >= S.rangeMinATR * a, touchOk = tTop >= 1 && tBot >= 1 && (tTop + tBot) >= S.rangeMinTouches;
   const broke = sc > rh + 0.4 * a || sc < rl - 0.4 * a, rangeOk = roomOk && touchOk && !broke;
   const adxOk = adxV < S.rangeAdxMax || (adxV < S.adxMin && adxB != null && adxV < adxB);
-  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low, goodBody = rangeC > 0 && body / rangeC >= 0.45;
+  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low, goodBody = rangeC > 0 && body / rangeC >= 0.40;
   // واکنش به لبه باند: کندل قبلی خارج/روی باند، کندل فعلی برگشت به داخل با بدنه هم‌جهت
-  const edgeLong = (pv.low <= loP || pv.close <= loP) && sc > lo && b.close > b.open && goodBody && b.close >= b.open + 0.15 * a;
-  const edgeShort = (pv.high >= upP || pv.close >= upP) && sc < up && b.close < b.open && goodBody && b.open >= b.close + 0.15 * a;
+  // واکنش به باند: کندل قبلی نزدیک/روی باند، برگشت با بدنه هم‌جهت (کمی نرم‌تر از v43 اولیه)
+  const edgeLong = (pv.low <= loP + 0.15 * a || pv.close <= loP + 0.1 * a) && sc > lo && b.close > b.open && goodBody;
+  const edgeShort = (pv.high >= upP - 0.15 * a || pv.close >= upP - 0.1 * a) && sc < up && b.close < b.open && goodBody;
   const trig = L ? edgeLong : edgeShort;
   // حجم نسبی (اگر tick volume در کندل باشد؛ وگرنه از range به‌عنوان پروکسی)
   let volOk = true;
