@@ -244,7 +244,6 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-// اسپلش فعال + خروج مطمئن با دکمه (بدون گیر کردن)
 (function(){
   function killSplash(){
     try{
@@ -259,7 +258,6 @@ body[dir="ltr"] .ci { direction: ltr; }
     }catch(e){}
   }
   window.hideSplash = function(){ killSplash(); };
-  // نسخه کامل startApp بعداً جایگزین می‌شود؛ فعلاً فقط بستن امن
   window.startApp = function(){
     if (window.__startAppFull) return window.__startAppFull();
     killSplash();
@@ -910,13 +908,13 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX #3] __startAppFull بازنویسی شد */
+/* ✨ [FIX] __startAppFull — رژیم بازار حالا صدا زده می‌شود */
 window.__startAppFull = window.startApp = async function () {
     const startBtn = document.getElementById("start-ai-btn");
     const loading = document.getElementById("ai-loading");
     const splash = document.getElementById("ai-splash");
     if (splash) splash.dataset.started = "1";
-    window.__splashActive = true;   /* ← پرچم روشن */
+    window.__splashActive = true;
 
     const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
     if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
@@ -933,19 +931,18 @@ window.__startAppFull = window.startApp = async function () {
 
     const failsafe = setTimeout(function () {
       try { window.hideSplash(); } catch (e) {}
-    }, 45000);   /* ← 45s */
+    }, 45000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
       for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 35);  /* ← speed 35 */
+        if (typeof typeText === "function") await typeText("ai-text", lines[i], 35);
         else {
           const el = document.getElementById("ai-text");
           if (el) el.textContent = lines[i];
         }
         if (!mute && typeof speakNative === "function") {
           try {
-            /* ✨ بدون race — await کامل */
             await speakNative(lines[i], fa ? "fa-IR" : "en-US");
             await new Promise(r => setTimeout(r, 250));
           } catch (e) {
@@ -961,21 +958,30 @@ window.__startAppFull = window.startApp = async function () {
 
       try { if (typeof scan === "function") await scan(true); } catch (e) {}
 
+      /* 🎙️ رژیم بازار حالا صدا زده می‌شود */
       try {
         if (typeof detectMarketRegime === "function" && typeof setMode === "function") {
           const regime = detectMarketRegime();
           setMode(regime === "pattern" ? "pattern" : "range");
-          if (el) el.textContent = fa
+
+          const regimeText = fa
             ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
             : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-          await new Promise(function (r) { setTimeout(r, 800); });
+
+          if (el) el.textContent = regimeText;
+
+          if (!mute && typeof speakNative === "function") {
+            try { await speakNative(regimeText, fa ? "fa-IR" : "en-US"); } catch (e) {}
+          }
+
+          await new Promise(function (r) { setTimeout(r, 600); });
         }
-      } catch (e) {}
+      } catch (e) { console.warn("regime speech", e); }
     } catch (err) {
       console.error("startApp", err);
     } finally {
       clearTimeout(failsafe);
-      window.__splashActive = false;   /* ← پرچم خاموش */
+      window.__splashActive = false;
       try { window.hideSplash(); } catch (e) {
         const s = document.getElementById("ai-splash");
         if (s) { s.style.display = "none"; s.classList.add("hidden"); }
@@ -984,7 +990,6 @@ window.__startAppFull = window.startApp = async function () {
         startBtn.disabled = false;
         startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
       }
-      /* 🎯 TTS معلق را بعد از بسته شدن اسپلش اجرا کن */
       if (window.__pendingSay) {
         const ps = window.__pendingSay;
         window.__pendingSay = null;
@@ -1713,7 +1718,7 @@ function say(fr){
 
 function speakLang() { return "en-US"; }
 
-/* ✨ [FIX #1] guard افزایش یافت */
+/* ✨ [FIX] guard افزایش یافت */
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1730,8 +1735,8 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
-    /* ✨ زمان بیشتر — TTS فارسی کندتر تمام می‌شود */
-    const guard = setTimeout(finish, Math.min(12000, 1500 + raw.length * 200));
+    /* ✨ [FIX] 1500 + n*200 → 2000 + n*250 */
+    const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
 
     const pickVoice = (voices, wantLang) => {
       const list = voices || [];
@@ -1842,14 +1847,12 @@ function speakNative(text, forceLang) {
   });
 }
 
-/* ✨ [FIX #2] alertNow محافظت شد — say معلق تا بسته شدن اسپلش */
 function alertNow(fr){
   try { beep(); } catch(e) {}
   try { banner(fr); } catch(e) {}
 
   const doSay = () => { try { say(fr); } catch(e) {} };
   if (window.__splashActive) {
-    /* ذخیره برای اجرا در finally __startAppFull */
     window.__pendingSay = doSay;
   } else {
     setTimeout(doSay, 450);
@@ -2344,4 +2347,4 @@ setTimeout(function () {
 }, 30000);
 </script>
 </body>
-    </html>
+</html>
