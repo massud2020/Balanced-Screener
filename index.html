@@ -938,6 +938,9 @@ function setAppLanguage(lang) {
 window.__startAppFull = window.startApp = async function () {
     const startBtn = document.getElementById("start-ai-btn");
     const loading = document.getElementById("ai-loading");
+    const splash = document.getElementById("ai-splash");
+    if (splash) splash.dataset.started = "1";
+    
     const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
     if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
     try {
@@ -953,18 +956,17 @@ window.__startAppFull = window.startApp = async function () {
 
     const failsafe = setTimeout(function () {
       try { window.hideSplash(); } catch (e) {}
-    }, 10000);
+    }, 35000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
       for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 25);
+        if (typeof typeText === "function") await typeText("ai-text", lines[i], 30);
         else {
           const el = document.getElementById("ai-text");
           if (el) el.textContent = lines[i];
         }
         if (!mute && typeof speakNative === "function") {
-          // صبر تا متن کامل خوانده شود (حداقل بر اساس طول)
           const minMs = Math.max(1800, lines[i].length * 95);
           try {
             const p = speakNative(lines[i], fa ? "fa-IR" : "en-US");
@@ -977,14 +979,16 @@ window.__startAppFull = window.startApp = async function () {
             await new Promise(r => setTimeout(r, minMs));
           }
         } else {
-          await new Promise(function (r) { setTimeout(r, 450); });
+          await new Promise(function (r) { setTimeout(r, 800); });
         }
       }
       if (loading) loading.classList.add("on");
       const el = document.getElementById("ai-text");
       if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
-      try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
-      await new Promise(function (r) { setTimeout(r, 600); });
+      
+      // 🛠️ اصلاح: اسکن را به درستی Await می‌کنیم تا صفحه خوشامدگویی زودتر بسته نشود
+      try { if (typeof scan === "function") await scan(true); } catch (e) {}
+      
       try {
         if (typeof detectMarketRegime === "function" && typeof setMode === "function") {
           const regime = detectMarketRegime();
@@ -992,7 +996,7 @@ window.__startAppFull = window.startApp = async function () {
           if (el) el.textContent = fa
             ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
             : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-          await new Promise(function (r) { setTimeout(r, 500); });
+          await new Promise(function (r) { setTimeout(r, 800); });
         }
       } catch (e) {}
     } catch (err) {
@@ -2397,17 +2401,17 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// 🚨 کلید اضطراری: اگر بعد از ۱۰ ثانیه هر خطایی رخ داد، اسپلش بسته شود
+// 🚨 کلید اضطراری: اگر کاربر کاری نکرد، بعد از ۳۰ ثانیه اسپلش بسته شود
 setTimeout(function () {
   var s = document.getElementById('ai-splash');
-  if (s && !s.classList.contains('hidden')) {
+  if (s && !s.classList.contains('hidden') && !s.dataset.started) {
     s.classList.add('hidden');
     s.style.display = 'none';
     s.style.visibility = 'hidden';
     s.style.opacity = '0';
     s.style.pointerEvents = 'none';
   }
-}, 10000);
+}, 30000);
 </script>
 </body>
 </html>
