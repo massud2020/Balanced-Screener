@@ -420,15 +420,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 68;
+window.__BS_LOCAL_BUILD = 67;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = ""; // بعد از چک نسخه پر می‌شود
 </script>
-<script src="symbols.js?v=68"></script>
-<script src="alerts.js?v=68"></script>
-<script src="engine.js?v=68"></script>
-<script src="presets.js?v=68"></script>
-<script src="chart.js?v=68"></script>
+<script src="symbols.js?v=67"></script>
+<script src="alerts.js?v=67"></script>
+<script src="engine.js?v=67"></script>
+<script src="presets.js?v=67"></script>
+<script src="chart.js?v=67"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -773,7 +773,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 68);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 67);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -938,9 +938,6 @@ function setAppLanguage(lang) {
 window.__startAppFull = window.startApp = async function () {
     const startBtn = document.getElementById("start-ai-btn");
     const loading = document.getElementById("ai-loading");
-    const splash = document.getElementById("ai-splash");
-    if (splash) splash.dataset.started = "1";
-    
     const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
     if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
     try {
@@ -956,17 +953,18 @@ window.__startAppFull = window.startApp = async function () {
 
     const failsafe = setTimeout(function () {
       try { window.hideSplash(); } catch (e) {}
-    }, 35000);
+    }, 45000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
       for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 30);
+        if (typeof typeText === "function") await typeText("ai-text", lines[i], 25);
         else {
           const el = document.getElementById("ai-text");
           if (el) el.textContent = lines[i];
         }
         if (!mute && typeof speakNative === "function") {
+          // صبر تا متن کامل خوانده شود (حداقل بر اساس طول)
           const minMs = Math.max(1800, lines[i].length * 95);
           try {
             const p = speakNative(lines[i], fa ? "fa-IR" : "en-US");
@@ -979,26 +977,42 @@ window.__startAppFull = window.startApp = async function () {
             await new Promise(r => setTimeout(r, minMs));
           }
         } else {
-          await new Promise(function (r) { setTimeout(r, 800); });
+          await new Promise(function (r) { setTimeout(r, 450); });
         }
       }
       if (loading) loading.classList.add("on");
       const el = document.getElementById("ai-text");
       if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
-      
-      // 🛠️ اصلاح: اسکن را به درستی Await می‌کنیم تا صفحه خوشامدگویی زودتر بسته نشود
+      // منتظر اسکن بمان تا رژیم واقعی محاسبه شود
       try { if (typeof scan === "function") await scan(true); } catch (e) {}
-      
       try {
         if (typeof detectMarketRegime === "function" && typeof setMode === "function") {
           const regime = detectMarketRegime();
           setMode(regime === "pattern" ? "pattern" : "range");
-          if (el) el.textContent = fa
+          const regimeShow = fa
             ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
             : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-          await new Promise(function (r) { setTimeout(r, 800); });
+          const regimeSpeak = fa
+            ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+            : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
+          if (el) el.textContent = regimeShow;
+          if (!mute && typeof speakNative === "function") {
+            const minMs = Math.max(2200, regimeSpeak.length * 100);
+            try {
+              const p = speakNative(regimeSpeak, fa ? "fa-IR" : "en-US");
+              await Promise.race([
+                Promise.resolve(p),
+                new Promise(r => setTimeout(r, Math.min(12000, minMs + 2500)))
+              ]);
+              await new Promise(r => setTimeout(r, 400));
+            } catch (e) {
+              await new Promise(r => setTimeout(r, minMs));
+            }
+          } else {
+            await new Promise(function (r) { setTimeout(r, 900); });
+          }
         }
-      } catch (e) {}
+      } catch (e) { console.warn("regime speak", e); }
     } catch (err) {
       console.error("startApp", err);
     } finally {
@@ -1229,7 +1243,7 @@ window.hotReloadFromGitHub = async function () {
   // setTimeout(run, 1800);
 })();
 
-const BUILD=68,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=67,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -2394,24 +2408,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => reg.update())
-      .catch(err => console.warn('SW registration failed', err));
-  });
-}
-
-// 🚨 کلید اضطراری: اگر کاربر کاری نکرد، بعد از ۳۰ ثانیه اسپلش بسته شود
-setTimeout(function () {
-  var s = document.getElementById('ai-splash');
-  if (s && !s.classList.contains('hidden') && !s.dataset.started) {
-    s.classList.add('hidden');
-    s.style.display = 'none';
-    s.style.visibility = 'hidden';
-    s.style.opacity = '0';
-    s.style.pointerEvents = 'none';
-  }
-}, 30000);
-</script>
-</body>
-</html>
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            reg.update();
+        }).catch(err => console.warn('SW registration
