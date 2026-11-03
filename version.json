@@ -1,5 +1,5 @@
 {
-  "build": 68,
-  "engine": 43,
-  "note": "range BB edge+vol, trailing exit, flexible hold"
+  "build": 69,
+  "engine": 44,
+  "note": "v44: soften PA/range after zero signals; vol off for forex"
 }
