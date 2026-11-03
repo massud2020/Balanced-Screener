@@ -420,15 +420,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 67;
+window.__BS_LOCAL_BUILD = 68;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = ""; // بعد از چک نسخه پر می‌شود
 </script>
-<script src="symbols.js?v=67"></script>
-<script src="alerts.js?v=67"></script>
-<script src="engine.js?v=67"></script>
-<script src="presets.js?v=67"></script>
-<script src="chart.js?v=67"></script>
+<script src="symbols.js?v=68"></script>
+<script src="alerts.js?v=68"></script>
+<script src="engine.js?v=68"></script>
+<script src="presets.js?v=68"></script>
+<script src="chart.js?v=68"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -773,7 +773,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 67);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 68);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -1225,7 +1225,7 @@ window.hotReloadFromGitHub = async function () {
   // setTimeout(run, 1800);
 })();
 
-const BUILD=67,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=68,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -2390,7 +2390,24 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-            reg.update();
-        }).catch(err => console.warn('SW registration
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => reg.update())
+      .catch(err => console.warn('SW registration failed', err));
+  });
+}
+
+// 🚨 کلید اضطراری: اگر بعد از ۱۰ ثانیه هر خطایی رخ داد، اسپلش بسته شود
+setTimeout(function () {
+  var s = document.getElementById('ai-splash');
+  if (s && !s.classList.contains('hidden')) {
+    s.classList.add('hidden');
+    s.style.display = 'none';
+    s.style.visibility = 'hidden';
+    s.style.opacity = '0';
+    s.style.pointerEvents = 'none';
+  }
+}, 10000);
+</script>
+</body>
+</html>
