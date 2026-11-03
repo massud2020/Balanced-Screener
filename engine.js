@@ -45,9 +45,16 @@ const DEF = {
   rangeMinRR: 1.6,
   rangeMaxRiskATR: 2.8,
   rangeH1: true,
-  rangeTouchPct: 0.12
+  rangeTouchPct: 0.12,
+  rangeRequireVol: true,   // تأیید حجم نسبی در لبه باند
+  rangeVolMult: 1.15,      // حجم کندل تریگر > میانگین
+  // مدیریت خروج انعطاف‌پذیر (برای سرور/اسکنر)
+  trailAfterR: 1.0,        // بعد از +1R تریل فعال شود
+  trailAtr: 1.2,           // فاصله تریل از قیمت بر حسب ATR
+  maxHoldSoftSec: 6 * 3600,
+  maxHoldStrongSec: 18 * 3600  // روند قوی تا ۱۸ ساعت
 }
-const ENGINE_VER = 42;
+const ENGINE_VER = 43;
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -271,7 +278,19 @@ function rangeAnalyze(m5, h1, S, ind) {
   const broke = sc > rh + 0.4 * a || sc < rl - 0.4 * a, rangeOk = roomOk && touchOk && !broke;
   const adxOk = adxV < S.rangeAdxMax || (adxV < S.adxMin && adxB != null && adxV < adxB);
   const body = Math.abs(b.close - b.open), rangeC = b.high - b.low, goodBody = rangeC > 0 && body / rangeC >= 0.45;
-  const trig = L ? (pv.close <= loP && sc > lo && b.close > b.open && goodBody) : (pv.close >= upP && sc < up && b.close < b.open && goodBody);
+  // واکنش به لبه باند: کندل قبلی خارج/روی باند، کندل فعلی برگشت به داخل با بدنه هم‌جهت
+  const edgeLong = (pv.low <= loP || pv.close <= loP) && sc > lo && b.close > b.open && goodBody && b.close >= b.open + 0.15 * a;
+  const edgeShort = (pv.high >= upP || pv.close >= upP) && sc < up && b.close < b.open && goodBody && b.open >= b.close + 0.15 * a;
+  const trig = L ? edgeLong : edgeShort;
+  // حجم نسبی (اگر tick volume در کندل باشد؛ وگرنه از range به‌عنوان پروکسی)
+  let volOk = true;
+  if (S.rangeRequireVol !== false) {
+    const volOf = c => (c.volume != null ? c.volume : (c.high - c.low));
+    const look = m5.slice(Math.max(0, i - 20), i);
+    const avg = look.length ? look.reduce((s, c) => s + volOf(c), 0) / look.length : 0;
+    const vNow = volOf(b);
+    volOk = avg <= 0 || vNow >= (S.rangeVolMult || 1.15) * avg;
+  }
   const rv = [r, rP, rP2].filter(x => x != null);
   const rsiOk = L ? (Math.min(...rv) < S.rangeRsiL && r > rP) : (Math.max(...rv) > S.rangeRsiS && r < rP);
   let h1Ok = true, h1adx = null;
@@ -286,7 +305,8 @@ function rangeAnalyze(m5, h1, S, ind) {
   const add = (k, label, ok, txt, fail, viz) => checks.push({ k, label, ok: !!ok, txt, fail, viz });
   if (S.adx !== false) add("adx", `ADX < ${S.rangeAdxMax} (رنج)`, adxOk, adxV.toFixed(1), "بازار روند دارد (ADX)", { t: "dist", v: (adxV - S.rangeAdxMax) / 25 });
   add("rng", "رنج معتبر (برخورد به کف/سقف)", rangeOk, `${tBot} کف · ${tTop} سقف · ${(H / a).toFixed(1)}×ATR${broke ? " · شکست" : ""}`, broke ? "رنج شکسته شده" : "رنج معتبر نیست");
-  add("trg", "تأیید برگشت قوی", trig, trig ? "بله" : "خیر", "برگشت تأیید نشده");
+  add("trg", "واکنش به لبه باند بولینگر", trig, trig ? "بله" : "خیر", "واکنش لبه باند تأیید نشد");
+  add("vol", "حجم نسبی بالای میانگین", volOk, volOk ? "بله" : "خیر", "حجم کافی نیست");
   if (S.rsi !== false) add("rsi", "RSI اشباع و در حال برگشت", rsiOk, r.toFixed(1), "RSI در محدوده اشباع نیست", { t: "dist", v: (r - 50) / 50 });
   if (S.rangeH1) add("h1", "H1 بدون روند قوی", h1Ok, h1adx == null ? "-" : "ADX " + h1adx.toFixed(1), "H1 رونددار است");
   add("rr", "نسبت ریسک/ریوارد ≥ " + S.rangeMinRR, rrOk, "R:R " + rr.toFixed(2), "نسبت ریسک به ریوارد کافی نیست");

@@ -217,25 +217,59 @@ function calcR(side, entry, sl, exitPx) {
 }
 
 function resolveFromBars(a, bars, now) {
-  // bars: [{time, high, low, close}]
+  // bars: [{time, high, low, close, atr?}]
   if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
   const risk = Math.abs(a.entry - a.sl);
+  if (!risk || !isFinite(risk)) return null;
   const tp = a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk);
   const start = a.bt || a.time;
+  // تریلینگ: بعد از رسیدن به +1R، SL را به نقطهٔ سربه‌سر و بعد دنبال قیمت می‌کشد
+  let trailSl = a.sl;
+  let armed = false;
+  let peakFav = 0; // بیشترین پیشرفت به R
+  const trailAfterR = 1.0;
+  // ATR تقریبی از متوسط دامنه کندل‌ها
+  const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
+  const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
+  const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
+
   for (const b of bars) {
     if (b.time < start) continue;
     if (a.side === "LONG") {
-      if (b.low <= a.sl) return { result: "loss", exit: a.sl, why: "SL", R: calcR(a.side, a.entry, a.sl, a.sl), closeTime: b.time };
+      const fav = (b.high - a.entry) / risk;
+      if (fav > peakFav) peakFav = fav;
+      if (fav >= trailAfterR) {
+        armed = true;
+        const newSl = Math.max(trailSl, b.high - trailDist, a.entry); // حداقل سربه‌سر
+        if (newSl > trailSl) trailSl = newSl;
+      }
+      if (b.low <= trailSl) {
+        const why = armed && trailSl >= a.entry ? (trailSl > a.entry ? "TRAIL" : "BE") : "SL";
+        const exit = trailSl;
+        return { result: calcR(a.side, a.entry, a.sl, exit) >= 0 ? (why === "SL" ? "loss" : "win") : "loss", exit, why, R: calcR(a.side, a.entry, a.sl, exit), closeTime: b.time };
+      }
       if (b.high >= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
     } else {
-      if (b.high >= a.sl) return { result: "loss", exit: a.sl, why: "SL", R: calcR(a.side, a.entry, a.sl, a.sl), closeTime: b.time };
+      const fav = (a.entry - b.low) / risk;
+      if (fav > peakFav) peakFav = fav;
+      if (fav >= trailAfterR) {
+        armed = true;
+        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
+        if (newSl < trailSl) trailSl = newSl;
+      }
+      if (b.high >= trailSl) {
+        const why = armed && trailSl <= a.entry ? (trailSl < a.entry ? "TRAIL" : "BE") : "SL";
+        const exit = trailSl;
+        return { result: calcR(a.side, a.entry, a.sl, exit) >= 0 ? (why === "SL" ? "loss" : "win") : "loss", exit, why, R: calcR(a.side, a.entry, a.sl, exit), closeTime: b.time };
+      }
       if (b.low <= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
     }
   }
-  // timeout / signal faded: mark to market last close after start
   const last = bars[bars.length - 1];
-  if (last && now - a.time >= MAX_HOLD_SEC) {
-    return { result: "time", exit: last.close, why: "TIME", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+  // نگهداری انعطاف‌پذیر: اگر روند قوی (peakFav >= 1R) تا ۱۸ ساعت
+  const holdLimit = peakFav >= 1.0 ? (18 * 3600) : MAX_HOLD_SEC;
+  if (last && now - a.time >= holdLimit) {
+    return { result: "time", exit: last.close, why: peakFav >= 1.0 ? "TIME_STRONG" : "TIME", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
   }
   return null;
 }
@@ -279,7 +313,10 @@ function touchActives(currentSides, now, barMap, history) {
       delete STATE.sent[id + "|" + a.side];
       delete STATE.active[id];
     };
-    if (now - a.time > MAX_HOLD_SEC) {
+    const softHold = MAX_HOLD_SEC;
+    const strongHold = 18 * 3600;
+    // resolveFromBars خودش hold را انعطاف می‌دهد؛ اینجا فقط سقف مطلق ۱۸س
+    if (now - a.time > strongHold) {
       close(hit || resolveFromBars(a, bars, now) || { result: "time", exit: a.entry, why: "TIME", R: 0, closeTime: now });
       continue;
     }
@@ -463,6 +500,12 @@ async function once(now) {
 
 
   
+  // سقف تعداد سیگنال جدید در هر اسکن (کیفیت)
+  const MAX_NEW_PER_SCAN = 6;
+  const pending = allRows.filter(r => r && r.side && r._pendingNotify)
+    .sort((a, b) => ((b.pass || 0) / Math.max(1, b.total || 1)) - ((a.pass || 0) / Math.max(1, a.total || 1)));
+  pending.forEach((r, i) => { if (i >= MAX_NEW_PER_SCAN) { r.side = null; r._pendingNotify = false; r.fail = "سقف سیگنال در این اسکن"; } });
+
   // ارسال تلگرام فقط برای سیگنال‌های باقی‌مانده پس از همبستگی
   for (const row of allRows) {
     if (!row || !row.side || !row._pendingNotify) continue;

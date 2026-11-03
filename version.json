@@ -1,5 +1,5 @@
 {
-  "build": 67,
-  "engine": 42,
-  "note": "soft update without reinstall"
+  "build": 68,
+  "engine": 43,
+  "note": "range BB edge+vol, trailing exit, flexible hold"
 }
