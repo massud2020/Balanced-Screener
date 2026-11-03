@@ -9,7 +9,7 @@ on:
         type: boolean
         default: false
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: scan
   cancel-in-progress: false
@@ -34,3 +34,11 @@ jobs:
           TEST: ${{ inputs.test && '1' || '0' }}
           LOOP_SECONDS: "270"
           MODES: ${{ vars.MODES }}
+      
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json history.json latest_signal.txt
+          git commit -m "Automated scan update" || echo "No changes to commit"
+          git push
