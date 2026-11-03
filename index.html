@@ -420,15 +420,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 67;
+window.__BS_LOCAL_BUILD = 68;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
-window.__BS_ASSET_BASE = ""; // بعد از چک نسخه پر می‌شود
+window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=67"></script>
-<script src="alerts.js?v=67"></script>
-<script src="engine.js?v=67"></script>
-<script src="presets.js?v=67"></script>
-<script src="chart.js?v=67"></script>
+<script src="symbols.js?v=68"></script>
+<script src="alerts.js?v=68"></script>
+<script src="engine.js?v=68"></script>
+<script src="presets.js?v=68"></script>
+<script src="chart.js?v=68"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -533,17 +533,15 @@ try {
         COND = { ...COND, ...parsed };
     }
 } catch(e) { console.warn("Error loading conditions, using defaults."); }
-COND.adx = false; // ADX فقط برای انتخاب استراتژی است، نه شرط ورود
+COND.adx = false;
 
 let currentMode = LS("bs_mode") || "pattern";
 let COOLDOWNS = {};
 try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) {}
-// سیگنال‌های باز: تا وقتی بسته نشوند روی همان نماد سیگنال جدید صادر نمی‌شود
-// { [id]: { side, entry, time, mode, scansWithout: 0 } }
 let ACTIVE_SIGS = {};
 try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
 function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
-const MAX_HOLD_SEC = 6 * 3600; // حداکثر نگهداری ۶ ساعت (روز معاملاتی)
+const MAX_HOLD_SEC = 6 * 3600;
 function isSignalOpen(id, side){
   const a = ACTIVE_SIGS[id];
   if(!a) return false;
@@ -558,7 +556,6 @@ function openSignal(r){
   try{ LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); }catch(e){}
 }
 function touchActiveSigs(currentSides){
-  // currentSides: { id: side|null }
   const now = Date.now()/1000;
   for(const id of Object.keys(ACTIVE_SIGS)){
     const a = ACTIVE_SIGS[id];
@@ -567,7 +564,6 @@ function touchActiveSigs(currentSides){
     if(cur && cur === a.side){ a.scansWithout = 0; }
     else {
       a.scansWithout = (a.scansWithout || 0) + 1;
-      // دو اسکن متوالی بدون سیگنال هم‌جهت → بسته
       if(a.scansWithout >= 2) delete ACTIVE_SIGS[id];
     }
   }
@@ -588,11 +584,10 @@ function updateUnreadBadge() {
     }
 }
 
-// 🎙️ تنظیمات صدا — اینجا را برای تنظیم سلیقه‌ای عوض کنید
 const TTS_CFG = {
-    rate: 35,    // سرعت: درصد نسبت به عادی (۰ = عادی)
-    mode: 'string', // فرمت ارسال سرعت به پلاگین: string | number | multiplier
-    engine: 'auto', // auto = Edge/Neural اول، بعد اندروید
+    rate: 35,
+    mode: 'string',
+    engine: 'auto',
     pitch: 1.0,
     voiceIndex: -1,
     faVoices: ['fa-IR-FaridNeural'],
@@ -638,7 +633,6 @@ function ttsRateVariants() {
     return order.map(k => all[k]);
 }
 
-// 🛠️ تابع صدا با استفاده از پلاگین EdgeTTS (مایکروسافت ابری)
 async function playAudioUrl(url) {
   return new Promise((resolve, reject) => {
     try {
@@ -648,10 +642,8 @@ async function playAudioUrl(url) {
       const finish = () => { if (done) return; done = true; resolve(); };
       audio.onended = finish;
       audio.onerror = () => reject(new Error("audio error"));
-      // بعضی دستگاه‌ها onended نمی‌دهند
       const guard = setTimeout(finish, 12000);
       audio.play().then(() => {
-        // اگر metadata طول داشت، guard را دقیق‌تر کن
         try {
           if (audio.duration && isFinite(audio.duration)) {
             clearTimeout(guard);
@@ -663,7 +655,6 @@ async function playAudioUrl(url) {
   });
 }
 
-// کیفیت بالا: Edge TTS (مایکروسافت) → استریم وب → در نهایت TTS گوشی
 async function speakAI(text) {
   if (!text) return;
   if (LS("bs_tts_off") === "1") return;
@@ -673,7 +664,6 @@ async function speakAI(text) {
   const voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
   const engine = (TTS_CFG && TTS_CFG.engine) || "auto";
 
-  // 1) پلاگین EdgeTTS (Capacitor)
   if (engine !== "android" && window.Capacitor && window.Capacitor.Plugins) {
     const Edge = window.Capacitor.Plugins.EdgeTTS || window.Capacitor.Plugins.EdgeTts || window.Capacitor.Plugins.TextToSpeechEdge;
     if (Edge && typeof Edge.synthesize === "function") {
@@ -691,7 +681,7 @@ async function speakAI(text) {
             }
           } catch (e) {
             lastErr = e;
-            if (Date.now() - t0 > 5000) return; // احتمالاً پخش شده
+            if (Date.now() - t0 > 5000) return;
           }
         }
         if (lastErr) console.warn("EdgeTTS plugin", lastErr);
@@ -701,7 +691,6 @@ async function speakAI(text) {
     }
   }
 
-  // 2) API وب (کیفیت عصبی مایکروسافت از طریق پروکسی)
   if (engine !== "android") {
     try {
       const url = "https://api.streamelements.com/kappa/v2/speech?voice=" +
@@ -713,7 +702,6 @@ async function speakAI(text) {
     }
   }
 
-  // 3) TTS بومی گوشی (fallback)
   await speakNative(raw, fa ? "fa-IR" : "en-US");
 }
 
@@ -733,7 +721,7 @@ async function speakAI(text) {
             vs.innerHTML = '<option value="">پیش‌فرض گوشی</option>';
             list.forEach((v, i) => {
                 const lang = String(v.lang || "");
-                if (!/^fa|^en/i.test(lang)) return;           // فقط فارسی/انگلیسی
+                if (!/^fa|^en/i.test(lang)) return;
                 const o = document.createElement("option");
                 o.value = i; o.textContent = (v.name || ("voice " + i)) + " · " + lang;
                 vs.appendChild(o);
@@ -768,16 +756,14 @@ window.clearCache = async () => {
         }
     } catch (e) { console.warn("Cache clear error", e); }
     try {
-        // فقط پرچم‌های کش/نسخه — تنظیمات کاربر پاک نشود
         ["bs_splash_seen"].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 67);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 68);
     location.replace(location.pathname + "?" + q);
 };
 
-// بررسی نسخه روی GitHub و اعمال بدون نصب مجدد
 window.checkRemoteUpdate = async (opts) => {
     const silent = !!(opts && opts.silent);
     try {
@@ -794,7 +780,6 @@ window.checkRemoteUpdate = async (opts) => {
             return false;
         }
         console.log("Update available:", local, "->", remoteBuild);
-        // نسخه جدید: کش را پاک کن و با پارامتر نسخه ریفرش کن
         try {
             if ("serviceWorker" in navigator) {
                 const rs = await navigator.serviceWorker.getRegistrations();
@@ -822,7 +807,6 @@ window.checkRemoteUpdate = async (opts) => {
     }
 };
 
-// هر بار باز شدن / برگشت به اپ
 (function initSoftUpdate() {
     const run = () => { try { window.checkRemoteUpdate({ silent: true }); } catch (e) {} };
     setTimeout(run, 2500);
@@ -841,15 +825,10 @@ async function typeText(elementId, text, speed = 36) {
         el.textContent += s.charAt(i);
         await new Promise(r => setTimeout(r, speed));
     }
-    el.textContent = s; // کامل بودن متن
+    el.textContent = s;
 }
 
-// 🎯 صدا و متن را هماهنگ می‌کند:
-// - تایپ متن با سرعت تخمینی گفتار (نه ۴۰ms ثابت) انجام می‌شود
-// - تایپ بعد از تأخیر ساخت صدای ابری شروع می‌شود
-// - تا پایان صدا صبر می‌کند تا جمله بعدی روی آن نیفتد
 async function speakAndType(elementId, text) {
-    // متن و صدا یکسان — برای TTS پایدار از عبارت انگلیسی جدا استفاده کنید
     const el = $(elementId);
     if (el) el.textContent = text;
     const mute = ($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1";
@@ -885,8 +864,6 @@ window.hideSplash = function () {
     } catch (e) {}
     try { if (typeof LAST !== "undefined" && LAST && typeof renderList === "function") renderList(); } catch (e) {}
 };
-// اگر قبلاً وارد شده، اسپلش را نشان نده
-/* اسپلش هر بار باز شدن اپ نمایش داده می‌شود */
 (function forceShowSplashOnBoot(){
   try {
     const s = document.getElementById("ai-splash");
@@ -900,8 +877,6 @@ window.hideSplash = function () {
     }
   } catch(e) {}
 })();
-
-
 
 function updateSplashLangUi() {
   const fa = currentLang === "fa";
@@ -935,9 +910,14 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
+/* ✨ [FIX #3] __startAppFull بازنویسی شد */
 window.__startAppFull = window.startApp = async function () {
     const startBtn = document.getElementById("start-ai-btn");
     const loading = document.getElementById("ai-loading");
+    const splash = document.getElementById("ai-splash");
+    if (splash) splash.dataset.started = "1";
+    window.__splashActive = true;   /* ← پرچم روشن */
+
     const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
     if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
     try {
@@ -953,70 +933,49 @@ window.__startAppFull = window.startApp = async function () {
 
     const failsafe = setTimeout(function () {
       try { window.hideSplash(); } catch (e) {}
-    }, 45000);
+    }, 45000);   /* ← 45s */
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
       for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 25);
+        if (typeof typeText === "function") await typeText("ai-text", lines[i], 35);  /* ← speed 35 */
         else {
           const el = document.getElementById("ai-text");
           if (el) el.textContent = lines[i];
         }
         if (!mute && typeof speakNative === "function") {
-          // صبر تا متن کامل خوانده شود (حداقل بر اساس طول)
-          const minMs = Math.max(1800, lines[i].length * 95);
           try {
-            const p = speakNative(lines[i], fa ? "fa-IR" : "en-US");
-            await Promise.race([
-              Promise.resolve(p),
-              new Promise(r => setTimeout(r, Math.min(12000, minMs + 2000)))
-            ]);
-            await new Promise(r => setTimeout(r, 200));
+            /* ✨ بدون race — await کامل */
+            await speakNative(lines[i], fa ? "fa-IR" : "en-US");
+            await new Promise(r => setTimeout(r, 250));
           } catch (e) {
-            await new Promise(r => setTimeout(r, minMs));
+            await new Promise(r => setTimeout(r, 1500));
           }
         } else {
-          await new Promise(function (r) { setTimeout(r, 450); });
+          await new Promise(function (r) { setTimeout(r, 800); });
         }
       }
       if (loading) loading.classList.add("on");
       const el = document.getElementById("ai-text");
       if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
-      // منتظر اسکن بمان تا رژیم واقعی محاسبه شود
+
       try { if (typeof scan === "function") await scan(true); } catch (e) {}
+
       try {
         if (typeof detectMarketRegime === "function" && typeof setMode === "function") {
           const regime = detectMarketRegime();
           setMode(regime === "pattern" ? "pattern" : "range");
-          const regimeShow = fa
+          if (el) el.textContent = fa
             ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
             : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-          const regimeSpeak = fa
-            ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
-            : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
-          if (el) el.textContent = regimeShow;
-          if (!mute && typeof speakNative === "function") {
-            const minMs = Math.max(2200, regimeSpeak.length * 100);
-            try {
-              const p = speakNative(regimeSpeak, fa ? "fa-IR" : "en-US");
-              await Promise.race([
-                Promise.resolve(p),
-                new Promise(r => setTimeout(r, Math.min(12000, minMs + 2500)))
-              ]);
-              await new Promise(r => setTimeout(r, 400));
-            } catch (e) {
-              await new Promise(r => setTimeout(r, minMs));
-            }
-          } else {
-            await new Promise(function (r) { setTimeout(r, 900); });
-          }
+          await new Promise(function (r) { setTimeout(r, 800); });
         }
-      } catch (e) { console.warn("regime speak", e); }
+      } catch (e) {}
     } catch (err) {
       console.error("startApp", err);
     } finally {
       clearTimeout(failsafe);
+      window.__splashActive = false;   /* ← پرچم خاموش */
       try { window.hideSplash(); } catch (e) {
         const s = document.getElementById("ai-splash");
         if (s) { s.style.display = "none"; s.classList.add("hidden"); }
@@ -1025,10 +984,14 @@ window.__startAppFull = window.startApp = async function () {
         startBtn.disabled = false;
         startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
       }
+      /* 🎯 TTS معلق را بعد از بسته شدن اسپلش اجرا کن */
+      if (window.__pendingSay) {
+        const ps = window.__pendingSay;
+        window.__pendingSay = null;
+        setTimeout(ps, 900);
+      }
     }
 };
-
-;
 
 function initAI() {
     typeText("ai-text", T().ai_ready).catch(console.error);
@@ -1038,9 +1001,9 @@ function renderCondChips() {
     try {
         let labels = {};
         if (currentMode === "range") {
-            labels = { rsi: T().c_rsi };  // ADX فقط برای انتخاب رژیم
+            labels = { rsi: T().c_rsi };
         } else {
-            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };  // بدون ADX
+            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
         }
         const el = $("condChips");
         if(el) {
@@ -1074,11 +1037,8 @@ function setMode(mode) {
 if ($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
 if ($("modeRange")) $("modeRange").onclick = () => setMode("range");
 
-// حافظه رژیم هر نماد برای hysteresis سبک (جلوگیری از سوییچ مکرر)
 const REGIME_MEM = {};
 function pickModeByAdx(adxV, symbol) {
-    // هدف: حدود ۲۰–۲۵ سیگنال فارکس در روز — آستانه‌های متعادل + hysteresis
-    // روند قطعی: ADX >= 24 | رنج قطعی: ADX <= 20 | بین این دو: همان رژیم قبلی
     if (adxV == null || !isFinite(adxV)) return REGIME_MEM[symbol] || currentMode || "pattern";
     let mode;
     if (adxV >= 24) mode = "pattern";
@@ -1090,13 +1050,12 @@ function pickModeByAdx(adxV, symbol) {
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     try {
-        // یک بار با mode خنثی ADX را بگیر
         const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, Date.now()/1000);
         const useMode = pickModeByAdx(probe.adx, r.id);
         const opts = {
             mode: useMode,
             trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
-            adx: false,  // ADX دیگر شرط ورود نیست
+            adx: false,
             m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
             rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
         };
@@ -1106,14 +1065,12 @@ function evalRow(r) {
 
         const now = Date.now() / 1000;
         if (finalSide) {
-            // اگر سیگنال باز روی این نماد هست، سیگنال جدید نده
             if (isSignalOpen(r.id)) {
                 finalSide = null;
                 finalFail = currentLang==='fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
                 res.pass = res.total > 0 ? res.total - 1 : 0;
             } else {
                 const lastTime = COOLDOWNS[r.id] || 0;
-                // کول‌داون کوتاه فقط بعد از بسته شدن (۱۵ دقیقه)
                 if (now - lastTime < 900) {
                     finalSide = null;
                     finalFail = T().fail_cooldown;
@@ -1196,8 +1153,6 @@ function applyLanguage() {
 function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
 function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
 
-
-// ---- به‌روزرسانی نرم فایل‌های حیاتی از GitHub (بدون حذف اپ) ----
 window.hotReloadFromGitHub = async function () {
   const base = window.__BS_REMOTE || "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
   try {
@@ -1207,7 +1162,6 @@ window.hotReloadFromGitHub = async function () {
     window.__BS_REMOTE_BUILD = remoteBuild;
     const localBuild = Number(typeof BUILD !== "undefined" ? BUILD : 0);
     const localEng = Number(typeof ENGINE_VER !== "undefined" ? ENGINE_VER : 0);
-    // اگر نسخه ریموت جدیدتر است، engine را از GitHub تزریق کن
     if (remoteEng > localEng || remoteBuild > localBuild) {
       const files = ["engine.js"];
       for (const f of files) {
@@ -1216,7 +1170,6 @@ window.hotReloadFromGitHub = async function () {
             if (!r.ok) throw new Error("HTTP " + r.status);
             return r.text();
           });
-          // اجرای نسخه ریموت (منطق استراتژی / فیلترها)
           (0, eval)(code + "\n//# sourceURL=remote-" + f);
           console.log("Hot-loaded", f, "engine", typeof ENGINE_VER !== "undefined" ? ENGINE_VER : "?");
         } catch (e) {
@@ -1236,46 +1189,37 @@ window.hotReloadFromGitHub = async function () {
   }
   return false;
 };
-// بعد از لود صفحه یک‌بار و هر بار برگشت به اپ
 (function scheduleHotReload() {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
-  // hot reload دستی از دکمه به‌روزرسانی — از boot حذف شد تا اسپلش نشکند
-  // setTimeout(run, 1800);
 })();
 
-const BUILD=67,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=68,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
 function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
 
-// ===== ساعات باز بودن بازارها (UTC) =====
 function utcNowParts(){
   const d=new Date();
   return {dow:d.getUTCDay(), h:d.getUTCHours()+d.getUTCMinutes()/60, day:d.getUTCDay()};
 }
-// forex/metal: یکشنبه ۲۲:۰۰ تا جمعه ۲۲:۰۰ UTC باز
 function isForexSession(){
   const {dow,h}=utcNowParts();
-  if(dow===6) return false;                 // شنبه کامل بسته
-  if(dow===0) return h>=22;                 // یکشنبه از ۲۲ باز
-  if(dow===5) return h<22;                  // جمعه تا ۲۲ باز
-  return true;                              // دوشنبه تا پنج‌شنبه
+  if(dow===6) return false;
+  if(dow===0) return h>=22;
+  if(dow===5) return h<22;
+  return true;
 }
-// سهام آمریکا: دوشنبه–جمعه ۱۴:۳۰–۲۱:۰۰ UTC
 function isUSStockSession(){
   const {dow,h}=utcNowParts();
   if(dow===0||dow===6) return false;
   return h>=14.5 && h<21;
 }
-// شاخص‌ها: ترکیبی (آسیا + اروپا + آمریکا) — روزهای کاری با پوشش گسترده
 function isIndexSession(){
   const {dow,h}=utcNowParts();
   if(dow===0||dow===6) return false;
-  // آسیا ~۰۰–۰۸ ، اروپا ~۰۷–۱۶ ، آمریکا ۱۴:۳۰–۲۱
   return (h>=0 && h<8) || (h>=7 && h<16.5) || (h>=14.5 && h<21);
 }
-// کالا (نفت و ...): تقریباً یکشنبه‌شب تا جمعه
 function isCommoditySession(){
   return isForexSession();
 }
@@ -1293,8 +1237,6 @@ function sessionHint(m){
   if(!isMarketOpen(m)) return currentLang==='fa'?"بسته":"Closed";
   return currentLang==='fa'?"باز":"Open";
 }
-
-
 
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
@@ -1326,7 +1268,6 @@ function renderChips(){
         const today = new Date().toISOString().slice(0,10);
         const lastDay = LS("bs_mkts_day");
         let on;
-        // هر روز جدید: فقط بازارهای باز را روشن کن
         if (lastDay !== today) {
             on = new Set(openMarkets());
             LS("bs_mkts_day", today);
@@ -1334,7 +1275,6 @@ function renderChips(){
         } else {
             const saved = LS("bs_mkts");
             on = saved != null ? new Set(saved.split(",").filter(Boolean)) : new Set(openMarkets());
-            // بازارهای بسته‌شده را از انتخاب حذف کن
             for (const m of [...on]) if (!isMarketOpen(m)) on.delete(m);
         }
         $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
@@ -1355,7 +1295,6 @@ if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)re
 const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:false,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
 function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
 
-// 📒 تاریخچه محلی سیگنال‌ها (برای دکمه 📅 «سیگنال‌های امروز»)
 const HISTL_KEY = "bs_hist_local";
 function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
 function saveLocalHist(a) {
@@ -1367,7 +1306,6 @@ function recordLocal(rows) {
         const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
         rows.forEach(r => {
             const day = new Date((r.bt || Date.now()/1000) * 1000).toISOString().slice(0,10);
-            // یک رکورد در روز برای هر نماد+جهت (تا وقتی سیگنال باز است تکرار نشود)
             const k = r.id + "|" + r.side + "|" + day;
             if (have.has(k)) return;
             loc.push({ id: r.id, side: r.side, entry: typeof r.entry === "number" ? r.entry : undefined,
@@ -1427,13 +1365,10 @@ async function scan(isAISilent = false) {
     setText("lp", T().scanDone);
 
     const ns = Date.now()/1000;
-    // وضعیت سیگنال‌های باز را با نتیجه اسکن فعلی به‌روز کن
     const sideMap = {};
     (LAST && LAST.rows ? LAST.rows : rows).forEach(r => {
-        // بعد از evalRow در renderList، side نهایی روی evaluated است؛ اینجا از data.json + ACTIVE استفاده می‌کنیم
         sideMap[r.id] = r.side || null;
     });
-    // اگر renderList قبلاً eval کرده، از evaluated استفاده می‌شود در touch بعدی
 
     let seen = {};
     try { seen = JSON.parse(LS("bs_seen") || "{}"); } catch(e){}
@@ -1441,9 +1376,7 @@ async function scan(isAISilent = false) {
     rows.forEach(r => {
         if(!r.side) return;
         if(ns - (r.bt + 300) > 3600) return;
-        // یک سیگنال باز به ازای هر نماد — تا بسته نشود تکراری ثبت نشود
         if(isSignalOpen(r.id)) return;
-        // کلید پایدار: نماد + جهت + روز (نه زمان کندل)
         const day = new Date((r.bt || ns) * 1000).toISOString().slice(0,10);
         const k = r.id + "|" + r.side + "|" + day;
         if(seen[k]) return;
@@ -1462,11 +1395,9 @@ async function scan(isAISilent = false) {
         alertNow(fresh);
         renderList();
     }
-    // به‌روزرسانی وضعیت باز/بسته بر اساس سیگنال‌های فعلی
     try {
       const cur = {};
       const evaled = (typeof evaluatedRows !== "undefined" && evaluatedRows) ? evaluatedRows : rows;
-      // از LAST.rows بعد از renderList استفاده می‌کنیم
     } catch(e) {}
 
 
@@ -1581,7 +1512,6 @@ function renderList(){
       let evaluatedRows = [];
       try {
           evaluatedRows = LAST.rows.map(evalRow);
-          // بستن سیگنال‌هایی که دیگر شرایط ندارند
           try {
             const sides = {};
             evaluatedRows.forEach(r => { sides[r.id] = r.side || null; });
@@ -1631,13 +1561,11 @@ function renderList(){
 }
 
 if($("sum")) $("sum").onclick=e=>{const b=e.target.closest("button");if(!b)return;vf=b.dataset.v;renderList()};
-// ---- زنگ هشدار قابل انتخاب ----
 const ALERT_TONE_KEY = "bs_alert_tone";
-const ALERT_CUSTOM_KEY = "bs_alert_custom"; // data URL
+const ALERT_CUSTOM_KEY = "bs_alert_custom";
 function getAlertTone(){ return LS(ALERT_TONE_KEY) || "chime"; }
 
 function playTonePattern(ctx, pattern) {
-  // pattern: [{f, d, gap, type, vol}, ...]
   let t0 = ctx.currentTime + 0.02;
   pattern.forEach(step => {
     const o = ctx.createOscillator();
@@ -1755,7 +1683,6 @@ if($("bn")) {
     if($("bx")) $("bx").onclick=()=>{BL.length=0;$("bn").classList.remove("on")};
 }
 }
-// اعلان صوتی ساده: فقط نام نماد + جهت، با TTS بومی (بدون Edge/وب)
 function say(fr){
   try {
     if (!$("sp") || !$("sp").checked) return;
@@ -1783,9 +1710,10 @@ function say(fr){
     speakAI(text).catch(() => speakNative(text, fa ? "fa-IR" : "en-US"));
   } catch (e) { console.warn("say", e); }
 }
-// ---- TTS: کامل بخواند، کیفیت بهتر، Promise تا پایان ----
+
 function speakLang() { return "en-US"; }
 
+/* ✨ [FIX #1] guard افزایش یافت */
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1793,9 +1721,8 @@ function speakNative(text, forceLang) {
     if (!raw) { done(); return; }
     if (LS("bs_tts_off") === "1") { done(); return; }
 
-    // زبان گفتار: صریح، یا بر اساس زبان اپ
     const lang = forceLang || (currentLang === "fa" ? "fa-IR" : "en-US");
-    const rate = 1.0; // سرعت طبیعی
+    const rate = 1.0;
     const pitch = 1.0;
     let finished = false;
     const finish = () => {
@@ -1803,7 +1730,8 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
-    const guard = setTimeout(finish, Math.min(22000, 900 + raw.length * 140));
+    /* ✨ زمان بیشتر — TTS فارسی کندتر تمام می‌شود */
+    const guard = setTimeout(finish, Math.min(12000, 1500 + raw.length * 200));
 
     const pickVoice = (voices, wantLang) => {
       const list = voices || [];
@@ -1833,7 +1761,6 @@ function speakNative(text, forceLang) {
       return null;
     };
 
-    // 1) Capacitor native TTS
     try {
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         const { TextToSpeech } = window.Capacitor.Plugins;
@@ -1848,7 +1775,6 @@ function speakNative(text, forceLang) {
         trySpeak(lang)
           .then(() => { clearTimeout(guard); finish(); })
           .catch(() => {
-            // اگر فارسی نبود، انگلیسی
             const fb = lang.startsWith("fa") ? "en-US" : "en-US";
             trySpeak(fb)
               .then(() => { clearTimeout(guard); finish(); })
@@ -1858,7 +1784,6 @@ function speakNative(text, forceLang) {
       }
     } catch (e) {}
 
-    // 2) Web Speech API
     try {
       if (!window.speechSynthesis) { clearTimeout(guard); finish(); return; }
       speechSynthesis.cancel();
@@ -1884,7 +1809,6 @@ function speakNative(text, forceLang) {
             speakWith("fa-IR", raw);
             return;
           }
-          // بدون voice فارسی: همان متن فارسی را با fa-IR امتحان کن؛ بعضی موتورها بدون لیست voice هم کار می‌کنند
           const u = new SpeechSynthesisUtterance(raw);
           u.lang = "fa-IR";
           u.rate = rate;
@@ -1895,8 +1819,6 @@ function speakNative(text, forceLang) {
           u.onerror = () => {
             if (tried) { clearTimeout(guard); finish(); return; }
             tried = true;
-            // fallback: اگر کاربر متن فارسی داد و voice نبود، ترجمهٔ کوتاه انگلیسی نخوان — سکوت بهتر از انگلیسی نامربوط نیست
-            // اما برای خوشامد، caller معمولاً speakEn جدا می‌فرستد
             clearTimeout(guard);
             finish();
           };
@@ -1920,15 +1842,19 @@ function speakNative(text, forceLang) {
   });
 }
 
-
-
-
-
+/* ✨ [FIX #2] alertNow محافظت شد — say معلق تا بسته شدن اسپلش */
 function alertNow(fr){
   try { beep(); } catch(e) {}
   try { banner(fr); } catch(e) {}
-  // گفتار بعد از زنگ (کمی تأخیر تا روی هم نیفتند)
-  setTimeout(() => { try { say(fr); } catch(e) {} }, 450);
+
+  const doSay = () => { try { say(fr); } catch(e) {} };
+  if (window.__splashActive) {
+    /* ذخیره برای اجرا در finally __startAppFull */
+    window.__pendingSay = doSay;
+  } else {
+    setTimeout(doSay, 450);
+  }
+
   try { navigator.vibrate && navigator.vibrate([180, 80, 180]); } catch(e) {}
   try {
     if (!window.__bgNative && window.Notification && Notification.permission === "granted" && navigator.serviceWorker) {
@@ -1949,7 +1875,6 @@ if($("nt")) $("nt").onclick=async()=>{beep();try{const p=await Notification.requ
 if(window.Notification&&Notification.permission==="granted"&&$("nt"))$("nt").textContent=T().btnEnabled;
 if($("go")) $("go").onclick=() => scan(false);
 
-/* chart overlay */
 let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e8736d",R=26,C=2*Math.PI*R;return`<svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}"/></svg>`}
@@ -2086,16 +2011,13 @@ setText("ver", "v"+BUILD); setText("verl", (currentLang==='fa'?"نسخه‌ی ف
 
 setInterval(()=>{if(!document.hidden)scan()},180000);
 
-// هر ۵ دقیقه وضعیت باز/بسته بازارها را تازه کن
 setInterval(()=>{ try{ renderChips(); }catch(e){} }, 5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
-updateUnreadBadge(); // بعد از باز کردن اپ، شمارنده ذخیره‌شده فوراً نمایش داده شود
-
+updateUnreadBadge();
 
 function estimateOutcome(s) {
-  // اگر سرور نتیجه نداده، از دیتای کندل محلی/کش تخمین بزن
   if (s.result) return s;
   try {
     const d = D && D[s.id];
@@ -2119,7 +2041,6 @@ function estimateOutcome(s) {
   return s;
 }
 function buildEquitySeries(rows) {
-  // فقط معاملات بسته‌شده؛ مرتب بر اساس زمان
   const closed = rows.filter(s => s.result === "win" || s.result === "loss" || s.result === "time" || s.why === "FADE" || s.why === "TIME")
     .slice()
     .sort((a, b) => (a.closeTime || a.time || 0) - (b.closeTime || b.time || 0));
@@ -2151,7 +2072,6 @@ function equityChartSVG(pts, fa) {
   const last = pts[pts.length - 1].eq;
   const stroke = last >= 0 ? "#46c58c" : "#e05c5c";
   const fill = last >= 0 ? "rgba(70,197,140,.18)" : "rgba(224,92,92,.15)";
-  // area path
   const area = `M ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} L ` +
     pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.eq).toFixed(1)}`).join(" ") +
     ` L ${xOf(pts.length - 1).toFixed(1)} ${zeroY.toFixed(1)} Z`;
@@ -2251,7 +2171,6 @@ function renderDailyResults(listEl, sumEl, signals) {
 
 
 if($("showHist")) $("showHist").onclick = async () => {
-    // اول سیگنال‌های ثبت‌شده توسط سرویس پس‌زمینه را بگیر، بعد شمارنده را صفر کن
     try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
     UNREAD = 0;
     LS("bs_unread", 0);
@@ -2276,10 +2195,9 @@ if($("showHist")) $("showHist").onclick = async () => {
             const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side);
             if (!dup) todaysSignals.push(l);
         });
-        // حذف تکراری‌ها: برای هر نماد+جهت فقط اولین سیگنال روز
         const seenSym = new Set();
         const deduped = [];
-        todaysSignals.sort((a,b) => a.time - b.time); // قدیمی‌تر اول
+        todaysSignals.sort((a,b) => a.time - b.time);
         todaysSignals.forEach(s => {
             const k = s.id + "|" + s.side;
             if (seenSym.has(k)) return;
@@ -2306,13 +2224,12 @@ try {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // 🛰️ اسکن پس‌زمینه بومی (سرویس پیش‌زمینه اندروید)
   (function initBgScan() {
     const cb = document.getElementById('bgscan');
     const P = window.Capacitor && window.Capacitor.Plugins;
     const native = !!(P && P.BackgroundScanner);
     if (!cb) return;
-    if (!native) { cb.disabled = true; cb.checked = false; return; } // مرورگر/PWA
+    if (!native) { cb.disabled = true; cb.checked = false; return; }
     const on = () => { window.__bgNative = true; };
     async function startBg(askBattery) {
       try { if (P.LocalNotifications) await P.LocalNotifications.requestPermissions(); } catch (e) {}
@@ -2321,11 +2238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         on();
         if (askBattery && !localStorage.getItem('bs_batt_asked')) {
           localStorage.setItem('bs_batt_asked', '1');
-          await P.BackgroundScanner.requestBatteryExemption(); // برای جلوگیری از قطع شدن در حالت Doze
+          await P.BackgroundScanner.requestBatteryExemption();
         }
       } catch (e) { console.warn('BackgroundScanner start failed', e); cb.checked = false; localStorage.setItem('bs_bgscan', 'false'); window.__bgNative = false; }
     }
-    cb.checked = localStorage.getItem('bs_bgscan') !== 'false'; // پیش‌فرض: روشن
+    cb.checked = localStorage.getItem('bs_bgscan') !== 'false';
     if (cb.checked) startBg(true);
     async function pullNative() {
       try {
@@ -2408,7 +2325,23 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-            reg.update();
-        }).catch(err => console.warn('SW registration
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => reg.update())
+      .catch(err => console.warn('SW registration failed', err));
+  });
+}
+
+setTimeout(function () {
+  var s = document.getElementById('ai-splash');
+  if (s && !s.classList.contains('hidden') && !s.dataset.started) {
+    s.classList.add('hidden');
+    s.style.display = 'none';
+    s.style.visibility = 'hidden';
+    s.style.opacity = '0';
+    s.style.pointerEvents = 'none';
+  }
+}, 30000);
+</script>
+</body>
+    </html>
