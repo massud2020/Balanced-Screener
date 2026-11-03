@@ -8,25 +8,31 @@ on:
         description: "Send a test notification"
         type: boolean
         default: false
+
 permissions:
-  contents: write
+  contents: write # 👈 این خط بسیار مهم است: به اکشن اجازه می‌دهد تغییرات را در ریپو ذخیره (push) کند
+
 concurrency:
   group: scan
   cancel-in-progress: false
+
 jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          
       - uses: actions/cache@v4
         with:
           path: .state
           key: state-${{ github.run_id }}
           restore-keys: state-
+          
       - run: node scan.js
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
@@ -34,11 +40,12 @@ jobs:
           TEST: ${{ inputs.test && '1' || '0' }}
           LOOP_SECONDS: "270"
           MODES: ${{ vars.MODES }}
-      
+          
+      # 👇 این بخش جدید اضافه شده تا دیتای اسکن شده در گیت‌هاب ذخیره شود
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json history.json latest_signal.txt
-          git commit -m "Automated scan update" || echo "No changes to commit"
+          git commit -m "Automated scan update [skip ci]" || echo "No changes to commit"
           git push
