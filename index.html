@@ -17,8 +17,8 @@ button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);
 button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default;transform:none}
 button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
 
-#ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;transition:opacity 0.6s ease, visibility 0.6s ease}
-#ai-splash.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+#ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#ai-splash.hidden{display:none!important;opacity:0;visibility:hidden;pointer-events:none}
 
 .ai-avatar-img {
     width: 280px;
@@ -235,34 +235,42 @@ body[dir="ltr"] .ci { direction: ltr; }
     <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
     <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
-    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto"
-      onclick="try{if(window.startApp)window.startApp();else{var s=document.getElementById('ai-splash');if(s)s.style.display='none';}}catch(e){var s=document.getElementById('ai-splash');if(s)s.style.display='none';}">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px"
-      onclick="try{var s=document.getElementById('ai-splash');if(s){s.style.display='none';s.classList.add('hidden');}if(window.hideSplash)window.hideSplash();}catch(e){var s=document.getElementById('ai-splash');if(s)s.style.display='none';}">رد کردن</button>
+    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
     <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
-      <input type="checkbox" id="splashMute" checked style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
+      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
     </label>
     <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
 
 <script>
-// راه‌اندازی اضطراری اسپلش — قبل از بقیه اسکریپت‌ها
+// اسپلش فعال + خروج مطمئن با دکمه (بدون گیر کردن)
 (function(){
   function killSplash(){
     try{
       var s=document.getElementById('ai-splash');
-      if(s){ s.style.display='none'; s.style.visibility='hidden'; s.style.opacity='0'; s.classList.add('hidden'); }
+      if(s){
+        s.classList.add('hidden');
+        s.style.display='none';
+        s.style.visibility='hidden';
+        s.style.opacity='0';
+        s.style.pointerEvents='none';
+      }
     }catch(e){}
   }
-  window.hideSplash = window.hideSplash || killSplash;
-  window.startApp = window.startApp || function(){ killSplash(); };
-  // اگر تا ۸ ثانیه کاربر کاری نکرد، خودکار وارد شو
-  setTimeout(killSplash, 8000);
+  window.hideSplash = function(){ killSplash(); };
+  // نسخه کامل startApp بعداً جایگزین می‌شود؛ فعلاً فقط بستن امن
+  window.startApp = function(){
+    if (window.__startAppFull) return window.__startAppFull();
+    killSplash();
+  };
   document.addEventListener('DOMContentLoaded', function(){
+    var s=document.getElementById('ai-splash');
+    if(s){ s.style.display='flex'; s.classList.remove('hidden'); }
     var sk=document.getElementById('skip-ai-btn');
     var st=document.getElementById('start-ai-btn');
-    if(sk) sk.addEventListener('click', killSplash, true);
-    if(st) st.addEventListener('click', function(){ setTimeout(killSplash, 500); }, true);
+    if(sk) sk.onclick = function(ev){ if(ev) ev.preventDefault(); killSplash(); return false; };
+    if(st) st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
   });
 })();
 </script>
@@ -862,18 +870,18 @@ function detectMarketRegime() {
 }
 
 window.emergencySkipSplash = function(){ try { window.hideSplash(); } catch(e) {} };
-window.hideSplash = () => {
+window.hideSplash = function () {
     try {
-      const splash = $("ai-splash") || document.getElementById("ai-splash");
+      var splash = document.getElementById("ai-splash");
       if (splash) {
         splash.classList.add("hidden");
-        splash.style.opacity = "0";
-        splash.style.visibility = "hidden";
-        splash.style.pointerEvents = "none";
         splash.style.display = "none";
+        splash.style.visibility = "hidden";
+        splash.style.opacity = "0";
+        splash.style.pointerEvents = "none";
       }
     } catch (e) {}
-    try { if (LAST) renderList(); } catch(e) {}
+    try { if (typeof LAST !== "undefined" && LAST && typeof renderList === "function") renderList(); } catch (e) {}
 };
 // اگر قبلاً وارد شده، اسپلش را نشان نده
 /* اسپلش هر بار باز شدن اپ نمایش داده می‌شود */
@@ -882,12 +890,12 @@ window.hideSplash = () => {
     const s = document.getElementById("ai-splash");
     if (s) {
       s.classList.remove("hidden");
+      s.removeAttribute("hidden");
       s.style.display = "flex";
       s.style.opacity = "1";
       s.style.visibility = "visible";
+      s.style.pointerEvents = "auto";
     }
-    // پرچم قبلی را پاک کن تا رفتار قدیمی نماند
-    try { localStorage.removeItem("bs_splash_seen"); } catch(e) {}
   } catch(e) {}
 })();
 
@@ -925,15 +933,68 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-window.startApp = async () => {
+window.__startAppFull = window.startApp = async function () {
+    // نسخه کلاسیک خوشامدگویی (قبل از تغییرات صدا) — تایپ متن + صدای کوتاه بدون گیر
+    const startBtn = $("start-ai-btn");
+    const skipBtn = $("skip-ai-btn");
+    const loading = $("ai-loading");
+    const fa = currentLang === "fa";
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = fa ? "…" : "…"; }
+    if ($("splashMute")) LS("bs_splash_mute", $("splashMute").checked ? "1" : "0");
+    const mute = ($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1" || LS("bs_tts_off") === "1";
+
+    const lines = fa
+      ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+      : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+
+    const failsafe = setTimeout(function () {
+      try { window.hideSplash(); } catch (e) {}
+    }, 12000);
+
     try {
-      var s = document.getElementById("ai-splash");
-      if (s) { s.style.display = "none"; s.classList.add("hidden"); }
-      if (typeof window.hideSplash === "function") window.hideSplash();
-    } catch (e) {}
-    try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
-    try { if (typeof scan === "function") scan(true).catch(function(){}); } catch (e) {}
+      try { renderChips(); } catch (e) {}
+      for (let i = 0; i < lines.length; i++) {
+        if (typeof typeText === "function") {
+          await typeText("ai-text", lines[i], 28);
+        } else if ($("ai-text")) {
+          $("ai-text").textContent = lines[i];
+        }
+        // صدا فقط fire-and-forget — منتظر پایان نمی‌مانیم (علت گیر قبلی)
+        if (!mute && typeof speakNative === "function") {
+          try { speakNative(lines[i], fa ? "fa-IR" : "en-US"); } catch (e) {}
+        }
+        await new Promise(function (r) { setTimeout(r, 500); });
+      }
+      if (loading) loading.classList.add("on");
+      if ($("ai-text")) $("ai-text").textContent = fa ? "در حال اسکن…" : "Scanning…";
+      try { scan(true).catch(function () {}); } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 800); });
+      try {
+        if (typeof detectMarketRegime === "function") {
+          const regime = detectMarketRegime();
+          setMode(regime === "pattern" ? "pattern" : "range");
+          const msg = fa
+            ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+            : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
+          if ($("ai-text")) $("ai-text").textContent = msg;
+          if (!mute && typeof speakNative === "function") {
+            try { speakNative(msg, fa ? "fa-IR" : "en-US"); } catch (e) {}
+          }
+          await new Promise(function (r) { setTimeout(r, 700); });
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error("startApp", err);
+    } finally {
+      clearTimeout(failsafe);
+      window.hideSplash();
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
+      }
+    }
 };
+;
 
 function initAI() {
     typeText("ai-text", T().ai_ready).catch(console.error);
