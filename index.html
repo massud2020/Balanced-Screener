@@ -235,13 +235,37 @@ body[dir="ltr"] .ci { direction: ltr; }
     <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
     <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
-    <button id="start-ai-btn" class="big-scan" onclick="window.startApp()" style="margin-top:22px;width:min(240px,80%);z-index:10000;position:relative;pointer-events:auto">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" onclick="window.hideSplash();return false;" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10000;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
+    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto"
+      onclick="try{if(window.startApp)window.startApp();else{var s=document.getElementById('ai-splash');if(s)s.style.display='none';}}catch(e){var s=document.getElementById('ai-splash');if(s)s.style.display='none';}">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px"
+      onclick="try{var s=document.getElementById('ai-splash');if(s){s.style.display='none';s.classList.add('hidden');}if(window.hideSplash)window.hideSplash();}catch(e){var s=document.getElementById('ai-splash');if(s)s.style.display='none';}">رد کردن</button>
     <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
       <input type="checkbox" id="splashMute" checked style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
     </label>
     <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
+
+<script>
+// راه‌اندازی اضطراری اسپلش — قبل از بقیه اسکریپت‌ها
+(function(){
+  function killSplash(){
+    try{
+      var s=document.getElementById('ai-splash');
+      if(s){ s.style.display='none'; s.style.visibility='hidden'; s.style.opacity='0'; s.classList.add('hidden'); }
+    }catch(e){}
+  }
+  window.hideSplash = window.hideSplash || killSplash;
+  window.startApp = window.startApp || function(){ killSplash(); };
+  // اگر تا ۸ ثانیه کاربر کاری نکرد، خودکار وارد شو
+  setTimeout(killSplash, 8000);
+  document.addEventListener('DOMContentLoaded', function(){
+    var sk=document.getElementById('skip-ai-btn');
+    var st=document.getElementById('start-ai-btn');
+    if(sk) sk.addEventListener('click', killSplash, true);
+    if(st) st.addEventListener('click', function(){ setTimeout(killSplash, 500); }, true);
+  });
+})();
+</script>
 
 <header class="bar">
   <div class="acts left">
@@ -902,54 +926,13 @@ function setAppLanguage(lang) {
 }
 
 window.startApp = async () => {
-    // ورود سریع — صدا اختیاری و با سقف زمانی تا اسپلش گیر نکند
-    const startBtn = $("start-ai-btn");
-    const skipBtn = $("skip-ai-btn");
-    const loading = $("ai-loading");
-    if (startBtn) { startBtn.textContent = currentLang==='fa' ? "ورود…" : "Entering…"; startBtn.disabled = true; }
-    // skip را مخفی نکن — کاربر همیشه بتواند رد کند
-    if ($("splashMute")) LS("bs_splash_mute", $("splashMute").checked ? "1" : "0");
-
-    const mute = true; // موقتاً صدا را در اسپلش غیرفعال — جلوگیری از گیر کردن
-    // اگر کاربر صراحتاً صدا خواست و mute نبود:
-    const wantSound = !(($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1");
-    const fa = currentLang === "fa";
-    const withTimeout = (p, ms) => Promise.race([
-      Promise.resolve(p).catch(() => {}),
-      new Promise(r => setTimeout(r, ms))
-    ]);
-
-    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 6000);
-
     try {
-        try { renderChips(); } catch(e) {}
-        if ($("ai-text")) $("ai-text").textContent = fa ? "در حال ورود…" : "Entering…";
-
-        if (wantSound && typeof speakAI === "function") {
-          // حداکثر ۳ ثانیه برای یک جمله کوتاه — بعد برو داخل
-          const line = fa ? "خوش آمدید." : "Welcome.";
-          await withTimeout(speakAI(line), 3000);
-        }
-
-        if (loading) loading.classList.add("on");
-        // اسکن را بلاک نکن؛ در پس‌زمینه
-        try { scan(true).catch(() => {}); } catch(e) {}
-        await new Promise(r => setTimeout(r, 400));
-        try {
-          const regime = typeof detectMarketRegime === "function" ? detectMarketRegime() : "pattern";
-          setMode(regime === "pattern" ? "pattern" : "range");
-        } catch(e) {}
-    } catch (err) {
-        console.error("startApp", err);
-    } finally {
-        clearTimeout(failsafe);
-        window.hideSplash();
-        if (startBtn) {
-          startBtn.disabled = false;
-          startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
-        }
-        if (skipBtn) skipBtn.style.display = "";
-    }
+      var s = document.getElementById("ai-splash");
+      if (s) { s.style.display = "none"; s.classList.add("hidden"); }
+      if (typeof window.hideSplash === "function") window.hideSplash();
+    } catch (e) {}
+    try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
+    try { if (typeof scan === "function") scan(true).catch(function(){}); } catch (e) {}
 };
 
 function initAI() {
