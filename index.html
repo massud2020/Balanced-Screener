@@ -236,9 +236,9 @@ body[dir="ltr"] .ci { direction: ltr; }
     <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" onclick="window.startApp()" style="margin-top:22px;width:min(240px,80%);z-index:10000;position:relative;pointer-events:auto">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" onclick="window.hideSplash()" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10000;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
+    <button id="skip-ai-btn" onclick="window.hideSplash();return false;" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10000;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
     <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
-      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
+      <input type="checkbox" id="splashMute" checked style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
     </label>
     <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
@@ -617,7 +617,7 @@ async function playAudioUrl(url) {
       audio.onended = finish;
       audio.onerror = () => reject(new Error("audio error"));
       // بعضی دستگاه‌ها onended نمی‌دهند
-      const guard = setTimeout(finish, 60000);
+      const guard = setTimeout(finish, 12000);
       audio.play().then(() => {
         // اگر metadata طول داشت، guard را دقیق‌تر کن
         try {
@@ -837,13 +837,19 @@ function detectMarketRegime() {
     return avgAdx > 22 ? "pattern" : "range";
 }
 
+window.emergencySkipSplash = function(){ try { window.hideSplash(); } catch(e) {} };
 window.hideSplash = () => {
-    const splash = $("ai-splash");
-    if (splash) {
+    try {
+      const splash = $("ai-splash") || document.getElementById("ai-splash");
+      if (splash) {
         splash.classList.add("hidden");
-        setTimeout(() => { splash.style.display = "none"; }, 350);
-    }
-    if (LAST) try { renderList(); } catch(e) {}
+        splash.style.opacity = "0";
+        splash.style.visibility = "hidden";
+        splash.style.pointerEvents = "none";
+        splash.style.display = "none";
+      }
+    } catch (e) {}
+    try { if (LAST) renderList(); } catch(e) {}
 };
 // اگر قبلاً وارد شده، اسپلش را نشان نده
 /* اسپلش هر بار باز شدن اپ نمایش داده می‌شود */
@@ -896,74 +902,53 @@ function setAppLanguage(lang) {
 }
 
 window.startApp = async () => {
+    // ورود سریع — صدا اختیاری و با سقف زمانی تا اسپلش گیر نکند
     const startBtn = $("start-ai-btn");
     const skipBtn = $("skip-ai-btn");
     const loading = $("ai-loading");
-    if (startBtn) { startBtn.textContent = currentLang==='fa' ? "در حال خواندن…" : "Speaking…"; startBtn.disabled = true; }
-    if (skipBtn) skipBtn.style.display = "none";
+    if (startBtn) { startBtn.textContent = currentLang==='fa' ? "ورود…" : "Entering…"; startBtn.disabled = true; }
+    // skip را مخفی نکن — کاربر همیشه بتواند رد کند
     if ($("splashMute")) LS("bs_splash_mute", $("splashMute").checked ? "1" : "0");
 
-    const mute = LS("bs_splash_mute") === "1" || ($("splashMute") && $("splashMute").checked);
+    const mute = true; // موقتاً صدا را در اسپلش غیرفعال — جلوگیری از گیر کردن
+    // اگر کاربر صراحتاً صدا خواست و mute نبود:
+    const wantSound = !(($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1");
     const fa = currentLang === "fa";
+    const withTimeout = (p, ms) => Promise.race([
+      Promise.resolve(p).catch(() => {}),
+      new Promise(r => setTimeout(r, ms))
+    ]);
 
-    const lines = fa ? [
-      { show: "خوش آمدید", speak: "خوش آمدید به بالانسد اسکرینر." },
-      { show: "در حال اسکن بازارها…", speak: "در حال اسکن بازارها. لطفا صبر کنید." },
-      { show: "آماده‌سازی…", speak: "سیستم در حال آماده‌سازی است." }
-    ] : [
-      { show: "Welcome", speak: "Welcome to Balanced Screener." },
-      { show: "Scanning markets…", speak: "Scanning markets. Please wait." },
-      { show: "Preparing…", speak: "System is getting ready." }
-    ];
-
-    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 90000);
+    const failsafe = setTimeout(() => { try { window.hideSplash(); } catch(e) {} }, 6000);
 
     try {
         try { renderChips(); } catch(e) {}
+        if ($("ai-text")) $("ai-text").textContent = fa ? "در حال ورود…" : "Entering…";
 
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          if ($("ai-text")) $("ai-text").textContent = line.show;
-          if (!mute) {
-            // صبر تا صدای هر جمله کاملاً تمام شود (جمله آخر هم)
-            try { await speakAI(line.speak); } catch (e) { console.warn("speak line", e); }
-            await new Promise(r => setTimeout(r, 350));
-          } else {
-            await new Promise(r => setTimeout(r, 450));
-          }
+        if (wantSound && typeof speakAI === "function") {
+          // حداکثر ۳ ثانیه برای یک جمله کوتاه — بعد برو داخل
+          const line = fa ? "خوش آمدید." : "Welcome.";
+          await withTimeout(speakAI(line), 3000);
         }
 
         if (loading) loading.classList.add("on");
-        if ($("ai-text")) $("ai-text").textContent = fa ? "در حال اسکن…" : "Scanning…";
-        const scanP = scan(true).catch(() => {});
-        await Promise.race([scanP, new Promise(r => setTimeout(r, 2500))]);
-
+        // اسکن را بلاک نکن؛ در پس‌زمینه
+        try { scan(true).catch(() => {}); } catch(e) {}
+        await new Promise(r => setTimeout(r, 400));
         try {
-            const regime = detectMarketRegime();
-            setMode(regime === "pattern" ? "pattern" : "range");
-            const isTrend = regime === "pattern";
-            const shown = fa
-              ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
-              : (isTrend ? "Market regime: Trend" : "Market regime: Range");
-            const spoken = fa
-              ? (isTrend ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
-              : (isTrend ? "Market regime is trend." : "Market regime is range.");
-            if ($("ai-text")) $("ai-text").textContent = shown;
-            if (!mute) {
-              try { await speakAI(spoken); } catch (e) {}
-              await new Promise(r => setTimeout(r, 400));
-            } else {
-              await new Promise(r => setTimeout(r, 400));
-            }
+          const regime = typeof detectMarketRegime === "function" ? detectMarketRegime() : "pattern";
+          setMode(regime === "pattern" ? "pattern" : "range");
         } catch(e) {}
-        // مکث نهایی تا ته صدا قطع نشود
-        await new Promise(r => setTimeout(r, 300));
     } catch (err) {
         console.error("startApp", err);
     } finally {
         clearTimeout(failsafe);
         window.hideSplash();
-        if (startBtn) { startBtn.disabled = false; startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
+        if (startBtn) {
+          startBtn.disabled = false;
+          startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
+        }
+        if (skipBtn) skipBtn.style.display = "";
     }
 };
 
@@ -1176,8 +1161,8 @@ window.hotReloadFromGitHub = async function () {
 // بعد از لود صفحه یک‌بار و هر بار برگشت به اپ
 (function scheduleHotReload() {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
-  setTimeout(run, 1800);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(run, 600); });
+  // hot reload دستی از دکمه به‌روزرسانی — از boot حذف شد تا اسپلش نشکند
+  // setTimeout(run, 1800);
 })();
 
 const BUILD=67,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
