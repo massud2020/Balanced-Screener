@@ -11,8 +11,8 @@ const TOK = process.env.OANDA_TOKEN,
 const F15 = process.env.M15 !== "0";
 const FH1 = process.env.H1 !== "0";
 const RSI_ON = process.env.RSI !== "0";
-const RSI_L = +(process.env.RSI_L || 46);
-const RSI_S = +(process.env.RSI_S || 54);
+const RSI_L = +(process.env.RSI_L || 38);
+const RSI_S = +(process.env.RSI_S || 62);
 const STRICT = process.env.H1_STRICT === "1";
 
 // pattern + range؛ انتخاب per-symbol با ADX
