@@ -1,4 +1,4 @@
-// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v48
+// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v49
 const DEF = {
   mode: "pattern",
   trend: true,
@@ -13,8 +13,8 @@ const DEF = {
   h1: true,
   h1Strict: false,
   rsi: true,
-  rsiL: 42,             // بازتر شد
-  rsiS: 58,             // بازتر شد
+  rsiL: 42,
+  rsiS: 58,
   ef: 21,
   em: 50,
   es: 200,
@@ -23,7 +23,6 @@ const DEF = {
   atrP: 14,
   bbP: 20,
   bbDev: 2,
-
   maxDistATR: 3.0,
   swingLook: 10,
   atrMultSL: 2.0,
@@ -35,13 +34,13 @@ const DEF = {
   minConfluence: 7,
   requirePaStrong: true,
   minPaScore: 2.0,
-  minSlopeAtr: 0.005,   // ✨ v48: بازگشت شیب اما بسیار نرم‌تر (جلوگیری از رنج)
+  minSlopeAtr: 0.005,
   sessionFilter: true,
   d1Filter: false,
   rangeLookback: 96,
   rangeAdxMax: 20,
   rangeMinATR: 3.0,
-  rangeMinTouches: 2,   // کاهش یافت
+  rangeMinTouches: 2,
   rangeRsiL: 32,
   rangeRsiS: 68,
   rangeMinRR: 1.6,
@@ -55,7 +54,7 @@ const DEF = {
   maxHoldSoftSec: 6 * 3600,
   maxHoldStrongSec: 18 * 3600
 }
-const ENGINE_VER = 48; // ✨ v48
+const ENGINE_VER = 49; // ✨ v49 (Bug Fix)
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -333,18 +332,15 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
           ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a, S.minPaScore);
     const ab = sc > es, be = sc < es;
     
-    // منطق صحیح nc (بدون اجبار به کراس دقیقاً در ۲ کندل اخیر)
     const nc = ef !== em && ((ef > em && efp >= emp) || (ef < em && efp <= emp));
     
-    // ✨ v48: بازگشت فیلتر شیب (نرم‌تر شده برای جلوگیری از رنج)
     const slopeOk = a > 0 && Math.abs(ef - efp) / a >= S.minSlopeAtr && Math.abs(em - emp) / a >= S.minSlopeAtr * 0.5;
     const slopeDirL = (ef - efp) > 0 && (em - emp) >= 0;
     const slopeDirS = (ef - efp) < 0 && (em - emp) <= 0;
-    const slope = slopeOk && (isL ? slopeDirL : slopeDirS); // isL بعداً تعریف می‌شود، پس داخل بلاک منطقی قرار می‌دهیم
     
     const D = sc >= es ? "LONG" : "SHORT", isL = D === "LONG";
     
-    // محاسبه نهایی شیب با توجه به جهت
+    // ✨ v49: isL حالا قبل از استفاده تعریف شده و باگ برطرف شده است
     const finalSlope = slopeOk && (isL ? slopeDirL : slopeDirS);
 
     let m15L = true, m15S = true;
