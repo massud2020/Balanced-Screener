@@ -259,7 +259,12 @@ body[dir="ltr"] .ci { direction: ltr; }
   }
   window.hideSplash = function(){ killSplash(); };
   window.startApp = function(){
-    if (window.__startAppFull) return window.__startAppFull();
+    if (window.__startAppFull) {
+      try { window.__startAppFull(); } catch (e) { killSplash(); }
+      // فقط اگر واقعاً آویزان شد (خوشامد کامل معمولاً زیر ۴۰ث)
+      setTimeout(killSplash, 55000);
+      return;
+    }
     killSplash();
   };
   document.addEventListener('DOMContentLoaded', function(){
@@ -813,19 +818,17 @@ window.checkRemoteUpdate = async (opts) => {
     });
 })();
 
-window.__ttsEpoch = 0;
+
 async function typeText(elementId, text, speed = 36) {
-    const myEpoch = window.__ttsEpoch;
     const el = $(elementId);
     if (!el) return;
     el.textContent = "";
     const s = String(text || "");
     for (let i = 0; i < s.length; i++) {
-        if (window.__ttsEpoch !== myEpoch) return;
         el.textContent += s.charAt(i);
         await new Promise(r => setTimeout(r, speed));
     }
-    if (window.__ttsEpoch === myEpoch) el.textContent = s;
+    el.textContent = s;
 }
 
 async function speakAndType(elementId, text) {
@@ -910,93 +913,159 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✅ __startAppFull — نسخهٔ جدید ضد تداخل، ضد قفل و با ثبت 4 تایمر نجات‌بخش */
-window.__startAppFull = window.startApp = function () {
-    window.__ttsEpoch++; // لغو تایپ‌های در حال اجرا
-    
-    const _hide = function () { try { window.hideSplash(); } catch (e) {} };
-    setTimeout(_hide, 5000);
-    setTimeout(_hide, 9000);
-    setTimeout(_hide, 14000);
-    setTimeout(_hide, 20000);
+/* ✨ [FIX] SPLASH_FULL_V2 — خوشامد کامل، بعد ورود */
+window.__startAppFull = window.startApp = async function () {
+    var closed = false;
+    function closeNow() {
+      if (closed) return;
+      closed = true;
+      try { window.hideSplash(); } catch (e) {
+        var s = document.getElementById("ai-splash");
+        if (s) { s.style.display = "none"; s.classList.add("hidden"); }
+      }
+      var b = document.getElementById("start-ai-btn");
+      if (b) {
+        b.disabled = false;
+        b.textContent = (typeof currentLang !== "undefined" && currentLang === "en")
+          ? "Enter Screener" : "ورود به اسکرینر";
+      }
+    }
 
-    (async function () {
-        const splash = document.getElementById("ai-splash");
-        const btn = document.getElementById("start-ai-btn");
-        const el = document.getElementById("ai-text");
-        const loading = document.getElementById("ai-loading");
+    var startBtn = document.getElementById("start-ai-btn");
+    var loading = document.getElementById("ai-loading");
+    var splash = document.getElementById("ai-splash");
+    if (splash) splash.dataset.started = "1";
+    var fa = !(typeof currentLang !== "undefined" && currentLang === "en");
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
 
-        if (splash) splash.dataset.started = "1";
-        window.__splashActive = true;
-        if (btn) { btn.disabled = true; btn.textContent = "…"; }
+    var mute = false;
+    try {
+      var muteEl = document.getElementById("splashMute");
+      if (muteEl) {
+        localStorage.setItem("bs_splash_mute", muteEl.checked ? "1" : "0");
+        mute = !!muteEl.checked;
+      } else if (localStorage.getItem("bs_splash_mute") === "1") mute = true;
+    } catch (e) {}
 
-        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
-        let mute = false;
+    var lines = fa
+      ? [
+          "خوش آمدید به بالانسد اسکرینر.",
+          "سیستم در حال آماده سازی است.",
+          "بازارها در حال بررسی هستند."
+        ]
+      : [
+          "Welcome to Balanced Screener.",
+          "The system is getting ready.",
+          "Markets are being checked."
+        ];
+
+    // صبر تا متن کامل تایپ و صدا تمام شود
+    async function playLine(showText, speakText) {
+      var text = speakText || showText;
+      var el = document.getElementById("ai-text");
+      if (typeof typeText === "function") {
         try {
-            const m = document.getElementById("splashMute");
-            mute = m ? m.checked : false;
-        } catch (e) {}
-
-        const lines = fa
-            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
-            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
-
-        const speakSafe = async (text, timeout) => {
-            if (mute) return new Promise(r => setTimeout(r, 500));
-            let p = speakNative(text, fa ? "fa-IR" : "en-US");
-            if (!p || typeof p.then !== "function") p = Promise.resolve();
-            return Promise.race([
-                p.catch(() => {}),
-                new Promise(r => setTimeout(r, timeout))
-            ]);
-        };
-
-        try {
-            for (let i = 0; i < lines.length; i++) {
-                if (el) el.textContent = lines[i];
-                await speakSafe(lines[i], 3200);
-            }
-
-            if (loading) loading.classList.add("on");
-            if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
-            
-            try { if (typeof scan === "function") scan(true).catch(() => {}); } catch (e) {}
-            await new Promise(r => setTimeout(r, 500));
-
-            let regime = "pattern";
-            if (typeof detectMarketRegime === "function") {
-                try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
-            }
-            if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
-
-            const rText = fa
-                ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
-                : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-            const rSpeak = fa
-                ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
-                : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
-
-            if (el) el.textContent = rText;
-            await speakSafe(rSpeak, 3200);
-        } catch (err) {
-            console.error("startApp error:", err);
-        } finally {
-            window.__splashActive = false;
-            _hide();
-            if (btn) { btn.disabled = false; btn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
-            if (window.__pendingSay) {
-                const ps = window.__pendingSay;
-                window.__pendingSay = null;
-                setTimeout(ps, 500);
-            }
+          await typeText("ai-text", showText, 32);
+        } catch (e) {
+          if (el) el.textContent = showText;
         }
-    })().catch(e => { try { window.hideSplash(); } catch(_){} });
+      } else if (el) {
+        el.textContent = showText;
+      }
+      // اطمینان از متن کامل روی صفحه
+      el = document.getElementById("ai-text");
+      if (el) el.textContent = showText;
+
+      if (mute) {
+        await new Promise(function (r) { setTimeout(r, 600); });
+        return;
+      }
+      // حداقل زمان بر اساس طول جمله تا وسط قطع نشود
+      var minMs = Math.max(2200, String(text).length * 100);
+      var maxMs = Math.min(14000, minMs + 3500);
+      try {
+        var p = null;
+        if (typeof speakAI === "function") p = speakAI(text);
+        else if (typeof speakNative === "function") p = speakNative(text, fa ? "fa-IR" : "en-US");
+        var t0 = Date.now();
+        await Promise.race([
+          Promise.resolve(p).catch(function () {}),
+          new Promise(function (r) { setTimeout(r, maxMs); })
+        ]);
+        var left = minMs - (Date.now() - t0);
+        if (left > 80) await new Promise(function (r) { setTimeout(r, left); });
+        await new Promise(function (r) { setTimeout(r, 350); });
+      } catch (e) {
+        await new Promise(function (r) { setTimeout(r, minMs); });
+      }
+    }
+
+    // فقط اگر کل مسیر واقعاً قفل شد
+    var failsafe = setTimeout(closeNow, 60000);
+
+    try {
+      try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
+
+      // سه جمله خوشامد — کامل
+      for (var i = 0; i < lines.length; i++) {
+        await playLine(lines[i], lines[i]);
+      }
+
+      if (loading) loading.classList.add("on");
+      var elScan = document.getElementById("ai-text");
+      if (elScan) elScan.textContent = fa ? "در حال اسکن…" : "Scanning…";
+
+      // اسکن در پس‌زمینه — منتظر شبکه نمی‌مانیم تا خوشامد کامل بماند
+      try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 800); });
+
+      // جمله آخر: اعلام انتخاب استراتژی / رژیم بازار — حتماً کامل گفته شود
+      var regime = "pattern";
+      try {
+        if (typeof detectMarketRegime === "function") regime = detectMarketRegime() || "pattern";
+      } catch (e) {}
+      try {
+        if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+      } catch (e) {}
+
+      var isTrend = (regime === "pattern");
+      var regimeShow = fa
+        ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+        : (isTrend ? "Market regime: Trend" : "Market regime: Range");
+      // جمله صریح انتخاب استراتژی (همان چیزی که کاربر می‌خواهد بشنود)
+      var regimeSpeak = fa
+        ? (isTrend
+            ? "رژیم بازار روند است. استراتژی الگوی سه به علاوه یک انتخاب شد."
+            : "رژیم بازار رنج است. استراتژی رنج انتخاب شد.")
+        : (isTrend
+            ? "Market regime is trend. Pattern three plus one strategy selected."
+            : "Market regime is range. Range strategy selected.");
+
+      // قطع صدای قبلی تا جمله انتخاب بازار خورده نشود
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+          window.Capacitor.Plugins.TextToSpeech.stop().catch(function () {});
+        }
+      } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 200); });
+
+      await playLine(regimeShow, regimeSpeak);
+
+      // مکث بعد از جمله انتخاب بازار، سپس ورود به صفحه اصلی
+      await new Promise(function (r) { setTimeout(r, 600); });
+    } catch (err) {
+      console.error("startApp", err);
+    } finally {
+      clearTimeout(failsafe);
+      closeNow();
+    }
 };
 
+
+
+
 function initAI() {
-    if (window.__splashActive) return;
-    const btn = document.getElementById("start-ai-btn");
-    if (btn && btn.disabled) return;
     typeText("ai-text", T().ai_ready).catch(console.error);
 }
 
@@ -1716,6 +1785,7 @@ function say(fr){
 
 function speakLang() { return "en-US"; }
 
+/* ✨ [FIX] guard افزایش یافت */
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1732,6 +1802,7 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
+    /* ✨ [FIX] 1500 + n*200 → 2000 + n*250 */
     const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
 
     const pickVoice = (voices, wantLang) => {
@@ -2330,6 +2401,14 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed', err));
   });
 }
+
+setTimeout(function () {
+  var s = document.getElementById("ai-splash");
+  if (s && !s.classList.contains("hidden") && !s.dataset.started) {
+    s.classList.add("hidden");
+    s.style.display = "none";
+  }
+}, 15000);
 </script>
 </body>
-    </html>
+</html>
