@@ -261,7 +261,6 @@ body[dir="ltr"] .ci { direction: ltr; }
   window.startApp = function(){
     if (window.__startAppFull) {
       try { window.__startAppFull(); } catch (e) { killSplash(); }
-      // فقط اگر واقعاً آویزان شد (خوشامد کامل معمولاً زیر ۴۰ث)
       setTimeout(killSplash, 55000);
       return;
     }
@@ -332,7 +331,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v69</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v74</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -428,15 +427,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 69;
+window.__BS_LOCAL_BUILD = 74;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=69"></script>
-<script src="alerts.js?v=69"></script>
-<script src="engine.js?v=69"></script>
-<script src="presets.js?v=69"></script>
-<script src="chart.js?v=69"></script>
+<script src="symbols.js?v=74"></script>
+<script src="alerts.js?v=74"></script>
+<script src="engine.js?v=74"></script>
+<script src="presets.js?v=74"></script>
+<script src="chart.js?v=74"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -641,6 +640,30 @@ function ttsRateVariants() {
     return order.map(k => all[k]);
 }
 
+function playBeep() {
+  return new Promise(function(resolve) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return resolve();
+      var ctx = new Ctx();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+      setTimeout(function() {
+        try { ctx.close(); } catch(e) {}
+        resolve();
+      }, 200);
+    } catch(e) { resolve(); }
+  });
+}
+
 async function playAudioUrl(url) {
   return new Promise((resolve, reject) => {
     try {
@@ -768,7 +791,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 69);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 74);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -964,7 +987,7 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // زیرنویس دقیقاً با صدا: متن به‌اندازهٔ پیشرفت زمان گفتار ظاهر می‌شود
+    // زیرنویس دقیقاً با صدا با استفاده از بیپ هماهنگ‌کننده
     async function playLine(showText, speakText) {
       var display = String(showText || "");
       var spoken = String(speakText || showText || "");
@@ -984,12 +1007,12 @@ window.__startAppFull = window.startApp = async function () {
           try { window.Capacitor.Plugins.TextToSpeech.stop(); } catch (e2) {}
         }
       } catch (e) {}
-      await new Promise(function (r) { setTimeout(r, 80); });
+      await new Promise(function (r) { setTimeout(r, 100); });
 
-      // مدت گفتار: فارسی کمی کندتر از انگلیسی
-      var perChar = fa ? 125 : 105;
-      var durationMs = Math.max(2000, Math.min(14000, spoken.length * perChar));
+      // ۱. پخش بیپ (سیگنال شروع)
+      await playBeep();
 
+      // ۲. هم‌زمان: شروع TTS و شروع تایمر زیرنویس
       var speakFinished = false;
       var speakPromise = Promise.resolve();
       try {
@@ -1003,22 +1026,24 @@ window.__startAppFull = window.startApp = async function () {
           speakPromise = Promise.resolve(speakNative(spoken, fa ? "fa-IR" : "en-US"));
         }
       } catch (e) {}
+      
       speakPromise = Promise.resolve(speakPromise).catch(function () {}).then(function () {
         speakFinished = true;
       });
 
-      // زیرنویس بر اساس زمان سپری‌شده از شروع صدا (نه تایپ سریع جلوتر از صدا)
+      // تایمر زیرنویس دقیقاً از لحظه‌ی پایان بیپ شروع می‌شود
+      var perChar = fa ? 110 : 95;
+      var durationMs = Math.max(1800, Math.min(14000, spoken.length * perChar));
+
       var t0 = Date.now();
       await new Promise(function (resolve) {
         var iv = setInterval(function () {
           var elapsed = Date.now() - t0;
-          // کمی عقب‌تر از صدا (۱۵۰ms) تا زیرنویس جلو نیفتد
-          var lag = 150;
-          var progress = Math.min(1, Math.max(0, (elapsed - lag) / durationMs));
+          var progress = Math.min(1, Math.max(0, elapsed / durationMs));
           var n = Math.floor(progress * display.length);
           if (el) el.textContent = display.slice(0, n);
 
-          if (speakFinished || elapsed >= durationMs + 800) {
+          if (speakFinished || elapsed >= durationMs + 1200) {
             clearInterval(iv);
             if (el) el.textContent = display;
             resolve();
@@ -1030,11 +1055,11 @@ window.__startAppFull = window.startApp = async function () {
       if (!speakFinished) {
         await Promise.race([
           speakPromise,
-          new Promise(function (r) { setTimeout(r, 2500); })
+          new Promise(function (r) { setTimeout(r, 2000); })
         ]);
       }
       if (el) el.textContent = display;
-      await new Promise(function (r) { setTimeout(r, 300); });
+      await new Promise(function (r) { setTimeout(r, 250); });
     }
 
     // فقط اگر کل مسیر واقعاً قفل شد
@@ -1302,7 +1327,7 @@ window.hotReloadFromGitHub = async function () {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
 
-const BUILD=69,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=74,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1767,7 +1792,6 @@ function playBuiltin(name) {
   try { showName(LS("bs_alert_tone_name") || ""); } catch (e) { showName(""); }
 
   function openPhonePicker() {
-    // انتخاب فایل صوتی از حافظه گوشی (پوشه زنگ‌ها / Downloads / Music)
     if (file) {
       try { file.value = ""; } catch (e) {}
       file.click();
@@ -1810,7 +1834,6 @@ function playBuiltin(name) {
     const v = sel.value;
     LS(ALERT_TONE_KEY, v);
     if (v === "custom") {
-      // اگر قبلاً فایلی ذخیره شده فقط تست؛ وگرنه باز کردن انتخابگر گوشی
       if (!LS(ALERT_CUSTOM_KEY)) openPhonePicker();
       else { showName(LS("bs_alert_tone_name") || ""); beep(); }
     } else {
