@@ -1,47 +1,47 @@
-// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v46
+// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v48
 const DEF = {
   mode: "pattern",
   trend: true,
   emax: true,
   nc: true,
   pat: true,
-  adx: false,           // فیلتر سخت ADX خاموش؛ برای رژیم جداگانه استفاده می‌شود
-  adxMin: 22,           // اگر adx روشن شود
-  adxSoft: false,       // فیلتر نرم ADX (اختیاری — پیش‌فرض خاموش)
-  adxSoftMin: 18,       // حداقل ADX برای فیلتر نرم
+  adx: false,
+  adxMin: 22,
+  adxSoft: false,
+  adxSoftMin: 18,
   m15: true,
   h1: true,
   h1Strict: false,
   rsi: true,
-  rsiL: 38,             // پولبک عمیق‌تر
-  rsiS: 62,
+  rsiL: 42,             // بازتر شد
+  rsiS: 58,             // بازتر شد
   ef: 21,
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.52,       // متعادل: کیفیت خوب بدون خشکی کامل
+  minRatio: 0.52,
   atrP: 14,
   bbP: 20,
   bbDev: 2,
 
-  maxDistATR: 3.0,      // ✨ v46: از 2.6 به 3.0 افزایش یافت (اجازه فاصله بیشتر)
+  maxDistATR: 3.0,
   swingLook: 10,
   atrMultSL: 2.0,
-  minSlAtr: 1.35,       // کف SL معقول
-  spreadAtr: 0.40,      // بافر اسپرد واقعی‌تر
-  tpR: 2.0,             // حد سود ثابت ۲R
-  exitMode: "tp_r",     // tp_r | rsi_div
+  minSlAtr: 1.35,
+  spreadAtr: 0.40,
+  tpR: 2.0,
+  exitMode: "tp_r",
   useConfluence: false,
   minConfluence: 7,
-  requirePaStrong: true, // engulf / pin / classic اجباری
-  minPaScore: 2.0,      // ✨ v46: از 2.2 به 2.0 کاهش یافت (پترن‌های بیشتری قبول می‌شوند)
-  minSlopeAtr: 0.010,   // ✨ v46: از 0.02 به 0.01 کاهش یافت (شیب ضعیف‌تر قبول می‌شود)
-  sessionFilter: true,  // فیلتر سشن جفت‌ارز
-  d1Filter: false,      // پیش‌فرض خاموش
-  rangeLookback: 96,    // ≈۸ ساعت M5
+  requirePaStrong: true,
+  minPaScore: 2.0,
+  minSlopeAtr: 0.005,   // ✨ v48: بازگشت شیب اما بسیار نرم‌تر (جلوگیری از رنج)
+  sessionFilter: true,
+  d1Filter: false,
+  rangeLookback: 96,
   rangeAdxMax: 20,
   rangeMinATR: 3.0,
-  rangeMinTouches: 3,
+  rangeMinTouches: 2,   // کاهش یافت
   rangeRsiL: 32,
   rangeRsiS: 68,
   rangeMinRR: 1.6,
@@ -55,7 +55,7 @@ const DEF = {
   maxHoldSoftSec: 6 * 3600,
   maxHoldStrongSec: 18 * 3600
 }
-const ENGINE_VER = 46; // ✨ v46
+const ENGINE_VER = 48; // ✨ v48
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -271,13 +271,9 @@ function rangeAnalyze(m5, h1, S, ind) {
   const roomOk = H >= S.rangeMinATR * a, touchOk = tTop >= 1 && tBot >= 1 && (tTop + tBot) >= S.rangeMinTouches;
   const broke = sc > rh + 0.4 * a || sc < rl - 0.4 * a, rangeOk = roomOk && touchOk && !broke;
   const adxOk = adxV < S.rangeAdxMax || (adxV < S.adxMin && adxB != null && adxV < adxB);
-  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low;
-  
-  // ✨ v46: نرم کردن بدنه کندل و واکنش به لبه
-  const goodBody = rangeC > 0 && body / rangeC >= 0.30;
+  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low, goodBody = rangeC > 0 && body / rangeC >= 0.30;
   const edgeLong = (pv.low <= loP + 0.25 * a || pv.close <= loP + 0.15 * a) && sc > lo && b.close > b.open && goodBody;
   const edgeShort = (pv.high >= upP - 0.25 * a || pv.close >= upP - 0.15 * a) && sc < up && b.close < b.open && goodBody;
-  
   const trig = L ? edgeLong : edgeShort;
   let volOk = true;
   if (S.rangeRequireVol !== false) {
@@ -337,16 +333,20 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
           ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a, S.minPaScore);
     const ab = sc > es, be = sc < es;
     
-    // ✨ v46: نرم کردن هم‌جهتی EMA (اجازه کراس در ۲ کندل اخیر)
-    const ef2 = last(efA, 2), em2 = last(emA, 2);
-    const nc = ef !== em && ((ef > em && efp >= emp && ef2 <= em2) || (ef < em && efp <= emp && ef2 >= em2));
-
-    const slopeOk = a > 0 && Math.abs(ef - efp) / a >= (S.minSlopeAtr || 0.010) && Math.abs(em - emp) / a >= (S.minSlopeAtr || 0.010) * 0.5;
+    // منطق صحیح nc (بدون اجبار به کراس دقیقاً در ۲ کندل اخیر)
+    const nc = ef !== em && ((ef > em && efp >= emp) || (ef < em && efp <= emp));
+    
+    // ✨ v48: بازگشت فیلتر شیب (نرم‌تر شده برای جلوگیری از رنج)
+    const slopeOk = a > 0 && Math.abs(ef - efp) / a >= S.minSlopeAtr && Math.abs(em - emp) / a >= S.minSlopeAtr * 0.5;
     const slopeDirL = (ef - efp) > 0 && (em - emp) >= 0;
     const slopeDirS = (ef - efp) < 0 && (em - emp) <= 0;
-    const slope = slopeOk;
+    const slope = slopeOk && (isL ? slopeDirL : slopeDirS); // isL بعداً تعریف می‌شود، پس داخل بلاک منطقی قرار می‌دهیم
     
     const D = sc >= es ? "LONG" : "SHORT", isL = D === "LONG";
+    
+    // محاسبه نهایی شیب با توجه به جهت
+    const finalSlope = slopeOk && (isL ? slopeDirL : slopeDirS);
+
     let m15L = true, m15S = true;
     if (S.m15) {
       const m = dropForming(resample(m5, 15), 900, now);
@@ -369,7 +369,7 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
       else { const wasOverbought = (r1 != null && r1 > S.rsiS) || (r2 != null && r2 > S.rsiS) || r > S.rsiS - 5; rsiOk = wasOverbought && r < (r1 || r) + 0.5 && r > 38; }
     }
     if (S.trend !== false) addCheck(`قیمت ${isL ? "بالای" : "پایین"} EMA${S.es}`, isL ? ab : be, `قیمت روی EMA200`);
-    if (S.nc !== false) addCheck(`هم‌جهتی و شیب EMAها`, nc && slope && (isL ? slopeDirL : slopeDirS), `تقاطع یا شیب نامناسب`);
+    if (S.nc !== false) addCheck(`هم‌جهتی EMAها (بدون تقاطع)`, nc && finalSlope, `تقاطع یا شیب نامناسب`);
     if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
     if (S.pat !== false) addCheck(`پرایس‌اکشن تأیید`, isL ? pl.ok : ps.ok, `الگوی پرایس‌اکشن ضعیف`);
     if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند)`, adxV > S.adxMin, `بازار روند کافی ندارد`);
@@ -542,13 +542,13 @@ function sessionOfSymbol(id) {
 }
 function isInTradingSession(id, nowSec) {
   const d = new Date((nowSec || Date.now() / 1000) * 1000);
-  const day = d.getUTCDay(); // 0 Sun .. 6 Sat
+  const day = d.getUTCDay();
   const h = d.getUTCHours() + d.getUTCMinutes() / 60;
   const isCrypto = /USDT$|BTC|ETH|BNB|XRP|SOL|ADA|DOGE/.test(String(id || "").toUpperCase());
   if (!isCrypto) {
-    if (day === 6) return false; // شنبه
-    if (day === 5 && h >= 21) return false; // جمعه شب
-    if (day === 0 && h < 22) return false; // یکشنبه قبل باز شدن
+    if (day === 6) return false;
+    if (day === 5 && h >= 21) return false;
+    if (day === 0 && h < 22) return false;
     if (h >= 21 && h < 23) return false;
   }
   const sess = sessionOfSymbol(id);
@@ -595,4 +595,4 @@ function filterCorrelated(signals) {
 
 if (typeof module !== "undefined") {
   module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, adx, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER, isInTradingSession, sessionOfSymbol, correlationGroup, filterCorrelated, dailyBias };
-}
+    }
