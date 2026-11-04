@@ -771,7 +771,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 80);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 85);
     location.replace(location.pathname + "?" + q);
 };
 
