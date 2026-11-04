@@ -908,97 +908,116 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✅ بخش خوشامدگویی — همان‌طور که کار می‌کرد (speakCap + ۴ جمله) */
-window.__startAppFull = window.startApp = async function () {
-    const startBtn = document.getElementById("start-ai-btn");
-    const loading = document.getElementById("ai-loading");
-    const splash = document.getElementById("ai-splash");
-    if (splash) splash.dataset.started = "1";
-    window.__splashActive = true;
+/* ✅ __startAppFull — نسخهٔ جدید با ۴ failsafe مستقل و بدون Promise.race */
+window.__startAppFull = window.startApp = function () {
+    // failsafeهای مستقل که قبل از هر چیز دیگر ثبت می‌شوند
+    const _hide = function () { try { window.hideSplash(); } catch (e) {} };
+    setTimeout(_hide, 5000);
+    setTimeout(_hide, 9000);
+    setTimeout(_hide, 14000);
+    setTimeout(_hide, 20000);
 
-    const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
-    try {
-      const muteEl = document.getElementById("splashMute");
-      if (muteEl) localStorage.setItem("bs_splash_mute", muteEl.checked ? "1" : "0");
-    } catch (e) {}
-    const mute = (document.getElementById("splashMute") && document.getElementById("splashMute").checked) ||
-      (typeof LS === "function" && LS("bs_splash_mute") === "1");
+    (async function () {
+        const startBtn = document.getElementById("start-ai-btn");
+        const loading  = document.getElementById("ai-loading");
+        const splash   = document.getElementById("ai-splash");
+        if (splash) splash.dataset.started = "1";
+        window.__splashActive = true;
 
-    const lines = fa
-      ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
-      : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
+        if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
 
-    async function speakCap(text, ms) {
-      if (mute || typeof speakNative !== "function") {
-        await new Promise(r => setTimeout(r, 400));
-        return;
-      }
-      try {
-        await Promise.race([
-          Promise.resolve(speakNative(text, fa ? "fa-IR" : "en-US")).catch(function () {}),
-          new Promise(r => setTimeout(r, ms || 4500))
-        ]);
-      } catch (e) {}
-      await new Promise(r => setTimeout(r, 200));
-    }
+        let mute = false;
+        try {
+            const me = document.getElementById("splashMute");
+            if (me) { localStorage.setItem("bs_splash_mute", me.checked ? "1" : "0"); mute = me.checked; }
+            else if (typeof LS === "function") mute = LS("bs_splash_mute") === "1";
+        } catch (e) {}
 
-    const failsafe = setTimeout(function () {
-      try { window.hideSplash(); } catch (e) {}
-    }, 18000);
+        const lines = fa
+            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
 
-    try {
-      try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
-      for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 28);
-        else {
-          const el0 = document.getElementById("ai-text");
-          if (el0) el0.textContent = lines[i];
+        // تایمر مستقل — بدون Promise.race
+        function speakWithTimer(text, ms) {
+            return new Promise(function (resolve) {
+                let done = false;
+                const finish = function () {
+                    if (done) return;
+                    done = true;
+                    resolve();
+                };
+                setTimeout(finish, ms || 3000);
+                try {
+                    if (!mute && typeof speakNative === "function") {
+                        Promise.resolve()
+                            .then(() => speakNative(text, fa ? "fa-IR" : "en-US"))
+                            .then(finish)
+                            .catch(finish);
+                    } else {
+                        setTimeout(finish, 150);
+                    }
+                } catch (e) { finish(); }
+            });
         }
-        await speakCap(lines[i], 4500);
-      }
 
-      if (loading) loading.classList.add("on");
-      const el = document.getElementById("ai-text");
-      if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+        try {
+            try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
 
-      try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
-      await new Promise(r => setTimeout(r, 700));
+            for (let i = 0; i < lines.length; i++) {
+                try {
+                    if (typeof typeText === "function") await typeText("ai-text", lines[i], 25);
+                    else {
+                        const el0 = document.getElementById("ai-text");
+                        if (el0) el0.textContent = lines[i];
+                    }
+                } catch (e) {}
+                await speakWithTimer(lines[i], 3500);
+            }
 
-      try {
-        let regime = "pattern";
-        if (typeof detectMarketRegime === "function") {
-          try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
+            try { if (loading) loading.classList.add("on"); } catch (e) {}
+            const el = document.getElementById("ai-text");
+            if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+
+            try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
+            await new Promise(r => setTimeout(r, 400));
+
+            try {
+                let regime = "pattern";
+                if (typeof detectMarketRegime === "function") {
+                    try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
+                }
+                if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+
+                const regimeText = fa
+                    ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+                    : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
+                const regimeSpeak = fa
+                    ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+                    : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
+
+                if (el) el.textContent = regimeText;
+                await speakWithTimer(regimeSpeak, 3500);
+            } catch (e) { console.warn("regime error:", e); }
+        } catch (err) {
+            console.error("startApp error:", err);
+        } finally {
+            window.__splashActive = false;
+            try { window.hideSplash(); } catch (e) {}
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
+            }
+            if (window.__pendingSay) {
+                const ps = window.__pendingSay;
+                window.__pendingSay = null;
+                setTimeout(ps, 500);
+            }
         }
-        if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
-        const regimeText = fa
-          ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
-          : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-        const regimeSpeak = fa
-          ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
-          : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
-        if (el) el.textContent = regimeText;
-        await speakCap(regimeSpeak, 5000);
-      } catch (e) { console.warn("regime speech", e); }
-    } catch (err) {
-      console.error("startApp", err);
-    } finally {
-      clearTimeout(failsafe);
-      window.__splashActive = false;
-      try { window.hideSplash(); } catch (e) {
-        const s = document.getElementById("ai-splash");
-        if (s) { s.style.display = "none"; s.classList.add("hidden"); }
-      }
-      if (startBtn) {
-        startBtn.disabled = false;
-        startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
-      }
-      if (window.__pendingSay) {
-        const ps = window.__pendingSay;
-        window.__pendingSay = null;
-        setTimeout(ps, 900);
-      }
-    }
+    })().catch(function (e) {
+        console.error("startApp outer crash:", e);
+        try { window.hideSplash(); } catch (e2) {}
+    });
 };
 
 
@@ -2336,17 +2355,6 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed', err));
   });
 }
-
-setTimeout(function () {
-  var s = document.getElementById('ai-splash');
-  if (s && !s.classList.contains('hidden') && !s.dataset.started) {
-    s.classList.add('hidden');
-    s.style.display = 'none';
-    s.style.visibility = 'hidden';
-    s.style.opacity = '0';
-    s.style.pointerEvents = 'none';
-  }
-}, 12000);
 </script>
 </body>
-</html>
+    </html>
