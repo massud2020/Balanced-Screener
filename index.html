@@ -331,7 +331,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v74</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v75</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -427,15 +427,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 74;
+window.__BS_LOCAL_BUILD = 75;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=74"></script>
-<script src="alerts.js?v=74"></script>
-<script src="engine.js?v=74"></script>
-<script src="presets.js?v=74"></script>
-<script src="chart.js?v=74"></script>
+<script src="symbols.js?v=75"></script>
+<script src="alerts.js?v=75"></script>
+<script src="engine.js?v=75"></script>
+<script src="presets.js?v=75"></script>
+<script src="chart.js?v=75"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -640,34 +640,16 @@ function ttsRateVariants() {
     return order.map(k => all[k]);
 }
 
-function playBeep() {
-  return new Promise(function(resolve) {
-    try {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return resolve();
-      var ctx = new Ctx();
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.15);
-      setTimeout(function() {
-        try { ctx.close(); } catch(e) {}
-        resolve();
-      }, 200);
-    } catch(e) { resolve(); }
-  });
-}
+window.__currentTTSAudio = null;
 
 async function playAudioUrl(url) {
   return new Promise((resolve, reject) => {
     try {
+      if (window.__currentTTSAudio) {
+        try { window.__currentTTSAudio.pause(); } catch(e){}
+      }
       const audio = new Audio(url);
+      window.__currentTTSAudio = audio;
       audio.preload = "auto";
       let done = false;
       const finish = () => { if (done) return; done = true; resolve(); };
@@ -791,7 +773,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 74);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 75);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -857,14 +839,6 @@ async function typeText(elementId, text, speed = 36) {
         await new Promise(r => setTimeout(r, speed));
     }
     el.textContent = s;
-}
-
-async function speakAndType(elementId, text) {
-    const el = $(elementId);
-    if (el) el.textContent = text;
-    const mute = ($("splashMute") && $("splashMute").checked) || LS("bs_splash_mute") === "1";
-    if (mute || LS("bs_tts_off") === "1") return;
-    try { speakNative(text); } catch (e) {}
 }
 
 function detectMarketRegime() {
@@ -941,12 +915,22 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] SPLASH_SYNC_V4 — خوشامد کامل، بعد ورود */
+/* ✨ [FIX] SPLASH_SYNC_V5 — هماهنگی کامل صدا و متن با استفاده از timeupdate */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
       if (closed) return;
       closed = true;
+      if (window.__currentTTSAudio) {
+        try { window.__currentTTSAudio.pause(); } catch(e){}
+        window.__currentTTSAudio = null;
+      }
+      try { window.speechSynthesis.cancel(); } catch(e){}
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+          window.Capacitor.Plugins.TextToSpeech.stop();
+        }
+      } catch(e){}
       try { window.hideSplash(); } catch (e) {
         var s = document.getElementById("ai-splash");
         if (s) { s.style.display = "none"; s.classList.add("hidden"); }
@@ -987,7 +971,7 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // زیرنویس دقیقاً با صدا با استفاده از بیپ هماهنگ‌کننده
+    // تابعی که صدا را پخش می‌کند و متن را دقیقاً با زمان‌بندیِ صوت هماهنگ می‌کند
     async function playLine(showText, speakText) {
       var display = String(showText || "");
       var spoken = String(speakText || showText || "");
@@ -1000,7 +984,10 @@ window.__startAppFull = window.startApp = async function () {
         return;
       }
 
-      // قطع صدای قبلی
+      if (window.__currentTTSAudio) {
+        try { window.__currentTTSAudio.pause(); } catch(e){}
+        window.__currentTTSAudio = null;
+      }
       try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
@@ -1009,66 +996,120 @@ window.__startAppFull = window.startApp = async function () {
       } catch (e) {}
       await new Promise(function (r) { setTimeout(r, 100); });
 
-      // ۱. پخش بیپ (سیگنال شروع)
-      await playBeep();
+      var voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
+      var engine = (typeof TTS_CFG !== "undefined" && TTS_CFG.engine) || "auto";
 
-      // ۲. هم‌زمان: شروع TTS و شروع تایمر زیرنویس
-      var speakFinished = false;
-      var speakPromise = Promise.resolve();
-      try {
-        if (typeof speakAI === "function") {
-          speakPromise = Promise.resolve(speakAI(spoken)).catch(function () {
-            return (typeof speakNative === "function")
-              ? speakNative(spoken, fa ? "fa-IR" : "en-US")
-              : Promise.resolve();
-          });
-        } else if (typeof speakNative === "function") {
-          speakPromise = Promise.resolve(speakNative(spoken, fa ? "fa-IR" : "en-US"));
-        }
-      } catch (e) {}
-      
-      speakPromise = Promise.resolve(speakPromise).catch(function () {}).then(function () {
-        speakFinished = true;
-      });
+      // 1. تلاش برای پخش از Edge TTS (هماهنگ‌سازی دقیق)
+      if (engine !== "android" && window.Capacitor && window.Capacitor.Plugins) {
+        const Edge = window.Capacitor.Plugins.EdgeTTS || window.Capacitor.Plugins.EdgeTts || window.Capacitor.Plugins.TextToSpeechEdge;
+        if (Edge && typeof Edge.synthesize === "function") {
+          try {
+            const rates = typeof ttsRateVariants === "function" ? ttsRateVariants() : ["+0%"];
+            for (const rate of rates) {
+              const res = await Edge.synthesize({ text: spoken, voice, rate: String(rate) });
+              const src = typeof ttsExtractAudio === "function" ? ttsExtractAudio(res) : null;
+              if (src) {
+                const audio = new Audio(src);
+                window.__currentTTSAudio = audio;
+                
+                await new Promise((resolve) => {
+                  let done = false;
+                  const finish = () => {
+                    if (done) return; done = true;
+                    if (el) el.textContent = display;
+                    resolve();
+                  };
+                  
+                  audio.onended = finish;
+                  audio.onerror = finish;
+                  
+                  // آپدیت متن دقیقاً بر اساس پیشرفت واقعی صدا
+                  audio.addEventListener('timeupdate', () => {
+                    if (audio.duration && isFinite(audio.duration) && el) {
+                      const progress = audio.currentTime / audio.duration;
+                      const n = Math.floor(progress * display.length);
+                      el.textContent = display.slice(0, n);
+                    }
+                  });
 
-      // تایمر زیرنویس دقیقاً از لحظه‌ی پایان بیپ شروع می‌شود
-      var perChar = fa ? 110 : 95;
-      var durationMs = Math.max(1800, Math.min(14000, spoken.length * perChar));
-
-      var t0 = Date.now();
-      await new Promise(function (resolve) {
-        var iv = setInterval(function () {
-          var elapsed = Date.now() - t0;
-          var progress = Math.min(1, Math.max(0, elapsed / durationMs));
-          var n = Math.floor(progress * display.length);
-          if (el) el.textContent = display.slice(0, n);
-
-          if (speakFinished || elapsed >= durationMs + 1200) {
-            clearInterval(iv);
-            if (el) el.textContent = display;
-            resolve();
+                  audio.play().catch(finish);
+                });
+                return; // با موفقیت پخش شد
+              }
+            }
+          } catch (e) {
+            console.warn("EdgeTTS failed in playLine", e);
           }
-        }, 40);
-      });
-
-      // اگر صدا هنوز تمام نشده کمی صبر کن
-      if (!speakFinished) {
-        await Promise.race([
-          speakPromise,
-          new Promise(function (r) { setTimeout(r, 2000); })
-        ]);
+        }
       }
-      if (el) el.textContent = display;
-      await new Promise(function (r) { setTimeout(r, 250); });
+
+      // 2. تلاش برای پخش از API وب (هماهنگ‌سازی دقیق)
+      if (engine !== "android") {
+        try {
+          const url = "https://api.streamelements.com/kappa/v2/speech?voice=" +
+            encodeURIComponent(voice) + "&text=" + encodeURIComponent(spoken);
+          const audio = new Audio(url);
+          window.__currentTTSAudio = audio;
+
+          await new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+              if (done) return; done = true;
+              if (el) el.textContent = display;
+              resolve();
+            };
+            audio.onended = finish;
+            audio.onerror = finish;
+            
+            audio.addEventListener('timeupdate', () => {
+              if (audio.duration && isFinite(audio.duration) && el) {
+                const progress = audio.currentTime / audio.duration;
+                const n = Math.floor(progress * display.length);
+                el.textContent = display.slice(0, n);
+              }
+            });
+            audio.play().catch(finish);
+          });
+          return;
+        } catch (e) {
+          console.warn("Web TTS failed", e);
+        }
+      }
+
+      // 3. پخش از TTS بومی (بدون هماهنگی دقیق، اما به عنوان پشتیبان)
+      await new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (done) return; done = true; resolve(); };
+        if (el) el.textContent = display;
+        
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+          const { TextToSpeech } = window.Capacitor.Plugins;
+          TextToSpeech.speak({
+            text: spoken,
+            lang: fa ? "fa-IR" : "en-US",
+            rate: 1.0,
+            pitch: 1.0,
+            category: "ambient"
+          }).then(finish).catch(finish);
+        } else if (window.speechSynthesis) {
+          const u = new SpeechSynthesisUtterance(spoken);
+          u.lang = fa ? "fa-IR" : "en-US";
+          u.rate = 1.0;
+          u.onend = finish;
+          u.onerror = finish;
+          speechSynthesis.speak(u);
+        } else {
+          finish();
+        }
+        setTimeout(finish, Math.max(3000, display.length * 200));
+      });
     }
 
-    // فقط اگر کل مسیر واقعاً قفل شد
     var failsafe = setTimeout(closeNow, 60000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
 
-      // سه جمله خوشامد — کامل
       for (var i = 0; i < lines.length; i++) {
         await playLine(lines[i], lines[i]);
       }
@@ -1077,11 +1118,16 @@ window.__startAppFull = window.startApp = async function () {
       var elScan = document.getElementById("ai-text");
       if (elScan) elScan.textContent = fa ? "در حال اسکن…" : "Scanning…";
 
-      // اسکن در پس‌زمینه — منتظر شبکه نمی‌مانیم تا خوشامد کامل بماند
-      try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
-      await new Promise(function (r) { setTimeout(r, 800); });
+      // صبر کردن برای اتمام اسکن (حداکثر 3.5 ثانیه) تا رژیم بازار با دیتای درست تشخیص داده شود
+      try {
+        if (typeof scan === "function") {
+          await Promise.race([
+            scan(true),
+            new Promise(function(r) { setTimeout(r, 3500); })
+          ]);
+        }
+      } catch (e) {}
 
-      // جمله آخر: اعلام انتخاب استراتژی / رژیم بازار — حتماً کامل گفته شود
       var regime = "pattern";
       try {
         if (typeof detectMarketRegime === "function") regime = detectMarketRegime() || "pattern";
@@ -1094,7 +1140,6 @@ window.__startAppFull = window.startApp = async function () {
       var regimeShow = fa
         ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
         : (isTrend ? "Market regime: Trend" : "Market regime: Range");
-      // جمله صریح انتخاب استراتژی (همان چیزی که کاربر می‌خواهد بشنود)
       var regimeSpeak = fa
         ? (isTrend
             ? "رژیم بازار روند است. استراتژی الگوی سه به علاوه یک انتخاب شد."
@@ -1103,8 +1148,8 @@ window.__startAppFull = window.startApp = async function () {
             ? "Market regime is trend. Pattern three plus one strategy selected."
             : "Market regime is range. Range strategy selected.");
 
-      // قطع صدای قبلی تا جمله انتخاب بازار خورده نشود
       try {
+        if (window.__currentTTSAudio) window.__currentTTSAudio.pause();
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
           window.Capacitor.Plugins.TextToSpeech.stop().catch(function () {});
@@ -1114,7 +1159,6 @@ window.__startAppFull = window.startApp = async function () {
 
       await playLine(regimeShow, regimeSpeak);
 
-      // مکث بعد از جمله انتخاب بازار، سپس ورود به صفحه اصلی
       await new Promise(function (r) { setTimeout(r, 600); });
     } catch (err) {
       console.error("startApp", err);
@@ -1327,7 +1371,7 @@ window.hotReloadFromGitHub = async function () {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
 
-const BUILD=74,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=75,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
@@ -1901,7 +1945,6 @@ function say(fr){
 
 function speakLang() { return "en-US"; }
 
-/* ✨ [FIX] guard افزایش یافت */
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1918,7 +1961,6 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
-    /* ✨ [FIX] 1500 + n*200 → 2000 + n*250 */
     const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
 
     const pickVoice = (voices, wantLang) => {
