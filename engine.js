@@ -595,4 +595,4 @@ function filterCorrelated(signals) {
 
 if (typeof module !== "undefined") {
   module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, adx, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER, isInTradingSession, sessionOfSymbol, correlationGroup, filterCorrelated, dailyBias };
-    }
+  }
