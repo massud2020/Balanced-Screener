@@ -1,5 +1,5 @@
 {
-  "build": 69,
-  "engine": 44,
-  "note": "v44: soften PA/range after zero signals; vol off for forex"
+  "build": 77,
+  "engine": 45,
+  "note": "v45: soften PA/range after zero signals; vol off for forex"
 }
