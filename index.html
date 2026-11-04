@@ -332,7 +332,10 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><button id="upd" onclick="window.clearCache()" style="background:var(--card2);color:var(--tx);">به‌روزرسانی</button></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v69</span></label>
+  <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
+    <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
+  </label>
 
   <h3 id="setNotifs">اعلان‌ها</h3>
   <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
@@ -345,19 +348,21 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span>بهبود کیفیت صدا<small style="display:block;white-space:normal">بسته صدای فارسی Google را نصب یا به‌روز کن</small></span><button id="ttsInstall">نصب صدا</button></label>
   <label><span>موتور صدای استفاده‌شده در آخرین تست</span><b id="ttsInfo" style="font-size:12px;max-width:55%;word-break:break-word">—</b></label>
   <label><span id="setNotifVoiceToggle">اعلام صوتی نماد<small>انگلیسی</small></span><input type="checkbox" id="sp" checked></label>
-  <label style="flex-wrap:wrap;align-items:flex-start;height:auto;min-height:46px;padding:8px 0"><span id="setAlertTone">زنگ هشدار سیگنال</span>
+  <label style="flex-wrap:wrap;align-items:flex-start;height:auto;min-height:46px;padding:8px 0"><span id="setAlertTone">زنگ هشدار سیگنال<small id="alertToneHint" style="display:block;white-space:normal;line-height:1.5">از لیست داخلی یا فایل صوتی/زنگ ذخیره‌شده روی گوشی</small></span>
     <div style="display:flex;flex-direction:column;gap:6px;width:54%;align-items:stretch">
       <select id="alertTone" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 10px;font-size:13px">
-        <option value="chime">Chime</option>
-        <option value="ping">Ping</option>
-        <option value="double">Double Beep</option>
-        <option value="alarm">Alarm Soft</option>
-        <option value="tri">Triple</option>
-        <option value="silent">بی‌صدا (فقط ویبره/گفتار)</option>
-        <option value="custom">فایل از گوشی…</option>
+        <option value="chime">Chime (داخلی)</option>
+        <option value="ping">Ping (داخلی)</option>
+        <option value="double">Double Beep (داخلی)</option>
+        <option value="alarm">Alarm Soft (داخلی)</option>
+        <option value="tri">Triple (داخلی)</option>
+        <option value="silent">بی‌صدا (ویبره/گفتار)</option>
+        <option value="custom">از گوشی (فایل زنگ/موسیقی)…</option>
       </select>
-      <input type="file" id="alertToneFile" accept="audio/*,.mp3,.ogg,.wav,.m4a" style="display:none">
+      <input type="file" id="alertToneFile" accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac,.3gp" style="display:none">
+      <button type="button" id="alertTonePick" style="min-height:36px;border-radius:10px;font-size:12px;font-weight:700;background:var(--gd);color:var(--gb);border:1px solid var(--gb);cursor:pointer">📁 انتخاب از گوشی</button>
       <button type="button" id="alertToneTest" style="min-height:34px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">▶ تست زنگ</button>
+      <span id="alertToneName" style="font-size:11px;color:var(--mu);word-break:break-all;line-height:1.4">—</span>
     </div>
   </label>
   
@@ -913,7 +918,7 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] SPLASH_SYNC_V3 — خوشامد کامل، بعد ورود */
+/* ✨ [FIX] SPLASH_SYNC_V4 — خوشامد کامل، بعد ورود */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
@@ -959,19 +964,16 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // متن و صدا هم‌زمان: تایپ با سرعت تقریبی گفتار
+    // زیرنویس دقیقاً با صدا: متن به‌اندازهٔ پیشرفت زمان گفتار ظاهر می‌شود
     async function playLine(showText, speakText) {
-      var text = speakText || showText;
+      var display = String(showText || "");
+      var spoken = String(speakText || showText || "");
       var el = document.getElementById("ai-text");
       if (el) el.textContent = "";
 
       if (mute) {
-        // فقط تایپ کامل بدون صدا
-        if (typeof typeText === "function") {
-          try { await typeText("ai-text", showText, 28); } catch (e) { if (el) el.textContent = showText; }
-        } else if (el) el.textContent = showText;
-        if (el) el.textContent = showText;
-        await new Promise(function (r) { setTimeout(r, 400); });
+        if (el) el.textContent = display;
+        await new Promise(function (r) { setTimeout(r, 500); });
         return;
       }
 
@@ -982,55 +984,57 @@ window.__startAppFull = window.startApp = async function () {
           try { window.Capacitor.Plugins.TextToSpeech.stop(); } catch (e2) {}
         }
       } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 80); });
 
-      // تخمین مدت گفتار (حدود ۹۰–۱۱۰ms هر حرف)
-      var chars = String(text).length;
-      var estMs = Math.max(1800, Math.min(12000, chars * 95));
-      var typeSpeed = Math.max(18, Math.min(55, Math.floor(estMs / Math.max(1, String(showText).length))));
+      // مدت گفتار: فارسی کمی کندتر از انگلیسی
+      var perChar = fa ? 125 : 105;
+      var durationMs = Math.max(2000, Math.min(14000, spoken.length * perChar));
 
-      // شروع صدا (منتظر نمی‌مانیم تا تایپ شروع شود)
-      var speakDone = false;
+      var speakFinished = false;
       var speakPromise = Promise.resolve();
       try {
         if (typeof speakAI === "function") {
-          speakPromise = Promise.resolve(speakAI(text)).catch(function () {
-            return typeof speakNative === "function"
-              ? speakNative(text, fa ? "fa-IR" : "en-US")
+          speakPromise = Promise.resolve(speakAI(spoken)).catch(function () {
+            return (typeof speakNative === "function")
+              ? speakNative(spoken, fa ? "fa-IR" : "en-US")
               : Promise.resolve();
           });
         } else if (typeof speakNative === "function") {
-          speakPromise = Promise.resolve(speakNative(text, fa ? "fa-IR" : "en-US"));
+          speakPromise = Promise.resolve(speakNative(spoken, fa ? "fa-IR" : "en-US"));
         }
       } catch (e) {}
       speakPromise = Promise.resolve(speakPromise).catch(function () {}).then(function () {
-        speakDone = true;
+        speakFinished = true;
       });
 
-      // تایپ هم‌زمان با صدا
-      if (typeof typeText === "function") {
-        try { await typeText("ai-text", showText, typeSpeed); } catch (e) {
-          if (el) el.textContent = showText;
-        }
-      } else if (el) {
-        // تایپ دستی ساده
-        for (var i = 0; i < showText.length; i++) {
-          el.textContent = showText.slice(0, i + 1);
-          await new Promise(function (r) { setTimeout(r, typeSpeed); });
-        }
-      }
-      if (el) el.textContent = showText;
-
-      // صبر تا صدا تمام شود (یا سقف estMs)
+      // زیرنویس بر اساس زمان سپری‌شده از شروع صدا (نه تایپ سریع جلوتر از صدا)
       var t0 = Date.now();
-      await Promise.race([
-        speakPromise,
-        new Promise(function (r) { setTimeout(r, estMs + 2500); })
-      ]);
-      var left = estMs - (Date.now() - t0);
-      if (left > 100 && !speakDone) {
-        await new Promise(function (r) { setTimeout(r, Math.min(left, 3000)); })
+      await new Promise(function (resolve) {
+        var iv = setInterval(function () {
+          var elapsed = Date.now() - t0;
+          // کمی عقب‌تر از صدا (۱۵۰ms) تا زیرنویس جلو نیفتد
+          var lag = 150;
+          var progress = Math.min(1, Math.max(0, (elapsed - lag) / durationMs));
+          var n = Math.floor(progress * display.length);
+          if (el) el.textContent = display.slice(0, n);
+
+          if (speakFinished || elapsed >= durationMs + 800) {
+            clearInterval(iv);
+            if (el) el.textContent = display;
+            resolve();
+          }
+        }, 40);
+      });
+
+      // اگر صدا هنوز تمام نشده کمی صبر کن
+      if (!speakFinished) {
+        await Promise.race([
+          speakPromise,
+          new Promise(function (r) { setTimeout(r, 2500); })
+        ]);
       }
-      await new Promise(function (r) { setTimeout(r, 280); });
+      if (el) el.textContent = display;
+      await new Promise(function (r) { setTimeout(r, 300); });
     }
 
     // فقط اگر کل مسیر واقعاً قفل شد
@@ -1742,39 +1746,95 @@ function playBuiltin(name) {
   const sel = document.getElementById("alertTone");
   const file = document.getElementById("alertToneFile");
   const test = document.getElementById("alertToneTest");
+  const pick = document.getElementById("alertTonePick");
+  const nameEl = document.getElementById("alertToneName");
   if (!sel) return;
+
+  function showName(n) {
+    if (!nameEl) return;
+    const fa = (typeof currentLang === "undefined" || currentLang !== "en");
+    if (!n) {
+      nameEl.textContent = getAlertTone() === "custom"
+        ? (fa ? "زنگ سفارشی از گوشی فعال است" : "Custom phone sound active")
+        : "—";
+      return;
+    }
+    nameEl.textContent = (fa ? "انتخاب‌شده: " : "Selected: ") + n;
+  }
+
   const saved = getAlertTone();
   sel.value = saved;
+  try { showName(LS("bs_alert_tone_name") || ""); } catch (e) { showName(""); }
+
+  function openPhonePicker() {
+    // انتخاب فایل صوتی از حافظه گوشی (پوشه زنگ‌ها / Downloads / Music)
+    if (file) {
+      try { file.value = ""; } catch (e) {}
+      file.click();
+      return;
+    }
+    alert((typeof currentLang !== "undefined" && currentLang === "en")
+      ? "File picker not available"
+      : "انتخاب فایل در دسترس نیست");
+  }
+
+  function saveCustomFile(f) {
+    if (!f) return;
+    const fa = (typeof currentLang === "undefined" || currentLang !== "en");
+    if (f.size > 2.5 * 1024 * 1024) {
+      alert(fa ? "حجم فایل حداکثر ۲٫۵ مگابایت" : "Max file size 2.5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        LS(ALERT_CUSTOM_KEY, reader.result);
+        LS(ALERT_TONE_KEY, "custom");
+        LS("bs_alert_tone_name", f.name || "custom");
+        sel.value = "custom";
+        showName(f.name || "custom");
+        beep();
+      } catch (e) {
+        alert(fa ? "ذخیره ممکن نشد (حافظه پر). فایل کوتاه‌تری انتخاب کنید." : "Could not save (storage full)");
+        sel.value = "chime";
+        LS(ALERT_TONE_KEY, "chime");
+      }
+    };
+    reader.onerror = () => {
+      alert(fa ? "خواندن فایل ناموفق بود" : "Failed to read file");
+    };
+    reader.readAsDataURL(f);
+  }
+
   sel.onchange = () => {
     const v = sel.value;
     LS(ALERT_TONE_KEY, v);
     if (v === "custom") {
-      if (file) file.click();
+      // اگر قبلاً فایلی ذخیره شده فقط تست؛ وگرنه باز کردن انتخابگر گوشی
+      if (!LS(ALERT_CUSTOM_KEY)) openPhonePicker();
+      else { showName(LS("bs_alert_tone_name") || ""); beep(); }
     } else {
+      showName("");
       beep();
     }
   };
+
+  if (pick) pick.onclick = function () {
+    sel.value = "custom";
+    openPhonePicker();
+  };
+
   if (file) {
     file.onchange = () => {
       const f = file.files && file.files[0];
-      if (!f) { sel.value = "chime"; LS(ALERT_TONE_KEY, "chime"); return; }
-      if (f.size > 1.5 * 1024 * 1024) {
-        alert(currentLang === "fa" ? "حجم فایل حداکثر ۱٫۵ مگابایت" : "Max file size 1.5MB");
-        sel.value = "chime"; LS(ALERT_TONE_KEY, "chime"); return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          LS(ALERT_CUSTOM_KEY, reader.result);
-          LS(ALERT_TONE_KEY, "custom");
-          sel.value = "custom";
-          beep();
-        } catch (e) {
-          alert(currentLang === "fa" ? "ذخیره فایل ممکن نشد (حافظه پر)" : "Could not save sound");
-          sel.value = "chime"; LS(ALERT_TONE_KEY, "chime");
+      if (!f) {
+        if (!LS(ALERT_CUSTOM_KEY)) {
+          sel.value = "chime";
+          LS(ALERT_TONE_KEY, "chime");
         }
-      };
-      reader.readAsDataURL(f);
+        return;
+      }
+      saveCustomFile(f);
     };
   }
   if (test) test.onclick = () => beep();
@@ -2321,7 +2381,12 @@ if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histMod
 try { applyLanguage(); updateSplashLangUi(); } catch(e) { console.error("Init lang error:", e); }
 try {
   if ($("verl")) $("verl").textContent = " · build " + BUILD + (typeof ENGINE_VER !== "undefined" ? (" · eng " + ENGINE_VER) : "");
-  if ($("upd")) $("upd").textContent = currentLang === "fa" ? "به‌روزرسانی" : "Update";
+  if ($("upd")) $("upd").textContent = currentLang === "fa" ? "پاک‌کردن کش" : "Clear cache";
+  if ($("setClearCacheLabel") && $("setClearCacheLabel").childNodes[0]) {
+    try {
+      $("setClearCacheLabel").childNodes[0].nodeValue = currentLang === "fa" ? "پاک‌کردن کش و به‌روزرسانی" : "Clear cache & refresh";
+    } catch (e) {}
+  }
 } catch(e) {}
 
 </script>
