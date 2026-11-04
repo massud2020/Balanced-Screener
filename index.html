@@ -423,15 +423,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 68;
+window.__BS_LOCAL_BUILD = 69;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=68"></script>
-<script src="alerts.js?v=68"></script>
-<script src="engine.js?v=68"></script>
-<script src="presets.js?v=68"></script>
-<script src="chart.js?v=68"></script>
+<script src="symbols.js?v=69"></script>
+<script src="alerts.js?v=69"></script>
+<script src="engine.js?v=69"></script>
+<script src="presets.js?v=69"></script>
+<script src="chart.js?v=69"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -763,7 +763,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 68);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 69);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -1265,7 +1265,7 @@ window.hotReloadFromGitHub = async function () {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
 
-const BUILD=68,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=69,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
