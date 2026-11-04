@@ -910,78 +910,75 @@ function setAppLanguage(lang) {
 
 /* ✅ __startAppFull — نسخهٔ جدید با ۴ failsafe مستقل و بدون Promise.race */
 window.__startAppFull = window.startApp = function () {
-    // failsafeهای مستقل که قبل از هر چیز دیگر ثبت می‌شوند
+    const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
     const _hide = function () { try { window.hideSplash(); } catch (e) {} };
+
+    // ۴ failsafe مستقل — از لحظهٔ کلیک فعال می‌شوند
     setTimeout(_hide, 5000);
     setTimeout(_hide, 9000);
     setTimeout(_hide, 14000);
     setTimeout(_hide, 20000);
 
+    const dbg = function (msg) {
+        try { console.log("[splash] " + msg); } catch (e) {}
+        try { const d = document.getElementById("debug-err"); if (d) d.textContent = msg; } catch (e) {}
+    };
+
+    dbg("startApp: entered");
+
     (async function () {
-        const startBtn = document.getElementById("start-ai-btn");
-        const loading  = document.getElementById("ai-loading");
-        const splash   = document.getElementById("ai-splash");
-        if (splash) splash.dataset.started = "1";
-        window.__splashActive = true;
-
-        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
-        if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
-
-        let mute = false;
         try {
-            const me = document.getElementById("splashMute");
-            if (me) { localStorage.setItem("bs_splash_mute", me.checked ? "1" : "0"); mute = me.checked; }
-            else if (typeof LS === "function") mute = LS("bs_splash_mute") === "1";
-        } catch (e) {}
+            const splash = document.getElementById("ai-splash");
+            const btn = document.getElementById("start-ai-btn");
+            const el = document.getElementById("ai-text");
+            const loading = document.getElementById("ai-loading");
 
-        const lines = fa
-            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
-            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+            if (splash) splash.dataset.started = "1";
+            window.__splashActive = true;
+            if (btn) { btn.disabled = true; btn.textContent = "…"; }
 
-        // تایمر مستقل — بدون Promise.race
-        function speakWithTimer(text, ms) {
-            return new Promise(function (resolve) {
-                let done = false;
-                const finish = function () {
-                    if (done) return;
-                    done = true;
-                    resolve();
-                };
-                setTimeout(finish, ms || 3000);
-                try {
-                    if (!mute && typeof speakNative === "function") {
-                        Promise.resolve()
-                            .then(() => speakNative(text, fa ? "fa-IR" : "en-US"))
-                            .then(finish)
-                            .catch(finish);
-                    } else {
-                        setTimeout(finish, 150);
-                    }
-                } catch (e) { finish(); }
-            });
-        }
+            let mute = false;
+            try {
+                const m = document.getElementById("splashMute");
+                mute = m ? m.checked : false;
+            } catch (e) {}
 
-        try {
+            const lines = fa
+                ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+                : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+
+            const speakStep = function (text, ms) {
+                return new Promise(function (resolve) {
+                    let done = false;
+                    const finish = function () { if (done) return; done = true; resolve(); };
+                    setTimeout(finish, ms || 3200);
+                    if (mute) { setTimeout(finish, 100); return; }
+                    try {
+                        const p = speakNative(text, fa ? "fa-IR" : "en-US");
+                        if (p && typeof p.then === "function") {
+                            p.then(finish).catch(finish);
+                        }
+                    } catch (e) { finish(); }
+                });
+            };
+
             try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
 
+            // متن مستقیم — بدون typeText (بدون race با initAI)
             for (let i = 0; i < lines.length; i++) {
-                try {
-                    if (typeof typeText === "function") await typeText("ai-text", lines[i], 25);
-                    else {
-                        const el0 = document.getElementById("ai-text");
-                        if (el0) el0.textContent = lines[i];
-                    }
-                } catch (e) {}
-                await speakWithTimer(lines[i], 3500);
+                dbg("line " + (i+1) + "/3");
+                if (el) el.textContent = lines[i];
+                await speakStep(lines[i], 3200);
             }
 
-            try { if (loading) loading.classList.add("on"); } catch (e) {}
-            const el = document.getElementById("ai-text");
+            if (loading) loading.classList.add("on");
             if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+            dbg("scan");
 
             try { if (typeof scan === "function") scan(true).catch(function () {}); } catch (e) {}
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(function (r) { setTimeout(r, 350); });
 
+            dbg("regime");
             try {
                 let regime = "pattern";
                 if (typeof detectMarketRegime === "function") {
@@ -989,39 +986,38 @@ window.__startAppFull = window.startApp = function () {
                 }
                 if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
 
-                const regimeText = fa
+                const shortText = fa
                     ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
                     : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-                const regimeSpeak = fa
+                const speakText = fa
                     ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
                     : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
 
-                if (el) el.textContent = regimeText;
-                await speakWithTimer(regimeSpeak, 3500);
-            } catch (e) { console.warn("regime error:", e); }
+                if (el) el.textContent = shortText;
+                await speakStep(speakText, 3200);
+            } catch (e) { dbg("regime ERR: " + (e.message || e)); }
+
+            dbg("done");
         } catch (err) {
-            console.error("startApp error:", err);
+            dbg("ERR: " + (err.message || err));
         } finally {
             window.__splashActive = false;
-            try { window.hideSplash(); } catch (e) {}
-            if (startBtn) {
-                startBtn.disabled = false;
-                startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
-            }
+            _hide();
+            if (btn) { btn.disabled = false; btn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
             if (window.__pendingSay) {
                 const ps = window.__pendingSay;
                 window.__pendingSay = null;
                 setTimeout(ps, 500);
             }
         }
-    })().catch(function (e) {
-        console.error("startApp outer crash:", e);
-        try { window.hideSplash(); } catch (e2) {}
-    });
+    })().catch(function (e) { dbg("OUTER: " + (e.message || e)); });
 };
 
 
 function initAI() {
+    if (window.__splashActive) { try { console.log("[initAI] skipped: splash active"); } catch(e){} return; }
+    const btn = document.getElementById("start-ai-btn");
+    if (btn && btn.disabled) { try { console.log("[initAI] skipped: btn disabled"); } catch(e){} return; }
     typeText("ai-text", T().ai_ready).catch(console.error);
 }
 
@@ -2357,4 +2353,4 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 </body>
-    </html>
+</html>
