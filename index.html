@@ -902,102 +902,253 @@ function updateSplashLangUi() {
 function setAppLanguage(lang) {
   currentLang = (lang === "en") ? "en" : "fa";
   LS("bs_lang", currentLang);
-  try { applyLanguage(); } catch (e) {}
+  try { applyLanguwindow.__startAppFull = window.startApp = function () {
+    const _hide = function () { try { window.hideSplash(); } catch (e) {} };
+    setTimeout(_hide, 5000);
+    setTimeout(_hide, 9000);
+    setTimeout(_hide, 14000);
+    setTimeout(_hide, 20000);
+
+    (async function () {
+        const splash = document.getElementById("ai-splash");
+        const btn = document.getElementById("start-ai-btn");
+        const el = document.getElementById("ai-text");
+        const loading = document.getElementById("ai-loading");
+
+        if (splash) splash.dataset.started = "1";
+        window.__splashActive = true;
+        if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
+        let mute = false;
+        try {
+            const m = document.getElementById("splashMute");
+            mute = m ? m.checked : false;
+        } catch (e) {}
+
+        const lines = fa
+            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+
+        // این تابع ضد ضربه است. حتی اگر TTS گیر کند، بعد از 3 ثانیه رد می‌شود.
+        const speakSafe = async (text, timeout) => {
+            if (mute) return new Promise(r => setTimeout(r, 500));
+            let p = speakNative(text, fa ? "fa-IR" : "en-US");
+            if (!p || typeof p.then !== "function") p = Promise.resolve();
+            return Promise.race([
+                p.catch(() => {}),
+                new Promise(r => setTimeout(r, timeout))
+            ]);
+        };
+
+        try {
+            for (let i = 0; i < lines.length; i++) {
+                if (el) el.textContent = lines[i];
+                await speakSafe(lines[i], 3000);
+            }
+
+            if (loading) loading.classList.add("on");
+            if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+            
+            try { if (typeof scan === "function") scan(true).catch(() => {}); } catch (e) {}
+            await new Promise(r => setTimeout(r, 500));
+
+            let regime = "pattern";
+            if (typeof detectMarketRegime === "function") {
+                try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
+            }
+            if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+
+            const rText = fa
+                ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+                : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
+            const rSpeak = fa
+                ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+                : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
+
+            if (el) el.textContent = rText;
+            await speakSafe(rSpeak, 3000);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            window.__splashActive = false;
+            _hide();
+            if (btn) { btn.disabled = false; btn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
+            if (window.__pendingSay) {
+                const ps = window.__pendingSay;
+                window.__pendingSay = null;
+                setTimeout(ps, 500);
+            }
+        }
+    })().catch(e => { try { window.hideSplash(); } catch(_){} });
+};age(); } catch (e) {}
   try { updateSplashLangUi(); } catch (e) {}
   try { if (typeof liveId !== "undefined" && liveId) render(liveId); } catch (e) {}
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] __startAppFull — رژیم بازار حالا صدا زده می‌شود */
-window.__startAppFull = window.startApp = async function () {
-    const startBtn = document.getElementById("start-ai-btn");
-    const loading = document.getElementById("ai-loading");
-    const splash = document.getElementById("ai-splash");
-    if (splash) splash.dataset.started = "1";
-    window.__splashActive = true;
+/* ✅ __startAppFull — نسخهٔ جدید با ۴ failsafe مستقل و بدون Promise.race */
+window.__startAppFull = window.startApp = function () {
+    const _hide = function () { try { window.hideSplash(); } catch (e) {} };
+    setTimeout(_hide, 5000);
+    setTimeout(_hide, 9000);
+    setTimeout(_hide, 14000);
+    setTimeout(_hide, 20000);
 
-    const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
-    try {
-      const muteEl = document.getElementById("splashMute");
-      if (muteEl) localStorage.setItem("bs_splash_mute", muteEl.checked ? "1" : "0");
-    } catch (e) {}
-    const mute = (document.getElementById("splashMute") && document.getElementById("splashMute").checked) ||
-      (typeof LS === "function" && LS("bs_splash_mute") === "1");
+    (async function () {
+        const splash = document.getElementById("ai-splash");
+        const btn = document.getElementById("start-ai-btn");
+        const el = document.getElementById("ai-text");
+        const loading = document.getElementById("ai-loading");
 
-    const lines = fa
-      ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
-      : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+        if (splash) splash.dataset.started = "1";
+        window.__splashActive = true;
+        if (btn) { btn.disabled = true; btn.textContent = "…"; }
 
-    const failsafe = setTimeout(function () {
-      try { window.hideSplash(); } catch (e) {}
-    }, 45000);
+        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
+        let mute = false;
+        try {
+            const m = document.getElementById("splashMute");
+            mute = m ? m.checked : false;
+        } catch (e) {}
 
-    try {
-      try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
-      for (let i = 0; i < lines.length; i++) {
-        if (typeof typeText === "function") await typeText("ai-text", lines[i], 35);
-        else {
-          const el = document.getElementById("ai-text");
-          if (el) el.textContent = lines[i];
+        const lines = fa
+            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+
+        // این تابع ضد ضربه است. حتی اگر TTS گیر کند، بعد از 3 ثانیه رد می‌شود.
+        const speakSafe = async (text, timeout) => {
+            if (mute) return new Promise(r => setTimeout(r, 500));
+            let p = speakNative(text, fa ? "fa-IR" : "en-US");
+            if (!p || typeof p.then !== "function") p = Promise.resolve();
+            return Promise.race([
+                p.catch(() => {}),
+                new Promise(r => setTimeout(r, timeout))
+            ]);
+        };
+
+        try {
+            for (let i = 0; i < lines.length; i++) {
+                if (el) el.textContent = lines[i];
+                await speakSafe(lines[i], 3000);
+            }
+
+            if (loading) loading.classList.add("on");
+            if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+            
+            try { if (typeof scan === "function") scan(true).catch(() => {}); } catch (e) {}
+            await new Promise(r => setTimeout(r, 500));
+
+            let regime = "pattern";
+            if (typeof detectMarketRegime === "function") {
+                try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
+            }
+            if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+
+            const rText = fa
+                ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+                : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
+            const rSpeak = fa
+                ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+                : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
+
+            if (el) el.textContent = rText;
+            await speakSafe(rSpeak, 3000);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            window.__splashActive = false;
+            _hide();
+            if (btn) { btn.disabled = false; btn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
+            if (window.__pendingSay) {
+                const ps = window.__pendingSay;
+                window.__pendingSay = null;
+                setTimeout(ps, 500);
+            }
         }
-        if (!mute && typeof speakNative === "function") {
-          try {
-            await speakNative(lines[i], fa ? "fa-IR" : "en-US");
-            await new Promise(r => setTimeout(r, 250));
-          } catch (e) {
-            await new Promise(r => setTimeout(r, 1500));
-          }
-        } else {
-          await new Promise(function (r) { setTimeout(r, 800); });
-        }
-      }
-      if (loading) loading.classList.add("on");
-      const el = document.getElementById("ai-text");
-      if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
-
-      try { if (typeof scan === "function") await scan(true); } catch (e) {}
-
-      /* 🎙️ رژیم بازار حالا صدا زده می‌شود */
-      try {
-        if (typeof detectMarketRegime === "function" && typeof setMode === "function") {
-          const regime = detectMarketRegime();
-          setMode(regime === "pattern" ? "pattern" : "range");
-
-          const regimeText = fa
-            ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
-            : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
-
-          if (el) el.textContent = regimeText;
-
-          if (!mute && typeof speakNative === "function") {
-            try { await speakNative(regimeText, fa ? "fa-IR" : "en-US"); } catch (e) {}
-          }
-
-          await new Promise(function (r) { setTimeout(r, 600); });
-        }
-      } catch (e) { console.warn("regime speech", e); }
-    } catch (err) {
-      console.error("startApp", err);
-    } finally {
-      clearTimeout(failsafe);
-      window.__splashActive = false;
-      try { window.hideSplash(); } catch (e) {
-        const s = document.getElementById("ai-splash");
-        if (s) { s.style.display = "none"; s.classList.add("hidden"); }
-      }
-      if (startBtn) {
-        startBtn.disabled = false;
-        startBtn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
-      }
-      if (window.__pendingSay) {
-        const ps = window.__pendingSay;
-        window.__pendingSay = null;
-        setTimeout(ps, 900);
-      }
-    }
+    })().catch(e => { try { window.hideSplash(); } catch(_){} });
 };
 
+window.__startAppFull = window.startApp = function () {
+    const _hide = function () { try { window.hideSplash(); } catch (e) {} };
+    setTimeout(_hide, 5000);
+    setTimeout(_hide, 9000);
+    setTimeout(_hide, 14000);
+    setTimeout(_hide, 20000);
+
+    (async function () {
+        const splash = document.getElementById("ai-splash");
+        const btn = document.getElementById("start-ai-btn");
+        const el = document.getElementById("ai-text");
+        const loading = document.getElementById("ai-loading");
+
+        if (splash) splash.dataset.started = "1";
+        window.__splashActive = true;
+        if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+        const fa = (typeof currentLang !== "undefined" && currentLang === "fa");
+        let mute = false;
+        try {
+            const m = document.getElementById("splashMute");
+            mute = m ? m.checked : false;
+        } catch (e) {}
+
+        const lines = fa
+            ? ["خوش آمدید به بالانسد اسکرینر", "در حال آماده‌سازی سیستم…", "بازارها در حال بررسی هستند"]
+            : ["Welcome to Balanced Screener", "Preparing the system…", "Checking the markets"];
+
+        // این تابع ضد ضربه است. حتی اگر TTS گیر کند، بعد از 3 ثانیه رد می‌شود.
+        const speakSafe = async (text, timeout) => {
+            if (mute) return new Promise(r => setTimeout(r, 500));
+            let p = speakNative(text, fa ? "fa-IR" : "en-US");
+            if (!p || typeof p.then !== "function") p = Promise.resolve();
+            return Promise.race([
+                p.catch(() => {}),
+                new Promise(r => setTimeout(r, timeout))
+            ]);
+        };
+
+        try {
+            for (let i = 0; i < lines.length; i++) {
+                if (el) el.textContent = lines[i];
+                await speakSafe(lines[i], 3000);
+            }
+
+            if (loading) loading.classList.add("on");
+            if (el) el.textContent = fa ? "در حال اسکن…" : "Scanning…";
+            
+            try { if (typeof scan === "function") scan(true).catch(() => {}); } catch (e) {}
+            await new Promise(r => setTimeout(r, 500));
+
+            let regime = "pattern";
+            if (typeof detectMarketRegime === "function") {
+                try { regime = detectMarketRegime() || "pattern"; } catch (e) {}
+            }
+            if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+
+            const rText = fa
+                ? (regime === "pattern" ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+                : (regime === "pattern" ? "Market regime: Trend" : "Market regime: Range");
+            const rSpeak = fa
+                ? (regime === "pattern" ? "رژیم بازار روند است." : "رژیم بازار رنج است.")
+                : (regime === "pattern" ? "Market regime is trend." : "Market regime is range.");
+
+            if (el) el.textContent = rText;
+            await speakSafe(rSpeak, 3000);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            window.__splashActive = false;
+            _hide();
+            if (btn) { btn.disabled = false; btn.textContent = fa ? "ورود به اسکرینر" : "Enter Screener"; }
+            if (window.__pendingSay) {
+                const ps = window.__pendingSay;
+                window.__pendingSay = null;
+                setTimeout(ps, 500);
+            }
+        }
+    })().catch(e => { try { window.hideSplash(); } catch(_){} });
+};
 function initAI() {
     typeText("ai-text", T().ai_ready).catch(console.error);
 }
@@ -1718,7 +1869,6 @@ function say(fr){
 
 function speakLang() { return "en-US"; }
 
-/* ✨ [FIX] guard افزایش یافت */
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1735,7 +1885,6 @@ function speakNative(text, forceLang) {
       finished = true;
       done();
     };
-    /* ✨ [FIX] 1500 + n*200 → 2000 + n*250 */
     const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
 
     const pickVoice = (voices, wantLang) => {
@@ -2016,7 +2165,6 @@ setInterval(()=>{if(!document.hidden)scan()},180000);
 
 setInterval(()=>{ try{ renderChips(); }catch(e){} }, 5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
-setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
 updateUnreadBadge();
 
@@ -2334,17 +2482,6 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('SW registration failed', err));
   });
 }
-
-setTimeout(function () {
-  var s = document.getElementById('ai-splash');
-  if (s && !s.classList.contains('hidden') && !s.dataset.started) {
-    s.classList.add('hidden');
-    s.style.display = 'none';
-    s.style.visibility = 'hidden';
-    s.style.opacity = '0';
-    s.style.pointerEvents = 'none';
-  }
-}, 30000);
 </script>
 </body>
 </html>
