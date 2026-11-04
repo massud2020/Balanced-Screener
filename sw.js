@@ -1,4 +1,4 @@
-const C = "bscreener-v76"; // نسخه کش تغییر کرد تا فایل‌های جدید جایگزین شوند
+const C = "bscreener-v78"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
 const F = [
   "./",
   "index.html",
@@ -51,7 +51,7 @@ self.addEventListener("fetch", e => {
       }
       return r;
     }).catch(() => {
-      // اگر اینترنت قطع بود، از کش بخوان
+      // اگر اینترنت قطع بود، از کش بخوان (با نادیده گرفتن ?v=78)
       return caches.match(e.request, { ignoreSearch: true });
     })
   );
