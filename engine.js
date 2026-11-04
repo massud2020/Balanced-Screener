@@ -1,4 +1,4 @@
-// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v40
+// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v45
 const DEF = {
   mode: "pattern",
   trend: true,
@@ -7,6 +7,8 @@ const DEF = {
   pat: true,
   adx: false,           // فیلتر سخت ADX خاموش؛ برای رژیم جداگانه استفاده می‌شود
   adxMin: 22,           // اگر adx روشن شود
+  adxSoft: false,       // فیلتر نرم ADX (اختیاری — پیش‌فرض خاموش)
+  adxSoftMin: 18,       // حداقل ADX برای فیلتر نرم
   m15: true,
   h1: true,
   h1Strict: false,
@@ -54,7 +56,7 @@ const DEF = {
   maxHoldSoftSec: 6 * 3600,
   maxHoldStrongSec: 18 * 3600  // روند قوی تا ۱۸ ساعت
 }
-const ENGINE_VER = 44;
+const ENGINE_VER = 45;
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -197,7 +199,8 @@ function resample(c, min) {
   }));
 }
 
-function checkPriceAction(candles, dir, minRatio = 0.55, atrVal) {
+// ✨ v45: پارامتر minScore اضافه شد تا از S.minPaScore استفاده شود (رفع باگ هاردکد ۳.۰)
+function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2) {
   // c0 = آخرین کندل بسته‌شده (تأیید)، c1..c3 قبل‌تر
   if (!candles || candles.length < 4) return { ok: false, ratio: 0, type: "none", score: 0 };
   const [c0, c1, c2, c3] = candles;
@@ -252,11 +255,13 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal) {
   if (bodyRatio >= minRatio) score += 0.6;
 
   const strong = engulfs || pinOk || classicOk;
-  const ok = strong && score >= 3.0; // فقط engulf/pin/classic قوی
+  // ✨ v45: آستانه از پارامتر می‌آید (پیش‌فرض ۲.۲) — قبلاً ۳.۰ هاردکد بود
+  const ok = strong && score >= minScore;
   const type = classicOk ? "classic" : engulfs ? "engulf" : pinOk ? "pin" : structureOk ? "structure" : "none";
   return { ok, ratio: bodyRatio, type, score, strong };
 }
 
+// wrapper حفظ می‌شود — با مقادیر پیش‌فرض جدید (minScore=2.2) کار می‌کند
 function checkPattern(l4, dir, minRatio) { return checkPriceAction(l4, dir, minRatio); }
 
 function rangeAnalyze(m5, h1, S, ind) {
@@ -338,7 +343,9 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (pass === total && total > 0) { side = RA.dir; fail = null; }
   } else {
     const patCandles = m5.slice(-4).reverse();
-    const pl = checkPriceAction(patCandles, "LONG", S.minRatio, a), ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a);
+    // ✨ v45: S.minPaScore پاس می‌شود (قبلاً هاردکد ۳.۰ بود)
+    const pl = checkPriceAction(patCandles, "LONG", S.minRatio, a, S.minPaScore),
+          ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a, S.minPaScore);
     const ab = sc > es, be = sc < es;
     // شیب واقعی نسبت به ATR (نه فقط ≠ صفر)
     const slopeOk = a > 0 && Math.abs(ef - efp) / a >= (S.minSlopeAtr || 0.02) && Math.abs(em - emp) / a >= (S.minSlopeAtr || 0.02) * 0.5;
@@ -372,10 +379,13 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (S.nc !== false) addCheck(`هم‌جهتی و شیب EMAها`, nc && slope && (isL ? slopeDirL : slopeDirS), `تقاطع یا شیب نامناسب`);
     if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
     if (S.pat !== false) addCheck(`پرایس‌اکشن تأیید`, isL ? pl.ok : ps.ok, `الگوی پرایس‌اکشن ضعیف`);
-    // فیلتر نرم ADX فقط در حالت روند — حذف نویز بازار مرده بدون سخت‌گیری شدید
-    const adxSoft = adxV != null && adxV >= 18;
-    addCheck(`ADX≥18 (نرم)`, adxSoft, `بازار بدون روند کافی (ADX)`);
+    // ✨ v45: فیلتر سخت ADX (اختیاری) — قبل از فیلتر نرم
     if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند)`, adxV > S.adxMin, `بازار روند کافی ندارد`);
+    // ✨ v45: فیلتر نرم ADX — فقط با adxSoft=true فعال می‌شود (قبلاً همیشه فعال بود — باگ ۲)
+    if (S.adxSoft === true) {
+      const adxSoft = adxV != null && adxV >= (S.adxSoftMin || 18);
+      addCheck(`ADX≥${S.adxSoftMin || 18} (نرم)`, adxSoft, `بازار بدون روند کافی (ADX)`);
+    }
     if (S.m15) addCheck(`فیلتر M15`, isL ? m15L : m15S, `فیلتر M15`);
     if (S.h1) addCheck(`فیلتر H1`, isL ? h1L : h1S, `فیلتر H1`);
     if (S.rsi) addCheck(`RSI پولبک`, rsiOk, `RSI پولبک مناسب نیست`);
@@ -469,7 +479,9 @@ function marks(raw5, rawH1, S, now = Date.now() / 1000) {
     if ([ef, em, es, efp, emp, r, a].some(x => x == null) || a <= 0) continue;
     if (m5[i].time <= free) continue;
     const b = m5[i], l4 = [b, m5[i - 1], m5[i - 2], m5[i - 3]];
-    const pl = checkPriceAction(l4, "LONG", S.minRatio), ps = checkPriceAction(l4, "SHORT", S.minRatio);
+    // ✨ v45: S.minPaScore پاس می‌شود برای هم‌ترازی با evaluate()
+    const pl = checkPriceAction(l4, "LONG", S.minRatio, undefined, S.minPaScore),
+          ps = checkPriceAction(l4, "SHORT", S.minRatio, undefined, S.minPaScore);
     const slope = (ef - efp) !== 0 && (em - emp) !== 0, nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp));
     const ab = b.close > es, be = b.close < es;
     let L = ab && ef > em && nc && slope && pl.ok, Sh = be && ef < em && nc && slope && ps.ok;
@@ -515,7 +527,10 @@ function explain(id, raw5, rawH1, S, now = Date.now() / 1000, dg = 5) {
     out.checks.push({ k: "range", label: "محدوده رنج", ok: true, txt: `سقف: ${RA.rh.toFixed(dg)} | کف: ${RA.rl.toFixed(dg)} | TP: ${RA.tp.toFixed(dg)}`, viz: { t: "range", price: sc, low: RA.rl, high: RA.rh } });
   } else {
     if (S.trend !== false) add("trend", `قیمت ${L ? "بالای" : "پایین"} EMA${S.es} و شیب`, (L ? sc > es : sc < es) && sl, ((sc - es) / a >= 0 ? "+" : "") + ((sc - es) / a).toFixed(1) + "×ATR", { t: "dist", v: (sc - es) / a });
-    const pat = m5.slice(-4).reverse(), pl = checkPriceAction(pat, "LONG", S.minRatio), ps = checkPriceAction(pat, "SHORT", S.minRatio);
+    const pat = m5.slice(-4).reverse();
+    // ✨ v45: S.minPaScore پاس می‌شود
+    const pl = checkPriceAction(pat, "LONG", S.minRatio, a, S.minPaScore),
+          ps = checkPriceAction(pat, "SHORT", S.minRatio, a, S.minPaScore);
     const nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp)), pp = L ? pl : ps;
     if (S.emax !== false) add("emax", `EMA${S.ef} ${L ? "بالای" : "پایین"} EMA${S.em}`, L ? ef > em : ef < em, ((ef - em) / a >= 0 ? "+" : "") + ((ef - em) / a).toFixed(2) + "×ATR", { t: "dist", v: (ef - em) / a });
     if (S.nc !== false) add("nc", "هم‌جهتی دو کندل اخیر", nc, nc ? "بله" : "خیر");
@@ -599,4 +614,4 @@ function filterCorrelated(signals) {
 
 if (typeof module !== "undefined") {
   module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, adx, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER, isInTradingSession, sessionOfSymbol, correlationGroup, filterCorrelated, dailyBias };
-}
+      }
