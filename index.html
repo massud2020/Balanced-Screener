@@ -331,7 +331,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v80</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v85" style="font-size:12px;color:var(--mu);direction:ltr">v80</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -427,15 +427,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 80;
+window.__BS_LOCAL_BUILD = 85;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=80"></script>
-<script src="alerts.js?v=80"></script>
-<script src="engine.js?v=80"></script>
-<script src="presets.js?v=80"></script>
-<script src="chart.js?v=80"></script>
+<script src="symbols.js?v=85"></script>
+<script src="alerts.js?v=85"></script>
+<script src="engine.js?v=85"></script>
+<script src="presets.js?v=85"></script>
+<script src="chart.js?v=85"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -1052,13 +1052,15 @@ window.__startAppFull = window.startApp = async function () {
 
       // صبر کردن برای اتمام اسکن (حداکثر 3.5 ثانیه) تا رژیم بازار با دیتای درست تشخیص داده شود
       try {
-        if (typeof scan === "function") {
-          await Promise.race([
-            scan(true),
-            new Promise(function(r) { setTimeout(r, 3500); })
-          ]);
-        }
-      } catch (e) {}
+  if (typeof scan === "function") {
+    await Promise.race([
+      scan(true),
+      new Promise(function(r) { setTimeout(r, 3500); })
+    ]);
+  }
+} catch (e) {
+  console.warn("Startup scan failed, closing splash safely.", e);
+}
 
       var regime = "pattern";
       try {
@@ -1257,49 +1259,30 @@ function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR"
 window.hotReloadFromGitHub = async function () {
   const base = window.__BS_REMOTE || "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
   try {
-    // ۱. دریافت اطلاعات نسخه از گیت‌هاب
     const ver = await fetch(base + "/version.json?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(8000) }).then(r => r.json());
-    const remoteBuild = Number(ver && ver.build) || 0;
     const remoteEng = Number(ver && ver.engine) || 0;
-    window.__BS_REMOTE_BUILD = remoteBuild;
-    
-    const localBuild = Number(typeof BUILD !== "undefined" ? BUILD : 0);
     const localEng = Number(typeof ENGINE_VER !== "undefined" ? ENGINE_VER : 0);
 
-    // ۲. اگر نسخه‌ی موتور (engine.js) در گیت‌هاب جدیدتر بود:
     if (remoteEng > localEng) {
-      console.log(`در حال آپدیت خودکار موتور از v${localEng} به v${remoteEng}...`);
-      
-      // ۳. دریافت کد جدید engine.js
+      console.log(`Updating engine from v${localEng} to v${remoteEng}...`);
       const code = await fetch(base + "/engine.js?t=" + Date.now(), { cache: "no-store", signal: AbortSignal.timeout(15000) }).then(r => {
         if (!r.ok) throw new Error("HTTP " + r.status);
         return r.text();
       });
 
-      // ۴. اجرای امن کد جدید (بدون خطای تکراری بودن متغیرها)
-      // این روش کد را در یک حافظه موقت اجرا می‌کند و سپس خروجی‌ها را به کل اپ تزریق می‌کند
-      const module = { exports: {} };
-      const executeEngine = new Function("module", "exports", code + "\nreturn module.exports;");
-      const newExports = executeEngine(module, module.exports);
-
-      // تزریق توابع جدید به محیط اپلیکیشن
-      for (const key in newExports) {
-        window[key] = newExports[key];
-      }
-
-      console.log("✅ موتور جدید با موفقیت لود شد. نسخه:", window.ENGINE_VER);
-      
-      // ۵. آپدیت کردن رابط کاربری
       try {
-        if ($("verl")) $("verl").textContent = " · build " + localBuild + " · eng " + window.ENGINE_VER;
-        if ($("st")) $("st").textContent = (typeof currentLang !== "undefined" && currentLang === "fa")
-          ? ("به‌روزرسانی خودکار موتور به نسخه " + window.ENGINE_VER + " انجام شد")
-          : ("Soft update applied · eng " + window.ENGINE_VER);
-          
-        // رفرش کردن دیتا و لیست سیگنال‌ها با موتور جدید
+        const module = { exports: {} };
+        const executeEngine = new Function("module", "exports", code + "\nreturn module.exports;");
+        const newExports = executeEngine(module, module.exports);
+        
+        if (typeof newExports.evaluate !== "function") throw new Error("Invalid engine structure");
+
+        for (const key in newExports) { window[key] = newExports[key]; }
+        console.log("✅ Engine updated successfully:", window.ENGINE_VER);
         if (typeof scan === "function") setTimeout(() => scan(), 500);
-      } catch (e) {}
-      return true;
+      } catch (err) {
+        console.warn("❌ Remote engine has errors. Keeping local engine.", err);
+      }
     }
   } catch (e) {
     console.warn("Hot reload failed:", e.message || e);
@@ -1318,7 +1301,7 @@ window.hotReloadFromGitHub = async function () {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
 
-const BUILD=80,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<48?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=85,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<49?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
