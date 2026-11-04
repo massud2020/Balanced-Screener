@@ -331,7 +331,7 @@ body[dir="ltr"] .ci { direction: ltr; }
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v75</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="verNum" style="font-size:12px;color:var(--mu);direction:ltr">v76</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -427,15 +427,15 @@ body[dir="ltr"] .ci { direction: ltr; }
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 75;
+window.__BS_LOCAL_BUILD = 76;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=75"></script>
-<script src="alerts.js?v=75"></script>
-<script src="engine.js?v=75"></script>
-<script src="presets.js?v=75"></script>
-<script src="chart.js?v=75"></script>
+<script src="symbols.js?v=76"></script>
+<script src="alerts.js?v=76"></script>
+<script src="engine.js?v=76"></script>
+<script src="presets.js?v=76"></script>
+<script src="chart.js?v=76"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -640,8 +640,6 @@ function ttsRateVariants() {
     return order.map(k => all[k]);
 }
 
-window.__currentTTSAudio = null;
-
 async function playAudioUrl(url) {
   return new Promise((resolve, reject) => {
     try {
@@ -773,7 +771,7 @@ window.clearCache = async () => {
         sessionStorage.setItem("bs_force_refresh", String(Date.now()));
     } catch (e) {}
     try { await window.hotReloadFromGitHub(); } catch (e) {}
-    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 75);
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || BUILD || 76);
     location.replace(location.pathname + "?" + q);
 };
 
@@ -915,16 +913,12 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] SPLASH_SYNC_V5 — هماهنگی کامل صدا و متن با استفاده از timeupdate */
+/* ✨ [FIX] SPLASH_SYNC_V6 — استفاده از Native TTS و تایمر برای هماهنگی دقیق */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
       if (closed) return;
       closed = true;
-      if (window.__currentTTSAudio) {
-        try { window.__currentTTSAudio.pause(); } catch(e){}
-        window.__currentTTSAudio = null;
-      }
       try { window.speechSynthesis.cancel(); } catch(e){}
       try {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
@@ -971,7 +965,7 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // تابعی که صدا را پخش می‌کند و متن را دقیقاً با زمان‌بندیِ صوت هماهنگ می‌کند
+    // تابع پخش با Native TTS و تایمر دقیق (بدون استفاده از اینترنت)
     async function playLine(showText, speakText) {
       var display = String(showText || "");
       var spoken = String(speakText || showText || "");
@@ -980,14 +974,11 @@ window.__startAppFull = window.startApp = async function () {
 
       if (mute) {
         if (el) el.textContent = display;
-        await new Promise(function (r) { setTimeout(r, 500); });
+        await new Promise(function (r) { setTimeout(r, 800); });
         return;
       }
 
-      if (window.__currentTTSAudio) {
-        try { window.__currentTTSAudio.pause(); } catch(e){}
-        window.__currentTTSAudio = null;
-      }
+      // Cancel previous
       try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
@@ -996,112 +987,53 @@ window.__startAppFull = window.startApp = async function () {
       } catch (e) {}
       await new Promise(function (r) { setTimeout(r, 100); });
 
-      var voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
-      var engine = (typeof TTS_CFG !== "undefined" && TTS_CFG.engine) || "auto";
+      return new Promise(function(resolve) {
+         let done = false;
+         let t0 = Date.now();
+         let iv = null;
+         var perChar = fa ? 120 : 100;
+         var durationMs = Math.max(2000, Math.min(15000, display.length * perChar));
 
-      // 1. تلاش برای پخش از Edge TTS (هماهنگ‌سازی دقیق)
-      if (engine !== "android" && window.Capacitor && window.Capacitor.Plugins) {
-        const Edge = window.Capacitor.Plugins.EdgeTTS || window.Capacitor.Plugins.EdgeTts || window.Capacitor.Plugins.TextToSpeechEdge;
-        if (Edge && typeof Edge.synthesize === "function") {
-          try {
-            const rates = typeof ttsRateVariants === "function" ? ttsRateVariants() : ["+0%"];
-            for (const rate of rates) {
-              const res = await Edge.synthesize({ text: spoken, voice, rate: String(rate) });
-              const src = typeof ttsExtractAudio === "function" ? ttsExtractAudio(res) : null;
-              if (src) {
-                const audio = new Audio(src);
-                window.__currentTTSAudio = audio;
-                
-                await new Promise((resolve) => {
-                  let done = false;
-                  const finish = () => {
-                    if (done) return; done = true;
-                    if (el) el.textContent = display;
-                    resolve();
-                  };
-                  
-                  audio.onended = finish;
-                  audio.onerror = finish;
-                  
-                  // آپدیت متن دقیقاً بر اساس پیشرفت واقعی صدا
-                  audio.addEventListener('timeupdate', () => {
-                    if (audio.duration && isFinite(audio.duration) && el) {
-                      const progress = audio.currentTime / audio.duration;
-                      const n = Math.floor(progress * display.length);
-                      el.textContent = display.slice(0, n);
-                    }
-                  });
+         const finish = () => {
+            if (done) return;
+            done = true;
+            if (iv) clearInterval(iv);
+            if (el) el.textContent = display;
+            setTimeout(resolve, 300);
+         };
 
-                  audio.play().catch(finish);
-                });
-                return; // با موفقیت پخش شد
-              }
+         // شروع تایمر متن دقیقاً از لحظه شروع TTS
+         t0 = Date.now();
+         iv = setInterval(function() {
+            var elapsed = Date.now() - t0;
+            var progress = Math.min(1, elapsed / durationMs);
+            var n = Math.floor(progress * display.length);
+            if (el) el.textContent = display.slice(0, n);
+         }, 40);
+
+         // تایمر نجات‌بخش (اگر TTS گیر کند)
+         setTimeout(finish, durationMs + 3000);
+
+         // پخش TTS پیش‌فرض گوشی
+         try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+               window.Capacitor.Plugins.TextToSpeech.speak({
+                  text: spoken, lang: fa ? "fa-IR" : "en-US",
+                  rate: 1.0, pitch: 1.0, category: "ambient"
+               }).then(finish).catch(finish);
+            } else if (window.speechSynthesis) {
+               const u = new SpeechSynthesisUtterance(spoken);
+               u.lang = fa ? "fa-IR" : "en-US";
+               u.rate = 1.0;
+               u.onend = finish;
+               u.onerror = finish;
+               speechSynthesis.speak(u);
+            } else {
+               finish();
             }
-          } catch (e) {
-            console.warn("EdgeTTS failed in playLine", e);
-          }
-        }
-      }
-
-      // 2. تلاش برای پخش از API وب (هماهنگ‌سازی دقیق)
-      if (engine !== "android") {
-        try {
-          const url = "https://api.streamelements.com/kappa/v2/speech?voice=" +
-            encodeURIComponent(voice) + "&text=" + encodeURIComponent(spoken);
-          const audio = new Audio(url);
-          window.__currentTTSAudio = audio;
-
-          await new Promise((resolve) => {
-            let done = false;
-            const finish = () => {
-              if (done) return; done = true;
-              if (el) el.textContent = display;
-              resolve();
-            };
-            audio.onended = finish;
-            audio.onerror = finish;
-            
-            audio.addEventListener('timeupdate', () => {
-              if (audio.duration && isFinite(audio.duration) && el) {
-                const progress = audio.currentTime / audio.duration;
-                const n = Math.floor(progress * display.length);
-                el.textContent = display.slice(0, n);
-              }
-            });
-            audio.play().catch(finish);
-          });
-          return;
-        } catch (e) {
-          console.warn("Web TTS failed", e);
-        }
-      }
-
-      // 3. پخش از TTS بومی (بدون هماهنگی دقیق، اما به عنوان پشتیبان)
-      await new Promise((resolve) => {
-        let done = false;
-        const finish = () => { if (done) return; done = true; resolve(); };
-        if (el) el.textContent = display;
-        
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-          const { TextToSpeech } = window.Capacitor.Plugins;
-          TextToSpeech.speak({
-            text: spoken,
-            lang: fa ? "fa-IR" : "en-US",
-            rate: 1.0,
-            pitch: 1.0,
-            category: "ambient"
-          }).then(finish).catch(finish);
-        } else if (window.speechSynthesis) {
-          const u = new SpeechSynthesisUtterance(spoken);
-          u.lang = fa ? "fa-IR" : "en-US";
-          u.rate = 1.0;
-          u.onend = finish;
-          u.onerror = finish;
-          speechSynthesis.speak(u);
-        } else {
-          finish();
-        }
-        setTimeout(finish, Math.max(3000, display.length * 200));
+         } catch(e) {
+            finish();
+         }
       });
     }
 
@@ -1147,15 +1079,6 @@ window.__startAppFull = window.startApp = async function () {
         : (isTrend
             ? "Market regime is trend. Pattern three plus one strategy selected."
             : "Market regime is range. Range strategy selected.");
-
-      try {
-        if (window.__currentTTSAudio) window.__currentTTSAudio.pause();
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-          window.Capacitor.Plugins.TextToSpeech.stop().catch(function () {});
-        }
-      } catch (e) {}
-      await new Promise(function (r) { setTimeout(r, 200); });
 
       await playLine(regimeShow, regimeSpeak);
 
@@ -1371,7 +1294,7 @@ window.hotReloadFromGitHub = async function () {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
 
-const BUILD=75,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const BUILD=76,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<42?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
 const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
