@@ -913,7 +913,7 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] SPLASH_FULL_V2 — خوشامد کامل، بعد ورود */
+/* ✨ [FIX] SPLASH_SYNC_V3 — خوشامد کامل، بعد ورود */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
@@ -959,45 +959,78 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // صبر تا متن کامل تایپ و صدا تمام شود
+    // متن و صدا هم‌زمان: تایپ با سرعت تقریبی گفتار
     async function playLine(showText, speakText) {
       var text = speakText || showText;
       var el = document.getElementById("ai-text");
+      if (el) el.textContent = "";
+
+      if (mute) {
+        // فقط تایپ کامل بدون صدا
+        if (typeof typeText === "function") {
+          try { await typeText("ai-text", showText, 28); } catch (e) { if (el) el.textContent = showText; }
+        } else if (el) el.textContent = showText;
+        if (el) el.textContent = showText;
+        await new Promise(function (r) { setTimeout(r, 400); });
+        return;
+      }
+
+      // قطع صدای قبلی
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+          try { window.Capacitor.Plugins.TextToSpeech.stop(); } catch (e2) {}
+        }
+      } catch (e) {}
+
+      // تخمین مدت گفتار (حدود ۹۰–۱۱۰ms هر حرف)
+      var chars = String(text).length;
+      var estMs = Math.max(1800, Math.min(12000, chars * 95));
+      var typeSpeed = Math.max(18, Math.min(55, Math.floor(estMs / Math.max(1, String(showText).length))));
+
+      // شروع صدا (منتظر نمی‌مانیم تا تایپ شروع شود)
+      var speakDone = false;
+      var speakPromise = Promise.resolve();
+      try {
+        if (typeof speakAI === "function") {
+          speakPromise = Promise.resolve(speakAI(text)).catch(function () {
+            return typeof speakNative === "function"
+              ? speakNative(text, fa ? "fa-IR" : "en-US")
+              : Promise.resolve();
+          });
+        } else if (typeof speakNative === "function") {
+          speakPromise = Promise.resolve(speakNative(text, fa ? "fa-IR" : "en-US"));
+        }
+      } catch (e) {}
+      speakPromise = Promise.resolve(speakPromise).catch(function () {}).then(function () {
+        speakDone = true;
+      });
+
+      // تایپ هم‌زمان با صدا
       if (typeof typeText === "function") {
-        try {
-          await typeText("ai-text", showText, 32);
-        } catch (e) {
+        try { await typeText("ai-text", showText, typeSpeed); } catch (e) {
           if (el) el.textContent = showText;
         }
       } else if (el) {
-        el.textContent = showText;
+        // تایپ دستی ساده
+        for (var i = 0; i < showText.length; i++) {
+          el.textContent = showText.slice(0, i + 1);
+          await new Promise(function (r) { setTimeout(r, typeSpeed); });
+        }
       }
-      // اطمینان از متن کامل روی صفحه
-      el = document.getElementById("ai-text");
       if (el) el.textContent = showText;
 
-      if (mute) {
-        await new Promise(function (r) { setTimeout(r, 600); });
-        return;
+      // صبر تا صدا تمام شود (یا سقف estMs)
+      var t0 = Date.now();
+      await Promise.race([
+        speakPromise,
+        new Promise(function (r) { setTimeout(r, estMs + 2500); })
+      ]);
+      var left = estMs - (Date.now() - t0);
+      if (left > 100 && !speakDone) {
+        await new Promise(function (r) { setTimeout(r, Math.min(left, 3000)); })
       }
-      // حداقل زمان بر اساس طول جمله تا وسط قطع نشود
-      var minMs = Math.max(2200, String(text).length * 100);
-      var maxMs = Math.min(14000, minMs + 3500);
-      try {
-        var p = null;
-        if (typeof speakAI === "function") p = speakAI(text);
-        else if (typeof speakNative === "function") p = speakNative(text, fa ? "fa-IR" : "en-US");
-        var t0 = Date.now();
-        await Promise.race([
-          Promise.resolve(p).catch(function () {}),
-          new Promise(function (r) { setTimeout(r, maxMs); })
-        ]);
-        var left = minMs - (Date.now() - t0);
-        if (left > 80) await new Promise(function (r) { setTimeout(r, left); });
-        await new Promise(function (r) { setTimeout(r, 350); });
-      } catch (e) {
-        await new Promise(function (r) { setTimeout(r, minMs); });
-      }
+      await new Promise(function (r) { setTimeout(r, 280); });
     }
 
     // فقط اگر کل مسیر واقعاً قفل شد
