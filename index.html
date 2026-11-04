@@ -1309,8 +1309,7 @@ window.hotReloadFromGitHub = async function () {
 
 // ۶. اجرای خودکار در زمان باز شدن اپ و وقتی اپ از حالت مینیمایز خارج می‌شود
 (function scheduleHotReload() {
-  const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
-  setTimeout(run, 2500); // ۲.۵ ثانیه بعد از باز شدن اپ
+// setTimeout(() => { try { window.hotReloadFromGitHub(); } catch (e) {} }, 2500);  setTimeout(run, 2500); // ۲.۵ ثانیه بعد از باز شدن اپ
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) setTimeout(run, 800); // وقتی کاربر به اپ برمی‌گردد
   });
