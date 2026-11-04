@@ -1,4 +1,4 @@
-// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v45
+// Port of src/lib/strategy/engine.ts (Dual Strategy: Trend & Range) - Improved v46
 const DEF = {
   mode: "pattern",
   trend: true,
@@ -19,26 +19,26 @@ const DEF = {
   em: 50,
   es: 200,
   rsiP: 14,
-  minRatio: 0.52,       // متعادل: کیفیت خوب بدون خشکی کامل       // بدنه قوی‌تر — کیفیت > کمیت
+  minRatio: 0.52,       // متعادل: کیفیت خوب بدون خشکی کامل
   atrP: 14,
   bbP: 20,
   bbDev: 2,
 
-  maxDistATR: 2.6,      // جلوگیری از chase
+  maxDistATR: 3.0,      // ✨ v46: از 2.6 به 3.0 افزایش یافت (اجازه فاصله بیشتر)
   swingLook: 10,
   atrMultSL: 2.0,
-  minSlAtr: 1.35,       // کف SL معقول (قبلاً ۱.۶ خیلی سخت بود)        // کف SL بزرگ‌تر — کمتر استاپ‌خوری نویز
+  minSlAtr: 1.35,       // کف SL معقول
   spreadAtr: 0.40,      // بافر اسپرد واقعی‌تر
-  tpR: 2.0,             // حد سود ثابت ۲R (هم‌راستا با تلگرام/موتور)
-  exitMode: "tp_r",     // tp_r | rsi_div  — موتور: tp_r
+  tpR: 2.0,             // حد سود ثابت ۲R
+  exitMode: "tp_r",     // tp_r | rsi_div
   useConfluence: false,
   minConfluence: 7,
-  requirePaStrong: true, // engulf / pin / classic اجباری (structure تنها کافی نیست)
-  minPaScore: 2.2,      // engulf/pin قوی‌تر از قبل، نه غیرممکن
-  minSlopeAtr: 0.02,    // شیب EMA نسبت به ATR (نه فقط ≠۰)
+  requirePaStrong: true, // engulf / pin / classic اجباری
+  minPaScore: 2.0,      // ✨ v46: از 2.2 به 2.0 کاهش یافت (پترن‌های بیشتری قبول می‌شوند)
+  minSlopeAtr: 0.010,   // ✨ v46: از 0.02 به 0.01 کاهش یافت (شیب ضعیف‌تر قبول می‌شود)
   sessionFilter: true,  // فیلتر سشن جفت‌ارز
-  d1Filter: false,      // پیش‌فرض خاموش — برای M5 سخت‌گیرانه بود
-  rangeLookback: 96,    // ≈۸ ساعت M5 (نه ۵۰)
+  d1Filter: false,      // پیش‌فرض خاموش
+  rangeLookback: 96,    // ≈۸ ساعت M5
   rangeAdxMax: 20,
   rangeMinATR: 3.0,
   rangeMinTouches: 3,
@@ -48,15 +48,14 @@ const DEF = {
   rangeMaxRiskATR: 2.8,
   rangeH1: true,
   rangeTouchPct: 0.12,
-  rangeRequireVol: false,  // حجم در فارکس/OANDA اغلب نیست — خاموش تا سیگنال رنج نميرد
-  rangeVolMult: 1.10,      // اگر بعداً روشن شد
-  // مدیریت خروج انعطاف‌پذیر (برای سرور/اسکنر)
-  trailAfterR: 1.0,        // بعد از +1R تریل فعال شود
-  trailAtr: 1.2,           // فاصله تریل از قیمت بر حسب ATR
+  rangeRequireVol: false,
+  rangeVolMult: 1.10,
+  trailAfterR: 1.0,
+  trailAtr: 1.2,
   maxHoldSoftSec: 6 * 3600,
-  maxHoldStrongSec: 18 * 3600  // روند قوی تا ۱۸ ساعت
+  maxHoldStrongSec: 18 * 3600
 }
-const ENGINE_VER = 45;
+const ENGINE_VER = 46; // ✨ v46
 
 function ema(v, p) {
   const o = Array(v.length).fill(null);
@@ -134,7 +133,6 @@ function stdDev(v, p) {
 }
 
 function adx(cs, p = 14) {
-  // Wilder ADX با هم‌ترازی صحیح روی ایندکس کندل (رفع باگ جابه‌جایی ~۱۳ کندل)
   const n = cs.length;
   const out = Array(n).fill(null);
   if (n < p * 2 + 1) return out;
@@ -146,7 +144,6 @@ function adx(cs, p = 14) {
     pdm.push(up > dn && up > 0 ? up : 0);
     ndm.push(dn > up && dn > 0 ? dn : 0);
   }
-  // tr[k] مربوط به کندل k+1 است
   let atr = 0, sp = 0, sn = 0;
   for (let i = 0; i < p; i++) { atr += tr[i]; sp += pdm[i]; sn += ndm[i]; }
   const dx = Array(tr.length).fill(null);
@@ -169,7 +166,7 @@ function adx(cs, p = 14) {
       filled++;
       if (filled === p) {
         adxVal /= p;
-        out[i + 1] = adxVal; // ایندکس کندل
+        out[i + 1] = adxVal;
       }
     } else {
       adxVal = (adxVal * (p - 1) + dx[i]) / p;
@@ -199,9 +196,7 @@ function resample(c, min) {
   }));
 }
 
-// ✨ v45: پارامتر minScore اضافه شد تا از S.minPaScore استفاده شود (رفع باگ هاردکد ۳.۰)
-function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2) {
-  // c0 = آخرین کندل بسته‌شده (تأیید)، c1..c3 قبل‌تر
+function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.0) {
   if (!candles || candles.length < 4) return { ok: false, ratio: 0, type: "none", score: 0 };
   const [c0, c1, c2, c3] = candles;
   const body = Math.abs(c0.close - c0.open);
@@ -209,7 +204,6 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2)
   const bodyRatio = range > 0 ? body / range : 0;
   const isBull = c0.close > c0.open;
   const isBear = c0.close < c0.open;
-  // حداقل بدنه معقول
   if (dir === "LONG" && (!isBull || bodyRatio < minRatio * 0.75)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
   if (dir === "SHORT" && (!isBear || bodyRatio < minRatio * 0.75)) return { ok: false, ratio: bodyRatio, type: "weak", score: 0 };
 
@@ -224,7 +218,6 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2)
     ? (lowerWick > body * 1.6 && upperWick < body * 0.5 && bodyRatio >= 0.25)
     : (upperWick > body * 1.6 && lowerWick < body * 0.5 && bodyRatio >= 0.25);
 
-  // ساختار بر اساس ATR (نه ۰.۹۹۹ که تقریباً همیشه true است)
   const pad = (atrVal && atrVal > 0) ? 0.15 * atrVal : (range * 0.25);
   let structureOk = false;
   if (dir === "LONG") {
@@ -235,7 +228,6 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2)
     structureOk = c0.high <= swingHigh + pad && c0.close < c1.low;
   }
 
-  // الگوی کلاسیک ۳+۱ واقعی
   let classicOk = false;
   let g = 0, r = 0, gs = 0, rs = 0;
   for (const c of candles) {
@@ -246,22 +238,19 @@ function checkPriceAction(candles, dir, minRatio = 0.55, atrVal, minScore = 2.2)
   if (dir === "LONG" && g === 1 && r === 3 && isBull && rs > 0) classicOk = (gs / rs) >= minRatio && bodyRatio >= minRatio * 0.9;
   if (dir === "SHORT" && r === 1 && g === 3 && isBear && gs > 0) classicOk = (rs / gs) >= minRatio && bodyRatio >= minRatio * 0.9;
 
-  // امتیاز: structure به‌تنهایی کافی نیست
   let score = 0;
   if (engulfs) score += 2.2;
   if (pinOk) score += 2.0;
   if (classicOk) score += 2.5;
-  if (structureOk) score += 0.8; // فقط کمکی
+  if (structureOk) score += 0.8;
   if (bodyRatio >= minRatio) score += 0.6;
 
   const strong = engulfs || pinOk || classicOk;
-  // ✨ v45: آستانه از پارامتر می‌آید (پیش‌فرض ۲.۲) — قبلاً ۳.۰ هاردکد بود
   const ok = strong && score >= minScore;
   const type = classicOk ? "classic" : engulfs ? "engulf" : pinOk ? "pin" : structureOk ? "structure" : "none";
   return { ok, ratio: bodyRatio, type, score, strong };
 }
 
-// wrapper حفظ می‌شود — با مقادیر پیش‌فرض جدید (minScore=2.2) کار می‌کند
 function checkPattern(l4, dir, minRatio) { return checkPriceAction(l4, dir, minRatio); }
 
 function rangeAnalyze(m5, h1, S, ind) {
@@ -282,13 +271,14 @@ function rangeAnalyze(m5, h1, S, ind) {
   const roomOk = H >= S.rangeMinATR * a, touchOk = tTop >= 1 && tBot >= 1 && (tTop + tBot) >= S.rangeMinTouches;
   const broke = sc > rh + 0.4 * a || sc < rl - 0.4 * a, rangeOk = roomOk && touchOk && !broke;
   const adxOk = adxV < S.rangeAdxMax || (adxV < S.adxMin && adxB != null && adxV < adxB);
-  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low, goodBody = rangeC > 0 && body / rangeC >= 0.40;
-  // واکنش به لبه باند: کندل قبلی خارج/روی باند، کندل فعلی برگشت به داخل با بدنه هم‌جهت
-  // واکنش به باند: کندل قبلی نزدیک/روی باند، برگشت با بدنه هم‌جهت (کمی نرم‌تر از v43 اولیه)
-  const edgeLong = (pv.low <= loP + 0.15 * a || pv.close <= loP + 0.1 * a) && sc > lo && b.close > b.open && goodBody;
-  const edgeShort = (pv.high >= upP - 0.15 * a || pv.close >= upP - 0.1 * a) && sc < up && b.close < b.open && goodBody;
+  const body = Math.abs(b.close - b.open), rangeC = b.high - b.low;
+  
+  // ✨ v46: نرم کردن بدنه کندل و واکنش به لبه
+  const goodBody = rangeC > 0 && body / rangeC >= 0.30;
+  const edgeLong = (pv.low <= loP + 0.25 * a || pv.close <= loP + 0.15 * a) && sc > lo && b.close > b.open && goodBody;
+  const edgeShort = (pv.high >= upP - 0.25 * a || pv.close >= upP - 0.15 * a) && sc < up && b.close < b.open && goodBody;
+  
   const trig = L ? edgeLong : edgeShort;
-  // حجم نسبی (اگر tick volume در کندل باشد؛ وگرنه از range به‌عنوان پروکسی)
   let volOk = true;
   if (S.rangeRequireVol !== false) {
     const volOf = c => (c.volume != null ? c.volume : (c.high - c.low));
@@ -343,16 +333,19 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (pass === total && total > 0) { side = RA.dir; fail = null; }
   } else {
     const patCandles = m5.slice(-4).reverse();
-    // ✨ v45: S.minPaScore پاس می‌شود (قبلاً هاردکد ۳.۰ بود)
     const pl = checkPriceAction(patCandles, "LONG", S.minRatio, a, S.minPaScore),
           ps = checkPriceAction(patCandles, "SHORT", S.minRatio, a, S.minPaScore);
     const ab = sc > es, be = sc < es;
-    // شیب واقعی نسبت به ATR (نه فقط ≠ صفر)
-    const slopeOk = a > 0 && Math.abs(ef - efp) / a >= (S.minSlopeAtr || 0.02) && Math.abs(em - emp) / a >= (S.minSlopeAtr || 0.02) * 0.5;
+    
+    // ✨ v46: نرم کردن هم‌جهتی EMA (اجازه کراس در ۲ کندل اخیر)
+    const ef2 = last(efA, 2), em2 = last(emA, 2);
+    const nc = ef !== em && ((ef > em && efp >= emp && ef2 <= em2) || (ef < em && efp <= emp && ef2 >= em2));
+
+    const slopeOk = a > 0 && Math.abs(ef - efp) / a >= (S.minSlopeAtr || 0.010) && Math.abs(em - emp) / a >= (S.minSlopeAtr || 0.010) * 0.5;
     const slopeDirL = (ef - efp) > 0 && (em - emp) >= 0;
     const slopeDirS = (ef - efp) < 0 && (em - emp) <= 0;
     const slope = slopeOk;
-    const nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp));
+    
     const D = sc >= es ? "LONG" : "SHORT", isL = D === "LONG";
     let m15L = true, m15S = true;
     if (S.m15) {
@@ -368,7 +361,7 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
       if (S.h1Strict) { const f = last(ema(hc, S.ef)), m = last(ema(hc, S.em)); h1L = c > hs && f > m && m > hs; h1S = c < hs && f < m && m < hs; }
       else { h1L = c > hs; h1S = c < hs; }
     }
-    const distATR = a > 0 ? Math.abs(sc - es) / a : 99, distOk = distATR <= (S.maxDistATR || 3.5);
+    const distATR = a > 0 ? Math.abs(sc - es) / a : 99, distOk = distATR <= (S.maxDistATR || 3.0);
     let rsiOk = true;
     if (S.rsi) {
       const r1 = last(rA, 1), r2 = last(rA, 2);
@@ -379,9 +372,7 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     if (S.nc !== false) addCheck(`هم‌جهتی و شیب EMAها`, nc && slope && (isL ? slopeDirL : slopeDirS), `تقاطع یا شیب نامناسب`);
     if (S.emax !== false) addCheck(`هم‌راستایی EMA${S.ef}/${S.em}`, isL ? ef > em : ef < em, `هم‌راستایی EMA21/50`);
     if (S.pat !== false) addCheck(`پرایس‌اکشن تأیید`, isL ? pl.ok : ps.ok, `الگوی پرایس‌اکشن ضعیف`);
-    // ✨ v45: فیلتر سخت ADX (اختیاری) — قبل از فیلتر نرم
     if (S.adx !== false) addCheck(`ADX > ${S.adxMin} (روند)`, adxV > S.adxMin, `بازار روند کافی ندارد`);
-    // ✨ v45: فیلتر نرم ADX — فقط با adxSoft=true فعال می‌شود (قبلاً همیشه فعال بود — باگ ۲)
     if (S.adxSoft === true) {
       const adxSoft = adxV != null && adxV >= (S.adxSoftMin || 18);
       addCheck(`ADX≥${S.adxSoftMin || 18} (نرم)`, adxSoft, `بازار بدون روند کافی (ADX)`);
@@ -392,19 +383,18 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     addCheck(`فاصله منطقی از EMA200`, distOk, `فاصله از EMA200 زیاد است (${distATR.toFixed(1)} ATR)`);
     if (pass === total && total > 0) { side = D; fail = null; }
   }
-  // فیلتر سشن / رول‌اور
+  
   if (side && S.sessionFilter !== false && typeof isInTradingSession === "function") {
     if (!isInTradingSession(id, now)) {
       side = null;
       fail = fail || "خارج از سشن معاملاتی / رول‌اور";
     }
   }
-  // فیلتر روند روزانه (اختیاری — پیش‌فرض خاموش)
-  // فقط وقتی D1 «قوی» خلاف جهت باشد حذف می‌کند؛ سقف/کف دیروز دیگر بلاک نمی‌کند
+  
   if (side && S.d1Filter === true) {
     const db = dailyBias(m5, now);
     if (db && db.e21 != null && db.e50 != null && a > 0) {
-      const sep = Math.abs(db.e21 - db.e50) / a; // قدرت جدایی میانگین روزانه
+      const sep = Math.abs(db.e21 - db.e50) / a;
       const strongDown = db.down && sep >= 0.8;
       const strongUp = db.up && sep >= 0.8;
       if (side === "LONG" && strongDown) { side = null; fail = fail || "خلاف روند روزانه قوی (D1)"; }
@@ -420,14 +410,13 @@ function evaluate(id, raw5, rawH1, S, now = Date.now() / 1000) {
     const swingLow = Math.min(...recent.map(c => c.low)), swingHigh = Math.max(...recent.map(c => c.high));
     const atrSL = (S.atrMultSL || 2.0) * a;
     const spreadBuf = (S.spreadAtr != null ? S.spreadAtr : 0.4) * a;
-    // کف مطلق بر اساس کلاس نماد (اسپرد + نویز M5)
     const sym = String(id || "").toUpperCase();
     let floorDist = (S.minSlAtr || 1.6) * a;
-    if (/USDT$|BTC|ETH/.test(sym)) floorDist = Math.max(floorDist, sc * 0.005, 1.8 * a); // ≥۰.۵٪
-    else if (/JPY/.test(sym)) floorDist = Math.max(floorDist, 0.15, 1.7 * a); // ≥۱۵ پیپ
+    if (/USDT$|BTC|ETH/.test(sym)) floorDist = Math.max(floorDist, sc * 0.005, 1.8 * a);
+    else if (/JPY/.test(sym)) floorDist = Math.max(floorDist, 0.15, 1.7 * a);
     else if (/XAU|GOLD/.test(sym)) floorDist = Math.max(floorDist, 2.0, 1.7 * a);
     else if (/XAG/.test(sym)) floorDist = Math.max(floorDist, 0.05, 1.7 * a);
-    else floorDist = Math.max(floorDist, 0.0012, 1.6 * a); // ≥۱۲ پیپ عمده
+    else floorDist = Math.max(floorDist, 0.0012, 1.6 * a);
     if (side === "LONG") {
       sl = Math.min(swingLow - 0.3 * a, sc - atrSL) - spreadBuf;
       if (sc - sl < floorDist) sl = sc - floorDist;
@@ -479,7 +468,6 @@ function marks(raw5, rawH1, S, now = Date.now() / 1000) {
     if ([ef, em, es, efp, emp, r, a].some(x => x == null) || a <= 0) continue;
     if (m5[i].time <= free) continue;
     const b = m5[i], l4 = [b, m5[i - 1], m5[i - 2], m5[i - 3]];
-    // ✨ v45: S.minPaScore پاس می‌شود برای هم‌ترازی با evaluate()
     const pl = checkPriceAction(l4, "LONG", S.minRatio, undefined, S.minPaScore),
           ps = checkPriceAction(l4, "SHORT", S.minRatio, undefined, S.minPaScore);
     const slope = (ef - efp) !== 0 && (em - emp) !== 0, nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp));
@@ -528,7 +516,6 @@ function explain(id, raw5, rawH1, S, now = Date.now() / 1000, dg = 5) {
   } else {
     if (S.trend !== false) add("trend", `قیمت ${L ? "بالای" : "پایین"} EMA${S.es} و شیب`, (L ? sc > es : sc < es) && sl, ((sc - es) / a >= 0 ? "+" : "") + ((sc - es) / a).toFixed(1) + "×ATR", { t: "dist", v: (sc - es) / a });
     const pat = m5.slice(-4).reverse();
-    // ✨ v45: S.minPaScore پاس می‌شود
     const pl = checkPriceAction(pat, "LONG", S.minRatio, a, S.minPaScore),
           ps = checkPriceAction(pat, "SHORT", S.minRatio, a, S.minPaScore);
     const nc = ef !== em && efp !== emp && ((ef > em && efp > emp) || (ef < em && efp < emp)), pp = L ? pl : ps;
@@ -557,13 +544,11 @@ function isInTradingSession(id, nowSec) {
   const d = new Date((nowSec || Date.now() / 1000) * 1000);
   const day = d.getUTCDay(); // 0 Sun .. 6 Sat
   const h = d.getUTCHours() + d.getUTCMinutes() / 60;
-  // جمعه بعد ۲۱ و یکشنبه قبل ۲۲: فارکس بسته
   const isCrypto = /USDT$|BTC|ETH|BNB|XRP|SOL|ADA|DOGE/.test(String(id || "").toUpperCase());
   if (!isCrypto) {
     if (day === 6) return false; // شنبه
     if (day === 5 && h >= 21) return false; // جمعه شب
     if (day === 0 && h < 22) return false; // یکشنبه قبل باز شدن
-    // رول‌اور ۲۱–۲۳ UTC
     if (h >= 21 && h < 23) return false;
   }
   const sess = sessionOfSymbol(id);
@@ -574,9 +559,6 @@ function isInTradingSession(id, nowSec) {
   return true;
 }
 
-// گروه‌های همبستگی ساده (ضد دلار / پناهگاه / ریسک)
-
-// ---- بایاس روزانه (D1 از M5) ----
 function dailyBias(m5, now) {
   try {
     const d1 = dropForming(resample(m5, 1440), 86400, now || Date.now() / 1000);
@@ -592,7 +574,7 @@ function dailyBias(m5, now) {
 }
 function correlationGroup(id) {
   const s = String(id || "").toUpperCase();
-  if (/EURUSD|GBPUSD|AUDUSD|NZDUSD|EURGBP/.test(s)) return "usd_risk_long"; // LONG ≈ short USD
+  if (/EURUSD|GBPUSD|AUDUSD|NZDUSD|EURGBP/.test(s)) return "usd_risk_long";
   if (/USDJPY|USDCAD|USDCHF/.test(s)) return "usd_long";
   if (/XAU|XAG/.test(s)) return "metal";
   if (/BTC|ETH|BNB|XRP|SOL|USDT/.test(s)) return "crypto";
@@ -600,7 +582,6 @@ function correlationGroup(id) {
   return s;
 }
 function filterCorrelated(signals) {
-  // از هر گروه همبسته فقط بهترین سیگنال (بالاترین pass/total) نگه داشته شود
   const best = new Map();
   for (const r of signals || []) {
     if (!r || !r.side) continue;
@@ -614,4 +595,4 @@ function filterCorrelated(signals) {
 
 if (typeof module !== "undefined") {
   module.exports = { explain, dropForming, marks, divExit, lci, evaluate, ema, rsi, atr, adx, resample, checkPattern, checkPriceAction, DEF, ENGINE_VER, isInTradingSession, sessionOfSymbol, correlationGroup, filterCorrelated, dailyBias };
-      }
+}
