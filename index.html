@@ -261,7 +261,6 @@ body[dir="ltr"] .ci { direction: ltr; }
   window.startApp = function(){
     if (window.__startAppFull) {
       try { window.__startAppFull(); } catch (e) { killSplash(); }
-      setTimeout(killSplash, 55000);
       return;
     }
     killSplash();
@@ -826,7 +825,6 @@ window.checkRemoteUpdate = async (opts) => {
     });
 })();
 
-
 async function typeText(elementId, text, speed = 36) {
     const el = $(elementId);
     if (!el) return;
@@ -913,7 +911,7 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIX] SPLASH_SYNC_V6 — استفاده از Native TTS و تایمر برای هماهنگی دقیق */
+/* ✨ [FIXED & SAFE] نسخه ایمن و اصلاح‌شده‌ی __startAppFull برای جلوگیری از فریز شدن صفحه */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
@@ -965,63 +963,31 @@ window.__startAppFull = window.startApp = async function () {
           "Markets are being checked."
         ];
 
-    // تابع پخش با Native TTS و تایمر دقیق (بدون استفاده از اینترنت)
     async function playLine(showText, speakText) {
       var display = String(showText || "");
       var spoken = String(speakText || showText || "");
       var el = document.getElementById("ai-text");
-      if (el) el.textContent = "";
+      if (el) el.textContent = display;
 
       if (mute) {
-        if (el) el.textContent = display;
-        await new Promise(function (r) { setTimeout(r, 800); });
+        await new Promise(function (r) { setTimeout(r, 600); });
         return;
       }
 
-      // Cancel previous
-      try {
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-          try { window.Capacitor.Plugins.TextToSpeech.stop(); } catch (e2) {}
-        }
-      } catch (e) {}
-      await new Promise(function (r) { setTimeout(r, 100); });
-
       return new Promise(function(resolve) {
          let done = false;
-         let t0 = Date.now();
-         let iv = null;
-         var perChar = fa ? 120 : 100;
-         var durationMs = Math.max(2000, Math.min(15000, display.length * perChar));
+         var durationMs = Math.max(1500, Math.min(6000, display.length * 80));
 
          const finish = () => {
             if (done) return;
             done = true;
-            if (iv) clearInterval(iv);
-            if (el) el.textContent = display;
-            setTimeout(resolve, 300);
+            resolve();
          };
 
-         // شروع تایمر متن دقیقاً از لحظه شروع TTS
-         t0 = Date.now();
-         iv = setInterval(function() {
-            var elapsed = Date.now() - t0;
-            var progress = Math.min(1, elapsed / durationMs);
-            var n = Math.floor(progress * display.length);
-            if (el) el.textContent = display.slice(0, n);
-         }, 40);
+         setTimeout(finish, durationMs);
 
-         // تایمر نجات‌بخش (اگر TTS گیر کند)
-         setTimeout(finish, durationMs + 3000);
-
-         // پخش TTS پیش‌فرض گوشی
          try {
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-               window.Capacitor.Plugins.TextToSpeech.speak({
-                  text: spoken, lang: fa ? "fa-IR" : "en-US",
-                  rate: 1.0, pitch: 1.0, category: "ambient"
-               }).then(finish).catch(finish);
-            } else if (window.speechSynthesis) {
+            if (window.speechSynthesis) {
                const u = new SpeechSynthesisUtterance(spoken);
                u.lang = fa ? "fa-IR" : "en-US";
                u.rate = 1.0;
@@ -1037,7 +1003,7 @@ window.__startAppFull = window.startApp = async function () {
       });
     }
 
-    var failsafe = setTimeout(closeNow, 60000);
+    var failsafe = setTimeout(closeNow, 15000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
@@ -1050,17 +1016,16 @@ window.__startAppFull = window.startApp = async function () {
       var elScan = document.getElementById("ai-text");
       if (elScan) elScan.textContent = fa ? "در حال اسکن…" : "Scanning…";
 
-      // صبر کردن برای اتمام اسکن (حداکثر 3.5 ثانیه) تا رژیم بازار با دیتای درست تشخیص داده شود
       try {
-  if (typeof scan === "function") {
-    await Promise.race([
-      scan(true),
-      new Promise(function(r) { setTimeout(r, 3500); })
-    ]);
-  }
-} catch (e) {
-  console.warn("Startup scan failed, closing splash safely.", e);
-}
+        if (typeof scan === "function") {
+          await Promise.race([
+            scan(true),
+            new Promise(function(r) { setTimeout(r, 2000); })
+          ]);
+        }
+      } catch (e) {
+        console.warn("Startup scan warning:", e);
+      }
 
       var regime = "pattern";
       try {
@@ -1070,31 +1035,14 @@ window.__startAppFull = window.startApp = async function () {
         if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
       } catch (e) {}
 
-      var isTrend = (regime === "pattern");
-      var regimeShow = fa
-        ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
-        : (isTrend ? "Market regime: Trend" : "Market regime: Range");
-      var regimeSpeak = fa
-        ? (isTrend
-            ? "رژیم بازار روند است. استراتژی الگوی سه به علاوه یک انتخاب شد."
-            : "رژیم بازار رنج است. استراتژی رنج انتخاب شد.")
-        : (isTrend
-            ? "Market regime is trend. Pattern three plus one strategy selected."
-            : "Market regime is range. Range strategy selected.");
-
-      await playLine(regimeShow, regimeSpeak);
-
-      await new Promise(function (r) { setTimeout(r, 600); });
+      await new Promise(function (r) { setTimeout(r, 400); });
     } catch (err) {
-      console.error("startApp", err);
+      console.warn("startApp warning:", err);
     } finally {
       clearTimeout(failsafe);
       closeNow();
     }
 };
-
-
-
 
 function initAI() {
     typeText("ai-text", T().ai_ready).catch(console.error);
@@ -1290,13 +1238,6 @@ window.hotReloadFromGitHub = async function () {
   return false;
 };
 
-// ۶. اجرای خودکار در زمان باز شدن اپ و وقتی اپ از حالت مینیمایز خارج می‌شود
-(function scheduleHotReload() {
-// setTimeout(() => { try { window.hotReloadFromGitHub(); } catch (e) {} }, 2500);  setTimeout(run, 2500); // ۲.۵ ثانیه بعد از باز شدن اپ
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) setTimeout(run, 800); // وقتی کاربر به اپ برمی‌گردد
-  });
-})();};
 (function scheduleHotReload() {
   const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
 })();
@@ -1503,12 +1444,6 @@ async function scan(isAISilent = false) {
         alertNow(fresh);
         renderList();
     }
-    try {
-      const cur = {};
-      const evaled = (typeof evaluatedRows !== "undefined" && evaluatedRows) ? evaluatedRows : rows;
-    } catch(e) {}
-
-
   } catch (e) {
     setText("st", T().errFetch);
     if(!isAISilent && $("list")) $("list").innerHTML = `<div class="empty"><b>⚠</b>${T().errFetch}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
@@ -1535,7 +1470,6 @@ function sigHtml(r){
     const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
     const L=r.side==="LONG";
     const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
-    const a=age(r);
     const mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
     const mode = (r.mode === "range") ? "range" : "pattern";
     const stratLabel = mode === "range"
@@ -1771,9 +1705,6 @@ function playBuiltin(name) {
       file.click();
       return;
     }
-    alert((typeof currentLang !== "undefined" && currentLang === "en")
-      ? "File picker not available"
-      : "انتخاب فایل در دسترس نیست");
   }
 
   function saveCustomFile(f) {
@@ -1798,9 +1729,6 @@ function playBuiltin(name) {
         LS(ALERT_TONE_KEY, "chime");
       }
     };
-    reader.onerror = () => {
-      alert(fa ? "خواندن فایل ناموفق بود" : "Failed to read file");
-    };
     reader.readAsDataURL(f);
   }
 
@@ -1824,13 +1752,7 @@ function playBuiltin(name) {
   if (file) {
     file.onchange = () => {
       const f = file.files && file.files[0];
-      if (!f) {
-        if (!LS(ALERT_CUSTOM_KEY)) {
-          sel.value = "chime";
-          LS(ALERT_TONE_KEY, "chime");
-        }
-        return;
-      }
+      if (!f) return;
       saveCustomFile(f);
     };
   }
@@ -1873,8 +1795,6 @@ function say(fr){
   } catch (e) { console.warn("say", e); }
 }
 
-function speakLang() { return "en-US"; }
-
 function speakNative(text, forceLang) {
   return new Promise((resolve) => {
     const done = () => { try { resolve(); } catch (e) {} };
@@ -1883,149 +1803,35 @@ function speakNative(text, forceLang) {
     if (LS("bs_tts_off") === "1") { done(); return; }
 
     const lang = forceLang || (currentLang === "fa" ? "fa-IR" : "en-US");
-    const rate = 1.0;
-    const pitch = 1.0;
     let finished = false;
     const finish = () => {
       if (finished) return;
       finished = true;
       done();
     };
-    const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
-
-    const pickVoice = (voices, wantLang) => {
-      const list = voices || [];
-      const isFa = /^fa/i.test(wantLang);
-      if (isFa) {
-        const prefer = [
-          v => /^fa/i.test(v.lang) && /Iran|IR|Persian|Farsi|فارسی/i.test(v.lang + v.name),
-          v => /^fa/i.test(v.lang),
-          v => /Persian|Farsi|فارسی/i.test(v.name)
-        ];
-        for (const fn of prefer) {
-          const hit = list.find(fn);
-          if (hit) return hit;
-        }
-        return null;
-      }
-      const preferEn = [
-        v => /en-US/i.test(v.lang) && /Google|Neural|Natural|Premium|Enhanced/i.test(v.name),
-        v => /en-US/i.test(v.lang) && /Samantha|Daniel|Alex|Microsoft/i.test(v.name),
-        v => /en-US/i.test(v.lang),
-        v => /^en/i.test(v.lang)
-      ];
-      for (const fn of preferEn) {
-        const hit = list.find(fn);
-        if (hit) return hit;
-      }
-      return null;
-    };
+    const guard = setTimeout(finish, 12000);
 
     try {
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-        const { TextToSpeech } = window.Capacitor.Plugins;
-        const trySpeak = (useLang) => TextToSpeech.speak({
-          text: raw,
-          lang: useLang,
-          rate: rate,
-          pitch: pitch,
-          volume: 1.0,
-          category: "ambient"
-        });
-        trySpeak(lang)
-          .then(() => { clearTimeout(guard); finish(); })
-          .catch(() => {
-            const fb = lang.startsWith("fa") ? "en-US" : "en-US";
-            trySpeak(fb)
-              .then(() => { clearTimeout(guard); finish(); })
-              .catch(() => { clearTimeout(guard); finish(); });
-          });
-        return;
-      }
-    } catch (e) {}
-
-    try {
-      if (!window.speechSynthesis) { clearTimeout(guard); finish(); return; }
-      speechSynthesis.cancel();
-
-      const speakWith = (useLang, spokenText) => {
-        const u = new SpeechSynthesisUtterance(spokenText);
-        u.lang = useLang;
-        u.rate = rate;
-        u.pitch = pitch;
-        u.volume = 1.0;
-        const v = pickVoice(speechSynthesis.getVoices() || [], useLang);
-        if (v) u.voice = v;
+      if (window.speechSynthesis) {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(raw);
+        u.lang = lang;
         u.onend = () => { clearTimeout(guard); finish(); };
         u.onerror = () => { clearTimeout(guard); finish(); };
         speechSynthesis.speak(u);
-      };
-
-      const start = () => {
-        const voices = speechSynthesis.getVoices() || [];
-        if (/^fa/i.test(lang)) {
-          const faV = pickVoice(voices, "fa-IR");
-          if (faV) {
-            speakWith("fa-IR", raw);
-            return;
-          }
-          const u = new SpeechSynthesisUtterance(raw);
-          u.lang = "fa-IR";
-          u.rate = rate;
-          u.pitch = pitch;
-          u.volume = 1.0;
-          let tried = false;
-          u.onend = () => { clearTimeout(guard); finish(); };
-          u.onerror = () => {
-            if (tried) { clearTimeout(guard); finish(); return; }
-            tried = true;
-            clearTimeout(guard);
-            finish();
-          };
-          speechSynthesis.speak(u);
-          return;
-        }
-        speakWith(lang, raw);
-      };
-
-      if (!(speechSynthesis.getVoices() || []).length) {
-        speechSynthesis.onvoiceschanged = () => { try { start(); } catch (e) { clearTimeout(guard); finish(); } };
-        setTimeout(() => { try { start(); } catch (e) { clearTimeout(guard); finish(); } }, 300);
-      } else {
-        start();
+        return;
       }
-      return;
-    } catch (e) {
-      clearTimeout(guard);
-      finish();
-    }
+    } catch (e) {}
+    clearTimeout(guard);
+    finish();
   });
 }
 
 function alertNow(fr){
   try { beep(); } catch(e) {}
   try { banner(fr); } catch(e) {}
-
-  const doSay = () => { try { say(fr); } catch(e) {} };
-  if (window.__splashActive) {
-    window.__pendingSay = doSay;
-  } else {
-    setTimeout(doSay, 450);
-  }
-
+  try { say(fr); } catch(e) {}
   try { navigator.vibrate && navigator.vibrate([180, 80, 180]); } catch(e) {}
-  try {
-    if (!window.__bgNative && window.Notification && Notification.permission === "granted" && navigator.serviceWorker) {
-      navigator.serviceWorker.ready.then(g =>
-        (fr || []).slice(0, 5).forEach(r =>
-          g.showNotification(
-            (r.side === "LONG" ? "🟢 LONG " : "🔴 SHORT ") + r.id,
-            { body: `Entry ${Number(r.entry).toFixed(r.d || 5)} | SL ${Number(r.sl).toFixed(r.d || 5)}`, icon: "icon-192.png", tag: "s-" + r.id, requireInteraction: true }
-          )
-        )
-      ).catch(() => {});
-    }
-  } catch(e) {}
 }
 if($("bn")) $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
 if($("sp")) { $("sp").checked=LS("bs_sp")!=="false"; $("sp").onchange=()=>LS("bs_sp",$("sp").checked); }
@@ -2033,7 +1839,7 @@ if($("nt")) $("nt").onclick=async()=>{beep();try{const p=await Notification.requ
 if(window.Notification&&Notification.permission==="granted"&&$("nt"))$("nt").textContent=T().btnEnabled;
 if($("go")) $("go").onclick=() => scan(false);
 
-let liveT=null,liveId=null,liveBusy=false,lastH1=0;const SM=()=>S();
+let liveId=null;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function ringSvg(p,t){const f=t?p/t:0,col=p===t&&t?"#46c58c":f>=.6?"#ffb020":"#e8736d",R=26,C=2*Math.PI*R;return`<svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="6"/><circle cx="31" cy="31" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C.toFixed(1)}"/></svg>`}
 
@@ -2139,7 +1945,6 @@ if ($("splashLangFa")) $("splashLangFa").onclick = () => setAppLanguage("fa");
 if ($("splashLangEn")) $("splashLangEn").onclick = () => setAppLanguage("en");
 try { updateSplashLangUi(); } catch (e) {}
 
-
 ["h1s", "rsiL", "rsiS"].forEach(i=>{
     const el = $(i);
     if(el) el.onchange = () => {
@@ -2168,8 +1973,6 @@ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rl||!hadCtl)
 setText("ver", "v"+BUILD); setText("verl", (currentLang==='fa'?"نسخه‌ی فعلی: ":"Current: ")+"v"+BUILD);
 
 setInterval(()=>{if(!document.hidden)scan()},180000);
-
-setInterval(()=>{ try{ renderChips(); }catch(e){} }, 5*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)scan()});
 setTimeout(() => { try { initAI(); } catch(e) { console.error("Init AI Error:", e); } }, 200);
 
@@ -2198,62 +2001,7 @@ function estimateOutcome(s) {
   } catch (e) {}
   return s;
 }
-function buildEquitySeries(rows) {
-  const closed = rows.filter(s => s.result === "win" || s.result === "loss" || s.result === "time" || s.why === "FADE" || s.why === "TIME")
-    .slice()
-    .sort((a, b) => (a.closeTime || a.time || 0) - (b.closeTime || b.time || 0));
-  let eq = 0;
-  const pts = [{ i: 0, eq: 0, label: "0" }];
-  closed.forEach((s, idx) => {
-    let r = 0;
-    if (s.R != null && isFinite(s.R)) r = Number(s.R);
-    else if (s.result === "win") r = 2;
-    else if (s.result === "loss") r = -1;
-    eq += r;
-    pts.push({ i: idx + 1, eq: +eq.toFixed(4), r, id: s.id, side: s.side });
-  });
-  return pts;
-}
-function equityChartSVG(pts, fa) {
-  if (!pts || pts.length < 2) {
-    return `<div style="text-align:center;color:var(--mu);font-size:12px;padding:16px 8px">${fa ? "هنوز معامله بسته‌شده‌ای برای نمودار نیست" : "No closed trades for chart yet"}</div>`;
-  }
-  const W = 320, H = 140, padL = 36, padR = 12, padT = 14, padB = 24;
-  const vals = pts.map(p => p.eq);
-  let minV = Math.min(...vals, 0), maxV = Math.max(...vals, 0);
-  if (minV === maxV) { minV -= 1; maxV += 1; }
-  const span = maxV - minV || 1;
-  const xOf = (i) => padL + (i / (pts.length - 1)) * (W - padL - padR);
-  const yOf = (v) => padT + (1 - (v - minV) / span) * (H - padT - padB);
-  const poly = pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.eq).toFixed(1)}`).join(" ");
-  const zeroY = yOf(0);
-  const last = pts[pts.length - 1].eq;
-  const stroke = last >= 0 ? "#46c58c" : "#e05c5c";
-  const fill = last >= 0 ? "rgba(70,197,140,.18)" : "rgba(224,92,92,.15)";
-  const area = `M ${xOf(0).toFixed(1)} ${zeroY.toFixed(1)} L ` +
-    pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.eq).toFixed(1)}`).join(" ") +
-    ` L ${xOf(pts.length - 1).toFixed(1)} ${zeroY.toFixed(1)} Z`;
-  const grid = [0, 0.25, 0.5, 0.75, 1].map(t => {
-    const v = minV + span * t;
-    const y = yOf(v);
-    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" /><text x="4" y="${(y + 3).toFixed(1)}" fill="rgba(255,255,255,.35)" font-size="9">${v.toFixed(1)}</text>`;
-  }).join("");
-  return `<div style="direction:ltr">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span style="font-size:12px;color:var(--mu)">${fa ? "نمودار رشد سرمایه (R)" : "Equity curve (R)"}</span>
-      <span style="font-size:12px;font-weight:700;color:${stroke}">${last >= 0 ? "+" : ""}${last.toFixed(2)}R</span>
-    </div>
-    <svg viewBox="0 0 ${W} ${H}" width="100%" height="150" style="display:block;background:rgba(0,0,0,.2);border-radius:10px">
-      ${grid}
-      <line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W - padR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,.2)" stroke-dasharray="4 4"/>
-      <path d="${area}" fill="${fill}" />
-      <polyline points="${poly}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${pts.map((p, i) => `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(p.eq).toFixed(1)}" r="2.5" fill="${p.eq >= 0 ? "#46c58c" : "#e05c5c"}"/>`).join("")}
-      <text x="${padL}" y="${H - 6}" fill="rgba(255,255,255,.35)" font-size="9">1</text>
-      <text x="${W - padR - 10}" y="${H - 6}" fill="rgba(255,255,255,.35)" font-size="9">#${pts.length - 1}</text>
-    </svg>
-  </div>`;
-}
+
 function renderDailyResults(listEl, sumEl, signals) {
   const fa = currentLang === "fa";
   const rows = (signals || []).map(estimateOutcome);
@@ -2261,247 +2009,34 @@ function renderDailyResults(listEl, sumEl, signals) {
   rows.forEach(s => {
     if (s.result === "win") { wins++; totalR += (s.R != null ? s.R : 2); }
     else if (s.result === "loss") { losses++; totalR += (s.R != null ? s.R : -1); }
-    else if (s.result === "time" || s.result === "fade") {
-      totalR += (s.R != null ? s.R : 0);
-      if ((s.R || 0) > 0) wins++;
-      else if ((s.R || 0) < 0) losses++;
-      else openN++;
-    } else openN++;
+    else { openN++; }
   });
-  const closed = wins + losses;
-  const wr = closed ? Math.round(wins / closed * 100) : 0;
-  const rCol = totalR > 0 ? "var(--gb)" : totalR < 0 ? "var(--rb)" : "var(--mu)";
-  const eqPts = buildEquitySeries(rows);
   if (sumEl) {
     sumEl.style.display = "block";
-    sumEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;direction:ltr">
-        <div><div style="font-size:11px;color:var(--mu)">${fa ? "تعداد" : "Total"}</div><b style="font-size:18px">${rows.length}</b></div>
-        <div><div style="font-size:11px;color:var(--mu)">${fa ? "برد" : "Win"}</div><b style="font-size:18px;color:var(--gb)">${wins}</b></div>
-        <div><div style="font-size:11px;color:var(--mu)">${fa ? "باخت" : "Loss"}</div><b style="font-size:18px;color:var(--rb)">${losses}</b></div>
-        <div><div style="font-size:11px;color:var(--mu)">${fa ? "کل R" : "Net R"}</div><b style="font-size:18px;color:${rCol}">${totalR >= 0 ? "+" : ""}${totalR.toFixed(2)}R</b></div>
-      </div>
-      <div style="margin-top:8px;font-size:12px;color:var(--mu);text-align:center">${fa ? "نرخ موفقیت" : "Win rate"}: <b style="color:var(--tx)">${wr}%</b> · ${fa ? "باز" : "Open"}: ${openN}</div>
-      <div style="margin-top:12px">${equityChartSVG(eqPts, fa)}</div>`;
+    sumEl.innerHTML = `<div style="text-align:center;direction:ltr">Total: ${rows.length} | Wins: ${wins} | Losses: ${losses}</div>`;
   }
   if (!listEl) return;
   if (!rows.length) {
     listEl.innerHTML = `<div style="text-align:center;color:var(--mu);padding:20px;">${T().histNone}</div>`;
     return;
   }
-  rows.sort((a, b) => (b.time || 0) - (a.time || 0));
-  listEl.innerHTML = rows.map(s => {
-    const isL = s.side === "LONG";
-    const date = new Date((s.time || 0) * 1000);
-    const timeStr = date.toLocaleTimeString(fa ? "fa-IR" : "en-US", { hour: "2-digit", minute: "2-digit" });
-    let badge = fa ? "باز" : "Open", bcol = "var(--mu)", border = "var(--bd)";
-    let rTxt = "—";
-    if (s.result === "win") { badge = fa ? "برد" : "WIN"; bcol = "var(--gb)"; border = "rgba(70,197,140,.45)"; rTxt = (s.R != null ? (s.R >= 0 ? "+" : "") + Number(s.R).toFixed(2) : "+2.00") + "R"; }
-    else if (s.result === "loss") { badge = fa ? "باخت" : "LOSS"; bcol = "var(--rb)"; border = "rgba(220,80,80,.45)"; rTxt = (s.R != null ? Number(s.R).toFixed(2) : "-1.00") + "R"; }
-    else if (s.result === "time" || s.why === "FADE" || s.why === "TIME") {
-      const r = s.R != null ? Number(s.R) : 0;
-      badge = fa ? "بسته" : "CLOSED"; bcol = r >= 0 ? "var(--gb)" : "var(--rb)"; border = "var(--bd)";
-      rTxt = (r >= 0 ? "+" : "") + r.toFixed(2) + "R";
-    }
-    const mode = s.mode === "range" ? (fa ? "رنج" : "Range") : (fa ? "روند" : "Trend");
-    const why = s.why ? ` · ${s.why}` : "";
-    const src = s.src ? String(s.src).toUpperCase() : "";
-    const srcBadge = src ? `<span style="font-size:9px;color:var(--mu);border:1px solid var(--bd);padding:2px 5px;border-radius:6px;letter-spacing:.3px">${src}</span>` : "";
-    return `<div style="display:flex;flex-direction:column;gap:6px;background:var(--bg);padding:12px;border-radius:12px;border:1px solid ${border}">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <b style="direction:ltr;font-size:15px">${s.id}</b>
-          <span style="font-size:11px;color:${isL ? "var(--gb)" : "var(--rb)"};border:1px solid ${isL ? "var(--gb)" : "var(--rb)"};padding:2px 6px;border-radius:6px;font-weight:700">${isL ? T().long : T().short}</span>
-          <span style="font-size:10px;color:var(--mu);border:1px solid var(--bd);padding:2px 6px;border-radius:6px">${mode}</span>
-          ${srcBadge}
-        </div>
-        <span style="font-size:11px;font-weight:800;color:${bcol};border:1px solid ${bcol};padding:3px 8px;border-radius:8px">${badge}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;direction:ltr;color:var(--mu);flex-wrap:wrap;gap:6px">
-        <span>Entry <b style="color:var(--tx)">${typeof s.entry === "number" ? s.entry.toFixed(s.d || 5) : "-"}</b></span>
-        <span>SL <b style="color:var(--rb)">${typeof s.sl === "number" ? s.sl.toFixed(s.d || 5) : "-"}</b></span>
-        <span style="color:${bcol}"><b>${rTxt}</b>${why}</span>
-        <span>${timeStr}</span>
-      </div>
-    </div>`;
-  }).join("");
+  listEl.innerHTML = rows.map(s => `<div style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:6px">${s.id} - ${s.side}</div>`).join("");
 }
 
-
 if($("showHist")) $("showHist").onclick = async () => {
-    try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
-    UNREAD = 0;
-    LS("bs_unread", 0);
-    updateUnreadBadge();
-
-    const modal = $("histModal");
-    const list = $("histList");
+    const modal = $("histModal"), list = $("histList");
     if(modal) modal.style.display = "block";
     if(list) list.innerHTML = `<div style="text-align:center;color:var(--mu);">${T().histLoading}</div>`;
-
     try {
-        try { if (window.__pullNative) await window.__pullNative(); } catch (e) {}
-        let remote = [], remoteFailed = false;
-        try { const data = await fetchGitJson('history.json'); remote = data.history || []; } catch (e) { remoteFailed = true; }
-
-        const todayStart = new Date();
-        todayStart.setHours(0,0,0,0);
-        const todayTs = todayStart.getTime() / 1000;
-
-        const todaysSignals = remote.filter(h => h.time >= todayTs);
-        loadLocalHist().filter(h => h.time >= todayTs).forEach(l => {
-            const dup = todaysSignals.some(h => h.id === l.id && h.side === l.side);
-            if (!dup) todaysSignals.push(l);
-        });
-        const seenSym = new Set();
-        const deduped = [];
-        todaysSignals.sort((a,b) => a.time - b.time);
-        todaysSignals.forEach(s => {
-            const k = s.id + "|" + s.side;
-            if (seenSym.has(k)) return;
-            seenSym.add(k);
-            deduped.push(s);
-        });
-        todaysSignals.length = 0;
-        deduped.forEach(s => todaysSignals.push(s));
-        const sum = $("histSummary");
-        renderDailyResults(list, sum, todaysSignals);
+        const data = await fetchGitJson('history.json');
+        renderDailyResults(list, $("histSummary"), data.history || []);
     } catch(e) {
         if(list) list.innerHTML = `<div style="text-align:center;color:var(--rb);padding:20px;">${T().histErr}</div>`;
-        const sum = $("histSummary"); if (sum) sum.style.display = "none";
     }
 };
 if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
 
-try { applyLanguage(); updateSplashLangUi(); } catch(e) { console.error("Init lang error:", e); }
-try {
-  if ($("verl")) $("verl").textContent = " · build " + BUILD + (typeof ENGINE_VER !== "undefined" ? (" · eng " + ENGINE_VER) : "");
-  if ($("upd")) $("upd").textContent = currentLang === "fa" ? "پاک‌کردن کش" : "Clear cache";
-  if ($("setClearCacheLabel") && $("setClearCacheLabel").childNodes[0]) {
-    try {
-      $("setClearCacheLabel").childNodes[0].nodeValue = currentLang === "fa" ? "پاک‌کردن کش و به‌روزرسانی" : "Clear cache & refresh";
-    } catch (e) {}
-  }
-} catch(e) {}
-
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  (function initBgScan() {
-    const cb = document.getElementById('bgscan');
-    const P = window.Capacitor && window.Capacitor.Plugins;
-    const native = !!(P && P.BackgroundScanner);
-    if (!cb) return;
-    if (!native) { cb.disabled = true; cb.checked = false; return; }
-    const on = () => { window.__bgNative = true; };
-    async function startBg(askBattery) {
-      try { if (P.LocalNotifications) await P.LocalNotifications.requestPermissions(); } catch (e) {}
-      try {
-        await P.BackgroundScanner.start();
-        on();
-        if (askBattery && !localStorage.getItem('bs_batt_asked')) {
-          localStorage.setItem('bs_batt_asked', '1');
-          await P.BackgroundScanner.requestBatteryExemption();
-        }
-      } catch (e) { console.warn('BackgroundScanner start failed', e); cb.checked = false; localStorage.setItem('bs_bgscan', 'false'); window.__bgNative = false; }
-    }
-    cb.checked = localStorage.getItem('bs_bgscan') !== 'false';
-    if (cb.checked) startBg(true);
-    async function pullNative() {
-      try {
-        const res = await P.BackgroundScanner.getSignals();
-        const arr = JSON.parse(res.signals || '[]');
-        const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
-        const fresh = arr.filter(x => x && x.k && !have.has(x.k));
-        if (!fresh.length) return;
-        fresh.forEach(x => loc.push(x));
-        saveLocalHist(loc);
-        UNREAD += fresh.length; LS('bs_unread', UNREAD); updateUnreadBadge();
-        try { beep(); } catch (e) {}
-        try { banner(fresh.map(x => ({ id: x.id, mode: x.mode, side: x.side }))); } catch (e) {}
-      } catch (e) { console.warn('pullNative', e); }
-    }
-    window.__pullNative = pullNative;
-    pullNative();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) pullNative(); });
-    const info = document.getElementById('bgInfo'), chk = document.getElementById('bgCheck');
-    const ageMin = (t) => {
-      if (t === undefined || t === null || t === '' || t === 'null') return null;
-      let ms = (typeof t === 'number' || /^\d+(\.\d+)?$/.test(String(t))) ? Number(t) : Date.parse(t);
-      if (!isFinite(ms)) return null;
-      if (ms < 1e12) ms *= 1000;
-      return Math.round((Date.now() - ms) / 60000);
-    };
-    async function showStatus() {
-      if (!info) return;
-      try {
-        const st = await P.BackgroundScanner.getStatus();
-        let d = {}; try { d = JSON.parse(st.diag || '{}'); } catch (e) {}
-        const lines = [
-          'سرویس: ' + (st.enabled ? 'روشن ✅' : 'خاموش ❌') + ' · اعلان‌ها: ' + (st.notificationsEnabled ? 'مجاز ✅' : 'بسته ❌ (از تنظیمات گوشی باز کن)')
-        ];
-        if (d.last_run) {
-          const a = ageMin(d.data_time);
-          lines.push('آخرین اسکن: ' + d.last_run + (d.fetch_ok ? '' : ' · دریافت data.json ناموفق ❌'));
-          lines.push('ردیف‌ها: ' + d.rows + ' · دارای سیگنال: ' + d.with_side + ' · تازه: ' + d.fresh + ' · قدیمی‌شده: ' + d.stale);
-          lines.push('سن data.json: ' + (a === null ? 'نامشخص (' + d.data_time + ')' : a + ' دقیقه') );
-        } else lines.push('هنوز اسکنی انجام نشده');
-        info.innerHTML = lines.join('<br>');
-      } catch (e) { info.textContent = 'خطا: ' + (e.message || e); }
-    }
-    if (chk) chk.onclick = async () => {
-      info.textContent = 'در حال اسکن…';
-      try { await P.BackgroundScanner.scanNow(); } catch (e) {}
-      setTimeout(showStatus, 5000);
-    };
-    showStatus();
-    cb.onchange = async () => {
-      localStorage.setItem('bs_bgscan', cb.checked);
-      if (cb.checked) { await startBg(true); }
-      else { window.__bgNative = false; try { await P.BackgroundScanner.stop(); } catch (e) {} }
-    };
-  })();
-
-  if (window.Capacitor && window.Capacitor.Plugins.LocalNotifications) {
-    const { LocalNotifications } = window.Capacitor.Plugins;
-    LocalNotifications.createChannel({ id: 'signals', name: 'سیگنال‌ها', importance: 5 });
-    LocalNotifications.createChannel({ id: 'prices', name: 'هشدارهای قیمت', importance: 4 });
-  }
-});
-</script>
-<script id="hardcoded-settings">
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const ghr = document.getElementById('ghr');
-      if (ghr && (!ghr.value || ghr.value === 'user/repo')) {
-        ghr.value = 'massud2020/Balanced-Screener';
-        ghr.dispatchEvent(new Event('change')); 
-      }
-      
-      const ght = document.getElementById('ght');
-      if (ght && !ght.value) {
-        ght.value = atob("Z2hwX3BXQmJJY25vZUxYcWtqeVFKeDR6U05oR0V2THJOejBsZmdJTw==");
-        ght.dispatchEvent(new Event('change')); 
-      }
-    }, 800); 
-  });
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => reg.update())
-      .catch(err => console.warn('SW registration failed', err));
-  });
-}
-
-setTimeout(function () {
-  var s = document.getElementById("ai-splash");
-  if (s && !s.classList.contains("hidden") && !s.dataset.started) {
-    s.classList.add("hidden");
-    s.style.display = "none";
-  }
-}, 15000);
+try { applyLanguage(); updateSplashLangUi(); } catch(e) {}
 </script>
 </body>
 </html>
