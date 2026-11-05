@@ -911,7 +911,7 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ [FIXED & SAFE] نسخه ایمن و اصلاح‌شده‌ی __startAppFull برای جلوگیری از فریز شدن صفحه */
+/* ✨ نسخه کامل، بهینه‌سازی‌شده و ایمن __startAppFull برای اجرای صوت و صفحه خوشامدگویی */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
@@ -970,13 +970,13 @@ window.__startAppFull = window.startApp = async function () {
       if (el) el.textContent = display;
 
       if (mute) {
-        await new Promise(function (r) { setTimeout(r, 600); });
+        await new Promise(function (r) { setTimeout(r, 500); });
         return;
       }
 
       return new Promise(function(resolve) {
          let done = false;
-         var durationMs = Math.max(1500, Math.min(6000, display.length * 80));
+         var durationMs = Math.max(1200, Math.min(4000, display.length * 70));
 
          const finish = () => {
             if (done) return;
@@ -984,16 +984,25 @@ window.__startAppFull = window.startApp = async function () {
             resolve();
          };
 
-         setTimeout(finish, durationMs);
+         var timer = setTimeout(finish, durationMs);
 
          try {
             if (window.speechSynthesis) {
+               window.speechSynthesis.cancel();
                const u = new SpeechSynthesisUtterance(spoken);
                u.lang = fa ? "fa-IR" : "en-US";
                u.rate = 1.0;
-               u.onend = finish;
-               u.onerror = finish;
-               speechSynthesis.speak(u);
+               u.onend = function() {
+                  clearTimeout(timer);
+                  finish();
+               };
+               u.onerror = function() {
+                  clearTimeout(timer);
+                  finish();
+               };
+               setTimeout(function() {
+                  try { window.speechSynthesis.speak(u); } catch(e) { finish(); }
+               }, 30);
             } else {
                finish();
             }
@@ -1003,7 +1012,7 @@ window.__startAppFull = window.startApp = async function () {
       });
     }
 
-    var failsafe = setTimeout(closeNow, 15000);
+    var failsafe = setTimeout(closeNow, 12000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
@@ -1023,9 +1032,7 @@ window.__startAppFull = window.startApp = async function () {
             new Promise(function(r) { setTimeout(r, 2000); })
           ]);
         }
-      } catch (e) {
-        console.warn("Startup scan warning:", e);
-      }
+      } catch (e) {}
 
       var regime = "pattern";
       try {
@@ -1035,7 +1042,7 @@ window.__startAppFull = window.startApp = async function () {
         if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
       } catch (e) {}
 
-      await new Promise(function (r) { setTimeout(r, 400); });
+      await new Promise(function (r) { setTimeout(r, 300); });
     } catch (err) {
       console.warn("startApp warning:", err);
     } finally {
@@ -1237,10 +1244,6 @@ window.hotReloadFromGitHub = async function () {
   }
   return false;
 };
-
-(function scheduleHotReload() {
-  const run = () => { try { window.hotReloadFromGitHub(); } catch (e) {} };
-})();
 
 const BUILD=85,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<49?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
 const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
