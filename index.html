@@ -226,16 +226,16 @@ body[dir="ltr"] .ci { direction: ltr; }
 </head>
 <body>
 
-<div id="ai-splash">
+<div id="ai-splash" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center">
     <div id="splashLangBar" style="position:absolute;top:calc(env(safe-area-inset-top) + 12px);inset-inline-end:14px;z-index:10001;display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:4px">
       <button type="button" id="splashLangFa" data-lang="fa" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">FA</button>
       <button type="button" id="splashLangEn" data-lang="en" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">EN</button>
     </div>
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
     <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
-    <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
+    <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500;margin-bottom:20px">برای ورود ضربه بزنید</div>
     <div class="ai-loading" id="ai-loading"><u></u></div>
-    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
+    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:12px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
     <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
     <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
       <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
@@ -245,7 +245,9 @@ body[dir="ltr"] .ci { direction: ltr; }
 
 <script>
 (function(){
+  window.__splashActive = true;
   function killSplash(){
+    window.__splashActive = false;
     try{
       var s=document.getElementById('ai-splash');
       if(s){
@@ -256,6 +258,12 @@ body[dir="ltr"] .ci { direction: ltr; }
         s.style.pointerEvents='none';
       }
     }catch(e){}
+    try {
+      if (window.__pendingSay) {
+        window.__pendingSay();
+        window.__pendingSay = null;
+      }
+    } catch(e) {}
   }
   window.hideSplash = function(){ killSplash(); };
   window.startApp = function(){
@@ -607,150 +615,8 @@ try {
     const pt = parseFloat(LS("bs_tts_pitch")); if (!isNaN(pt)) TTS_CFG.pitch = pt;
     const vi = parseInt(LS("bs_tts_voice")); if (!isNaN(vi)) TTS_CFG.voiceIndex = vi;
 } catch (e) {}
-function ttsExtractAudio(res) {
-    if (!res) return null;
-    if (typeof res === 'string') res = { audio: res };
-    if (typeof res !== 'object') return null;
-    const mime = res.mimeType || res.mime || res.contentType || 'audio/mpeg';
-    for (const k of ['audio', 'audioBase64', 'base64', 'audioData', 'data', 'content']) {
-        const v = res[k];
-        if (typeof v === 'string' && v.length > 200) {
-            return v.startsWith('data:') ? v : 'data:' + mime + ';base64,' + v;
-        }
-    }
-    for (const k of ['uri', 'url', 'path', 'filePath', 'file', 'audioPath']) {
-        const v = res[k];
-        if (typeof v === 'string' && v) {
-            if (/^(https?:|data:|blob:)/.test(v)) return v;
-            const cap = window.Capacitor;
-            return cap && cap.convertFileSrc ? cap.convertFileSrc(v) : v;
-        }
-    }
-    return null;
-}
-function ttsRateVariants() {
-    const n = TTS_CFG.rate;
-    const all = {
-        string: (n >= 0 ? "+" : "") + n + "%",
-        number: n,
-        multiplier: Math.round((1 + n / 100) * 100) / 100
-    };
-    const order = [TTS_CFG.mode, ...["string", "number", "multiplier"].filter(k => k !== TTS_CFG.mode)];
-    return order.map(k => all[k]);
-}
 
-async function playAudioUrl(url) {
-  return new Promise((resolve, reject) => {
-    try {
-      if (window.__currentTTSAudio) {
-        try { window.__currentTTSAudio.pause(); } catch(e){}
-      }
-      const audio = new Audio(url);
-      window.__currentTTSAudio = audio;
-      audio.preload = "auto";
-      let done = false;
-      const finish = () => { if (done) return; done = true; resolve(); };
-      audio.onended = finish;
-      audio.onerror = () => reject(new Error("audio error"));
-      const guard = setTimeout(finish, 12000);
-      audio.play().then(() => {
-        try {
-          if (audio.duration && isFinite(audio.duration)) {
-            clearTimeout(guard);
-            setTimeout(finish, Math.ceil(audio.duration * 1000) + 400);
-          }
-        } catch (e) {}
-      }).catch(reject);
-    } catch (e) { reject(e); }
-  });
-}
-
-async function speakAI(text) {
-  if (!text) return;
-  if (LS("bs_tts_off") === "1") return;
-  const raw = String(text).trim();
-  if (!raw) return;
-  const fa = currentLang === "fa";
-  const voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
-  const engine = (TTS_CFG && TTS_CFG.engine) || "auto";
-
-  if (engine !== "android" && window.Capacitor && window.Capacitor.Plugins) {
-    const Edge = window.Capacitor.Plugins.EdgeTTS || window.Capacitor.Plugins.EdgeTts || window.Capacitor.Plugins.TextToSpeechEdge;
-    if (Edge && typeof Edge.synthesize === "function") {
-      try {
-        const rates = typeof ttsRateVariants === "function" ? ttsRateVariants() : ["+0%"];
-        let lastErr = null;
-        const t0 = Date.now();
-        for (const rate of rates) {
-          try {
-            const res = await Edge.synthesize({ text: raw, voice, rate: String(rate) });
-            const src = typeof ttsExtractAudio === "function" ? ttsExtractAudio(res) : null;
-            if (src) {
-              await playAudioUrl(src);
-              return;
-            }
-          } catch (e) {
-            lastErr = e;
-            if (Date.now() - t0 > 5000) return;
-          }
-        }
-        if (lastErr) console.warn("EdgeTTS plugin", lastErr);
-      } catch (e) {
-        console.warn("EdgeTTS plugin", e);
-      }
-    }
-  }
-
-  if (engine !== "android") {
-    try {
-      const url = "https://api.streamelements.com/kappa/v2/speech?voice=" +
-        encodeURIComponent(voice) + "&text=" + encodeURIComponent(raw);
-      await playAudioUrl(url);
-      return;
-    } catch (e) {
-      console.warn("Web neural TTS failed", e);
-    }
-  }
-
-  await speakNative(raw, fa ? "fa-IR" : "en-US");
-}
-
-(function initTtsExtra() {
-    const eng = document.getElementById("ttsEngine"), vs = document.getElementById("ttsVoice");
-    const pt = document.getElementById("ttsPitch"), pv = document.getElementById("ttsPitchVal"), ins = document.getElementById("ttsInstall");
-    if (eng) { eng.value = TTS_CFG.engine; eng.onchange = () => { TTS_CFG.engine = eng.value; LS("bs_tts_engine", eng.value); }; }
-    if (pt) { pt.value = TTS_CFG.pitch; if (pv) pv.textContent = TTS_CFG.pitch.toFixed(2);
-        pt.oninput = () => { TTS_CFG.pitch = parseFloat(pt.value); if (pv) pv.textContent = TTS_CFG.pitch.toFixed(2); LS("bs_tts_pitch", pt.value); }; }
-    const TT = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
-    if (ins) ins.onclick = async () => { try { await TT.openInstall(); } catch (e) { alert("نصب صدا: Settings ▸ System ▸ Languages ▸ Text-to-speech output را باز کن"); } };
-    async function fillVoices() {
-        if (!TT || !vs) return;
-        try {
-            const r = await TT.getSupportedVoices();
-            const list = (r && r.voices) || [];
-            vs.innerHTML = '<option value="">پیش‌فرض گوشی</option>';
-            list.forEach((v, i) => {
-                const lang = String(v.lang || "");
-                if (!/^fa|^en/i.test(lang)) return;
-                const o = document.createElement("option");
-                o.value = i; o.textContent = (v.name || ("voice " + i)) + " · " + lang;
-                vs.appendChild(o);
-            });
-            vs.value = TTS_CFG.voiceIndex >= 0 ? String(TTS_CFG.voiceIndex) : "";
-            vs.onchange = () => { TTS_CFG.voiceIndex = vs.value === "" ? -1 : parseInt(vs.value); LS("bs_tts_voice", vs.value === "" ? "-1" : vs.value); };
-        } catch (e) { console.warn("getSupportedVoices", e); }
-    }
-    fillVoices();
-})();
-
-(function initTtsUi() {
-    const sl = document.getElementById("ttsRate"), sv = document.getElementById("ttsRateVal"), md = document.getElementById("ttsMode");
-    if (sl) { sl.value = TTS_CFG.rate; if (sv) sv.textContent = TTS_CFG.rate;
-        sl.oninput = () => { TTS_CFG.rate = parseInt(sl.value); if (sv) sv.textContent = sl.value; LS("bs_tts_rate", sl.value); }; }
-    if (md) { md.value = TTS_CFG.mode; md.onchange = () => { TTS_CFG.mode = md.value; LS("bs_tts_mode", md.value); }; }
-})();
-
-window.testVoice = async () => { if (currentLang==="fa") await speakAI("تست صدا. سیگنال لانگ یورو، شورت طلا."); else await speakAI("Voice test. Signal long euro, short gold."); };
+window.testVoice = async () => { if (currentLang==="fa") await speakNative("تست صدا. سیگنال لانگ یورو، شورت طلا.", "fa-IR"); else await speakNative("Voice test. Signal long euro, short gold.", "en-US"); };
 
 window.clearCache = async () => {
     const btn = $("upd");
@@ -853,6 +719,7 @@ function detectMarketRegime() {
 
 window.emergencySkipSplash = function(){ try { window.hideSplash(); } catch(e) {} };
 window.hideSplash = function () {
+    window.__splashActive = false;
     try {
       var splash = document.getElementById("ai-splash");
       if (splash) {
@@ -864,6 +731,12 @@ window.hideSplash = function () {
       }
     } catch (e) {}
     try { if (typeof LAST !== "undefined" && LAST && typeof renderList === "function") renderList(); } catch (e) {}
+    try {
+      if (window.__pendingSay) {
+        window.__pendingSay();
+        window.__pendingSay = null;
+      }
+    } catch(e) {}
 };
 (function forceShowSplashOnBoot(){
   try {
@@ -911,7 +784,7 @@ function setAppLanguage(lang) {
   try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* ✨ نسخه کامل، بهینه‌سازی‌شده و ایمن __startAppFull برای اجرای صوت و صفحه خوشامدگویی */
+/* ✨ [FIX] نسخه ایمن و هماهنگ startAppFull با Native TTS و تایمر نجات‌بخش */
 window.__startAppFull = window.startApp = async function () {
     var closed = false;
     function closeNow() {
@@ -967,42 +840,60 @@ window.__startAppFull = window.startApp = async function () {
       var display = String(showText || "");
       var spoken = String(speakText || showText || "");
       var el = document.getElementById("ai-text");
-      if (el) el.textContent = display;
+      if (el) el.textContent = "";
 
       if (mute) {
-        await new Promise(function (r) { setTimeout(r, 500); });
+        if (el) el.textContent = display;
+        await new Promise(function (r) { setTimeout(r, 800); });
         return;
       }
 
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+          try { window.Capacitor.Plugins.TextToSpeech.stop(); } catch (e2) {}
+        }
+      } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 100); });
+
       return new Promise(function(resolve) {
          let done = false;
-         var durationMs = Math.max(1200, Math.min(4000, display.length * 70));
+         let t0 = Date.now();
+         let iv = null;
+         var perChar = fa ? 120 : 100;
+         var durationMs = Math.max(2000, Math.min(15000, display.length * perChar));
 
          const finish = () => {
             if (done) return;
             done = true;
-            resolve();
+            if (iv) clearInterval(iv);
+            if (el) el.textContent = display;
+            setTimeout(resolve, 300);
          };
 
-         var timer = setTimeout(finish, durationMs);
+         t0 = Date.now();
+         iv = setInterval(function() {
+            var elapsed = Date.now() - t0;
+            var progress = Math.min(1, elapsed / durationMs);
+            var n = Math.floor(progress * display.length);
+            if (el) el.textContent = display.slice(0, n);
+         }, 40);
+
+         setTimeout(finish, durationMs + 3000);
 
          try {
-            if (window.speechSynthesis) {
-               window.speechSynthesis.cancel();
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+               window.Capacitor.Plugins.TextToSpeech.speak({
+                  text: spoken, lang: fa ? "fa-IR" : "en-US",
+                  rate: 1.0, pitch: 1.0, category: "ambient"
+               }).then(finish).catch(finish);
+            } else if (window.speechSynthesis) {
                const u = new SpeechSynthesisUtterance(spoken);
                u.lang = fa ? "fa-IR" : "en-US";
                u.rate = 1.0;
-               u.onend = function() {
-                  clearTimeout(timer);
-                  finish();
-               };
-               u.onerror = function() {
-                  clearTimeout(timer);
-                  finish();
-               };
-               setTimeout(function() {
-                  try { window.speechSynthesis.speak(u); } catch(e) { finish(); }
-               }, 30);
+               u.onend = finish;
+               u.onerror = finish;
+               speechSynthesis.speak(u);
             } else {
                finish();
             }
@@ -1012,7 +903,7 @@ window.__startAppFull = window.startApp = async function () {
       });
     }
 
-    var failsafe = setTimeout(closeNow, 12000);
+    var failsafe = setTimeout(closeNow, 60000);
 
     try {
       try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
@@ -1029,7 +920,7 @@ window.__startAppFull = window.startApp = async function () {
         if (typeof scan === "function") {
           await Promise.race([
             scan(true),
-            new Promise(function(r) { setTimeout(r, 2000); })
+            new Promise(function(r) { setTimeout(r, 3500); })
           ]);
         }
       } catch (e) {}
@@ -1042,9 +933,22 @@ window.__startAppFull = window.startApp = async function () {
         if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
       } catch (e) {}
 
-      await new Promise(function (r) { setTimeout(r, 300); });
+      var isTrend = (regime === "pattern");
+      var regimeShow = fa
+        ? (isTrend ? "رژیم بازار: روند" : "رژیم بازار: رنج")
+        : (isTrend ? "Market regime: Trend" : "Market regime: Range");
+      var regimeSpeak = fa
+        ? (isTrend
+            ? "رژیم بازار روند است. استراتژی الگوی سه به علاوه یک انتخاب شد."
+            : "رژیم بازار رنج است. استراتژی رنج انتخاب شد.")
+        : (isTrend
+            ? "Market regime is trend. Pattern three plus one strategy selected."
+            : "Market regime is range. Range strategy selected.");
+
+      await playLine(regimeShow, regimeSpeak);
+      await new Promise(function (r) { setTimeout(r, 600); });
     } catch (err) {
-      console.warn("startApp warning:", err);
+      console.error("startApp", err);
     } finally {
       clearTimeout(failsafe);
       closeNow();
@@ -1794,7 +1698,7 @@ function say(fr){
     const text = fa
       ? ("سیگنال " + parts.join("، ") + extra)
       : ("Signal: " + parts.join(", ") + extra);
-    speakAI(text).catch(() => speakNative(text, fa ? "fa-IR" : "en-US"));
+    speakNative(text, fa ? "fa-IR" : "en-US");
   } catch (e) { console.warn("say", e); }
 }
 
@@ -1815,6 +1719,15 @@ function speakNative(text, forceLang) {
     const guard = setTimeout(finish, 12000);
 
     try {
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+        window.Capacitor.Plugins.TextToSpeech.speak({
+          text: raw, lang: lang, rate: 1.0, pitch: 1.0, volume: 1.0, category: "ambient"
+        }).then(() => { clearTimeout(guard); finish(); }).catch(() => { clearTimeout(guard); finish(); });
+        return;
+      }
+    } catch (e) {}
+
+    try {
       if (window.speechSynthesis) {
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(raw);
@@ -1833,7 +1746,14 @@ function speakNative(text, forceLang) {
 function alertNow(fr){
   try { beep(); } catch(e) {}
   try { banner(fr); } catch(e) {}
-  try { say(fr); } catch(e) {}
+
+  const doSay = () => { try { say(fr); } catch(e) {} };
+  if (window.__splashActive) {
+    window.__pendingSay = doSay;
+  } else {
+    setTimeout(doSay, 450);
+  }
+
   try { navigator.vibrate && navigator.vibrate([180, 80, 180]); } catch(e) {}
 }
 if($("bn")) $("bn").onclick=e=>{const w=e.target.closest(".bi");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
