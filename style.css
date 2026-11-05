@@ -1,0 +1,120 @@
+body {
+    background-color: #0f172a;
+    color: #f8fafc;
+    font-family: Tahoma, sans-serif;
+    margin: 0;
+    padding: 15px;
+    direction: rtl;
+}
+
+.screener-history-panel {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.pnl-summary-card {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+.pnl-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-left: 1px solid #334155;
+}
+.pnl-item:last-child { border-left: none; }
+.pnl-label { font-size: 11px; color: #94a3b8; }
+.pnl-value { font-size: 15px; font-weight: bold; color: #f8fafc; }
+
+.time-filter-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+.filter-time-btn {
+    background-color: #334155;
+    color: #cbd5e1;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+}
+.filter-time-btn.active {
+    background-color: #10b981;
+    color: #fff;
+}
+
+.chart-section {
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.chart-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #fff;
+}
+
+.history-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.history-tabs .tab-btn {
+    background-color: #334155;
+    color: #cbd5e1;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    flex: 1;
+}
+.history-tabs .tab-btn.active {
+    background-color: #3b82f6;
+    color: #fff;
+}
+
+.signal-card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 12px;
+}
+.signal-card.win { border-right: 5px solid #22c55e; }
+.signal-card.loss { border-right: 5px solid #ef4444; }
+.signal-card.open { border-right: 5px solid #3b82f6; }
+
+.signal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+.strategy-badge {
+    background-color: #475569;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #fff;
+}
+.signal-details p {
+    margin: 5px 0;
+    font-size: 13px;
+    color: #cbd5e1;
+}
