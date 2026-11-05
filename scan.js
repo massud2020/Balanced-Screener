@@ -58,8 +58,19 @@ function scanMarkets() {
 function monitorActivePositions() {
   let activeSignals = loadActiveSignals();
   
+  // 🛠 اصلاح اصلی: بررسی اینکه آیا دیتا واقعاً یک آرایه است یا خیر
+  if (!Array.isArray(activeSignals)) {
+    console.warn("[Warning] activeSignals is not an array. Resetting to empty array.");
+    activeSignals = [];
+  }
+
   activeSignals = activeSignals.map(signal => {
+    // جلوگیری از خطا در صورتی که ساختار سیگنال ناقص باشد
+    if (!signal || !signal.symbol) return signal;
+
     const currentPrice = getCurrentMarketPrice(signal.symbol);
+    if (!currentPrice) return signal; // اگر قیمت دریافت نشد، از این سیگنال عبور کن
+
     const currentAtr = getCurrentAtr(signal.symbol) || (signal.entry * 0.002);
 
     if (signal.side === "LONG") {
@@ -102,9 +113,31 @@ function monitorActivePositions() {
 function fetchCandles(symbol, timeframe) { /* اتصال به OANDA / OKX */ return []; }
 function getCurrentMarketPrice(symbol) { return 0; }
 function getCurrentAtr(symbol) { return 0; }
-function saveActiveSignals(signals) { fs.writeFileSync('./data.json', JSON.stringify(signals, null, 2)); }
+
+function saveActiveSignals(signals) { 
+  // مطمئن می‌شویم که همیشه یک آرایه ذخیره می‌شود
+  const dataToSave = Array.isArray(signals) ? signals : [];
+  fs.writeFileSync('./data.json', JSON.stringify(dataToSave, null, 2)); 
+}
+
 function loadActiveSignals() {
-  try { return JSON.parse(fs.readFileSync('./data.json', 'utf8')); } catch (e) { return []; }
+  try {
+    const rawData = fs.readFileSync('./data.json', 'utf8');
+    const parsed = JSON.parse(rawData);
+    
+    // 🛠 اصلاح اصلی: پشتیبانی از هر دو ساختار (آرایه مستقیم یا آبجکت دارای کلید rows)
+    if (Array.isArray(parsed)) {
+      return parsed;
+    } else if (parsed && Array.isArray(parsed.rows)) {
+      return parsed.rows; // اگر از کد طولانی قبلی شما دیتا مانده باشد
+    } else if (parsed && Array.isArray(parsed.active)) {
+      return parsed.active;
+    }
+    
+    return []; // اگر هیچکدام نبود، آرایه خالی برگردان
+  } catch (e) { 
+    return []; // در صورت نبود فایل یا خرابی JSON
+  }
 }
 
 // زمان‌بندی اجرای اسکنر و مانیتورینگ
