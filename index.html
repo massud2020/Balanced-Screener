@@ -205,19 +205,20 @@ select:focus-visible {
 
 button.ic {
     width: 38px;
-    min-width: 38px;
+    height: 38px;
     padding: 0;
-    font-size: 16px;
     display: grid;
     place-items: center;
     position: relative;
+    flex-shrink: 0;
 }
 button.ic .ico {
-    width: 21px;
-    height: 21px;
+    width: 20px;
+    height: 20px;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.7;
+    display: block;
 }
 button.ic.on { border-color: var(--gb); color: var(--gb); }
 
