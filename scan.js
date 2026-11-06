@@ -3,14 +3,26 @@
 const fs = require('fs');
 const engine = require('./engine');
 
-// بارگذاری لیست نمادها (فرض بر وجود فایل symbols.js یا آرایه نمادها)
-const symbols = require('./symbols'); 
+// ۱. بارگذاری و اعتبارسنجی لیست نمادها
+const symbolsModule = require('./symbols');
+
+// استخراج آرایه نمادها از هر ساختاری که ماژول symbols.js برگردانده باشد
+const symbols = Array.isArray(symbolsModule) 
+  ? symbolsModule 
+  : (symbolsModule && Array.isArray(symbolsModule.symbols)) 
+    ? symbolsModule.symbols 
+    : [];
+
+if (symbols.length === 0) {
+  console.error("[Fatal] No valid symbols array found in symbols.js. Please check its export format.");
+}
 
 function scanMarkets() {
   console.log(`[Scan Start] ${new Date().toISOString()} - شروع اسکن بازارها...`);
   
   let newSignals = [];
 
+  // ۲. حالا symbols به طور تضمینی یک آرایه است و for...of بدون خطا اجرا می‌شود
   for (const symObj of symbols) {
     const symbol = symObj.symbol || symObj;
     
