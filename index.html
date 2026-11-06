@@ -1716,25 +1716,31 @@ html,body{margin:0;padding:0;background:#0b0d11;color:#e6e9ee;font-family:"Segoe
 <div id="cdn-warn"></div>
 
 <header class="bar">
+  <div class="acts left">
+    <button class="ic" id="langToggle" aria-label="Language">EN</button>
+  </div>
+
+  <div class="brand">
+    <div class="logo-row"><i>◈</i> Balanced Screener</div>
+    <small id="ver"></small>
+  </div>
+
   <div class="acts right">
-  <!-- آیکون تاریخچه (تقویم) -->
-  <button class="ic" id="showHist" aria-label="History">
-    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2.5"/>
-      <path d="M16 2v4M8 2v4M3 10h18"/>
-      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
-    </svg>
-    <span id="unreadBadge" class="badge">0</span>
-  </button>
-  
-  <!-- آیکون تنظیمات (چرخ‌دنده) -->
-  <button class="ic" id="gs" aria-label="Settings">
-    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  </button>
-</div>
+    <button class="ic" id="showHist" aria-label="History">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2.5"/>
+        <path d="M16 2v4M8 2v4M3 10h18"/>
+        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+      </svg>
+      <span id="unreadBadge" class="badge">0</span>
+    </button>
+    <button class="ic" id="gs" aria-label="Settings">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+  </div>
 </header>
 
 <section class="ctl">
