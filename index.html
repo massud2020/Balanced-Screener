@@ -514,12 +514,34 @@ window.__startAppFull = async function(){
   var lines = fa ? ["خوش آمدید.","در حال آماده‌سازی...","بازارها بررسی می‌شوند."] : ["Welcome.","Getting ready...","Checking markets."];
 
   async function playLine(show){
-    var el = $("ai-text");
-    if(el) el.textContent = show;
-    // اگر کاربر skip زد، فوراً متوقف شو
-    if(window.__splashClosed) return;
-    await new Promise(r => setTimeout(r, 600)); // 1500→600
-  }
+  var el = $("ai-text");
+  if(el) el.textContent = show;
+  if(window.__splashClosed) return;
+
+  return new Promise(function(resolve) {
+      let finished = false;
+      const finish = () => { if(finished) return; finished = true; resolve(); };
+
+      // کدهای مربوط به پخش صدا (TTS)
+      try {
+        if (window.speechSynthesis) {
+           const u = new SpeechSynthesisUtterance(show);
+           u.lang = currentLang === "fa" ? "fa-IR" : "en-US";
+           u.rate = 1.0;
+           u.onend = finish;
+           u.onerror = finish;
+           speechSynthesis.speak(u);
+        } else {
+           setTimeout(finish, 1500); 
+        }
+      } catch(e) {
+        setTimeout(finish, 1500);
+      }
+
+      // در صورتی که صدا پخش نشد، بعد از ۴ ثانیه برو مرحله بعد
+      setTimeout(finish, 4000);
+  });
+}
 
   var failsafe = setTimeout(closeNow, 40000);
 
