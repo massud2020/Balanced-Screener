@@ -3,18 +3,22 @@
 const fs = require('fs');
 const engine = require('./engine');
 
-// ۱. بارگذاری و اعتبارسنجی لیست نمادها
+// ۱. بارگذاری و اعتبارسنجی لیست نمادها (با توجه به ساختار فایل symbols.js شما)
 const symbolsModule = require('./symbols');
 
-// استخراج آرایه نمادها از هر ساختاری که ماژول symbols.js برگردانده باشد
-const symbols = Array.isArray(symbolsModule) 
-  ? symbolsModule 
-  : (symbolsModule && Array.isArray(symbolsModule.symbols)) 
-    ? symbolsModule.symbols 
-    : [];
+let symbols = [];
+if (Array.isArray(symbolsModule)) {
+  symbols = symbolsModule;
+} else if (symbolsModule && Array.isArray(symbolsModule.U)) {
+  symbols = symbolsModule.U; // 👈 اصلاح اصلی: نام متغیر در فایل شما U است
+} else if (symbolsModule && Array.isArray(symbolsModule.symbols)) {
+  symbols = symbolsModule.symbols;
+}
 
+// اگر آرایه خالی بود، برنامه را با خطا متوقف کن تا در حلقه بی‌پایان نیفتد
 if (symbols.length === 0) {
   console.error("[Fatal] No valid symbols array found in symbols.js. Please check its export format.");
+  process.exit(1); 
 }
 
 function scanMarkets() {
@@ -22,7 +26,6 @@ function scanMarkets() {
   
   let newSignals = [];
 
-  // ۲. حالا symbols به طور تضمینی یک آرایه است و for...of بدون خطا اجرا می‌شود
   for (const symObj of symbols) {
     const symbol = symObj.symbol || symObj;
     
@@ -70,18 +73,17 @@ function scanMarkets() {
 function monitorActivePositions() {
   let activeSignals = loadActiveSignals();
   
-  // 🛠 اصلاح اصلی: بررسی اینکه آیا دیتا واقعاً یک آرایه است یا خیر
+  // بررسی اینکه آیا دیتا واقعاً یک آرایه است یا خیر
   if (!Array.isArray(activeSignals)) {
     console.warn("[Warning] activeSignals is not an array. Resetting to empty array.");
     activeSignals = [];
   }
 
   activeSignals = activeSignals.map(signal => {
-    // جلوگیری از خطا در صورتی که ساختار سیگنال ناقص باشد
     if (!signal || !signal.symbol) return signal;
 
     const currentPrice = getCurrentMarketPrice(signal.symbol);
-    if (!currentPrice) return signal; // اگر قیمت دریافت نشد، از این سیگنال عبور کن
+    if (!currentPrice) return signal; 
 
     const currentAtr = getCurrentAtr(signal.symbol) || (signal.entry * 0.002);
 
@@ -97,7 +99,7 @@ function monitorActivePositions() {
       if (signal.mode === "pattern" && signal.tp1Hit) {
         const suggestedSl = currentPrice - (currentAtr * 1.5);
         if (suggestedSl > signal.sl) {
-          signal.sl = suggestedSl; // بالا آوردن حد ضرر پشت قیمت
+          signal.sl = suggestedSl;
         }
       }
     } else if (signal.side === "SHORT") {
@@ -110,7 +112,7 @@ function monitorActivePositions() {
       if (signal.mode === "pattern" && signal.tp1Hit) {
         const suggestedSl = currentPrice + (currentAtr * 1.5);
         if (suggestedSl < signal.sl) {
-          signal.sl = suggestedSl; // پایین آوردن حد ضرر پشت قیمت
+          signal.sl = suggestedSl;
         }
       }
     }
@@ -127,7 +129,6 @@ function getCurrentMarketPrice(symbol) { return 0; }
 function getCurrentAtr(symbol) { return 0; }
 
 function saveActiveSignals(signals) { 
-  // مطمئن می‌شویم که همیشه یک آرایه ذخیره می‌شود
   const dataToSave = Array.isArray(signals) ? signals : [];
   fs.writeFileSync('./data.json', JSON.stringify(dataToSave, null, 2)); 
 }
@@ -137,18 +138,17 @@ function loadActiveSignals() {
     const rawData = fs.readFileSync('./data.json', 'utf8');
     const parsed = JSON.parse(rawData);
     
-    // 🛠 اصلاح اصلی: پشتیبانی از هر دو ساختار (آرایه مستقیم یا آبجکت دارای کلید rows)
     if (Array.isArray(parsed)) {
       return parsed;
     } else if (parsed && Array.isArray(parsed.rows)) {
-      return parsed.rows; // اگر از کد طولانی قبلی شما دیتا مانده باشد
+      return parsed.rows; 
     } else if (parsed && Array.isArray(parsed.active)) {
       return parsed.active;
     }
     
-    return []; // اگر هیچکدام نبود، آرایه خالی برگردان
+    return []; 
   } catch (e) { 
-    return []; // در صورت نبود فایل یا خرابی JSON
+    return []; 
   }
 }
 
