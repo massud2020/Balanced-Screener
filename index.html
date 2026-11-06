@@ -2215,14 +2215,17 @@ window.__startAppFull = async function(){
       let finished = false;
       const finish = () => { if(finished) return; finished = true; resolve(); };
 
-      // کدهای مربوط به پخش صدا (TTS)
       try {
         if (window.speechSynthesis) {
+           window.speechSynthesis.cancel(); 
            const u = new SpeechSynthesisUtterance(show);
            u.lang = currentLang === "fa" ? "fa-IR" : "en-US";
-           u.rate = 1.0;
+           u.volume = 1.0; // حداکثر صدا
+           u.rate = 0.9;   // کمی آهسته‌تر برای وضوح بیشتر
            u.onend = finish;
            u.onerror = finish;
+           
+           // پخش صدا
            speechSynthesis.speak(u);
         } else {
            setTimeout(finish, 1500); 
@@ -2231,10 +2234,9 @@ window.__startAppFull = async function(){
         setTimeout(finish, 1500);
       }
 
-      // در صورتی که صدا پخش نشد، بعد از ۴ ثانیه برو مرحله بعد
-      setTimeout(finish, 4000);
+      setTimeout(finish, 4000); 
   });
-}
+  }
 
   var failsafe = setTimeout(closeNow, 40000);
 
