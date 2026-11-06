@@ -1,16 +1,16 @@
 // Background scanner for GitHub Actions
-// v40: one open signal per symbol until closed + day-key history (no candle-time duplicates)
+// v41: Professional Strategy Logic + Corrected MT4 Output
 const fs = require("fs"),
   { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
   AL = require("./alerts.js");
 
-// 🛠 اصلاح ۱: خواندن ایمن لیست نمادها
+// 🛠 خواندن ایمن لیست نمادها
 const symbolsModule = require("./symbols.js");
 const U = symbolsModule.U || (Array.isArray(symbolsModule) ? symbolsModule : []);
 
 if (!Array.isArray(U) || U.length === 0) {
-  console.error("[Fatal] No valid symbols array found in symbols.js. Expected an array or { U: [...] }.");
-  process.exit(1); // توقف فوری برنامه در صورت نبود نمادها
+  console.error("[Fatal] No valid symbols array found in symbols.js.");
+  process.exit(1); 
 }
 
 const TOK = process.env.OANDA_TOKEN,
@@ -23,7 +23,6 @@ const RSI_L = +(process.env.RSI_L || 38);
 const RSI_S = +(process.env.RSI_S || 62);
 const STRICT = process.env.H1_STRICT === "1";
 
-// pattern + range؛ انتخاب per-symbol با ADX
 const MODES = (process.env.MODES || "pattern,range").split(",").map(x => x.trim()).filter(x => x === "pattern" || x === "range");
 if (!MODES.length) MODES.push("pattern");
 function enabledModes() { return MODES; }
@@ -34,8 +33,8 @@ const METALS = new Set(["XAUUSD", "XAGUSD", "XCUUSD"]),
 const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]) ? "commodity" : INDS.has(u[0]) ? "index" : (u[4] && u[4] !== 0) ? "forex" : "stock";
 const NAME = { pattern: "روند / الگوی ۳+۱", range: "استراتژی رنج" };
 
-const MAX_HOLD_SEC = 6 * 3600; // حداکثر باز بودن سیگنال
-const CLOSE_SCANS = 2;         // چند اسکن بدون سیگنال → بسته
+const MAX_HOLD_SEC = 6 * 3600;
+const CLOSE_SCANS = 2;
 
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
@@ -94,21 +93,18 @@ async function yh(sy, iv, rg) {
 async function tf(u, which) {
   const m = which === "5m";
   let a = [], src = null;
-  // 1) OANDA اولویت برای فارکس / فلزات / شاخص‌ها
   if (u[4] && TOK) {
     try {
       a = await oanda(u[4], m ? "M5" : "H1");
       if (a.length >= 50) { a._src = "oanda"; return a; }
     } catch (e) { console.warn("oanda", u[0], e.message || e); }
   }
-  // 2) کریپتو: OKX
   if (u[1]) {
     try {
       a = await okx(u[1], m ? "5m" : "1H");
       if (a.length) { a._src = "okx"; return a; }
     } catch (e) {}
   }
-  // 3) Yahoo فقط به‌عنوان پشتیبان
   if (u[2]) {
     try {
       const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo");
@@ -118,7 +114,6 @@ async function tf(u, which) {
   return a;
 }
 
-// کندل تازه از OANDA برای بستن سیگنال‌های باز
 async function fetchOandaBarsForActive(activeMap) {
   const out = {};
   if (!TOK) return out;
@@ -130,9 +125,7 @@ async function fetchOandaBarsForActive(activeMap) {
     try {
       const bars = await oanda(u[4], "M5");
       if (bars && bars.length) out[id] = bars;
-    } catch (e) {
-      console.warn("oanda active", id, e.message || e);
-    }
+    } catch (e) { console.warn("oanda active", id, e.message || e); }
   }));
   return out;
 }
@@ -181,7 +174,6 @@ async function tg(text, thread) {
 async function notify(title, message) { return tg(title + "\n\n" + message, TH_SIG); }
 const fd = (x, d) => (x == null || !isFinite(x)) ? "-" : (d == null ? String(+Number(x).toPrecision(7)) : Number(x).toFixed(d));
 
-// state پایدار: sent + alerts + active (سیگنال‌های باز)
 let STATE = { sent: {}, alerts: {}, active: {} };
 try {
   const d0 = JSON.parse(fs.readFileSync("data.json", "utf8"));
@@ -191,7 +183,7 @@ try {
     active: d0.state.active || {}
   };
 } catch (e) {}
-// پاکسازی کلیدهای قدیمی شکل id|side|bt (bt عدد بزرگ)
+
 try {
   for (const k of Object.keys(STATE.sent || {})) {
     const parts = k.split("|");
@@ -228,7 +220,12 @@ function resolveFromBars(a, bars, now) {
   if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
   const risk = Math.abs(a.entry - a.sl);
   if (!risk || !isFinite(risk)) return null;
-  const tp = a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk);
+  
+  // 🛠 اصلاح: اگر استراتژی روند است و TP ندارد، TP را بی‌نهایت می‌گذاریم تا فقط با تریلینگ یا SL بسته شود
+  const tp = (a.mode === "pattern") 
+             ? (a.side === "LONG" ? Infinity : -Infinity) 
+             : (a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk));
+             
   const start = a.bt || a.time;
   
   let trailSl = a.sl;
@@ -524,7 +521,7 @@ async function once(now) {
     const sent = await tg(
       "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
       "\nEntry " + fd(row.entry, row.d) + " | SL " + fd(row.sl, row.d) +
-      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش بسته شد\nخروج: حد سود ۲R یا SL",
+      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش بسته شد\nخروج: " + (row.mode === "range" ? "حد سود 1.5R یا SL" : "تریلینگ استاپ / SL"),
       TH_SIG
     );
     if (!sent && process.env.TELEGRAM_TOKEN) {
@@ -532,7 +529,10 @@ async function once(now) {
       delete STATE.sent[histKey];
     } else {
       try {
-        fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + ",0," + now);
+        // 🛠 اصلاح خروجی متاتریدر: ارسال صحیح SL و TP
+        const riskDist = Math.abs(row.entry - row.sl);
+        const tpVal = row.tp != null ? row.tp : (L ? row.entry + 2 * riskDist : row.entry - 2 * riskDist);
+        fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + "," + fd(tpVal, row.d) + "," + now);
       } catch (e) {}
     }
     row._pendingNotify = false;
@@ -578,7 +578,7 @@ if (require.main === module) (async () => {
     await sleep(wait);
   }
   console.log("Scanner process exiting cleanly.");
-  process.exit(0); // 🛠 اصلاح ۲: خروج تضمینی از برنامه در گیت‌هاب
+  process.exit(0);
 })();
 
 if (require.main !== module) module.exports = { once, getState: () => STATE, setState: x => { STATE = x; } };
