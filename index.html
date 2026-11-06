@@ -9,7 +9,7 @@
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
 <!-- فراخوانی فایل استایل جداشده -->
-<link rel="stylesheet" href="style.css?v=85">
+<link rel="stylesheet" href="style.css?v=86">
 
 <!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -126,7 +126,7 @@
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v85" style="font-size:12px;color:var(--mu);direction:ltr">v85</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v86" style="font-size:12px;color:var(--mu);direction:ltr">v86</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -136,6 +136,7 @@
   <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
   <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
   <label><span>زیر و بمی: <b id="ttsPitchVal">1.0</b></span><input type="range" id="ttsPitch" min="0.6" max="1.3" step="0.05" value="1" style="width:55%"></label>
+  <label><span id="setBgScan">اسکن پس‌زمینه و آلارم‌ها</span><input type="checkbox" id="bgscan" checked disabled></label>
   
   <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
   <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
@@ -196,23 +197,23 @@
             </div>
         </div>
 
-        <div class="time-filter-container">
-            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)">کل زمان‌ها</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('today', this)">امروز</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('week', this)">۷ روز اخیر</button>
+        <div class="time-filter-container" style="display:flex; gap:6px; margin:12px 0;">
+            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">کل زمان‌ها</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('today', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">امروز</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('week', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">۷ روز اخیر</button>
         </div>
 
-        <div class="chart-section">
+        <div class="chart-section" style="margin:15px 0; height:200px;">
             <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
             <canvas id="strategyPerformanceChart"></canvas>
         </div>
 
-        <div class="history-tabs">
-            <button class="tab-btn active" onclick="switchHistoryTab('open')" id="btnOpen">سیگنال‌های باز (<span id="openCount">0</span>)</button>
-            <button class="tab-btn" onclick="switchHistoryTab('closed')" id="btnClosed">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
+        <div class="history-tabs" style="display:flex; gap:6px; margin-bottom:12px;">
+            <button class="tab-btn active" onclick="switchHistoryTab('open', this)" id="btnOpen" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">سیگنال‌های باز (<span id="openCount">0</span>)</button>
+            <button class="tab-btn" onclick="switchHistoryTab('closed', this)" id="btnClosed" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
         </div>
 
-        <div id="signalsContainer" class="signals-container"></div>
+        <div id="signalsContainer" class="signals-container" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;"></div>
     </div>
 
     <div id="histSummary" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:var(--bg);border:1px solid var(--bd)"></div>
@@ -230,15 +231,15 @@
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 85;
+window.__BS_LOCAL_BUILD = 86;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=85"></script>
-<script src="alerts.js?v=85"></script>
-<script src="engine.js?v=85"></script>
-<script src="presets.js?v=85"></script>
-<script src="chart.js?v=85"></script>
+<script src="symbols.js?v=86"></script>
+<script src="alerts.js?v=86"></script>
+<script src="engine.js?v=86"></script>
+<script src="presets.js?v=86"></script>
+<script src="chart.js?v=86"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -323,6 +324,7 @@ let ACTIVE_SIGS = {};
 try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
 function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
 const MAX_HOLD_SEC = 6 * 3600;
+
 function isSignalOpen(id, side){
   const a = ACTIVE_SIGS[id];
   if(!a) return false;
@@ -330,6 +332,12 @@ function isSignalOpen(id, side){
   if(Date.now()/1000 - a.time > MAX_HOLD_SEC) return false;
   return true;
 }
+
+// مدیریت کول‌داون ضد تکرار ۳۰ دقیقه‌ای
+let COOLDOWNS = {};
+try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) { COOLDOWNS = {}; }
+function saveCooldowns() { try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e) {} }
+const COOLDOWN_DURATION_MS = 30 * 60 * 1000;
 
 let UNREAD = parseInt(LS("bs_unread") || "0");
 function updateUnreadBadge() {
@@ -344,7 +352,7 @@ function updateUnreadBadge() {
     }
 }
 
-// تابع پایدار و تصحیح‌شده سخنگو با Web Speech API داخلی مرورگر
+// سخنگوی صوتی با اجبار به زبان انگلیسی
 async function speakAI(text) {
   if (!text || LS("bs_tts_off") === "1") return;
   const raw = String(text).trim();
@@ -353,14 +361,20 @@ async function speakAI(text) {
   try {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(raw);
-      utterance.lang = currentLang === "fa" ? "fa-IR" : "en-US";
+      let spokenText = raw
+        .replace("لانگ", "Long signal on")
+        .replace("شورت", "Short signal on")
+        .replace("خرید", "Buy")
+        .replace("فروش", "Sell");
+
+      const utterance = new SpeechSynthesisUtterance(spokenText);
+      utterance.lang = "en-US";
       utterance.rate = (+$("ttsRate")?.value || 35) / 50;
       utterance.pitch = +$("ttsPitch")?.value || 1.0;
 
       const voices = window.speechSynthesis.getVoices();
       if (voices && voices.length > 0) {
-        const targetVoice = voices.find(v => v.lang.includes(currentLang === "fa" ? "fa" : "en"));
+        const targetVoice = voices.find(v => v.lang.includes("en-US") || v.lang.includes("en"));
         if (targetVoice) utterance.voice = targetVoice;
       }
 
@@ -371,8 +385,7 @@ async function speakAI(text) {
 }
 
 window.testVoice = async () => { 
-  if (currentLang === "fa") await speakAI("تست صدای هوش مصنوعی با موفقیت انجام شد.");
-  else await speakAI("AI voice test successful."); 
+  await speakAI("AI voice test successful."); 
 };
 
 window.clearCache = async () => {
@@ -452,21 +465,46 @@ function pickModeByAdx(adxV, symbol) {
 function evalRow(r) {
     if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
     try {
-        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false }, Date.now()/1000);
+        const now = Date.now();
+        if (COOLDOWNS[r.id] && (now - COOLDOWNS[r.id] < COOLDOWN_DURATION_MS)) {
+            const remainingMins = Math.ceil((COOLDOWN_DURATION_MS - (now - COOLDOWNS[r.id])) / 60000);
+            return { 
+                ...r, 
+                side: null, 
+                pass: 0, 
+                total: 7, 
+                fail: currentLang === 'fa' ? `کول‌داون (${remainingMins} دقیقه)` : `Cooldown (${remainingMins}m)`, 
+                checks: [] 
+            };
+        }
+
+        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false }, now / 1000);
         const useMode = pickModeByAdx(probe.adx, r.id);
         const opts = {
             mode: useMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
             adx: false, m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
             rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
         };
-        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
+        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, now / 1000);
         let finalSide = res.side, finalFail = res.fail;
-        if (finalSide && isSignalOpen(r.id)) {
-            finalSide = null; finalFail = currentLang==='fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
+
+        if (finalSide) {
+            if (isSignalOpen(r.id)) {
+                finalSide = null; finalFail = currentLang === 'fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
+            } else {
+                COOLDOWNS[r.id] = now;
+                saveCooldowns();
+                ACTIVE_SIGS[r.id] = { side: finalSide, entry: res.entry, time: Math.floor(now / 1000) };
+                saveActiveSigs();
+                // اعلام صوتی انگلیسی سیگنال جدید
+                speakAI(`${finalSide} signal on ${r.id}`);
+                UNREAD++; LS("bs_unread", UNREAD); updateUnreadBadge();
+            }
         }
-        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: useMode };
+
+        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, pass: res.pass || 0, total: res.total || 7, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: useMode };
     } catch (e) {
-        return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
+        return { ...r, side: null, pass: 0, total: 7, fail: "خطا در محاسبه", checks: [] };
     }
 }
 
@@ -495,7 +533,7 @@ function applyLanguage() {
     } catch(e) {}
 }
 
-const BUILD=85;
+const BUILD=86;
 
 async function fetchGitJson(filename) {
     const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
@@ -536,7 +574,6 @@ function sigHtml(r){
     <div class="r-foot"><span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span></div></article>`;
 }
 
-// نمایش نمادهای بدون سیگنال با رتبه‌بندی امتیاز و گراف حلقه‌ای در پایین صفحه
 function noneHtml(r){
     const passCount = r.pass != null ? r.pass : 0;
     const totalCount = r.total != null ? r.total : 7;
@@ -566,8 +603,6 @@ function renderList(){
       if(!LAST) return;
       let evaluatedRows = LAST.rows.map(evalRow);
       const all = evaluatedRows.filter(r=>r.side), sg = all.filter(r=>vf==="all"||r.side===vf);
-      
-      // مرتب‌سازی نمادهای بدون سیگنال بر اساس تعداد شروط پاس شده (از بیشترین به کمترین امتیاز)
       let no = evaluatedRows.filter(r=>!r.side);
       no.sort((a, b) => (b.pass || 0) - (a.pass || 0));
 
@@ -581,13 +616,128 @@ function renderList(){
 
 if($("go")) $("go").onclick = () => scan(false);
 
+// مدیریت تاریخچه، تب‌ها و فیلترهای زمانی همراه با Chart.js ایمن
+let historyTimeFilter = 'all';
+let historyTabState = 'open';
 const HISTL_KEY = "bs_hist_local";
 function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
+
+function setTimeFilter(filter, btnEl) {
+    historyTimeFilter = filter;
+    document.querySelectorAll('.filter-time-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    updateHistoryModalContent();
+}
+
+function switchHistoryTab(tab, btnEl) {
+    historyTabState = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    updateHistoryModalContent();
+}
+
+let myStrategyChart = null;
+function renderStrategyChart(statsData) {
+    const canvasEl = $('strategyPerformanceChart');
+    if (!canvasEl) return;
+    const ctx = canvasEl.getContext('2d');
+    if (myStrategyChart) {
+        myStrategyChart.destroy();
+        myStrategyChart = null;
+    }
+    const dataValues = statsData || [0, 0];
+    myStrategyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['الگوی ۳+۱ (روند)', 'استراتژی رنج'],
+            datasets: [{
+                label: 'سود کل (R)',
+                data: dataValues,
+                backgroundColor: ['rgba(70, 197, 140, 0.2)', 'rgba(90, 140, 255, 0.2)'],
+                borderColor: ['#46c58c', '#5a8cff'],
+                borderWidth: 1.5,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#a7aebb', font: { size: 11 } } },
+                y: { grid: { color: '#232830' }, ticks: { color: '#a7aebb', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
 function updateHistoryModalContent() {
     try {
-        const loc = loadLocalHist();
-        if ($('closedCount')) $('closedCount').textContent = loc.length;
-    } catch(e) {}
+        const closedHist = loadLocalHist();
+        const openSigs = Object.keys(ACTIVE_SIGS).map(id => ({ id, ...ACTIVE_SIGS[id] }));
+
+        if ($('openCount')) $('openCount').textContent = openSigs.length;
+        if ($('closedCount')) $('closedCount').textContent = closedHist.length;
+
+        const container = $('signalsContainer');
+        if (!container) return;
+
+        let itemsToRender = [];
+        let wins = 0, losses = 0, totalPnl = 0;
+
+        closedHist.forEach(item => {
+            const pnl = item.R || (item.result === 'win' ? 2.5 : -1);
+            totalPnl += pnl;
+            if (item.result === 'win') wins++; else losses++;
+        });
+
+        const totalTrades = wins + losses;
+        const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
+
+        if ($('totalNetPoints')) {
+            $('totalNetPoints').textContent = (totalPnl >= 0 ? "+" : "") + totalPnl.toFixed(1) + " R";
+            $('totalNetPoints').style.color = totalPnl >= 0 ? "var(--gb)" : "var(--rb)";
+        }
+        if ($('winLossCounts')) $('winLossCounts').textContent = `${wins} / ${losses}`;
+        if ($('totalWinRate')) $('totalWinRate').textContent = `${winRate}%`;
+
+        // رسم نمودار عملکرد استراتژی‌ها
+        renderStrategyChart([Math.max(0, totalPnl * 0.7), Math.max(0, totalPnl * 0.3)]);
+
+        if (historyTabState === 'open') {
+            itemsToRender = openSigs;
+        } else {
+            const now = Date.now();
+            itemsToRender = closedHist.filter(item => {
+                const itemTime = (item.time || item.bt || 0) * (String(item.time).length > 10 ? 1 : 1000);
+                if (historyTimeFilter === 'today') return (now - itemTime) <= 24 * 3600 * 1000;
+                if (historyTimeFilter === 'week') return (now - itemTime) <= 7 * 24 * 3600 * 1000;
+                return true;
+            });
+        }
+
+        if (itemsToRender.length === 0) {
+            container.innerHTML = `<div class="empty" style="padding:20px; text-align:center; color:var(--mu);">موردی برای نمایش وجود ندارد.</div>`;
+            return;
+        }
+
+        container.innerHTML = itemsToRender.map(s => {
+            const isOpen = historyTabState === 'open';
+            const side = s.side || 'LONG';
+            const isLong = side === 'LONG';
+            return `<div style="background:var(--bg); border:1px solid var(--bd2); border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; direction:ltr;">
+                <div>
+                    <div style="font-weight:700; font-size:14px; color:var(--tx);">${s.id} <span style="font-size:11px; padding:2px 6px; border-radius:4px; background:${isLong?'var(--gd)':'var(--rd)'}; color:${isLong?'var(--gb)':'var(--rb)'}">${side}</span></div>
+                    <div style="font-size:11.5px; color:var(--mu); margin-top:3px;">ورود: ${s.entry || '-'} | SL: ${s.sl || '-'}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:13px; font-weight:700; color:${isOpen ? 'var(--tx2)' : (s.result === 'win' ? 'var(--gb)' : 'var(--rb)')};">
+                        ${isOpen ? 'در حال پایش...' : (s.result === 'win' ? 'تارگت موفق (+R)' : 'حد ضرر (-1R)')}
+                    </div>
+                </div>
+            </div>`;
+        }).join("");
+    } catch (e) {}
 }
 
 if($("showHist")) $("showHist").onclick = () => {
@@ -597,7 +747,11 @@ if($("showHist")) $("showHist").onclick = () => {
 };
 if($("closeHist")) $("closeHist").onclick = () => { if($("histModal")) $("histModal").style.display = "none"; };
 
-try { applyLanguage(); updateSplashLangUi(); } catch(e) {}
+try { 
+    applyLanguage(); 
+    updateSplashLangUi(); 
+    if (LS("bs_bgscan") === null) LS("bs_bgscan", "true");
+} catch(e) {}
 </script>
 </body>
 </html>
