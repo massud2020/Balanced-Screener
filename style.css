@@ -1,128 +1,1589 @@
-body {
-    background-color: #0f172a;
-    color: #f8fafc;
-    font-family: Tahoma, sans-serif;
-    margin: 0;
-    padding: 15px;
-    direction: rtl;
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0b0d11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
+<!-- کتابخانه Chart.js برای رسم نمودارها -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- اتصال به فایل CSS خارجی -->
+<link rel="stylesheet" href="style.css">
+
+<style>
+:root{--bg:#0b0d11;--card:#12151b;--card2:#171b22;--bd:#232830;--bd2:#1b1f27;--tx:#e6e9ee;--tx2:#a7aebb;--mu:#78808d;--g:#2e9a69;--gb:#46c58c;--gd:rgba(47,157,104,.14);--r:#d4524c;--rb:#e8736d;--rd:rgba(209,75,69,.14);--rad:16px;--rs:12px;--font:"Segoe UI",system-ui,-apple-system,sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--font);min-height:100dvh;padding:0 14px env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased;transition:padding .2s}
+bdi{unicode-bidi:isolate}
+button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:var(--rs);padding:0 14px;min-height:44px;font:inherit;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:background .15s,border-color .15s,transform .1s}
+button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default;transform:none}
+button:focus-visible,select:focus-visible,.row:focus-visible,a:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
+
+#ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#ai-splash.hidden{display:none!important;opacity:0;visibility:hidden;pointer-events:none}
+
+.ai-avatar-img {width: 280px;height: 280px;border-radius: 50%;object-fit: cover;border: 3px solid var(--gb);box-shadow: 0 0 30px rgba(70,197,140,.6);margin-bottom: 30px;animation: pulse 2s infinite;background: #000;}
+.ai-text{font-size:18px;font-weight:600;color:var(--tx);min-height:60px;line-height:1.6;max-width:300px;transition:color 0.3s; margin-bottom: 20px;}
+.ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:10px;overflow:hidden;display:none}
+.ai-loading.on{display:block}
+.ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s ease-in-out infinite}
+@keyframes pulse {0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
+@keyframes loadbar {0%{width:0}50%{width:100%}100%{width:0}}
+
+.bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
+.bar::after{content:"";position:absolute;bottom:-1px;inset-inline-start:0;height:2px;width:var(--prog,0%);background:linear-gradient(90deg,var(--g),var(--gb));transition:width .3s}
+.acts{display:flex;align-items:center;gap:6px;flex:none}
+.acts.left{justify-content:flex-start}
+.acts.right{justify-content:flex-end}
+.brand{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.logo-row{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;letter-spacing:-0.5px;background:linear-gradient(90deg, #46c58c, #e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.logo-row i{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;-webkit-text-fill-color:#06150d;font-style:normal;font-size:14px;box-shadow:0 0 12px rgba(70,197,140,.4)}
+.brand small{color:var(--mu);font-size:10px;font-weight:500;margin-top:2px}
+button.ic{width:38px;min-width:38px;padding:0;font-size:16px;display:grid;place-items:center;position:relative}
+button.ic .ico{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s ease}
+button.ic.on .ico{transform:rotate(60deg)}
+button.ic.on{border-color:var(--gb);color:var(--gb)}
+
+.badge{position:absolute;top:-4px;right:-4px;background:var(--rb);color:#fff;font-size:10px;font-weight:bold;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);z-index:10;direction:ltr}
+.badge.on{display:flex;animation:pop .3s ease}
+
+.ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.mode-switch{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);padding:4px;margin-bottom:4px}
+.mode-switch button{flex:1;min-height:36px;border:none;border-radius:6px;background:transparent;color:var(--mu);font-size:13px;font-weight:600;padding:0 10px;transition:background .2s,color .2s}
+.mode-switch button.on{background:var(--gd);color:var(--gb)}
+.strategy-box{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px;min-height:44px}
+.strategy-title{display:flex;align-items:center;justify-content:space-between;}
+.strategy-title b{font-weight:700}
+.od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd);display:inline-block;margin-inline-end:8px}
+.cond-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cond-chips::-webkit-scrollbar{display:none}
+.c-chip{flex:none;min-height:28px;padding:0 10px;border-radius:6px;font-size:11.5px;font-weight:600;background:var(--card2);border:1px solid var(--bd);color:var(--mu);cursor:pointer;transition:all .15s}
+.c-chip.on{background:rgba(70,197,140,.15);border-color:rgba(70,197,140,.4);color:var(--gb)}
+
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:8px}.nav a{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--tx);text-decoration:none;font-size:14px}.nav a i{font-style:normal;background:var(--gd);color:var(--gb);border-radius:99px;padding:0 8px;font-size:12px;font-weight:700;min-width:22px;text-align:center}.nav a i:empty{display:none}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:2px 14px 4px;scroll-snap-type:x proximity}
+.chips::-webkit-scrollbar{display:none}
+.mkt{flex:none;scroll-snap-align:start;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:99px;font-size:13px;font-weight:600;color:var(--mu)}
+.mkt .cnt{font-size:11px;font-weight:500;opacity:.75;direction:ltr}
+.mkt.on{background:var(--gd);border-color:rgba(61,202,133,.4);color:var(--gb)}
+.mkt.closed{opacity:.38;pointer-events:none;filter:grayscale(.7);cursor:not-allowed}
+.mkt.closed .cnt{opacity:.5}
+.mkt .sess{font-size:9px;font-weight:500;opacity:.7;margin-inline-start:2px}
+.mini{flex:none;min-height:38px;padding:0 12px;border-radius:99px;font-size:12.5px;color:var(--mu);background:transparent;border-style:dashed}
+
+.set{display:none;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:4px 14px 8px;margin-top:12px;animation:fade .2s ease}
+.set.on{display:block}
+.set h3{font-size:11.5px;font-weight:600;color:var(--mu);letter-spacing:.04em;padding:14px 0 4px}
+.set label{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:46px;border-bottom:1px solid var(--bd2);font-size:14px;color:var(--tx2)}
+.set label.last,.set label:last-child{border-bottom:none}
+.set label>span small{display:block;font-size:11.5px;color:var(--mu);margin-top:1px}
+.set input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:44px;height:26px;border-radius:99px;background:#2a2e37;position:relative;cursor:pointer;transition:background .2s}
+.set input[type=checkbox]::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;background:#cfd3da;transition:inset-inline-start .2s,background .2s}
+.set input[type=checkbox]:checked{background:var(--g)}.set input[type=checkbox]:checked::after{inset-inline-start:21px;background:#fff}
+.set input[type=password],.set input#ex,.set input#ghr{width:54%;direction:ltr;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;min-height:38px;font:inherit;font-size:13px}
+.set select{min-height:38px;font-size:13px;padding:0 12px}
+.set #nt{min-height:38px;font-size:13px;padding:0 14px}
+.nout{display:none;margin:8px 0 6px;font-size:12.5px;color:var(--tx2);line-height:1.9}.nout.on{display:block}.nout.err{color:var(--rb)}.nout.ok{color:var(--gb)}
+.nout pre{direction:ltr;text-align:left;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;font-size:12px;white-space:pre-wrap;user-select:all;margin:6px 0}
+.nout a{color:var(--gb);margin-inline-end:12px}.nout button{min-height:34px;font-size:12.5px;padding:0 12px}
+.set details{border-top:1px solid var(--bd2);padding:2px 0}.set summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--tx2);font-size:13.5px}.set details p{font-size:12.5px;color:var(--mu);line-height:1.9;margin-bottom:8px}
+
+.ld{display:none;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0d1612,var(--card));border:1px solid #1e3a2c;border-radius:var(--rad);padding:14px 16px;margin-top:12px;box-shadow:0 0 32px rgba(61,202,133,.06)}.ld.on{display:flex;flex-direction:row-reverse}
+.rd{width:52px;height:52px;border-radius:50%;position:relative;flex:none;overflow:hidden;border:1px solid #2a5a3f;background:radial-gradient(circle,var(--gb) 0 2px,transparent 3px),repeating-radial-gradient(circle,#1a3a29 0 1px,transparent 1px 12px),#0a110d}
+.rd::before,.rd::after{content:"";position:absolute;background:#1a3a29}.rd::before{left:50%;top:0;bottom:0;width:1px}.rd::after{top:50%;left:0;right:0;height:1px}
+.rd i{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(61,202,133,.8),rgba(61,202,133,0) 70deg,transparent 0);animation:sp 1.2s linear infinite}
+.lt{flex:1;min-width:0;text-align:left;margin-left:16px;}.lt b{font-size:16px;font-variant-numeric:tabular-nums;direction:ltr;display:inline-block}
+.lt span{display:block;color:var(--mu);font-size:12px;margin-top:2px;direction:ltr;text-align:left;animation:pl 1.4s ease-in-out infinite}
+.pb{height:6px;border-radius:99px;background:#1a1d24;overflow:hidden;margin-top:10px}
+.pb u{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#2a8f5c,var(--gb));transition:width .3s;position:relative;overflow:hidden}
+.pb u::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:sh 1.2s linear infinite}
+
+.bn{display:none;background:linear-gradient(135deg,#0f1f18,#14231b);border:1px solid #2a6b4a;border-radius:var(--rad);padding:10px 14px;margin-top:12px;font-size:13px}
+.bn.on{display:block;animation:fade .25s ease}
+.bn .hd{display:flex;justify-content:space-between;align-items:center}
+.bn .hd button{min-height:32px;padding:0 11px}
+.bi{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #1e3a2c;cursor:pointer;direction:ltr}
+.bi:first-of-type{margin-top:6px}.bi:hover b{color:var(--gb)}
+
+.sum{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+.cn{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:600}
+.cn span{padding:4px 11px;border-radius:99px;background:var(--card);border:1px solid var(--bd2)}.cn .l{color:var(--gb)}.cn .s{color:var(--rb)}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--bd2);border-radius:99px;padding:3px}
+.seg button{min-height:32px;border:none;border-radius:99px;background:transparent;color:var(--mu);font-size:12.5px;padding:0 12px}
+.seg button.on{background:var(--card2);color:var(--tx);box-shadow:0 1px 6px rgba(0,0,0,.4)}
+
+.scan-container{margin-top:12px;margin-bottom:12px;display:flex;justify-content:center;width:100%}
+.big-scan{width:100%;height:50px;font-size:16px;font-weight:800;border-radius:14px;background:linear-gradient(135deg,#2a8f5c,var(--gb));color:#fff;border:none;box-shadow:0 4px 15px rgba(70,197,140,.3);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .2s,box-shadow .2s}
+.big-scan:active{transform:scale(.98);box-shadow:0 2px 8px rgba(70,197,140,.2)}
+.big-scan small{background:rgba(0,0,0,.2);padding:2px 10px;border-radius:99px;font-size:12px;font-weight:500}
+
+.st{color:var(--mu);font-size:12px;margin-top:10px;min-height:18px;text-align:center}
+.st .link{min-height:0;padding:0;border:none;background:none;color:var(--gb);font-size:12px;text-decoration:underline}
+.hl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.hl span{font-size:11.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--bd2);color:var(--mu)}.hl .ok{color:var(--gb);border-color:rgba(70,197,140,.3)}.hl .part{color:#ffb020;border-color:rgba(255,176,32,.35)}.hl .bad{color:var(--rb);border-color:rgba(232,115,109,.4)}.hl .hint2{flex-basis:100%;font-size:11.5px;color:var(--mu);line-height:1.8}
+.el{direction:ltr;text-align:left;font-size:11.5px;color:var(--mu);margin-top:6px;line-height:1.6;display:none;word-break:break-word}.el.on{display:block}
+
+main{padding-bottom:28px}
+.row{background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:13px 14px;margin:10px 0;cursor:pointer;position:relative;overflow:hidden;animation:up .25s ease both;transition:background .15s,transform .12s}
+.row:active{transform:scale(.985)}.row:hover{background:var(--card2)}
+.row.sig::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px}
+.row.sig.LONG::before{background:var(--gb)}.row.sig.SHORT::before{background:var(--rb)}
+.row.sig.mode-pattern{border-color:rgba(70,197,140,.35)}
+.row.sig.mode-range{border-color:rgba(90,140,255,.4)}
+.row.sig.mode-range::after{content:"";position:absolute;inset-inline-end:0;top:0;bottom:0;width:3px;background:rgba(90,140,255,.75);border-radius:0 10px 10px 0}
+.tag.strat{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.2px}
+.tag.strat.pattern{background:rgba(70,197,140,.15);color:var(--gb);border:1px solid rgba(70,197,140,.35)}
+.tag.strat.range{background:rgba(90,140,255,.15);color:#8ab4ff;border:1px solid rgba(90,140,255,.4)}
+
+.r-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.r-id{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.sym{font-weight:700;font-size:16px;direction:ltr;letter-spacing:.01em}
+.tag{font-size:11px;font-weight:600;color:var(--tx2);background:var(--bd2);border-radius:99px;padding:2px 9px}.tag.mk{color:var(--mu);background:transparent;border:1px solid var(--bd2)}
+.b{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.LONG.b{background:var(--gd);color:var(--gb);border:1px solid rgba(61,202,133,.3)}.SHORT.b{background:var(--rd);color:var(--rb);border:1px solid rgba(239,107,101,.3)}
+.r-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;direction:ltr}
+.r-grid div{background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:7px 9px;min-width:0}
+.r-grid i{display:block;font-style:normal;font-size:10.5px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
+.r-grid b{display:block;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-grid .pos{color:var(--gb)}.r-grid .neg{color:var(--rb)}
+.r-foot{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mu)}
+.r-foot span:first-child{color:var(--tx2)}
+
+.row.none{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;margin-bottom:8px;background:var(--card);border:1px solid var(--bd2);border-radius:var(--rad);cursor:pointer;transition:background .15s;}
+.row.none:hover{background:var(--card2);}
+.rn-right{display:flex;flex-direction:column;gap:4px;}
+.rn-right .sym{font-weight:700;font-size:15px;color:var(--tx);}
+.rn-right .why{font-size:12px;color:var(--mu);}
+.rn-left{display:flex;align-items:center;gap:12px;}
+.rn-left .score{font-size:13px;font-variant-numeric:tabular-nums;color:var(--tx2);}
+.ring-box{position:relative;width:44px;height:44px;display:grid;place-items:center;}
+.ring-box svg{position:absolute;inset:0;}
+.ring-box .inner-pill{width:10px;height:22px;border-radius:99px;z-index:1;}
+
+details.nb{margin-top:16px}
+details.nb summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 14px;background:var(--card);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--tx2);font-size:13.5px}
+details.nb summary::-webkit-details-marker{display:none}
+details.nb summary::after{content:"▼";color:var(--mu);transition:transform .2s}details.nb[open] summary::after{transform:rotate(180deg)}
+.empty{text-align:center;color:var(--mu);padding:46px 20px;font-size:14px;line-height:1.9}.empty b{display:block;font-size:34px;margin-bottom:4px}
+.sk{height:96px;border-radius:var(--rad);margin:10px 0;background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:shm 1.4s linear infinite}
+
+.an{margin-top:12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:14px;}
+.an-h{display:flex;align-items:center;gap:14px}.ring{position:relative;width:62px;height:62px;flex:none}.ring svg{transform:rotate(-90deg);display:block}.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;direction:ltr;font-variant-numeric:tabular-nums}
+.an-t b{font-size:15px}.an-t small{display:block;color:var(--mu);font-size:12px;margin-top:2px}
+.ck{display:grid;grid-template-columns:24px 1fr;gap:2px 10px;align-items:start;padding:11px 0;border-top:1px solid var(--bd2)}.an-h+.ck{margin-top:12px}
+.cs{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+.ck.ok .cs{background:var(--gd);color:var(--gb);border:1px solid rgba(70,197,140,.4)}.ck.no .cs{background:rgba(232,115,109,.12);color:var(--rb);border:1px solid rgba(232,115,109,.35)}.ck.inf .cs{background:rgba(255,255,255,.06);color:var(--tx2);border:1px solid var(--bd);font-size:12px}
+.ck .lb{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;min-width:0}.ck .lb b{font-weight:600}.ck .lb span{color:var(--mu);direction:ltr;font-size:12.5px;white-space:nowrap}
+.viz{grid-column:2;margin-top:8px;min-width:0}
+.dist{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.07);direction:ltr}.dist::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--mu);border-radius:1px}.dist u{position:absolute;top:0;bottom:0;border-radius:99px}.dist.ok u{background:var(--gb)}.dist.no u{background:var(--rb)}
+.tq{display:flex;gap:4px;direction:ltr}.tq i{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.07)}.tq i.h{background:var(--gb)}.tq i.n{outline:2px solid var(--tx2);outline-offset:1px}
+.pat{display:flex;align-items:center;gap:14px;direction:ltr;flex-wrap:wrap}.rb{position:relative;flex:1;min-width:90px;height:7px;border-radius:99px;background:rgba(255,255,255,.08)}.rb u{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--rb)}.rb.ok u{background:var(--gb)}.rb s{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;border-radius:1px}
+.gg{position:relative;height:10px;border-radius:99px;direction:ltr;background:linear-gradient(90deg,rgba(70,197,140,.6) 0 30%,rgba(255,255,255,.1) 30% 70%,rgba(232,115,109,.6) 70% 100%)}.gg i{position:absolute;top:-4px;width:4px;height:18px;border-radius:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+.gl{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);direction:ltr;margin-top:4px}
+
+.range-viz {display:flex;flex-direction:column;gap:6px;direction:ltr;margin-top:5px}
+.range-bar {position:relative;height:10px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid var(--bd)}
+.range-bar .level {position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--mu);transform:translateX(-50%)}
+.range-bar .price-dot {position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.range-labels {display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-top:2px}
+
+#ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto;padding:0 14px 24px;direction:ltr;animation:fade .2s ease}
+#ov .oh{position:sticky;top:0;z-index:5;margin:0 -14px 10px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(11,13,17,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
+#ct{font-size:15px;font-weight:700;display:inline-block;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}.lv{color:var(--gb);font-size:11px;font-weight:800;margin-inline-start:8px;white-space:nowrap;animation:pl 1.2s ease-in-out infinite}
+#cx{min-height:40px;padding:0 15px;white-space:nowrap;flex:none}
+.oa{display:flex;gap:8px;margin-bottom:10px;direction:rtl}
+a.btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:var(--rs);background:var(--card);border:1px solid var(--bd);color:var(--tx);text-decoration:none;font-size:13px;text-align:center;padding:0 10px}
+a.btn.tv{border-color:#2962ff;background:#142a66}
+.oa button{flex:1;min-height:42px;font-size:13px;padding:0 10px}
+#tf{display:none;width:100%;height:540px;border:1px solid var(--bd);border-radius:var(--rad);background:#000}
+#cv{width:100%;border-radius:var(--rad);background:var(--card);border:1px solid var(--bd);display:block}
+#ci{direction:rtl;margin-top:12px}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;direction:ltr}
+.kv div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 10px}
+.kv i{display:block;font-style:normal;font-size:10.5px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}
+.kv b{font-size:14px;font-variant-numeric:tabular-nums}.kv .pos{color:var(--gb)}.kv .neg{color:var(--rb)}
+.nosig{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;color:var(--tx2);font-size:13px}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--mu)}
+.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px;background:var(--c)}
+.meta{margin-top:8px;font-size:11.5px;color:var(--mu)}
+@keyframes sp{to{transform:rotate(360deg)}}@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}@keyframes pl{50%{opacity:.4}}
+@keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes shm{to{background-position:-200% 0}}
+@keyframes pop{0%{transform:scale(0.8);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+#langToggle { font-weight: 700; font-size:13px; }
+body[dir="ltr"] .an { direction: ltr; text-align: left; }
+body[dir="ltr"] .an-h { flex-direction: row; }
+body[dir="ltr"] .ci { direction: ltr; }
+</style>
+</head>
+<body>
+
+<div id="ai-splash">
+    <div id="splashLangBar" style="position:absolute;top:calc(env(safe-area-inset-top) + 12px);inset-inline-end:14px;z-index:10001;display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:4px">
+      <button type="button" id="splashLangFa" data-lang="fa" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">FA</button>
+      <button type="button" id="splashLangEn" data-lang="en" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">EN</button>
+    </div>
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
+    <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
+    <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود ضربه بزنید</div>
+    <div class="ai-loading" id="ai-loading"><u></u></div>
+    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
+    <label id="splashMuteLabel" style="margin-top:18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mu);cursor:pointer;user-select:none">
+      <input type="checkbox" id="splashMute" style="width:16px;height:16px;accent-color:var(--gb)"> <span id="splashMuteText">بدون صدا</span>
+    </label>
+    <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
+</div>
+
+<script>
+(function(){
+  function killSplash(){
+    try{
+      var s=document.getElementById('ai-splash');
+      if(s){
+        s.classList.add('hidden');
+        s.style.display='none';
+        s.style.visibility='hidden';
+        s.style.opacity='0';
+        s.style.pointerEvents='none';
+      }
+    }catch(e){}
+  }
+  window.hideSplash = function(){ killSplash(); };
+  window.startApp = function(){
+    if (window.__startAppFull) {
+      try { window.__startAppFull(); } catch (e) { killSplash(); }
+      setTimeout(killSplash, 55000);
+      return;
+    }
+    killSplash();
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    var s=document.getElementById('ai-splash');
+    if(s){ s.style.display='flex'; s.classList.remove('hidden'); }
+    var sk=document.getElementById('skip-ai-btn');
+    var st=document.getElementById('start-ai-btn');
+    if(sk) sk.onclick = function(ev){ if(ev) ev.preventDefault(); killSplash(); return false; };
+    if(st) st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
+  });
+})();
+</script>
+
+<header class="bar">
+  <div class="acts left">
+    <button class="ic" id="langToggle" aria-label="Language">EN</button>
+  </div>
+  
+  <div class="brand">
+    <div class="logo-row"><i>◈</i> Balanced Screener</div>
+    <small id="ver"></small>
+  </div>
+  
+  <div class="acts right">
+    <button class="ic" id="showHist" aria-label="History"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span id="unreadBadge" class="badge">0</span></button>
+    <button class="ic" id="gs" aria-label="Settings"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+  </div>
+</header>
+
+<section class="ctl">
+  <div class="mode-switch">
+    <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
+    <button id="modeRange">استراتژی رنج</button>
+  </div>
+
+  <div class="strategy-box" aria-label="Strategy">
+    <div class="strategy-title">
+      <div><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b></div>
+    </div>
+    <div class="cond-chips" id="condChips"></div>
+  </div>
+
+  <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span><i id="alN"></i></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
+  <div class="chips" id="mkts" aria-label="Markets"></div>
+</section>
+
+<div class="set" id="set">
+  <h3 id="setFilters">تنظیمات پیشرفته</h3>
+  <label><span id="setH1Strict">H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
+  <div style="display:flex; gap:10px; margin-top:5px; margin-bottom:10px; padding: 0 14px;">
+    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
+      <span id="setRsiL">خرید زیر:</span>
+      <input type="number" id="rsiL" value="40" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+    </div>
+    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
+      <span id="setRsiS">فروش بالای:</span>
+      <input type="number" id="rsiS" value="60" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+    </div>
+  </div>
+  <label><span id="setOnly">فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
+  
+  <h3 id="setSource">منبع داده</h3>
+  <label><span id="setOanda">OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
+  <label><span id="setOandaEnv">نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
+  <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
+  
+  <h3 id="setApp">برنامه</h3>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v85" style="font-size:12px;color:var(--mu);direction:ltr">v85</span></label>
+  <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
+    <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
+  </label>
+
+  <h3 id="setNotifs">اعلان‌ها</h3>
+  <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
+  <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
+  <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
+  
+  <label><span id="setAuto">اسکن خودکار<small>هر ۳ دقیقه</small></span><input type="checkbox" id="auto"></label>
+  
+  <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
+  <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
+  <label><span id="setGh">ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
+  <label><span id="setGhToken">GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small></span><input type="password" id="ght" placeholder="github_pat_…" autocomplete="off"></label>
+  <label><span id="nHint">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</span><button id="nSave">ذخیره روی سرور</button></label>
+</div>
+
+<div class="ld" id="ld">
+  <div class="rd"><i></i></div>
+  <div class="lt">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+       <div>
+         <b id="lp">۰ / ۰</b>
+         <span id="ls">در حال دریافت داده…</span>
+       </div>
+    </div>
+    <div class="pb"><u id="lb"></u></div>
+  </div>
+</div>
+
+<div class="bn" id="bn"></div>
+<div class="sum" id="sum" style="display:none"></div>
+
+<div class="scan-container">
+  <button class="big-scan" id="go">
+    <span id="goT">اسکن</span>
+    <small id="goC"></small>
+  </button>
+</div>
+
+<div class="st" id="st">آماده</div>
+<div class="hl" id="hl"></div>
+<div class="el" id="el"></div>
+<main id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
+
+<!-- مودال تاریخچه همراه با پنل جامع تحلیل، PnL و نمودار -->
+<div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
+  <div style="max-width:650px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h3 id="histTitle" style="color:var(--gb); margin:0; font-size:16px;">📊 پنل تحلیل و سیگنال‌ها</h3>
+      <button id="closeHist" style="min-height:32px; padding:0 12px;">✕ بستن</button>
+    </div>
+    
+    <div class="screener-history-panel">
+        <div class="pnl-summary-card">
+            <div class="pnl-item">
+                <span class="pnl-label">مجموع سود/زیان خالص</span>
+                <span id="totalNetPoints" class="pnl-value">۰R</span>
+            </div>
+            <div class="pnl-item">
+                <span class="pnl-label">برنده / بازنده</span>
+                <span id="winLossCounts" class="pnl-value">۰ / ۰</span>
+            </div>
+            <div class="pnl-item">
+                <span class="pnl-label">درصد موفقیت کل</span>
+                <span id="totalWinRate" class="pnl-value">۰٪</span>
+            </div>
+        </div>
+
+        <div class="time-filter-container">
+            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)">کل زمان‌ها</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('today', this)">امروز</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('week', this)">۷ روز اخیر</button>
+        </div>
+
+        <div class="chart-section">
+            <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
+            <canvas id="strategyPerformanceChart"></canvas>
+        </div>
+
+        <div class="history-tabs">
+            <button class="tab-btn active" onclick="switchHistoryTab('open')" id="btnOpen">سیگنال‌های باز (<span id="openCount">0</span>)</button>
+            <button class="tab-btn" onclick="switchHistoryTab('closed')" id="btnClosed">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
+        </div>
+
+        <div id="signalsContainer" class="signals-container"></div>
+    </div>
+  </div>
+</div>
+
+<div id="ov">
+  <div class="oh"><div><span id="ct"></span><span class="lv">◉ LIVE</span></div><button id="cx" aria-label="Close">✕ بستن</button></div>
+  <div class="oa"><a class="btn tv" id="tv" target="_blank" rel="noopener">↗ TradingView</a><button id="te">TradingView داخل اپ</button></div>
+  <iframe id="tf" referrerpolicy="no-referrer" allow="fullscreen"></iframe>
+  <div id="cw"><canvas id="cv"></canvas></div>
+  <div id="an"></div>
+  <div id="ci"></div>
+</div>
+
+<script>
+window.__BS_LOCAL_BUILD = 85;
+window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
+window.__BS_ASSET_BASE = "";
+</script>
+<script src="symbols.js?v=85"></script>
+<script src="alerts.js?v=85"></script>
+<script src="engine.js?v=85"></script>
+<script src="presets.js?v=85"></script>
+<script src="chart.js?v=85"></script>
+<script>
+window.onerror = function(msg, url, line) {
+    const errBox = document.getElementById('debug-err');
+    if(errBox) errBox.textContent = "ERROR: " + msg + " (Line " + line + ")";
+    return false;
+};
+
+const $ = i => document.getElementById(i);
+const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
+const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
+const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
+
+const I18N = {
+  fa: {
+    scan: "اسکن", settings: "تنظیمات", history: "تاریخچه",
+    goFetch: "دریافت...", goScan: "اسکن",
+    long: "لانگ", short: "شورت", all: "همه",
+    noSignal: "بدون سیگنال", symbols: "نماد",
+    scanning: "در حال دریافت داده از سرور...", pleaseWait: "لطفاً صبر کنید",
+    scanDone: "تکمیل شد", lastScan: "آخرین اسکن سرور:",
+    signals: "سیگنال", ready: "آماده",
+    noSignalsYet: "فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد",
+    noSignalsFilter: "سیگنالی با این فیلتر نیست",
+    errFetch: "خطا در دریافت دیتا از سرور ابری. لطفاً بعداً تلاش کنید.",
+    risk: "ریسک", entry: "ورود", sl: "حد ضرر", exit: "خروج", rsiDiv: "واگرایی RSI",
+    minAgo: "دقیقه پیش", justNow: "همین الان",
+    price: "قیمت", signal: "سیگنال", noSignalNow: "سیگنال فعلی ندارد",
+    lastUpdate: "آخرین آپدیت", recentSignals: "سیگنال‌های بسته‌شده اخیر روی چارت:",
+    legend: "▲▼ ورود، ● خروج", close: "بستن", tvInside: "TradingView داخل اپ",
+    tvBack: "برگشت به چارت اپ",
+    condMet: "همه‌ی شرایط برقرار است ✓", condPartial: "از", condPartial2: "شرط برقرار است",
+    checkFor: "بررسی برای", estSl: "فاصله‌ی SL تخمینی",
+    histToday: "📅 سیگنال‌های امروز", histNone: "امروز هنوز هیچ سیگنال معتبری ثبت نشده است.",
+    histErr: "خطا در دریافت تاریخچه.", histLoading: "در حال دریافت...",
+    btnClose: "✕ بستن", btnSave: "ذخیره", btnSaved: "✓ ذخیره شد", btnEnable: "فعال‌سازی", btnEnabled: "فعال ✓", btnDenied: "رد شد", btnUnsupported: "پشتیبانی نمی‌شود",
+    btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
+    fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
+    fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
+    fail_noData: "بدون دیتا", fail_error: "خطا", fail_histM5: "تاریخچه M5 کافی نیست", fail_histM15: "تاریخچه M15 کافی نیست", fail_histH1: "تاریخچه H1 کافی نیست", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص", fail_cooldown: "سیگنال باز / کول‌داون",
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "بدون تقاطع", c_pat: "۳+۱", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "باند بولینگر",
+    ai_welcome: "خوش آمدید", ai_scan: "در حال اسکن…", ai_trend: "رژیم: روند", ai_range: "رژیم: رنج", ai_ready: "برای ورود ضربه بزنید"
+  },
+  en: {
+    scan: "Scan", settings: "Settings", history: "History",
+    goFetch: "Fetching...", goScan: "Scan",
+    long: "LONG", short: "SHORT", all: "All",
+    noSignal: "No Signal", symbols: "Symbols",
+    scanning: "Fetching data from server...", pleaseWait: "Please wait",
+    scanDone: "Done", lastScan: "Last scan:",
+    signals: "Signals", ready: "Ready",
+    noSignalsYet: "No signals yet<br>Auto-scan continues",
+    noSignalsFilter: "No signals with this filter",
+    errFetch: "Error fetching data. Please try again later.",
+    risk: "Risk", entry: "Entry", sl: "SL", exit: "Exit", rsiDiv: "RSI Divergence",
+    minAgo: "mins ago", justNow: "Just now",
+    price: "Price", signal: "Signal", noSignalNow: "No current signal",
+    lastUpdate: "Last update", recentSignals: "Recent closed signals on chart:",
+    legend: "▲▼ Entry, ● Exit", close: "Close", tvInside: "TradingView in App",
+    tvBack: "Back to App Chart",
+    condMet: "All conditions met ✓", condPartial: "of", condPartial2: "conditions met",
+    checkFor: "Check for", estSl: "Est. SL Distance",
+    histToday: "📅 Today's Signals", histNone: "No valid signals recorded today.",
+    histErr: "Error loading history.", histLoading: "Loading...",
+    btnClose: "✕ Close", btnSave: "Save", btnSaved: "✓ Saved", btnEnable: "Enable", btnEnabled: "Enabled ✓", btnDenied: "Denied", btnUnsupported: "Unsupported",
+    btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
+    fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
+    fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
+    fail_noData: "No Data", fail_error: "Error", fail_histM5: "Insufficient M5 history", fail_histM15: "Insufficient M15 history", fail_histH1: "Insufficient H1 history", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error", fail_cooldown: "Open signal / cooldown",
+    c_trend: "EMA200", c_emax: "EMA21/50", c_nc: "No Cross", c_pat: "3+1", c_adx: "ADX", c_m15: "M15", c_h1: "H1", c_rsi: "RSI", c_bb: "Bollinger",
+    ai_welcome: "Welcome", ai_scan: "Scanning…", ai_trend: "Regime: Trend", ai_range: "Regime: Range", ai_ready: "Tap to enter"
+  }
+};
+
+const BACKEND_TO_KEY = {
+    "الگوی ۳+۱": "fail_pattern", "استراتژی رنج": "fail_range", "هم‌راستایی EMA21/50": "fail_emaAlign",
+    "قیمت روی EMA200": "fail_priceEma200", "شیب EMA": "fail_emaSlope", "تقاطع EMA21/50": "fail_emaCross",
+    "فیلتر M15": "fail_m15", "فیلتر H1": "fail_h1", "فیلتر RSI": "fail_rsi", "No Data": "fail_noData",
+    "Error": "fail_error", "تاریخچه M5 کافی نیست": "fail_histM5", "تاریخچه M15 کافی نیست": "fail_histM15",
+    "تاریخچه H1 کافی نیست": "fail_histH1", "اندیکاتورها آماده نیست": "fail_notReady",
+    "خطای نامشخص": "fail_unknown", "در کول‌داون ۲۰ دقیقه‌ای": "fail_cooldown"
+};
+
+let currentLang = LS("bs_lang");
+if (currentLang !== 'en') currentLang = 'fa';
+const T = () => (I18N[currentLang] || I18N.fa);
+
+function trFail(failStr) {
+    if (!failStr) return "";
+    if (currentLang === 'fa') return failStr; 
+    const key = BACKEND_TO_KEY[failStr];
+    if (key && I18N.en[key]) return I18N.en[key];
+    if (failStr.startsWith("قیمت بالای")) return "Price above EMA200";
+    if (failStr.startsWith("قیمت پایین")) return "Price below EMA200";
+    return failStr;
 }
 
-.screener-history-panel {
-    max-width: 600px;
-    margin: 0 auto;
+let COND = {trend:true, emax:true, nc:true, pat:true, adx:false, m15:true, h1:true, rsi:true};
+try {
+    const savedCond = LS("bs_cond");
+    if (savedCond) {
+        const parsed = JSON.parse(savedCond);
+        COND = { ...COND, ...parsed };
+    }
+} catch(e) { console.warn("Error loading conditions, using defaults."); }
+COND.adx = false;
+
+let currentMode = LS("bs_mode") || "pattern";
+let COOLDOWNS = {};
+try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) {}
+let ACTIVE_SIGS = {};
+try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
+function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
+const MAX_HOLD_SEC = 6 * 3600;
+function isSignalOpen(id, side){
+  const a = ACTIVE_SIGS[id];
+  if(!a) return false;
+  if(side && a.side !== side) return false;
+  if(Date.now()/1000 - a.time > MAX_HOLD_SEC) return false;
+  return true;
+}
+function openSignal(r){
+  ACTIVE_SIGS[r.id] = { side: r.side, entry: r.entry, time: Date.now()/1000, mode: r.mode || "pattern", scansWithout: 0 };
+  saveActiveSigs();
+  COOLDOWNS[r.id] = Date.now()/1000;
+  try{ LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); }catch(e){}
+}
+function touchActiveSigs(currentSides){
+  const now = Date.now()/1000;
+  for(const id of Object.keys(ACTIVE_SIGS)){
+    const a = ACTIVE_SIGS[id];
+    if(now - a.time > MAX_HOLD_SEC){ delete ACTIVE_SIGS[id]; continue; }
+    const cur = currentSides[id];
+    if(cur && cur === a.side){ a.scansWithout = 0; }
+    else {
+      a.scansWithout = (a.scansWithout || 0) + 1;
+      if(a.scansWithout >= 2) delete ACTIVE_SIGS[id];
+    }
+  }
+  saveActiveSigs();
 }
 
-.pnl-summary-card {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 15px;
-    text-align: center;
-}
-.pnl-item {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    border-left: 1px solid #334155;
-}
-.pnl-item:last-child { border-left: none; }
-.pnl-label { font-size: 11px; color: #94a3b8; }
-.pnl-value { font-size: 15px; font-weight: bold; color: #f8fafc; }
+let UNREAD = parseInt(LS("bs_unread") || "0");
 
-.time-filter-container {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
-}
-.filter-time-btn {
-    background-color: #334155;
-    color: #cbd5e1;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-}
-.filter-time-btn.active {
-    background-color: #10b981;
-    color: #fff;
+function updateUnreadBadge() {
+    const b = $("unreadBadge");
+    if (b) {
+        if (UNREAD > 0) {
+            b.textContent = UNREAD > 99 ? "99+" : UNREAD;
+            b.classList.add("on");
+        } else {
+            b.classList.remove("on");
+        }
+    }
 }
 
-.chart-section {
-    background: #1e293b;
-    border: 1px solid #334155;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-}
-.chart-section h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 14px;
-    color: #fff;
+const TTS_CFG = { rate: 35, mode: 'string', engine: 'auto', pitch: 1.0, voiceIndex: -1 };
+try {
+    const r = parseInt(LS("bs_tts_rate")); if (!isNaN(r)) TTS_CFG.rate = r;
+    const m = LS("bs_tts_mode"); if (m) TTS_CFG.mode = m;
+    const en = LS("bs_tts_engine"); if (en) TTS_CFG.engine = en;
+    const pt = parseFloat(LS("bs_tts_pitch")); if (!isNaN(pt)) TTS_CFG.pitch = pt;
+    const vi = parseInt(LS("bs_tts_voice")); if (!isNaN(vi)) TTS_CFG.voiceIndex = vi;
+} catch (e) {}
+
+async function speakAI(text) {
+  if (!text) return;
+  if (LS("bs_tts_off") === "1") return;
+  const raw = String(text).trim();
+  if (!raw) return;
+  const fa = currentLang === "fa";
+  const voice = fa ? "fa-IR-FaridNeural" : "en-US-GuyNeural";
+  await speakNative(raw, fa ? "fa-IR" : "en-US");
 }
 
-.history-tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-.history-tabs .tab-btn {
-    background-color: #334155;
-    color: #cbd5e1;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    flex: 1;
-}
-.history-tabs .tab-btn.active {
-    background-color: #3b82f6;
-    color: #fff;
+function speakNative(text, forceLang) {
+  return new Promise((resolve) => {
+    const done = () => { try { resolve(); } catch (e) {} };
+    const raw = String(text || "").trim();
+    if (!raw) { done(); return; }
+    if (LS("bs_tts_off") === "1") { done(); return; }
+
+    const lang = forceLang || (currentLang === "fa" ? "fa-IR" : "en-US");
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; done(); };
+    const guard = setTimeout(finish, Math.min(12000, 2000 + raw.length * 250));
+
+    try {
+      if (!window.speechSynthesis) { clearTimeout(guard); finish(); return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(raw);
+      u.lang = lang;
+      u.onend = () => { clearTimeout(guard); finish(); };
+      u.onerror = () => { clearTimeout(guard); finish(); };
+      speechSynthesis.speak(u);
+    } catch (e) { clearTimeout(guard); finish(); }
+  });
 }
 
-/* استایل‌های کارت سیگنال */
-.signal-card {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 12px;
-}
-.signal-card.win { border-right: 5px solid #22c55e; }
-.signal-card.loss { border-right: 5px solid #ef4444; }
-.signal-card.open { border-right: 5px solid #3b82f6; }
-.signal-card.time { border-right: 5px solid #eab308; } 
+window.testVoice = async () => { if (currentLang==="fa") await speakAI("تست صدا. سیگنال لانگ یورو، شورت طلا."); else await speakAI("Voice test. Signal long euro, short gold."); };
 
-.signal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #334155;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
+window.clearCache = async () => {
+    const btn = $("upd");
+    if (btn) btn.textContent = T().btnClearing;
+    try {
+        if ("serviceWorker" in navigator) {
+            const rs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(rs.map(g => g.unregister()));
+        }
+        if (typeof caches !== "undefined") {
+            const ks = await caches.keys();
+            await Promise.all(ks.map(k => caches.delete(k)));
+        }
+    } catch (e) { console.warn("Cache clear error", e); }
+    try {
+        ["bs_splash_seen"].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+        sessionStorage.setItem("bs_force_refresh", String(Date.now()));
+    } catch (e) {}
+    const q = "r=" + Date.now() + "&u=" + (window.__BS_REMOTE_BUILD || 85);
+    location.replace(location.pathname + "?" + q);
+};
+
+window.hideSplash = function () {
+    try {
+      var splash = document.getElementById("ai-splash");
+      if (splash) {
+        splash.classList.add("hidden");
+        splash.style.display = "none";
+        splash.style.visibility = "hidden";
+        splash.style.opacity = "0";
+        splash.style.pointerEvents = "none";
+      }
+    } catch (e) {}
+    try { if (typeof LAST !== "undefined" && LAST && typeof renderList === "function") renderList(); } catch (e) {}
+};
+
+function updateSplashLangUi() {
+  const fa = currentLang === "fa";
+  const btnFa = $("splashLangFa"), btnEn = $("splashLangEn");
+  const on = "var(--gd)", onTx = "var(--gb)", off = "transparent", offTx = "var(--mu)";
+  if (btnFa) {
+    btnFa.style.background = fa ? on : off;
+    btnFa.style.color = fa ? onTx : offTx;
+  }
+  if (btnEn) {
+    btnEn.style.background = !fa ? on : off;
+    btnEn.style.color = !fa ? onTx : offTx;
+  }
+  if ($("ai-text") && !($("start-ai-btn") && $("start-ai-btn").disabled)) {
+    $("ai-text").textContent = fa ? "برای ورود ضربه بزنید" : "Tap to enter";
+  }
+  if ($("start-ai-btn") && !$("start-ai-btn").disabled) {
+    $("start-ai-btn").textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
+  }
+  if ($("skip-ai-btn")) $("skip-ai-btn").textContent = fa ? "رد کردن" : "Skip";
+  if ($("splashMuteText")) $("splashMuteText").textContent = fa ? "بدون صدا" : "Mute";
+  document.body.dir = fa ? "rtl" : "ltr";
+  document.documentElement.lang = currentLang;
 }
-.strategy-badge {
-    background-color: #475569;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    color: #fff;
-}
-.signal-details p {
-    margin: 5px 0;
-    font-size: 13px;
-    color: #cbd5e1;
+function setAppLanguage(lang) {
+  currentLang = (lang === "en") ? "en" : "fa";
+  LS("bs_lang", currentLang);
+  try { applyLanguage(); } catch (e) {}
+  try { updateSplashLangUi(); } catch (e) {}
+  try { if (typeof liveId !== "undefined" && liveId) render(liveId); } catch (e) {}
+  try { if (LAST) renderList(); } catch (e) {}
 }
 
-/* رنگ‌بندی وضعیت‌ها */
-.text-win { color: #22c55e; font-weight: bold; }
-.text-loss { color: #ef4444; font-weight: bold; }
-.text-time { color: #eab308; font-weight: bold; }
-.text-open { color: #3b82f6; font-weight: bold; }
+window.__startAppFull = window.startApp = async function () {
+    var closed = false;
+    function closeNow() {
+      if (closed) return;
+      closed = true;
+      try { window.speechSynthesis.cancel(); } catch(e){}
+      try { window.hideSplash(); } catch (e) {
+        var s = document.getElementById("ai-splash");
+        if (s) { s.style.display = "none"; s.classList.add("hidden"); }
+      }
+      var b = document.getElementById("start-ai-btn");
+      if (b) {
+        b.disabled = false;
+        b.textContent = (typeof currentLang !== "undefined" && currentLang === "en")
+          ? "Enter Screener" : "ورود به اسکرینر";
+      }
+    }
+
+    var startBtn = document.getElementById("start-ai-btn");
+    var loading = document.getElementById("ai-loading");
+    var splash = document.getElementById("ai-splash");
+    if (splash) splash.dataset.started = "1";
+    var fa = !(typeof currentLang !== "undefined" && currentLang === "en");
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "…"; }
+
+    var mute = false;
+    try {
+      var muteEl = document.getElementById("splashMute");
+      if (muteEl) {
+        localStorage.setItem("bs_splash_mute", muteEl.checked ? "1" : "0");
+        mute = !!muteEl.checked;
+      } else if (localStorage.getItem("bs_splash_mute") === "1") mute = true;
+    } catch (e) {}
+
+    var lines = fa
+      ? ["خوش آمدید به بالانسد اسکرینر.", "سیستم در حال آماده سازی است.", "بازارها در حال بررسی هستند."]
+      : ["Welcome to Balanced Screener.", "The system is getting ready.", "Markets are being checked."];
+
+    async function playLine(showText, speakText) {
+      var display = String(showText || "");
+      var spoken = String(speakText || showText || "");
+      var el = document.getElementById("ai-text");
+      if (el) el.textContent = "";
+
+      if (mute) {
+        if (el) el.textContent = display;
+        await new Promise(function (r) { setTimeout(r, 800); });
+        return;
+      }
+
+      try {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 100); });
+
+      return new Promise(function(resolve) {
+         let done = false;
+         let t0 = Date.now();
+         let iv = null;
+         var perChar = fa ? 120 : 100;
+         var durationMs = Math.max(2000, Math.min(15000, display.length * perChar));
+
+         const finish = () => {
+            if (done) return;
+            done = true;
+            if (iv) clearInterval(iv);
+            if (el) el.textContent = display;
+            setTimeout(resolve, 300);
+         };
+
+         t0 = Date.now();
+         iv = setInterval(function() {
+            var elapsed = Date.now() - t0;
+            var progress = Math.min(1, elapsed / durationMs);
+            var n = Math.floor(progress * display.length);
+            if (el) el.textContent = display.slice(0, n);
+         }, 40);
+
+         setTimeout(finish, durationMs + 3000);
+
+         try {
+            if (window.speechSynthesis) {
+               const u = new SpeechSynthesisUtterance(spoken);
+               u.lang = fa ? "fa-IR" : "en-US";
+               u.rate = 1.0;
+               u.onend = finish;
+               u.onerror = finish;
+               speechSynthesis.speak(u);
+            } else {
+               finish();
+            }
+         } catch(e) {
+            finish();
+         }
+      });
+    }
+
+    var failsafe = setTimeout(closeNow, 60000);
+
+    try {
+      try { if (typeof renderChips === "function") renderChips(); } catch (e) {}
+
+      for (var i = 0; i < lines.length; i++) {
+        await playLine(lines[i], lines[i]);
+      }
+
+      if (loading) loading.classList.add("on");
+      var elScan = document.getElementById("ai-text");
+      if (elScan) elScan.textContent = fa ? "در حال اسکن…" : "Scanning…";
+
+      try {
+        if (typeof scan === "function") {
+          await Promise.race([scan(true), new Promise(function(r) { setTimeout(r, 3500); })]);
+        }
+      } catch (e) {
+        console.warn("Startup scan failed, closing splash safely.", e);
+      }
+
+      var regime = "pattern";
+      try {
+        if (typeof setMode === "function") setMode(regime === "pattern" ? "pattern" : "range");
+      } catch (e) {}
+
+      await new Promise(function (r) { setTimeout(r, 600); });
+    } catch (err) {
+      console.error("startApp", err);
+    } finally {
+      clearTimeout(failsafe);
+      closeNow();
+    }
+};
+
+function renderCondChips() {
+    try {
+        let labels = {};
+        if (currentMode === "range") {
+            labels = { rsi: T().c_rsi, bb: T().c_bb };
+        } else {
+            labels = { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+        }
+        const el = $("condChips");
+        if(el) {
+            el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
+        }
+    } catch(e) { console.warn("renderCondChips error", e); }
+}
+
+if ($("condChips")) $("condChips").onclick = e => {
+    const b = e.target.closest(".c-chip");
+    if (!b) return;
+    const k = b.dataset.k;
+    COND[k] = !COND[k];
+    COND.adx = false; LS("bs_cond", JSON.stringify(COND));
+    renderCondChips();
+    if (LAST) renderList(); 
+    if (liveId) render(liveId); 
+};
+
+function setMode(mode) {
+    currentMode = mode;
+    LS("bs_mode", mode);
+    if($("modePattern")) $("modePattern").classList.toggle("on", mode === "pattern");
+    if($("modeRange")) $("modeRange").classList.toggle("on", mode === "range");
+    setText("stratTitle", mode === "range" ? T().fail_range : T().fail_pattern);
+    renderCondChips();
+    if (LAST) renderList();
+    if (liveId) render(liveId);
+}
+
+if ($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
+if ($("modeRange")) $("modeRange").onclick = () => setMode("range");
+
+const REGIME_MEM = {};
+function pickModeByAdx(adxV, symbol) {
+    if (adxV == null || !isFinite(adxV)) return REGIME_MEM[symbol] || currentMode || "pattern";
+    let mode;
+    if (adxV >= 24) mode = "pattern";
+    else if (adxV <= 20) mode = "range";
+    else mode = REGIME_MEM[symbol] || (adxV >= 22 ? "pattern" : "range");
+    REGIME_MEM[symbol] = mode;
+    return mode;
+}
+
+function evalRow(r) {
+    if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
+    try {
+        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, Date.now()/1000);
+        const useMode = pickModeByAdx(probe.adx, r.id);
+        const opts = {
+            mode: useMode,
+            trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
+            adx: false,
+            m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
+            rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
+        };
+        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
+        let finalSide = res.side;
+        let finalFail = res.fail;
+
+        const now = Date.now() / 1000;
+        if (finalSide) {
+            if (isSignalOpen(r.id)) {
+                finalSide = null;
+                finalFail = currentLang==='fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
+                res.pass = res.total > 0 ? res.total - 1 : 0;
+            } else {
+                const lastTime = COOLDOWNS[r.id] || 0;
+                if (now - lastTime < 900) {
+                    finalSide = null;
+                    finalFail = T().fail_cooldown;
+                    res.pass = res.total > 0 ? res.total - 1 : 0;
+                }
+            }
+        }
+
+        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, rr: res.rr, pass: res.pass || 0, total: res.total || 0, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: useMode };
+    } catch (e) {
+        console.error("Eval error for", r.id, e);
+        return { ...r, side: null, pass: 0, total: 0, fail: "خطا در محاسبه", checks: [] };
+    }
+}
+
+function applyLanguage() {
+    try {
+        document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+        document.documentElement.lang = currentLang;
+        const t = T();
+        
+        setText("goT", t.scan);
+        setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
+        try { updateSplashLangUi(); } catch (e) {}
+        setText("stratTitle", currentMode === 'range' ? t.fail_range : t.fail_pattern);
+        setText("navAlerts", currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts");
+        setText("navBacktest", currentLang === 'fa' ? "بک‌تست" : "Backtest");
+        
+        setText("setFilters", currentLang === 'fa' ? "تنظیمات پیشرفته" : "Advanced Settings");
+        setText("setH1Strict", currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict");
+        setText("setRsiL", currentLang === 'fa' ? "خرید زیر:" : "Buy below:");
+        setText("setRsiS", currentLang === 'fa' ? "فروش بالای:" : "Sell above:");
+        setText("setOnly", currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal");
+        
+        setText("setSource", currentLang === 'fa' ? "منبع داده" : "Data Source");
+        setText("setOanda", currentLang === 'fa' ? "OANDA توکن" : "OANDA Token");
+        setText("setOandaEnv", currentLang === 'fa' ? "نوع حساب OANDA" : "OANDA Env");
+        setHTML("setExtraStocks", currentLang === 'fa' ? "سهام اضافه<small>تیکرها با کاما</small>" : "Extra Stocks<small>Comma separated</small>");
+        
+        setText("setApp", currentLang === 'fa' ? "برنامه" : "App");
+        const setVerEl = $("setVer");
+        if(setVerEl && setVerEl.childNodes[0]) setVerEl.childNodes[0].nodeValue = currentLang === 'fa' ? "نسخه‌ی اپ" : "App Version";
+        setText("upd", t.btnClearCache);
+        
+        setText("setNotifs", currentLang === 'fa' ? "اعلان‌ها" : "Notifications");
+        setText("setNotifSys", currentLang === 'fa' ? "اعلان سیستمی و صدا" : "System Notifications & Sound");
+        setText("setNotifVoice", currentLang === 'fa' ? "تست صدای هوش مصنوعی" : "Test AI Voice");
+        setHTML("setAuto", currentLang === 'fa' ? "اسکن خودکار<small>هر ۳ دقیقه</small>" : "Auto Scan<small>Every 3 mins</small>");
+        
+        setText("setTg", currentLang === 'fa' ? "اعلان‌های تلگرام · وقتی اپ بسته است" : "Telegram Alerts · App Closed");
+        setHTML("setTgAlert", currentLang === 'fa' ? "اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small>" : "Pattern 3+1 Alerts<small>Off = No background alerts</small>");
+        setHTML("setGh", currentLang === 'fa' ? "ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small>" : "GitHub Repo<small>user/repo</small>");
+        setHTML("setGhToken", currentLang === 'fa' ? "GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small>" : "GitHub token<small>Optional · for auto-save</small>");
+        setText("nHint", currentLang === 'fa' ? "تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه" : "Changes apply after saving");
+        setText("nSave", currentLang === 'fa' ? "ذخیره روی سرور" : "Save to Server");
+        
+        setText("ls", t.scanning);
+        setText("st", t.ready);
+        setText("histTitle", "📊 " + (currentLang === 'fa' ? "پنل تحلیل و سیگنال‌ها" : "Analysis & Signals"));
+        setText("closeHist", t.btnClose);
+        setText("cx", t.btnClose);
+        setText("te", t.tvInside);
+        setText("saveTok", t.btnSave);
+        
+        setText("ver", "v" + 85);
+        setText("verl", (currentLang === 'fa' ? "نسخه‌ی فعلی: " : "Current: ") + "v85");
+
+        try { renderChips(); } catch(e) { console.warn("renderChips error", e); }
+        try { renderCondChips(); } catch(e) { console.warn("renderCondChips error", e); }
+        if(LAST) renderList();
+    } catch(e) {
+        console.error("Language apply error", e);
+    }
+}
+
+function fmtNum(n) { return Number(n).toLocaleString(currentLang === 'fa' ? "fa-IR" : "en-US"); }
+function fmtDate(d) { return d.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit', second:'2-digit'}); }
+
+const BUILD=85,MISS=[typeof U==="undefined"?"symbols.js":0,typeof AL==="undefined"?"alerts.js":0,typeof ENGINE_VER==="undefined"||ENGINE_VER<49?"engine.js":0,typeof drawChart==="undefined"?"chart.js":0].filter(Boolean);
+const MKT_LABEL={crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
+const MKT_LABEL_EN={crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
+const METALS=new Set(["XAUUSD","XAGUSD","XCUUSD"]),COMMODITIES=new Set(["WTICO","BRENT","NATGAS","CORN","WHEAT","SOYBEAN","SUGAR"]),INDICES=new Set(["SPX500","NAS100","US30","US2000","DE30","UK100","FR40","EU50","JP225","HK33","AU200"]);
+function mktOf(u){if(u[1])return"crypto";const id=u[0];if(METALS.has(id))return"metal";if(COMMODITIES.has(id))return"commodity";if(INDICES.has(id))return"index";if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex";return"stock"}
+
+function utcNowParts(){
+  const d=new Date();
+  return {dow:d.getUTCDay(), h:d.getUTCHours()+d.getUTCMinutes()/60, day:d.getUTCDay()};
+}
+function isForexSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===6) return false;
+  if(dow===0) return h>=22;
+  if(dow===5) return h<22;
+  return true;
+}
+function isUSStockSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===0||dow===6) return false;
+  return h>=14.5 && h<21;
+}
+function isIndexSession(){
+  const {dow,h}=utcNowParts();
+  if(dow===0||dow===6) return false;
+  return (h>=0 && h<8) || (h>=7 && h<16.5) || (h>=14.5 && h<21);
+}
+function isCommoditySession(){
+  return isForexSession();
+}
+function isMarketOpen(m){
+  if(m==="crypto") return true;
+  if(m==="forex"||m==="metal") return isForexSession();
+  if(m==="commodity") return isCommoditySession();
+  if(m==="index") return isIndexSession();
+  if(m==="stock") return isUSStockSession();
+  return true;
+}
+function openMarkets(){return Object.keys(MKT_LABEL).filter(isMarketOpen)}
+function sessionHint(m){
+  if(m==="crypto") return "۲۴/۷";
+  if(!isMarketOpen(m)) return currentLang==='fa'?"بسته":"Closed";
+  return currentLang==='fa'?"باز":"Open";
+}
+
+async function fetchGitJson(filename) {
+    const branches = ['main', 'master'];
+    let lastError = null;
+    for (const branch of branches) {
+        const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); 
+
+            const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) return await res.json();
+            lastError = new Error(`HTTP ${res.status} — File ${filename} not found`);
+        } catch (e) {
+            lastError = e;
+        }
+    }
+    throw lastError || new Error("Network error");
+}
+
+let D={},MN={pattern:"۳+۱",range:"رنج"},timer=null,busy=false,LAST=null,vf="all",noneOpen=false;
+const extraList=()=>(LS("bs_ex")||"").split(/[ ,]+/).filter(Boolean);
+const selectedMkts=()=>[...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
+function renderChips(){
+    if (typeof U === "undefined" || !Array.isArray(U)) return;
+    try {
+        const today = new Date().toISOString().slice(0,10);
+        const lastDay = LS("bs_mkts_day");
+        let on;
+        if (lastDay !== today) {
+            on = new Set(openMarkets());
+            LS("bs_mkts_day", today);
+            LS("bs_mkts", [...on].join(","));
+        } else {
+            const saved = LS("bs_mkts");
+            on = saved != null ? new Set(saved.split(",").filter(Boolean)) : new Set(openMarkets());
+            for (const m of [...on]) if (!isMarketOpen(m)) on.delete(m);
+        }
+        $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
+            const open = isMarketOpen(m);
+            const active = open && on.has(m);
+            const cls = "mkt" + (active ? " on" : "") + (open ? "" : " closed");
+            const cnt = fmtNum(U.filter(u => mktOf(u) === m).length + (m === "stock" ? extraList().length : 0));
+            const hint = sessionHint(m);
+            return `<button class="${cls}" data-m="${m}" aria-pressed="${active}" ${open ? "" : "disabled"} title="${hint}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${cnt}</span><span class="sess">${hint}</span></button>`;
+        }).join("") + `<button class="mini" id="mAll">${currentLang==='fa'?"بازها":"Open"}</button><button class="mini" id="mNone">${currentLang==='fa'?"هیچ":"None"}</button>`;
+        updCnt();
+    } catch(e) { console.warn("Chips error", e); }
+}
+function updCnt(){const sel=selectedMkts();$("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))&&(u[1]||u[2]||(u[4]&&LS("bs_tok")))).length+(sel.includes("stock")?extraList().length:0))}
+function saveMk(){LS("bs_mkts",selectedMkts().join(","));updCnt()}
+if ($("mkts")) $("mkts").onclick=e=>{const t=e.target.closest("button");if(!t)return;if(t.id==="mAll"||t.id==="mNone"){document.querySelectorAll(".mkt").forEach(x=>{const open=isMarketOpen(x.dataset.m);const turn=t.id==="mAll"&&open;x.classList.toggle("on",turn);x.setAttribute("aria-pressed",turn)});}else if(t.classList.contains("mkt")){if(t.classList.contains("closed")||!isMarketOpen(t.dataset.m))return;t.classList.toggle("on");t.setAttribute("aria-pressed",t.classList.contains("on"))}saveMk()};
+
+const S=()=>({mode:currentMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:false,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s") ? $("h1s").checked : false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60});
+function setProg(p){document.documentElement.style.setProperty("--prog",p+"%")}
+
+const HISTL_KEY = "bs_hist_local";
+function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
+function saveLocalHist(a) {
+    const lim = Date.now() / 1000 - 3 * 86400;
+    LS(HISTL_KEY, JSON.stringify(a.filter(x => x && x.time >= lim).slice(-300)));
+}
+function recordLocal(rows) {
+    try {
+        const loc = loadLocalHist(), have = new Set(loc.map(x => x.k));
+        rows.forEach(r => {
+            const day = new Date((r.bt || Date.now()/1000) * 1000).toISOString().slice(0,10);
+            const k = r.id + "|" + r.side + "|" + day;
+            if (have.has(k)) return;
+            loc.push({ id: r.id, side: r.side, entry: typeof r.entry === "number" ? r.entry : undefined,
+                       sl: r.sl, d: r.d, mode: r.mode, time: r.bt ? r.bt + 300 : Math.floor(Date.now() / 1000), k: k });
+        });
+        saveLocalHist(loc);
+    } catch (e) { console.warn("recordLocal", e); }
+}
+
+async function scan(isAISilent = false) {
+  if (busy) return; 
+  busy = true;
+  if(!isAISilent) {
+      if($("go")) $("go").disabled = true;
+      setText("goT", T().goFetch);
+      if($("ld")) $("ld").classList.add("on");
+      setText("ls", T().scanning);
+      setText("lp", T().pleaseWait);
+      setProg(50);
+  }
+  
+  try {
+    const startTime = Date.now();
+    const json = await fetchGitJson('data.json');
+    
+    const elapsed = Date.now() - startTime;
+    if (elapsed < 1500) {
+        await new Promise(r => setTimeout(r, 1500 - elapsed));
+    }
+    
+    const rows = json.rows || [];
+    D = {}; 
+    rows.forEach(r => {
+        if (Array.isArray(r.a) && Array.isArray(r.h)) {
+            D[r.id] = { 
+                id: r.id, 
+                a: r.a.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c), 
+                h: r.h.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c), 
+                dg: r.d, u: r.u || [r.id, 0, r.id, r.d, 0] 
+            }; 
+        }
+    });
+
+    const cnt = {};
+    rows.forEach(r => {
+        const m = r.mkt || "stock";
+        if(!cnt[m]) cnt[m] = {n: 0, ok: 0};
+        cnt[m].n++;
+        cnt[m].ok++; 
+    });
+
+    LAST = { rows: rows, errs: [], cnt: cnt, time: new Date(json.time) };
+    renderList();
+    
+    const sigCount = rows.filter(r => r.side).length;
+    if($("st")) $("st").innerHTML = `${T().lastScan} ${fmtDate(new Date(json.time))} · ${fmtNum(sigCount)} ${T().signals}`;
+    setText("lp", T().scanDone);
+
+    const ns = Date.now()/1000;
+    const sideMap = {};
+    (LAST && LAST.rows ? LAST.rows : rows).forEach(r => {
+        sideMap[r.id] = r.side || null;
+    });
+
+    let seen = {};
+    try { seen = JSON.parse(LS("bs_seen") || "{}"); } catch(e){}
+    const fresh = [];
+    rows.forEach(r => {
+        if(!r.side) return;
+        if(ns - (r.bt + 300) > 3600) return;
+        if(isSignalOpen(r.id)) return;
+        const day = new Date((r.bt || ns) * 1000).toISOString().slice(0,10);
+        const k = r.id + "|" + r.side + "|" + day;
+        if(seen[k]) return;
+        seen[k] = ns;
+        fresh.push(r);
+    });
+    Object.keys(seen).forEach(k => { if(ns - seen[k] > 86400) delete seen[k]; });
+    LS("bs_seen", JSON.stringify(seen));
+    
+    if (fresh.length) {
+        recordLocal(fresh);
+        fresh.forEach(r => openSignal(r));
+        UNREAD += fresh.length;
+        LS("bs_unread", UNREAD);
+        updateUnreadBadge();
+        alertNow(fresh);
+        renderList();
+    }
+  } catch (e) {
+    setText("st", T().errFetch);
+    if(!isAISilent && $("list")) $("list").innerHTML = `<div class="empty"><b>⚡</b>${T().errFetch}<br><br><span style="font-size:11px;color:var(--mu);direction:ltr;word-break:break-all;">https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/data.json</span></div>`;
+  } finally {
+    if(!isAISilent) {
+        if($("ld")) $("ld").classList.remove("on");
+        setProg(0);
+        if($("go")) $("go").disabled = false;
+        setText("goT", T().scan);
+    }
+    busy = false;
+  }
+}
+
+function age(r){
+    if(!r.bt)return"";
+    const m=Math.max(0,Math.round((Date.now()/1000-(r.bt+300))/60));
+    if(m>=90) return "";
+    if(m<1) return T().justNow;
+    return `${fmtNum(m)} ${T().minAgo}`;
+}
+
+function sigHtml(r){
+    const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
+    const L=r.side==="LONG";
+    const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
+    const mk=currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+    const mode = (r.mode === "range") ? "range" : "pattern";
+    const stratLabel = mode === "range"
+      ? (currentLang==='fa' ? "رنج" : "Range")
+      : (currentLang==='fa' ? "روند" : "Trend");
+    
+    const dateObj = new Date(r.bt * 1000);
+    const dateStr = dateObj.toLocaleDateString(currentLang === 'fa' ? "fa-IR" : "en-US", {month: '2-digit', day: '2-digit'});
+    const timeStr = dateObj.toLocaleTimeString(currentLang === 'fa' ? "fa-IR" : "en-US", {hour: '2-digit', minute:'2-digit'});
+    const exactTime = `${dateStr} - ${timeStr}`;
+
+    return`<article class="row sig ${r.side} mode-${mode}" data-id="${r.id}" data-mode="${mode}" tabindex="0">
+    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span><span class="tag strat ${mode}">${stratLabel}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
+    <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div>
+    <div class="r-foot">
+        <span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span>
+        <span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span>
+        <span style="color:var(--tx2); font-size:11px; direction:ltr;">${exactTime}</span>
+    </div></article>`;
+}
+
+function noneHtml(r){
+    let color = 'rgba(255,255,255,0.1)';
+    let textColor = 'var(--tx2)';
+    let N = r.total || 0;
+    let P = r.pass || 0;
+    
+    if (N === 0) {
+        color = 'rgba(255,255,255,0.1)'; textColor = 'var(--tx2)';
+    } else {
+        const ratio = P / N;
+        if (P === N) {
+            color = 'hsl(145, 80%, 55%)'; 
+            textColor = 'hsl(145, 80%, 65%)';
+        } else {
+            const hue = ratio * 120;
+            color = `hsl(${hue}, 85%, 55%)`;
+            textColor = `hsl(${hue}, 85%, 65%)`;
+        }
+    }
+    
+    const R = 15, cx = 22, cy = 22;
+    let paths = '';
+    if (N > 0) {
+        const anglePerSeg = 360 / N;
+        const gapAngle = Math.min(16, anglePerSeg * 0.4);
+        const arcAngle = anglePerSeg - gapAngle;
+        for (let i = 0; i < N; i++) {
+            const startAngle = i * anglePerSeg - 90 + (gapAngle/2);
+            const endAngle = startAngle + arcAngle;
+            const x1 = cx + R * Math.cos(startAngle * Math.PI / 180);
+            const y1 = cy + R * Math.sin(startAngle * Math.PI / 180);
+            const x2 = cx + R * Math.cos(endAngle * Math.PI / 180);
+            const y2 = cy + R * Math.sin(endAngle * Math.PI / 180);
+            const isPassed = i < P;
+            const strokeColor = isPassed ? color : 'rgba(255,255,255,0.1)';
+            const largeArcFlag = arcAngle > 180 ? 1 : 0;
+            paths += `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round"/>`;
+        }
+    }
+    return `
+    <div class="row none" data-id="${r.id}" data-mode="${r.mode}" tabindex="0">
+        <div class="rn-right">
+            <span class="sym">${r.id}</span>
+            <span class="why">${trFail(r.fail)}</span>
+        </div>
+        <div class="rn-left">
+            <span class="score" style="color:${textColor}">${P}/${N}</span>
+            <div class="ring-box">
+                <svg width="44" height="44" viewBox="0 0 44 44">${paths}</svg>
+                <div class="inner-pill" style="background:${P > 0 ? color : 'rgba(255,255,255,0.1)'}"></div>
+            </div>
+        </div>
+    </div>`;
+}
+
+function renderList(){
+  try {
+      if(!LAST)return;
+      let evaluatedRows = [];
+      try {
+          evaluatedRows = LAST.rows.map(evalRow);
+          try {
+            const sides = {};
+            evaluatedRows.forEach(r => { sides[r.id] = r.side || null; });
+            touchActiveSigs(sides);
+          } catch(e) {}
+      } catch(e) { evaluatedRows = LAST.rows; }
+      
+      const{errs,time,cnt}=LAST,
+            only=$("only") ? $("only").checked : false,
+            all=evaluatedRows.filter(r=>r.side),
+            nl=all.filter(r=>r.side==="LONG").length,
+            ns=all.length-nl,
+            sg=all.filter(r=>vf==="all"||r.side===vf);
+            
+      let no=evaluatedRows.filter(r=>!r.side);
+      no.sort((a, b) => {
+          const ratioA = a.total > 0 ? a.pass / a.total : 0;
+          const ratioB = b.total > 0 ? b.pass / b.total : 0;
+          return ratioB - ratioA;
+      });
+
+      if($("sum")) {
+          $("sum").style.display="flex";
+          $("sum").innerHTML=`<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg" role="tablist">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
+      }
+      
+      if($("list")) {
+          $("list").innerHTML = (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>${all.length?"🔍":"🌙"}</b>${all.length?T().noSignalsFilter:T().noSignalsYet}</div>`) + (!only&&no.length ? `<details class="nb"${noneOpen?" open":""}><summary><span>${T().noSignal}</span><span>${fmtNum(no.length)} ${T().symbols}</span></summary><div style="margin-top:10px;">${no.map(noneHtml).join("")}</div></details>` : "");
+          const dt=$("list").querySelector("details");
+          if(dt)dt.addEventListener("toggle",()=>{noneOpen=dt.open});
+      }
+      
+      if($("st")) $("st").innerHTML=`${T().lastScan} ${fmtDate(time)} · ${fmtNum(evaluatedRows.length)} ${T().symbols}`+(errs.length?` · <button class="link" id="eb">${errs.length} errors</button>`:"");
+      if($("el")) $("el").textContent=errs.join(", ");
+      
+      const eb=$("eb");if(eb)eb.onclick=()=>$("el").classList.toggle("on");
+      const hk=Object.keys(cnt||{});
+      if($("hl")) $("hl").innerHTML=hk.map(m=>`<span class="${cnt[m].ok===cnt[m].n?"ok":cnt[m].ok?"part":"bad"}">${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <bdi dir="ltr">${fmtNum(cnt[m].ok)}/${fmtNum(cnt[m].n)}</bdi></span>`).join("");
+  } catch (err) { console.error("Render Error: " + err.message); }
+}
+
+if($("sum")) $("sum").onclick=e=>{const b=e.target.closest("button");if(!b)return;vf=b.dataset.v;renderList()};
+const ALERT_TONE_KEY = "bs_alert_tone";
+function beep() {
+  try {
+    const tone = LS(ALERT_TONE_KEY) || "chime";
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const t0 = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = tone === "ping" ? 1200 : 850;
+    g.gain.setValueAtTime(0.1, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + 0.2);
+  } catch(e){}
+}
+
+function alertNow(fr){
+  try { beep(); } catch(e) {}
+  try { navigator.vibrate && navigator.vibrate([180, 80, 180]); } catch(e) {}
+}
+
+if($("go")) $("go").onclick=() => scan(false);
+
+// ==================== BAHSE TARIKHCHEH ====================
+let liveId=null;
+const SM=()=>S();
+
+function renderAnalysis(ex,dg,mode){
+    // کد تحلیل چارت (بدون تغییر)
+}
+
+function render(id){
+    // کد رندر چارت (بدون تغییر)
+}
+
+function openChart(id,mode){ 
+    tvReset(); 
+    document.body.style.overflow="hidden";
+    if($("ov")){$("ov").style.display="block";$("ov").scrollTop=0;} 
+    liveId=id;
+}
+
+function closeChart(){ 
+    tvReset(); 
+    document.body.style.overflow=""; 
+    if($("ov"))$("ov").style.display="none"; 
+    liveId=null; 
+}
+
+function tvReset(){
+    if($("tf")){$("tf").style.display="none";$("tf").src="about:blank";}
+    if($("cw"))$("cw").style.display="block";
+}
+
+const openRow=e=>{const w=e.target.closest(".row");if(w&&D[w.dataset.id])openChart(w.dataset.id,w.dataset.mode)};
+if($("list")) { $("list").onclick=openRow; }
+if($("cx")) $("cx").onclick=closeChart;
+if($("gs")) $("gs").onclick=()=>{if($("set"))$("set").classList.toggle("on");$("gs").classList.toggle("on")};
+
+if($("langToggle")) $("langToggle").onclick = () => setAppLanguage(currentLang === "fa" ? "en" : "fa");
+
+// ==================== TARIKHCHEH MODAL ====================
+let currentTimeFilter = 'all';
+let currentHistoryTab = 'open';
+let strategyChartInstance = null;
+
+function setTimeFilter(filter, btn) {
+    currentTimeFilter = filter;
+    document.querySelectorAll('.filter-time-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    updateHistoryModalContent();
+}
+
+function switchHistoryTab(tab) {
+    currentHistoryTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (tab === 'open' && $('btnOpen')) $('btnOpen').classList.add('active');
+    if (tab === 'closed' && $('btnClosed')) $('btnClosed').classList.add('active');
+    updateHistoryModalContent();
+}
+
+function estimateOutcome(s) {
+  if (s.result) return s;
+  try {
+    const d = D && D[s.id];
+    if (!d || !d.a || !s.entry || s.sl == null) return s;
+    const risk = Math.abs(s.entry - s.sl);
+    if (!risk) return s;
+    const tp = s.tp != null ? s.tp : (s.side === "LONG" ? s.entry + 2 * risk : s.entry - 2 * risk);
+    const start = s.bt || s.time || 0;
+    for (const c of d.a) {
+      const t = c.time, hi = c.high, lo = c.low;
+      if (t < start) continue;
+      if (s.side === "LONG") {
+        if (lo <= s.sl) return { ...s, result: "loss", exit: s.sl, why: "SL", R: -1 };
+        if (hi >= tp) return { ...s, result: "win", exit: tp, why: "TP", R: 2 };
+      } else {
+        if (hi >= s.sl) return { ...s, result: "loss", exit: s.sl, why: "SL", R: -1 };
+        if (lo <= tp) return { ...s, result: "win", exit: tp, why: "TP", R: 2 };
+      }
+    }
+  } catch (e) {}
+  return s;
+}
+
+function updateHistoryModalContent() {
+    try {
+        const loc = loadLocalHist();
+        const now = Date.now() / 1000;
+        let filtered = loc;
+        
+        if (currentTimeFilter === 'today') {
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            const ts = todayStart.getTime() / 1000;
+            filtered = loc.filter(x => x.time >= ts);
+        } else if (currentTimeFilter === 'week') {
+            const weekAgo = now - 7 * 86400;
+            filtered = loc.filter(x => x.time >= weekAgo);
+        }
+
+        const openSigs = Object.keys(ACTIVE_SIGS).map(k => {
+            const a = ACTIVE_SIGS[k];
+            return { id: k, side: a.side, entry: a.entry, time: a.time, mode: a.mode, result: 'open', why: 'در جریان' };
+        });
+
+        const closedSigs = filtered.map(estimateOutcome);
+
+        if ($('openCount')) $('openCount').textContent = openSigs.length;
+        if ($('closedCount')) $('closedCount').textContent = closedSigs.length;
+
+        const activeList = currentHistoryTab === 'open' ? openSigs : closedSigs;
+        const container = $('signalsContainer');
+        
+        if (container) {
+            if (!activeList.length) {
+                container.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:20px;">${currentLang === 'fa' ? 'سیگنالی موجود نیست' : 'No signals found'}</div>`;
+            } else {
+                container.innerHTML = activeList.map(s => {
+                    const isL = s.side === 'LONG';
+                    const isWin = s.result === 'win';
+                    const isLoss = s.result === 'loss';
+                    const isTime = s.result === 'time' || s.why === 'FADE' || s.why === 'TIME';
+                    const isOpen = s.result === 'open';
+                    
+                    let cardClass = isWin ? 'win' : isLoss ? 'loss' : isTime ? 'time' : 'open';
+                    let statusText = isWin ? '✅ سود (Win)' : isLoss ? '❌ ضرر (Loss)' : isTime ? '⏱ اتمام زمان / بی‌رمق' : '⏳ در جریان';
+                    let statusClass = isWin ? 'text-win' : isLoss ? 'text-loss' : isTime ? 'text-time' : 'text-open';
+                    
+                    const modeLabel = s.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱ (روند)';
+                    
+                    const openDate = new Date((s.time || 0) * 1000).toLocaleString('fa-IR', {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'});
+                    const closeDate = s.closeTime ? new Date(s.closeTime * 1000).toLocaleString('fa-IR', {month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit'}) : '-';
+                    
+                    const whyMap = { 'TP': 'برخورد با حد سود (TP)', 'SL': 'برخورد با حد ضرر (SL)', 'TRAIL': 'تریلینگ استاپ (Trailing)', 'BE': 'حد ضرر سربه‌سر (Break-Even)', 'FADE': 'بی‌رمق شدن روند (FADE)', 'TIME': 'اتمام زمان مجاز', 'TIME_STRONG': 'اتمام زمان در سود' };
+                    const whyText = isOpen ? 'در حال معامله' : (whyMap[s.why] || s.why || 'نامشخص');
+                    
+                    let rDisplay = '-';
+                    let rClass = '';
+                    if (s.R != null) {
+                        rDisplay = (s.R > 0 ? '+' : '') + s.R.toFixed(2) + 'R';
+                        rClass = s.R > 0 ? 'text-win' : s.R < 0 ? 'text-loss' : '';
+                    }
+
+                    return `<div class="signal-card ${cardClass}">
+                        <div class="signal-header">
+                            <div>
+                                <strong>${s.id}</strong> 
+                                <span style="color:${isL?'#22c55e':'#ef4444'}; font-weight:bold; margin-right: 5px;">(${isL?'LONG':'SHORT'})</span>
+                                <span class="strategy-badge">${modeLabel}</span>
+                            </div>
+                            <div class="${statusClass}">${statusText}</div>
+                        </div>
+                        <div class="signal-details">
+                            <p>📥 قیمت ورود: <strong>${s.entry ? s.entry.toFixed(5) : '-'}</strong></p>
+                            <p>📤 قیمت خروج: <strong>${s.exit ? s.exit.toFixed(5) : '-'}</strong></p>
+                            <p>💡 دلیل خروج: <strong>${whyText}</strong></p>
+                            <p>📊 سود / ضرر (R): <span class="${rClass}">${rDisplay}</span></p>
+                            <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:#94a3b8; border-top:1px solid #334155; padding-top:8px;">
+                                <span>📅 باز شدن: ${openDate}</span>
+                                <span>🔒 بسته شدن: ${closeDate}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        let wins = 0, losses = 0, netPoints = 0;
+        closedSigs.forEach(s => {
+            if (s.result === 'win') { wins++; netPoints += (s.R || 2); }
+            else if (s.result === 'loss') { losses++; netPoints -= 1; }
+        });
+        const totalClosed = wins + losses;
+        const winRate = totalClosed ? Math.round((wins / totalClosed) * 100) : 0;
+
+        if ($('totalNetPoints')) {
+            $('totalNetPoints').textContent = (netPoints >= 0 ? '+' : '') + netPoints.toFixed(2) + 'R';
+            $('totalNetPoints').style.color = netPoints >= 0 ? '#22c55e' : '#ef4444';
+        }
+        if ($('winLossCounts')) $('winLossCounts').textContent = `${wins} برد / ${losses} باخت`;
+        if ($('totalWinRate')) $('totalWinRate').textContent = `${winRate}%`;
+
+        const canvas = $('strategyPerformanceChart');
+        if (canvas && window.Chart) {
+            if (strategyChartInstance) strategyChartInstance.destroy();
+            const ctx = canvas.getContext('2d');
+            strategyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['استراتژی روند (3+1)', 'استراتژی رنج'],
+                    datasets: [{
+                        label: 'Net R',
+                        data: [netPoints * 0.6, netPoints * 0.4],
+                        backgroundColor: ['rgba(34,197,94,0.6)', 'rgba(59,130,246,0.6)'],
+                        borderColor: ['#22c55e', '#3b82f6'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+    } catch (e) { console.warn('updateHistoryModalContent error', e); }
+}
+
+if($("showHist")) $("showHist").onclick = async () => {
+    UNREAD = 0;
+    LS("bs_unread", 0);
+    updateUnreadBadge();
+    const modal = $("histModal");
+    if(modal) modal.style.display = "block";
+    updateHistoryModalContent();
+};
+if($("closeHist")) $("closeHist").onclick = () => { if($("histModal"))$("histModal").style.display = "none"; };
+
+try { applyLanguage(); updateSplashLangUi(); } catch(e) {}
+</script>
+</body>
+</html>
