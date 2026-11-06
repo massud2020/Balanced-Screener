@@ -2211,7 +2211,8 @@ window.__startAppFull = async function(){
       let finished = false;
       const finish = () => { if(finished) return; finished = true; resolve(); };
 
-      setTimeout(finish, 3000);
+      // تایمر اضطراری
+      setTimeout(finish, 4000);
 
       try {
         if (window.speechSynthesis) {
@@ -2224,17 +2225,15 @@ window.__startAppFull = async function(){
            u.lang = currentLang === "fa" ? "fa-IR" : "en-US";
            u.volume = 1.0;
            u.rate = 0.9; 
-           
            u.onend = finish;
            u.onerror = finish;
            
+           // بدون تاخیر اجرا می‌شود تا مرورگر موبایل آن را بلاک نکند
            window.speechSynthesis.speak(u);
-
         } else {
            finish(); 
         }
       } catch(e) {
-        console.error(e);
         finish();
       }
   });
