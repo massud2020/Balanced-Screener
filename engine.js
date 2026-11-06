@@ -1,4 +1,4 @@
-// engine.js — موتور ارزیابی پیشرفته Multi-Confluence با مدیریت سود پویا و رژیم دوگانه
+// engine.js — موتور ارزیابی پیشرفته Multi-Confluence (نسخه حرفه‌ای اصلاح‌شده)
 
 function ema(data, period) {
   if (!data || data.length < period) return new Array(data ? data.length : 0).fill(null);
@@ -105,19 +105,53 @@ function adx(candles, period = 14) {
   return smoothed(dxArr, period);
 }
 
+// 🛠 تابع جدید: محاسبه باند بولینگر
+function bollingerBands(data, period = 20, mult = 2) {
+  if (!data || data.length < period) return { upper: [], middle: [], lower: [] };
+  const upper = [], middle = [], lower = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) { upper.push(null); middle.push(null); lower.push(null); continue; }
+    const slice = data.slice(i - period + 1, i + 1);
+    const sum = slice.reduce((a, b) => a + b, 0);
+    const sma = sum / period;
+    const variance = slice.reduce((a, b) => a + Math.pow(b - sma, 2), 0) / period;
+    const stdDev = Math.sqrt(variance);
+    upper.push(sma + mult * stdDev);
+    middle.push(sma);
+    lower.push(sma - mult * stdDev);
+  }
+  return { upper, middle, lower };
+}
+
+// 🛠 اصلاح تابع پرایس اکشن: استفاده از الگوهای قوی (Pin Bar و Engulfing)
 function checkPriceActionConfirmation(candles, side) {
   if (!candles || candles.length < 2) return false;
   const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
   const body = Math.abs(last.close - last.open);
   const totalRange = last.high - last.low;
   if (totalRange === 0) return false;
 
+  const upperShadow = last.high - Math.max(last.open, last.close);
+  const lowerShadow = Math.min(last.open, last.close) - last.low;
+  
+  const isBullish = last.close > last.open;
+  const isBearish = last.close < last.open;
+  const prevBullish = prev.close > prev.open;
+  const prevBearish = prev.close < prev.open;
+
   if (side === "LONG") {
-    const lowerShadow = Math.min(last.open, last.close) - last.low;
-    return lowerShadow >= totalRange * 0.35 || last.close > last.open;
+    // 1. Pin Bar (سایه پایینی بلند + بدنه کوچک)
+    const pinBar = lowerShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBullish;
+    // 2. Bullish Engulfing (پوشا صعودی)
+    const engulfing = isBullish && prevBearish && last.close >= prev.open && last.open <= prev.close;
+    return pinBar || engulfing;
   } else {
-    const upperShadow = last.high - Math.max(last.open, last.close);
-    return upperShadow >= totalRange * 0.35 || last.close < last.open;
+    // 1. Pin Bar (سایه بالایی بلند + بدنه کوچک)
+    const pinBar = upperShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBearish;
+    // 2. Bearish Engulfing (پوشا نزولی)
+    const engulfing = isBearish && prevBullish && last.close <= prev.open && last.open >= prev.close;
+    return pinBar || engulfing;
   }
 }
 
@@ -150,12 +184,15 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   const rsiArr = rsi(closes, 14);
   const atrArr = atr(cl, 14);
   const adxArr = adx(cl, 14);
+  const bb = bollingerBands(closes, 20, 2);
 
   const idx = cl.length - 1;
   const lastClose = closes[idx];
   const lastRsi = rsiArr[idx];
   const lastAtr = atrArr[idx] || (cl[idx].high - cl[idx].low);
   const lastAdx = adxArr[idx] || 20;
+  const lastUpper = bb.upper[idx];
+  const lastLower = bb.lower[idx];
 
   const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
   const checks = [];
@@ -169,11 +206,17 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
       return { side: null, fail: `روند قوی مناسب رنج نیست (ADX: ${lastAdx.toFixed(1)})`, adx: lastAdx, checks };
     }
 
-    if (lastRsi <= 38) side = "LONG";
-    else if (lastRsi >= 62) side = "SHORT";
+    // 🛠 اصلاح منطق رنج: ترکیب RSI و باند بولینگر
+    const rsiBuy = lastRsi <= (opts.rsiL || 38);
+    const rsiSell = lastRsi >= (opts.rsiS || 62);
+    const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
+    const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
 
-    checks.push({ l: `اشباع RSI رنج (${lastRsi ? lastRsi.toFixed(1) : "-"})`, ok: !!side });
-    if (!side) return { side: null, fail: `RSI در محدوده خنثی رنج است (${lastRsi ? lastRsi.toFixed(1) : "-"})`, adx: lastAdx, checks };
+    if (rsiBuy && bbBuy) side = "LONG";
+    else if (rsiSell && bbSell) side = "SHORT";
+
+    checks.push({ l: `اشباع RSI + برخورد بولینگر (${lastRsi ? lastRsi.toFixed(1) : "-"})`, ok: !!side });
+    if (!side) return { side: null, fail: `شرایط رنج برقرار نیست (RSI: ${lastRsi ? lastRsi.toFixed(1) : "-"})`, adx: lastAdx, checks };
 
   } else {
     const isTrending = lastAdx >= 20;
@@ -197,8 +240,14 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   const riskDist = lastAtr * slMult;
 
   const sl = side === "LONG" ? entry - riskDist : entry + riskDist;
-  const tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-  const tp2 = mode === "pattern" ? null : (side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0);
+  
+  // 🛠 اصلاح نهایی TP: 
+  let tp1 = null;
+  let tp2 = null;
+  if (mode === "range") {
+    tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
+    tp2 = side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
+  }
 
   const totalPass = checks.filter(c => c.ok).length;
 
@@ -223,6 +272,7 @@ module.exports = {
   rsi,
   atr,
   adx,
+  bollingerBands,
   checkPriceActionConfirmation,
   dropForming,
   filterCorrelated,
