@@ -4,295 +4,46 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#0b0d11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <link rel="stylesheet" href="style.css">
 <style>
-:root{--bg:#0b0d11;--card:#12151b;--card2:#171b22;--bd:#232830;--bd2:#1b1f27;--tx:#e6e9ee;--tx2:#a7aebb;--mu:#78808d;--g:#2e9a69;--gb:#46c58c;--gd:rgba(47,157,104,.14);--r:#d4524c;--rb:#e8736d;--rd:rgba(209,75,69,.14);--rad:16px;--rs:12px;--font:"Segoe UI",system-ui,-apple-system,sans-serif}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--font);min-height:100dvh;padding:0 14px env(safe-area-inset-bottom)}
-button,select{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:var(--rs);padding:0 14px;min-height:44px;font:inherit;font-size:14px;cursor:pointer;-webkit-appearance:none;appearance:none}
-button:active{transform:scale(.97)}button:disabled{opacity:.55;cursor:default}
-button:focus-visible,select:focus-visible{outline:2px solid var(--gb);outline-offset:2px}
+/* ═══ Critical inline CSS (اگر style.css لود نشد، splash کار کند) ═══ */
+html,body{margin:0;padding:0;background:#0b0d11;color:#e6e9ee;font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+*{box-sizing:border-box}
 
-#ai-splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
-#ai-splash.hidden{display:none!important}
-.ai-avatar-img{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid var(--gb);margin-bottom:16px;animation:pulse 2s infinite}
-.ai-text{font-size:14px;color:var(--tx2);min-height:28px;margin-bottom:20px}
-.ai-loading{width:200px;height:4px;background:var(--bd);border-radius:4px;margin-top:10px;overflow:hidden;display:none}
+#ai-splash{position:fixed;inset:0;background:#0b0d11;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#ai-splash.hidden{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+.ai-avatar-img{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #46c58c;margin-bottom:16px;animation:bsPulse 2s infinite;background:#000}
+.ai-text{font-size:14px;color:#a7aebb;min-height:28px;margin-bottom:20px}
+.ai-loading{width:200px;height:4px;background:#232830;border-radius:4px;margin-top:10px;overflow:hidden;display:none}
 .ai-loading.on{display:block}
-.ai-loading u{display:block;height:100%;width:0;background:var(--gb);border-radius:4px;animation:loadbar 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
-@keyframes loadbar{0%{width:0}50%{width:100%}100%{width:0}}
+.ai-loading u{display:block;height:100%;width:0;background:#46c58c;border-radius:4px;animation:bsLoadbar 2s infinite}
+#start-ai-btn{margin-top:22px;width:min(240px,80%);min-height:48px;font-size:16px;font-weight:800;border-radius:14px;background:linear-gradient(135deg,#2a8f5c,#46c58c);color:#fff;border:none;cursor:pointer;box-shadow:0 4px 15px rgba(70,197,140,.3);display:flex;align-items:center;justify-content:center;gap:8px;z-index:10001;position:relative;pointer-events:auto}
+#start-ai-btn:active{transform:scale(.97)}
+#skip-ai-btn{margin-top:12px;background:transparent;border:none;color:#78808d;padding:8px 16px;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;z-index:10001;position:relative;pointer-events:auto}
+#skip-ai-btn:active{opacity:.6}
+@keyframes bsPulse{0%{box-shadow:0 0 0 0 rgba(70,197,140,.7)}70%{box-shadow:0 0 0 20px rgba(70,197,140,0)}100%{box-shadow:0 0 0 0 rgba(70,197,140,0)}}
+@keyframes bsLoadbar{0%{width:0}50%{width:100%}100%{width:0}}
 
-.bar{position:sticky;top:0;z-index:30;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;background:rgba(11,13,17,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd2)}
-.bar::after{content:"";position:absolute;bottom:-1px;inset-inline-start:0;height:2px;width:var(--prog,0%);background:linear-gradient(90deg,var(--g),var(--gb));transition:width .3s}
-.acts{display:flex;align-items:center;gap:6px;flex:none}.acts.left{justify-content:flex-start}.acts.right{justify-content:flex-end}
-.brand{display:flex;flex-direction:column;align-items:center;text-align:center}
-.logo-row{display:flex;align-items:center;gap:6px;font-weight:800;font-size:16px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logo-row i{flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,#1f6f47,var(--gb));color:#06150d;-webkit-text-fill-color:#06150d;font-style:normal;font-size:14px}
-.brand small{color:var(--mu);font-size:10px;margin-top:2px}
-button.ic{width:38px;min-width:38px;padding:0;font-size:16px;display:grid;place-items:center;position:relative}
-button.ic .ico{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7}
-button.ic.on{border-color:var(--gb);color:var(--gb)}
-.badge{position:absolute;top:-4px;right:-4px;background:var(--rb);color:#fff;font-size:10px;font-weight:bold;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);z-index:10;direction:ltr}
-.badge.on{display:flex}
-
-.ctl{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-.mode-switch{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);padding:4px}
-.mode-switch button{flex:1;min-height:36px;border:none;border-radius:6px;background:transparent;color:var(--mu);font-size:13px;font-weight:600;padding:0 10px}
-.mode-switch button.on{background:var(--gd);color:var(--gb)}
-.strategy-box{display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);font-size:14px}
-.strategy-title{display:flex;align-items:center;justify-content:space-between}
-.strategy-title b{font-weight:700}
-.od{width:9px;height:9px;border-radius:50%;background:var(--gb);box-shadow:0 0 0 4px var(--gd);display:inline-block;margin-inline-end:8px}
-.cond-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.cond-chips::-webkit-scrollbar{display:none}
-.c-chip{flex:none;min-height:28px;padding:0 10px;border-radius:6px;font-size:11.5px;font-weight:600;background:var(--card2);border:1px solid var(--bd);color:var(--mu);cursor:pointer}
-.c-chip.on{background:rgba(70,197,140,.15);border-color:rgba(70,197,140,.4);color:var(--gb)}
-.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:2px 14px 4px}
-.chips::-webkit-scrollbar{display:none}
-.mkt{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 13px;border-radius:99px;font-size:13px;font-weight:600;color:var(--mu)}
-.mkt .cnt{font-size:11px;opacity:.75;direction:ltr}
-.mkt.on{background:var(--gd);border-color:rgba(61,202,133,.4);color:var(--gb)}
-.mkt.closed{opacity:.38;pointer-events:none;filter:grayscale(.7)}
-
-.set{display:none;background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:4px 14px 8px;margin-top:12px}
-.set.on{display:block}
-.set h3{font-size:11.5px;font-weight:600;color:var(--mu);padding:14px 0 4px}
-.set label{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:46px;border-bottom:1px solid var(--bd2);font-size:14px;color:var(--tx2)}
-.set input[type=checkbox]{-webkit-appearance:none;width:44px;height:26px;border-radius:99px;background:#2a2e37;position:relative;cursor:pointer}
-.set input[type=checkbox]::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;background:#cfd3da;transition:.2s}
-.set input[type=checkbox]:checked{background:var(--g)}
-.set input[type=checkbox]:checked::after{inset-inline-start:21px;background:#fff}
-
-.ld{display:none;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0d1612,var(--card));border:1px solid #1e3a2c;border-radius:var(--rad);padding:14px 16px;margin-top:12px}
-.ld.on{display:flex;flex-direction:row-reverse}
-.rd{width:52px;height:52px;border-radius:50%;position:relative;flex:none;overflow:hidden;border:1px solid #2a5a3f;background:#0a110d}
-.rd i{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(61,202,133,.8),rgba(61,202,133,0) 70deg,transparent 0);animation:sp 1.2s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.lt{flex:1;text-align:left;margin-left:16px}
-.lt b{font-size:16px;direction:ltr;display:inline-block;color:var(--tx)}
-.lt span{display:block;color:var(--mu);font-size:12px;margin-top:2px;direction:ltr;text-align:left}
-
-.sum{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
-.cn{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:600}
-.cn span{padding:4px 11px;border-radius:99px;background:var(--card);border:1px solid var(--bd2)}
-.cn .l{color:var(--gb)}.cn .s{color:var(--rb)}
-.seg{display:inline-flex;background:var(--card);border:1px solid var(--bd2);border-radius:99px;padding:3px}
-.seg button{min-height:32px;border:none;border-radius:99px;background:transparent;color:var(--mu);font-size:12.5px;padding:0 12px}
-.seg button.on{background:var(--card2);color:var(--tx)}
-
-.scan-container{margin:12px 0;display:flex;justify-content:center;width:100%}
-.big-scan{width:100%;height:50px;font-size:16px;font-weight:800;border-radius:14px;background:linear-gradient(135deg,#2a8f5c,var(--gb));color:#fff;border:none;box-shadow:0 4px 15px rgba(70,197,140,.3);display:flex;align-items:center;justify-content:center;gap:8px}
-.big-scan small{background:rgba(0,0,0,.2);padding:2px 10px;border-radius:99px;font-size:12px;font-weight:500}
-
-.st{color:var(--mu);font-size:12px;margin-top:10px;min-height:18px;text-align:center}
-.hl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.hl span{font-size:11.5px;padding:3px 10px;border-radius:99px;border:1px solid var(--bd2);color:var(--mu)}
-.hl .ok{color:var(--gb);border-color:rgba(70,197,140,.3)}.hl .part{color:#ffb020}.hl .bad{color:var(--rb)}
-
-main{padding-bottom:28px}
-.row{background:var(--card);border:1px solid var(--bd);border-radius:var(--rad);padding:13px 14px;margin:10px 0;cursor:pointer;position:relative;overflow:hidden}
-.row:hover{background:var(--card2)}
-.row.sig::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px}
-.row.sig.LONG::before{background:var(--gb)}.row.sig.SHORT::before{background:var(--rb)}
-.r-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.r-id{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sym{font-weight:700;font-size:16px;direction:ltr}
-.tag{font-size:11px;font-weight:600;color:var(--tx2);background:var(--bd2);border-radius:99px;padding:2px 9px}
-.tag.mk{color:var(--mu);background:transparent;border:1px solid var(--bd2)}
-.b{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800;white-space:nowrap}
-.LONG.b{background:var(--gd);color:var(--gb);border:1px solid rgba(61,202,133,.3)}
-.SHORT.b{background:var(--rd);color:var(--rb);border:1px solid rgba(239,107,101,.3)}
-.r-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;direction:ltr}
-.r-grid div{background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:7px 9px}
-.r-grid i{display:block;font-style:normal;font-size:10.5px;color:var(--mu)}
-.r-grid b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.r-grid .pos{color:var(--gb)}.r-grid .neg{color:var(--rb)}
-.r-foot{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mu)}
-.empty{text-align:center;color:var(--mu);padding:46px 20px;font-size:14px}
-.empty b{display:block;font-size:34px;margin-bottom:4px}
-.sk{height:96px;border-radius:var(--rad);margin:10px 0;background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:shm 1.4s linear infinite}
-@keyframes shm{to{background-position:-200% 0}}
-
-#ov{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow:auto;padding:0 14px 24px;direction:ltr}
-#ov .oh{position:sticky;top:0;margin:0 -14px 10px;padding:14px;display:flex;align-items:center;justify-content:space-between;background:rgba(11,13,17,.9);border-bottom:1px solid var(--bd2)}
-#ct{font-size:15px;font-weight:700}
-.lv{color:var(--gb);font-size:11px;font-weight:800;margin-inline-start:8px}
-#cx{min-height:40px;padding:0 15px}
-.oa{display:flex;gap:8px;margin-bottom:10px;direction:rtl}
-a.btn{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:var(--rs);background:var(--card);border:1px solid var(--bd);color:var(--tx);text-decoration:none;font-size:13px}
-a.btn.tv{border-color:#2962ff;background:#142a66}
-.oa button{flex:1;min-height:42px;font-size:13px}
-#tf{display:none;width:100%;height:540px;border:1px solid var(--bd);border-radius:var(--rad);background:#000}
-#cv{width:100%;border-radius:var(--rad);background:var(--card);border:1px solid var(--bd);display:block}
-
-/* Charts */
-.chart-wrap{position:relative;width:100%;margin-top:6px;margin-bottom:8px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 6px}
-.chart-wrap.line-h{height:260px}.chart-wrap.dd-h{height:180px}.chart-wrap.mo-h{height:220px}
-.chart-wrap .chart-title{font-size:12px;color:var(--mu);padding:2px 8px 6px;font-weight:600}
-.chart-wrap .chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12.5px;text-align:center;padding:20px}
-@media(max-width:600px){.chart-wrap.line-h{height:210px}.chart-wrap.dd-h{height:150px}.chart-wrap.mo-h{height:180px}}
-
-.bh-bench{margin-top:10px;background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(168,85,247,0.02));border:1px solid rgba(168,85,247,0.28);border-radius:12px;padding:11px 14px;font-size:12.5px;line-height:1.75}
-.bh-bench .bh-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.bh-bench .bh-lbl{color:#c4b5fd;font-weight:700;font-size:12px;display:flex;align-items:center;gap:6px}
-.bh-bench .bh-lbl::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;background:#a855f7}
-.bh-bench .bh-val{color:#a855f7;font-weight:800;font-size:14px}
-.bh-bench .bh-note{color:#94a3b8;font-size:11px;margin-top:4px;line-height:1.65}
-.bh-bench .bh-pos{color:#22c55e;font-weight:700}.bh-bench .bh-neg{color:#ef4444;font-weight:700}
-
-.winner-banner{margin-top:10px;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(168,85,247,0.08));border:1px solid rgba(34,197,94,0.32);border-radius:12px;padding:11px 14px;font-size:12.5px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.winner-banner .w-lbl{display:flex;align-items:center;gap:6px;color:#cbd5e1;font-weight:600;font-size:12px}
-.winner-banner .w-name{color:#22c55e;font-weight:800;font-size:13px}
-.winner-banner .w-name.bh{color:#a855f7}.winner-banner .w-name.none{color:#94a3b8}
-.winner-banner .w-val{direction:ltr;font-weight:800;font-size:14px;color:#22c55e}
-.winner-banner .w-val.neg{color:#ef4444}.winner-banner .w-val.neu{color:#94a3b8}
-
-.adv-metrics{margin-top:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:2px 14px}
-.adv-metrics summary{list-style:none;cursor:pointer;padding:11px 0;font-weight:600;color:var(--tx2);font-size:12.5px;display:flex;align-items:center;justify-content:space-between}
-.adv-metrics summary::-webkit-details-marker{display:none}
-.adv-metrics summary::after{content:"▼";color:var(--mu);font-size:10px;transition:transform .2s}
-.adv-metrics[open] summary::after{transform:rotate(180deg)}
-
-.strategy-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 10px}
-.strategy-cmp.th3{grid-template-columns:1fr 1fr 1fr}
-@media(max-width:560px){.strategy-cmp,.strategy-cmp.th3{grid-template-columns:1fr}}
-.cmp-card{background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:10px 12px}
-.cmp-card.trend{border-color:rgba(34,197,94,0.35)}.cmp-card.range{border-color:rgba(59,130,246,0.35)}.cmp-card.bh{border-color:rgba(168,85,247,0.35)}
-.cmp-card h4{font-size:12px;margin-bottom:8px;color:var(--tx);display:flex;align-items:center;gap:6px;font-weight:700}
-.cmp-card h4::before{content:"";width:8px;height:8px;border-radius:2px}
-.cmp-card.trend h4::before{background:#22c55e}.cmp-card.range h4::before{background:#3b82f6}.cmp-card.bh h4::before{background:#a855f7}
-.cmp-grid{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:11.5px}
-.cmp-grid span{color:var(--mu)}
-.cmp-grid b{direction:ltr;color:var(--tx);font-size:12px;font-weight:700;text-align:left}
-.cmp-grid b.pos{color:#22c55e}.cmp-grid b.neg{color:#ef4444}.cmp-grid b.neu{color:#a855f7}
-
-.overall-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0 12px;padding-top:10px;border-top:1px solid var(--bd2)}
-.ov-metric{background:var(--bg);border:1px solid var(--bd2);border-radius:10px;padding:8px 10px}
-.ov-metric .lbl{font-size:10.5px;color:var(--mu);margin-bottom:3px;font-weight:600}
-.ov-metric .val{font-size:14px;font-weight:800;color:var(--tx);direction:ltr;text-align:left}
-.ov-metric .val.pos{color:#22c55e}.ov-metric .val.neg{color:#ef4444}.ov-metric .val.neu{color:#a855f7}.ov-metric .val.mu{color:#94a3b8}
-
-.heatmap-wrap{margin-top:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
-.hm-title{font-size:12px;color:var(--mu);margin-bottom:10px;font-weight:600}
-.hm-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;direction:ltr}
-.hm-cell{aspect-ratio:1;border-radius:4px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;position:relative}
-.hm-cell.has-data{cursor:pointer;transition:transform .12s}
-.hm-cell.has-data:hover{transform:scale(1.2);z-index:3;outline:1px solid #fff;outline-offset:1px}
-.hm-cell .hm-label{text-shadow:0 0 3px rgba(0,0,0,.8)}
-.hm-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:10px;color:var(--mu);direction:ltr}
-.hm-gradient{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e)}
-.hm-summary{margin-top:8px;font-size:11.5px;color:#94a3b8;line-height:1.7}
-.hm-summary b{color:#cbd5e1}.hm-summary .best{color:#22c55e;font-weight:700}.hm-summary .worst{color:#ef4444;font-weight:700}
-
-.toolbar-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.tool-btn{flex:1;min-width:120px;padding:9px 12px;font-size:12px;background:var(--bg);border:1px solid var(--bd2);border-radius:8px;color:var(--tx2);cursor:pointer;font-weight:600}
-.tool-btn:hover{background:var(--card2);color:var(--tx)}
-.tool-btn.primary{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.35);color:#22c55e}
-.tool-btn.purple{background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.35);color:#a855f7}
-.tool-btn.red{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.35);color:#ef4444}
-
-.presets-panel{margin-top:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;display:none}
-.presets-panel.on{display:block}
-.preset-current{padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.22);border-radius:8px;font-size:11.5px;margin-bottom:8px;color:#94a3b8}
-.preset-current b{color:#22c55e}
-.preset-item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--bd2);border-radius:8px;margin-bottom:6px;font-size:12px;gap:8px}
-.preset-item.is-current{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.04)}
-.preset-item .pname{font-weight:700;color:var(--tx);margin-bottom:2px}
-.preset-item .pmeta{color:var(--mu);font-size:10.5px}
-.preset-item .pbtns{display:flex;gap:4px;flex:none}
-.preset-item .pbtns button{min-height:30px;padding:0 10px;font-size:11px;font-weight:600}
-.preset-item .pbtns .papply{background:rgba(34,197,94,0.15);color:#22c55e;border-color:rgba(34,197,94,0.35)}
-.preset-item .pbtns .pdelete{background:rgba(239,68,68,0.12);color:#ef4444;border-color:rgba(239,68,68,0.3);min-width:32px}
-.preset-empty{text-align:center;color:#64748b;padding:12px;font-size:12px}
-
-.preset-compare{background:var(--bg);border:1px solid var(--bd2);border-radius:8px;padding:10px;margin-top:8px;overflow-x:auto}
-.preset-compare table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:400px}
-.preset-compare th{text-align:right;padding:6px 8px;color:var(--mu);font-weight:600;border-bottom:1px solid var(--bd2);font-size:10.5px}
-.preset-compare td{padding:6px 8px;border-bottom:1px solid var(--bd2);color:var(--tx2);text-align:right}
-.preset-compare td:first-child{color:var(--tx);font-weight:700}
-.preset-compare tr.is-current td{background:rgba(34,197,94,0.06)}
-.preset-compare .p-apply-btn{padding:3px 9px;font-size:10.5px;min-height:26px;background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.35);border-radius:4px;cursor:pointer;font-weight:600}
-
-.roll-win-btn{transition:all .15s;cursor:pointer}
-.roll-win-btn:hover{background:var(--card2)!important}
-.roll-win-btn.active{background:rgba(34,197,94,0.15)!important;border-color:rgba(34,197,94,0.35)!important;color:#22c55e!important;font-weight:700!important}
-
-#symbolLeaderboard{display:flex;flex-direction:column;gap:2px}
-.sym-leader-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 9px;background:var(--bg);border:1px solid var(--bd2);border-radius:7px;margin-bottom:4px;font-size:12px;cursor:pointer}
-.sym-leader-row:hover{border-color:rgba(34,197,94,0.4)!important;background:rgba(34,197,94,0.04)!important}
-.sym-leader-row .sym-badge{font-weight:800;font-size:13px;min-width:32px;direction:ltr;text-align:left}
-.sym-leader-row .sym-badge.pos{color:#22c55e}.sym-leader-row .sym-badge.neg{color:#ef4444}
-.sym-leader-row .sym-meta{color:#94a3b8;font-size:11px;line-height:1.4}
-.sym-leader-row .sym-meta b{color:#cbd5e1;font-weight:600}
-.sym-leader-row .sym-netR{font-weight:800;direction:ltr;font-size:13px;text-align:right}
-.sym-leader-row .sym-netR.pos{color:#22c55e}.sym-leader-row .sym-netR.neg{color:#ef4444}
-.sym-leader-header{font-size:11px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.sym-leader-header.pos{color:#22c55e}
-.sym-leader-header.neg{color:#ef4444;margin-top:12px}
-.sym-leader-empty{text-align:center;color:#64748b;padding:14px;font-size:12px}
-
-#intervalCompare{display:flex;flex-direction:column;gap:3px}
-.ic-header{display:grid;grid-template-columns:1fr 72px 88px;gap:8px;font-size:10.5px;color:#64748b;margin-bottom:6px;font-weight:700;text-align:center}
-.ic-header>span:first-child{text-align:right}
-.ic-row{display:grid;grid-template-columns:1fr 72px 88px;gap:8px;align-items:center;padding:7px 10px;background:var(--bg);border-radius:7px;font-size:11.5px}
-.ic-row>span:first-child{color:#94a3b8;text-align:right}
-.ic-row .ic-all,.ic-row .ic-rec{font-weight:600;text-align:center;color:#cbd5e1}
-.ic-row .ic-rec.pos{color:#22c55e}.ic-row .ic-rec.neg{color:#ef4444}
-.ic-row .ic-arrow{font-size:9px;margin-inline-start:2px}
-.ic-empty{text-align:center;color:#64748b;padding:14px;font-size:12px}
-
-.active-filter-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:700;margin-bottom:8px;direction:ltr}
-.active-filter-chip .x{cursor:pointer;font-size:14px;line-height:1;opacity:.7;margin-left:4px}
-.active-filter-chip .x:hover{opacity:1}
-
-.tw-selector{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
-.tw-btn{flex:1;min-width:58px;min-height:32px;padding:0 8px;font-size:11px;font-weight:600;background:var(--bg);border:1px solid var(--bd2);border-radius:6px;color:var(--mu);cursor:pointer}
-.tw-btn:hover{background:var(--card2);color:var(--tx2)}
-.tw-btn.active{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.4);color:#22c55e;font-weight:700}
-.tw-custom-wrap{display:none;gap:6px;align-items:center;margin-top:8px;font-size:11.5px;color:var(--mu)}
-.tw-custom-wrap.on{display:flex}
-.tw-custom-wrap input{width:60px;min-height:30px;background:var(--bg);border:1px solid var(--bd2);border-radius:6px;color:var(--tx);text-align:center;direction:ltr;padding:0 8px;font-size:12px}
-
-.tpsl-adjuster{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-top:10px}
-.tpsl-title{font-size:12px;color:var(--mu);margin-bottom:10px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
-.tpsl-title .tpsl-reset{font-size:10px;padding:3px 8px;min-height:0;background:transparent;border:1px solid var(--bd2);color:var(--mu);border-radius:4px;cursor:pointer}
-.tpsl-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-bottom:10px;font-size:12px;color:var(--tx2)}
-.tpsl-row:last-child{margin-bottom:0}
-.tpsl-row label{min-width:60px;font-size:11.5px}
-.tpsl-row input[type=range]{flex:1;accent-color:#22c55e;width:100%;height:24px}
-.tpsl-row .tpsl-val{font-weight:800;color:#22c55e;direction:ltr;min-width:44px;text-align:right;font-size:13px}
-
-/* Dedupe debug badge */
-.dedup-badge{position:fixed;bottom:10px;inset-inline-start:10px;background:rgba(0,0,0,.8);color:#22c55e;font-size:10px;padding:4px 8px;border-radius:6px;z-index:9998;direction:ltr;display:none;font-weight:700}
-.dedup-badge.on{display:block}
-
-@media print {
-    body{background:#fff!important;color:#000!important;padding:0!important}
-    body>*:not(#histModal){display:none!important}
-    #histModal{position:static!important;display:block!important;background:#fff!important;padding:0!important;overflow:visible!important}
-    #histModal>div{background:#fff!important;border:none!important;padding:10px!important;max-width:100%!important}
-    #histModal h3,#histModal div,#histModal span,#histModal p,#histModal b{color:#000!important}
-    #histModal button,#histModal .roll-win-btn,#histModal .tw-btn,#histModal .toolbar-row,#histModal .presets-panel,#histModal .history-tabs,#histModal .tw-selector,#histModal .tw-custom-wrap{display:none!important}
-    #histModal .chart-wrap,#histModal .heatmap-wrap,#histModal .tpsl-adjuster,#histModal .adv-metrics,#histModal .winner-banner,#histModal .bh-bench{border:1px solid #ccc!important;background:#fafafa!important;page-break-inside:avoid!important;margin-bottom:10px!important}
-    #histModal canvas{max-height:220px!important}
-}
+/* CDN fallback warning */
+#cdn-warn{display:none;position:fixed;bottom:20px;inset-inline-end:20px;background:#3d1a1a;color:#ef4444;border:1px solid #ef4444;padding:8px 14px;border-radius:8px;font-size:12px;z-index:10000;direction:ltr}
+#cdn-warn.on{display:block}
 </style>
 </head>
 <body>
 
 <div id="ai-splash">
-    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
-    <div style="font-size:20px;font-weight:800;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
-    <div class="ai-text" id="ai-text">برای ورود ضربه بزنید</div>
-    <div class="ai-loading" id="ai-loading"><u></u></div>
-    <button id="start-ai-btn" class="big-scan" style="margin-top:22px;width:min(240px,80%);z-index:10001">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;text-decoration:underline">رد کردن</button>
+  <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI" onerror="this.style.display='none'">
+  <div style="font-size:20px;font-weight:800;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
+  <div class="ai-text" id="ai-text">برای ورود ضربه بزنید</div>
+  <div class="ai-loading" id="ai-loading"><u></u></div>
+  <button id="start-ai-btn" type="button">ورود به اسکرینر</button>
+  <button id="skip-ai-btn" type="button">رد کردن</button>
 </div>
+
+<div id="cdn-warn"></div>
 
 <header class="bar">
   <div class="acts left"><button class="ic" id="langToggle">EN</button></div>
@@ -434,7 +185,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
       <div id="monthlyChartEmpty" class="chart-empty" style="display:none">داده‌ای نیست</div>
     </div>
     <div class="chart-wrap mo-h">
-      <div class="chart-title">📊 آلفای ماهانه (مثبت = بهتر از B&amp;H)</div>
+      <div class="chart-title">📊 آلفای ماهانه</div>
       <canvas id="alphaChart"></canvas>
       <div id="alphaChartEmpty" class="chart-empty" style="display:none">داده‌ای نیست</div>
     </div>
@@ -469,7 +220,7 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
     </div>
 
     <div style="background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-top:10px;">
-      <div style="font-size:12px;color:var(--mu);margin-bottom:10px;font-weight:600;">🔄 مقایسه بازه‌ای — همه در مقابل ۳۰ اخیر</div>
+      <div style="font-size:12px;color:var(--mu);margin-bottom:10px;font-weight:600;">🔄 مقایسه بازه‌ای</div>
       <div id="intervalCompare"></div>
     </div>
 
@@ -519,33 +270,160 @@ a.btn.tv{border-color:#2962ff;background:#142a66}
   <div id="cw"><canvas id="cv"></canvas></div>
   <div id="an"></div>
   <div id="ci"></div>
-</div>
+</div><!-- ═══════════════════════════════════════════════════════════════
+     🔴 FIX #1: Splash wiring — باید قبل از هر اسکریپت دیگری اجرا شود
+     🔴 FIX #2: CDN async با fallback — بدون بلاک کردن صفحه
+     ═══════════════════════════════════════════════════════════════ -->
 <script>
-window.__BS_LOCAL_BUILD = 85;
-window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
+(function(){
+  'use strict';
+
+  // ═════════ Splash kill + wiring ═════════
+  function killSplash(){
+    try {
+      window.__splashClosed = true;
+      var s = document.getElementById('ai-splash');
+      if (s) {
+        s.classList.add('hidden');
+        s.style.display = 'none';
+        s.style.visibility = 'hidden';
+        s.style.opacity = '0';
+        s.style.pointerEvents = 'none';
+      }
+    } catch(e){}
+  }
+
+  window.hideSplash = killSplash;
+
+  window.startApp = function(){
+    if (typeof window.__startAppFull === 'function') {
+      try { window.__startAppFull(); } catch(e){ console.error('[BS] startApp error:', e); killSplash(); }
+      setTimeout(killSplash, 40000); // failsafe
+      return;
+    }
+    killSplash();
+  };
+
+  function wire(){
+    var sk = document.getElementById('skip-ai-btn');
+    var st = document.getElementById('start-ai-btn');
+    if (sk && !sk._wired) {
+      sk._wired = true;
+      sk.onclick = function(ev){ if(ev) ev.preventDefault(); killSplash(); return false; };
+    }
+    if (st && !st._wired) {
+      st._wired = true;
+      st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
+    }
+  }
+
+  // اجرای فوری (چون این اسکریپت آخر body است، عناصر موجودند)
+  wire();
+  document.addEventListener('DOMContentLoaded', wire);
+
+  // Failsafe: اگر بعد از ۳ ثانیه هنوز دکمه‌ها کار نمی‌کنند، دوباره وصل کن
+  setTimeout(function(){
+    var s = document.getElementById('ai-splash');
+    if (s && s.style.display !== 'none') {
+      // reset _wired to force re-wiring
+      var st = document.getElementById('start-ai-btn');
+      var sk = document.getElementById('skip-ai-btn');
+      if (st) st._wired = false;
+      if (sk) sk._wired = false;
+      wire();
+    }
+  }, 3000);
+
+  // ═════════ Async CDN loading with fallback ═════════
+  window.__CDN_READY__ = { chart: false, adapter: false };
+
+  function loadScript(src, onload, onerror){
+    var s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    if (onload) s.onload = onload;
+    if (onerror) s.onerror = onerror;
+    document.head.appendChild(s);
+    return s;
+  }
+
+  function showCdnWarn(){
+    var w = document.getElementById('cdn-warn');
+    if (w) {
+      w.textContent = '⚠️ Chart.js failed to load — some charts may not work';
+      w.classList.add('on');
+      setTimeout(() => w.classList.remove('on'), 8000);
+    }
+  }
+
+  // Chart.js — try jsdelivr, fallback to unpkg
+  loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+    function(){
+      window.__CDN_READY__.chart = true;
+      console.log('[BS] Chart.js loaded from jsdelivr');
+      loadAdapter();
+    },
+    function(){
+      console.warn('[BS] jsdelivr failed, trying unpkg...');
+      loadScript('https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js',
+        function(){
+          window.__CDN_READY__.chart = true;
+          console.log('[BS] Chart.js loaded from unpkg');
+          loadAdapter();
+        },
+        function(){
+          console.error('[BS] Both CDNs failed for Chart.js');
+          showCdnWarn();
+        }
+      );
+    }
+  );
+
+  function loadAdapter(){
+    loadScript('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
+      function(){
+        window.__CDN_READY__.adapter = true;
+        console.log('[BS] Date adapter loaded');
+      },
+      function(){
+        loadScript('https://unpkg.com/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js',
+          function(){ window.__CDN_READY__.adapter = true; },
+          function(){ console.error('[BS] Date adapter failed'); }
+        );
+      }
+    );
+  }
+})();
 </script>
+
+<!-- ═════════ External modules ═════════ -->
 <script src="symbols.js?v=85"></script>
 <script src="alerts.js?v=85"></script>
 <script src="engine.js?v=85"></script>
 <script src="presets.js?v=85"></script>
 <script src="chart.js?v=85"></script>
+
+<!-- ═════════ Main app logic ═════════ -->
 <script>
-window.onerror = function(msg,url,line){var e=document.getElementById('debug-err');if(e)e.textContent="ERR: "+msg;return false;};
+window.onerror = function(msg,url,line){
+  var e = document.getElementById('debug-err');
+  if(e) e.textContent = "ERR: " + msg + " @ " + line;
+  console.error("[BS]", msg, "@", line);
+  return false;
+};
 const $ = i => document.getElementById(i);
 const LS = (k,v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); } catch(e){ return null; } };
 const setText = (id,t) => { const e=$(id); if(e) e.textContent=t; };
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #3: SIG_LEDGER — جایگزین seen (dedup مقاوم)
-// ═══════════════════════════════════════════════════════════
+// ═════════ SIG_LEDGER — dedup robust ═════════
 const SIG_LEDGER_KEY = "bs_sig_ledger_v2";
 let SIG_LEDGER = {};
 try { SIG_LEDGER = JSON.parse(LS(SIG_LEDGER_KEY) || "{}"); } catch(e) { SIG_LEDGER = {}; }
-const SIG_MIN_REISSUE_SEC = 4 * 3600; // حداقل ۴ ساعت بین دو اعلان یک سیگنال
+const SIG_MIN_REISSUE_SEC = 4 * 3600;
 
 const I18N = {
-    fa:{scan:"اسکن",goFetch:"دریافت...",long:"لانگ",short:"شورت",all:"همه",noSignal:"بدون سیگنال",symbols:"نماد",scanning:"دریافت...",pleaseWait:"صبر",scanDone:"تکمیل",lastScan:"آخرین:",signals:"سیگنال",ready:"آماده",noSignalsYet:"سیگنالی نیست",noSignalsFilter:"سیگنالی نیست",errFetch:"خطا",risk:"ریسک",entry:"ورود",sl:"SL",exit:"خروج",rsiDiv:"RSI",btnClose:"✕",fail_pattern:"الگوی ۳+۱",fail_range:"رنج",fail_cooldown:"کول‌داون",fail_noData:"بدون دیتا",fail_error:"خطا",c_trend:"EMA200",c_emax:"EMA21/50",c_nc:"بدون تقاطع",c_pat:"۳+۱",c_m15:"M15",c_h1:"H1",c_rsi:"RSI",c_bb:"BB"},
-    en:{scan:"Scan",goFetch:"Fetching...",long:"LONG",short:"SHORT",all:"All",noSignal:"No Signal",symbols:"Symbols",scanning:"Fetching...",pleaseWait:"Wait",scanDone:"Done",lastScan:"Last:",signals:"Signals",ready:"Ready",noSignalsYet:"No signals",noSignalsFilter:"None",errFetch:"Error",risk:"Risk",entry:"Entry",sl:"SL",exit:"Exit",rsiDiv:"RSI",btnClose:"✕",fail_pattern:"3+1",fail_range:"Range",fail_cooldown:"Cooldown",fail_noData:"No Data",fail_error:"Error",c_trend:"EMA200",c_emax:"EMA21/50",c_nc:"No Cross",c_pat:"3+1",c_m15:"M15",c_h1:"H1",c_rsi:"RSI",c_bb:"BB"}
+  fa:{scan:"اسکن",goFetch:"دریافت...",long:"لانگ",short:"شورت",all:"همه",noSignal:"بدون سیگنال",symbols:"نماد",scanning:"دریافت...",pleaseWait:"صبر",scanDone:"تکمیل",lastScan:"آخرین:",signals:"سیگنال",ready:"آماده",noSignalsYet:"سیگنالی نیست",noSignalsFilter:"سیگنالی نیست",errFetch:"خطا",risk:"ریسک",entry:"ورود",sl:"SL",exit:"خروج",rsiDiv:"RSI",btnClose:"✕",fail_pattern:"الگوی ۳+۱",fail_range:"رنج",fail_cooldown:"کول‌داون",fail_noData:"بدون دیتا",fail_error:"خطا",c_trend:"EMA200",c_emax:"EMA21/50",c_nc:"بدون تقاطع",c_pat:"۳+۱",c_m15:"M15",c_h1:"H1",c_rsi:"RSI",c_bb:"BB"},
+  en:{scan:"Scan",goFetch:"Fetching...",long:"LONG",short:"SHORT",all:"All",noSignal:"No Signal",symbols:"Symbols",scanning:"Fetching...",pleaseWait:"Wait",scanDone:"Done",lastScan:"Last:",signals:"Signals",ready:"Ready",noSignalsYet:"No signals",noSignalsFilter:"None",errFetch:"Error",risk:"Risk",entry:"Entry",sl:"SL",exit:"Exit",rsiDiv:"RSI",btnClose:"✕",fail_pattern:"3+1",fail_range:"Range",fail_cooldown:"Cooldown",fail_noData:"No Data",fail_error:"Error",c_trend:"EMA200",c_emax:"EMA21/50",c_nc:"No Cross",c_pat:"3+1",c_m15:"M15",c_h1:"H1",c_rsi:"RSI",c_bb:"BB"}
 };
 const BK = {"الگوی ۳+۱":"fail_pattern","استراتژی رنج":"fail_range","در کول‌داون ۲۰ دقیقه‌ای":"fail_cooldown","No Data":"fail_noData","Error":"fail_error"};
 let currentLang = LS("bs_lang"); if(currentLang!=='en') currentLang='fa';
@@ -556,288 +434,421 @@ let COND = {trend:true,emax:true,nc:true,pat:true,adx:false,m15:true,h1:true,rsi
 try { const s=LS("bs_cond"); if(s) COND={...COND,...JSON.parse(s)}; } catch(e){}
 COND.adx = false;
 let currentMode = LS("bs_mode")||"pattern";
-
 let COOLDOWNS = {}; try { COOLDOWNS = JSON.parse(LS("bs_cooldowns")||"{}"); } catch(e){}
 let ACTIVE_SIGS = {}; try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs")||"{}"); } catch(e){}
 function saveActiveSigs(){ try { LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); } catch(e){} }
 const MAX_HOLD_SEC = 6 * 3600;
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #2: isSignalOpen — ورودی منقضی را پاک می‌کند
-// ═══════════════════════════════════════════════════════════
+// 🔴 FIX: isSignalOpen — ورودی منقضی را پاک می‌کند
 function isSignalOpen(id, side){
-    const a = ACTIVE_SIGS[id];
-    if(!a) return false;
-    if(side && a.side !== side) return false;
-    if(Date.now()/1000 - a.time > MAX_HOLD_SEC){
-        delete ACTIVE_SIGS[id];
-        saveActiveSigs();
-        return false;
-    }
-    return true;
+  const a = ACTIVE_SIGS[id];
+  if(!a) return false;
+  if(side && a.side !== side) return false;
+  if(Date.now()/1000 - a.time > MAX_HOLD_SEC){
+    delete ACTIVE_SIGS[id];
+    saveActiveSigs();
+    return false;
+  }
+  return true;
 }
 function openSignal(r){
-    ACTIVE_SIGS[r.id] = { side:r.side, entry:r.entry, sl:r.sl, time:Date.now()/1000, mode:r.mode||"pattern", scansWithout:0 };
-    saveActiveSigs();
-    COOLDOWNS[r.id] = Date.now()/1000;
-    try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e){}
+  ACTIVE_SIGS[r.id] = { side:r.side, entry:r.entry, sl:r.sl, time:Date.now()/1000, mode:r.mode||"pattern", scansWithout:0 };
+  saveActiveSigs();
+  COOLDOWNS[r.id] = Date.now()/1000;
+  try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e){}
 }
-
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #1: touchActiveSigs — فقط با ساید خام از data.json
-// (تابع اصلی حفظ می‌شود، ولی کالیگر باید LAST.rows بدهد نه evalRow)
-// ═══════════════════════════════════════════════════════════
 function touchActiveSigs(currentSides){
-    const now = Date.now()/1000;
-    for(const id of Object.keys(ACTIVE_SIGS)){
-        const a = ACTIVE_SIGS[id];
-        if(now - a.time > MAX_HOLD_SEC){
-            delete ACTIVE_SIGS[id];
-            continue;
-        }
-        const cur = currentSides[id];
-        if(cur && cur === a.side){
-            a.scansWithout = 0;
-        } else {
-            a.scansWithout = (a.scansWithout||0) + 1;
-            if(a.scansWithout >= 2) delete ACTIVE_SIGS[id];
-        }
+  const now = Date.now()/1000;
+  for(const id of Object.keys(ACTIVE_SIGS)){
+    const a = ACTIVE_SIGS[id];
+    if(now - a.time > MAX_HOLD_SEC){ delete ACTIVE_SIGS[id]; continue; }
+    const cur = currentSides[id];
+    if(cur && cur === a.side){ a.scansWithout = 0; }
+    else {
+      a.scansWithout = (a.scansWithout||0) + 1;
+      if(a.scansWithout >= 2) delete ACTIVE_SIGS[id];
     }
-    saveActiveSigs();
+  }
+  saveActiveSigs();
 }
 
 let UNREAD = parseInt(LS("bs_unread")||"0");
 function updateUnreadBadge(){
-    const b = $("unreadBadge");
-    if(b){ if(UNREAD>0){ b.textContent = UNREAD>99?"99+":UNREAD; b.classList.add("on"); } else b.classList.remove("on"); }
+  const b = $("unreadBadge");
+  if(b){ if(UNREAD>0){ b.textContent = UNREAD>99?"99+":UNREAD; b.classList.add("on"); } else b.classList.remove("on"); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #4: نمایشگر زنده‌ی dedup state (برای دیباگ)
-// ═══════════════════════════════════════════════════════════
 function updateDedupBadge(){
-    const b = $("dedupBadge");
-    if(!b) return;
-    const activeCount = Object.keys(ACTIVE_SIGS).length;
-    const ledgerCount = Object.keys(SIG_LEDGER).length;
-    b.textContent = `Active: ${activeCount} | Ledger: ${ledgerCount}`;
-    b.classList.add("on");
-    setTimeout(() => b.classList.remove("on"), 5000);
+  const b = $("dedupBadge");
+  if(!b) return;
+  b.textContent = `Active: ${Object.keys(ACTIVE_SIGS).length} | Ledger: ${Object.keys(SIG_LEDGER).length}`;
+  b.classList.add("on");
+  setTimeout(() => b.classList.remove("on"), 5000);
 }
 
 async function speakAI(t){
-    if(!t || LS("bs_tts_off")==="1") return;
-    try { if(!window.speechSynthesis) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(String(t)); u.lang=currentLang==="fa"?"fa-IR":"en-US"; speechSynthesis.speak(u); } catch(e){}
+  if(!t || LS("bs_tts_off")==="1") return;
+  try { if(!window.speechSynthesis) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(String(t)); u.lang=currentLang==="fa"?"fa-IR":"en-US"; speechSynthesis.speak(u); } catch(e){}
 }
 window.testVoice = async () => { await speakAI(currentLang==="fa"?"تست صدا":"Voice test"); };
 window.clearCache = async () => {
-    try { if("serviceWorker" in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(g=>g.unregister())); } if(typeof caches!=="undefined"){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } } catch(e){}
-    location.replace(location.pathname+"?r="+Date.now());
+  try { if("serviceWorker" in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(g=>g.unregister())); } if(typeof caches!=="undefined"){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } } catch(e){}
+  location.replace(location.pathname+"?r="+Date.now());
 };
-window.hideSplash = function(){ try { var s=document.getElementById("ai-splash"); if(s){ s.classList.add("hidden"); s.style.display="none"; } } catch(e){} try { if(LAST) renderList(); } catch(e){} };
-window.__startAppFull = window.startApp = async function(){
-    var closed=false;
-    function closeNow(){ if(closed)return; closed=true; try{speechSynthesis.cancel();}catch(e){} hideSplash(); var b=document.getElementById("start-ai-btn"); if(b){b.disabled=false;b.textContent=currentLang==="en"?"Enter":"ورود";} }
-    if($("start-ai-btn")){ $("start-ai-btn").disabled=true; $("start-ai-btn").textContent="…"; }
-    var fa=currentLang!=="en"; var lines=fa?["خوش آمدید.","در حال آماده‌سازی...","بازارها بررسی می‌شوند."]:["Welcome.","Getting ready...","Checking markets."];
-    async function playLine(show){ var el=$("ai-text"); if(el) el.textContent=show; await new Promise(r=>setTimeout(r,1500)); }
-    var failsafe=setTimeout(closeNow,60000);
-    try { try{renderChips();}catch(e){} for(var i=0;i<lines.length;i++) await playLine(lines[i]); try{await Promise.race([scan(true),new Promise(r=>setTimeout(r,3500))]);}catch(e){} try{setMode("pattern");}catch(e){} await new Promise(r=>setTimeout(r,600)); } catch(err){} finally{ clearTimeout(failsafe); closeNow(); }
+
+// 🔴 FIX: __startAppFull — timeoutها کوتاه‌تر
+window.__startAppFull = async function(){
+  var closed = false;
+  function closeNow(){
+    if(closed) return;
+    closed = true;
+    try { speechSynthesis.cancel(); } catch(e){}
+    window.hideSplash();
+    var b = document.getElementById("start-ai-btn");
+    if(b){ b.disabled=false; b.textContent = currentLang==="en"?"Enter":"ورود"; }
+  }
+
+  if($("start-ai-btn")){ $("start-ai-btn").disabled=true; $("start-ai-btn").textContent="…"; }
+
+  var fa = currentLang !== "en";
+  var lines = fa ? ["خوش آمدید.","در حال آماده‌سازی...","بازارها بررسی می‌شوند."] : ["Welcome.","Getting ready...","Checking markets."];
+
+  async function playLine(show){
+    var el = $("ai-text");
+    if(el) el.textContent = show;
+    // اگر کاربر skip زد، فوراً متوقف شو
+    if(window.__splashClosed) return;
+    await new Promise(r => setTimeout(r, 600)); // 1500→600
+  }
+
+  var failsafe = setTimeout(closeNow, 40000);
+
+  try {
+    try { renderChips(); } catch(e){}
+    for(var i=0; i<lines.length; i++){
+      if(window.__splashClosed) break;
+      await playLine(lines[i]);
+    }
+    try {
+      if(typeof scan === 'function'){
+        await Promise.race([ scan(true), new Promise(r => setTimeout(r, 2000)) ]); // 3500→2000
+      }
+    } catch(e){ console.warn('[BS] Startup scan failed:', e); }
+    try { setMode("pattern"); } catch(e){}
+    await new Promise(r => setTimeout(r, 400));
+  } catch(err){
+    console.error('[BS] __startAppFull error:', err);
+  } finally {
+    clearTimeout(failsafe);
+    closeNow();
+  }
 };
 
 function renderCondChips(){
-    try {
-        let labels = currentMode==="range" ? {rsi:T().c_rsi,bb:T().c_bb} : {trend:T().c_trend,emax:T().c_emax,nc:T().c_nc,pat:T().c_pat,m15:T().c_m15,h1:T().c_h1,rsi:T().c_rsi};
-        const el=$("condChips"); if(el) el.innerHTML = Object.keys(labels).map(k=>`<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
-    } catch(e){}
+  try {
+    let labels = currentMode==="range" ? {rsi:T().c_rsi,bb:T().c_bb} : {trend:T().c_trend,emax:T().c_emax,nc:T().c_nc,pat:T().c_pat,m15:T().c_m15,h1:T().c_h1,rsi:T().c_rsi};
+    const el = $("condChips");
+    if(el) el.innerHTML = Object.keys(labels).map(k=>`<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
+  } catch(e){}
 }
-if($("condChips")) $("condChips").onclick = e => { const b=e.target.closest(".c-chip"); if(!b)return; const k=b.dataset.k; COND[k]=!COND[k]; COND.adx=false; LS("bs_cond",JSON.stringify(COND)); renderCondChips(); if(LAST)renderList(); };
-function setMode(mode){ currentMode=mode; LS("bs_mode",mode); if($("modePattern"))$("modePattern").classList.toggle("on",mode==="pattern"); if($("modeRange"))$("modeRange").classList.toggle("on",mode==="range"); setText("stratTitle",mode==="range"?T().fail_range:T().fail_pattern); renderCondChips(); if(LAST)renderList(); }
-if($("modePattern")) $("modePattern").onclick=()=>setMode("pattern");
-if($("modeRange")) $("modeRange").onclick=()=>setMode("range");
+if($("condChips")) $("condChips").onclick = e => {
+  const b = e.target.closest(".c-chip"); if(!b) return;
+  const k = b.dataset.k;
+  COND[k] = !COND[k]; COND.adx = false;
+  LS("bs_cond", JSON.stringify(COND));
+  renderCondChips();
+  if(LAST) renderList();
+};
+function setMode(mode){
+  currentMode = mode; LS("bs_mode", mode);
+  if($("modePattern")) $("modePattern").classList.toggle("on", mode==="pattern");
+  if($("modeRange")) $("modeRange").classList.toggle("on", mode==="range");
+  setText("stratTitle", mode==="range"?T().fail_range:T().fail_pattern);
+  renderCondChips();
+  if(LAST) renderList();
+}
+if($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
+if($("modeRange")) $("modeRange").onclick = () => setMode("range");
 
 const REGIME_MEM = {};
-function pickModeByAdx(adxV,s){ if(adxV==null||!isFinite(adxV)) return REGIME_MEM[s]||currentMode||"pattern"; let m; if(adxV>=24)m="pattern"; else if(adxV<=20)m="range"; else m=REGIME_MEM[s]||(adxV>=22?"pattern":"range"); REGIME_MEM[s]=m; return m; }
+function pickModeByAdx(adxV,s){
+  if(adxV==null || !isFinite(adxV)) return REGIME_MEM[s] || currentMode || "pattern";
+  let m;
+  if(adxV>=24) m="pattern";
+  else if(adxV<=20) m="range";
+  else m = REGIME_MEM[s] || (adxV>=22?"pattern":"range");
+  REGIME_MEM[s]=m;
+  return m;
+}
 
 function evalRow(r){
-    if(!D[r.id]||!D[r.id].a||!D[r.id].h) return r;
-    try {
-        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, {mode:"pattern",adx:false,trend:false,emax:false,nc:false,pat:false,m15:false,h1:false,rsi:false}, Date.now()/1000);
-        const useMode = pickModeByAdx(probe.adx, r.id);
-        const opts = {mode:useMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:false,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s")?$("h1s").checked:false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60};
-        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
-        let fs = res.side, ff = res.fail;
-        const now = Date.now()/1000;
-        if(fs){
-            if(isSignalOpen(r.id)){ fs=null; ff = currentLang==='fa'?"سیگنال باز":"Open"; }
-            else if(now - (COOLDOWNS[r.id]||0) < 900){ fs=null; ff = T().fail_cooldown; }
-        }
-        return {...r, side:fs, entry:res.entry, sl:res.sl, tp:res.tp, pass:res.pass||0, total:res.total||0, fail:ff, rsi:res.rsi, adx:res.adx, mode:useMode};
-    } catch(e){ return {...r, side:null, pass:0, total:0, fail:"خطا", mode:"pattern"}; }
+  if(!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
+  try {
+    const probe = evaluate(r.id, D[r.id].a, D[r.id].h, {mode:"pattern",adx:false,trend:false,emax:false,nc:false,pat:false,m15:false,h1:false,rsi:false}, Date.now()/1000);
+    const useMode = pickModeByAdx(probe.adx, r.id);
+    const opts = {mode:useMode,trend:COND.trend,emax:COND.emax,nc:COND.nc,pat:COND.pat,adx:false,m15:COND.m15,h1:COND.h1,h1Strict:$("h1s")?$("h1s").checked:false,rsi:COND.rsi,rsiL:+$("rsiL").value||40,rsiS:+$("rsiS").value||60};
+    const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, Date.now()/1000);
+    let fs = res.side, ff = res.fail;
+    const now = Date.now()/1000;
+    if(fs){
+      if(isSignalOpen(r.id)){ fs=null; ff = currentLang==='fa'?"سیگنال باز":"Open"; }
+      else if(now - (COOLDOWNS[r.id]||0) < 900){ fs=null; ff = T().fail_cooldown; }
+    }
+    return {...r, side:fs, entry:res.entry, sl:res.sl, tp:res.tp, pass:res.pass||0, total:res.total||0, fail:ff, rsi:res.rsi, adx:res.adx, mode:useMode};
+  } catch(e){
+    return {...r, side:null, pass:0, total:0, fail:"خطا", mode:"pattern"};
+  }
 }
 
 function applyLanguage(){
-    try {
-        document.body.dir = currentLang==='fa'?'rtl':'ltr'; document.documentElement.lang = currentLang; const t=T();
-        setText("goT",t.scan); setText("langToggle",currentLang==='fa'?'EN':'FA');
-        setText("stratTitle",currentMode==='range'?t.fail_range:t.fail_pattern);
-        setText("setFilters",currentLang==='fa'?"تنظیمات پیشرفته":"Advanced");
-        setText("setH1Strict",currentLang==='fa'?"H1 سخت":"H1 Strict");
-        setText("setRsiL",currentLang==='fa'?"خرید زیر:":"Buy below:");
-        setText("setRsiS",currentLang==='fa'?"فروش بالای:":"Sell above:");
-        setText("setOnly",currentLang==='fa'?"فقط سیگنال‌دارها":"Only Signal");
-        setText("histTitle","📊 "+(currentLang==='fa'?"پنل تحلیل":"Analysis"));
-        try{renderChips();}catch(e){} try{renderCondChips();}catch(e){}
-        if(LAST) renderList();
-    } catch(e){}
+  try {
+    document.body.dir = currentLang==='fa'?'rtl':'ltr';
+    document.documentElement.lang = currentLang;
+    const t = T();
+    setText("goT", t.scan);
+    setText("langToggle", currentLang==='fa'?'EN':'FA');
+    setText("stratTitle", currentMode==='range'?t.fail_range:t.fail_pattern);
+    setText("setFilters", currentLang==='fa'?"تنظیمات پیشرفته":"Advanced");
+    setText("setH1Strict", currentLang==='fa'?"H1 سخت":"H1 Strict");
+    setText("setRsiL", currentLang==='fa'?"خرید زیر:":"Buy below:");
+    setText("setRsiS", currentLang==='fa'?"فروش بالای:":"Sell above:");
+    setText("setOnly", currentLang==='fa'?"فقط سیگنال‌دارها":"Only Signal");
+    setText("histTitle", "📊 "+(currentLang==='fa'?"پنل تحلیل":"Analysis"));
+    try { renderChips(); } catch(e){}
+    try { renderCondChips(); } catch(e){}
+    if(LAST) renderList();
+  } catch(e){}
 }
 function fmtNum(n){ return Number(n).toLocaleString(currentLang==='fa'?"fa-IR":"en-US"); }
 function fmtDate(d){ return d.toLocaleTimeString(currentLang==='fa'?"fa-IR":"en-US",{hour:'2-digit',minute:'2-digit'}); }
 
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_LABEL_EN = {crypto:"Crypto",forex:"Forex",metal:"Metals",commodity:"Commodities",index:"Indices",stock:"Stocks"};
-const METALS = new Set(["XAUUSD","XAGUSD","XCUUSD"]), COMMODITIES = new Set(["WTICO","BRENT","NATGAS"]), INDICES = new Set(["SPX500","NAS100","US30","DE30","UK100","JP225"]);
-function mktOf(u){ if(u[1])return"crypto"; const id=u[0]; if(METALS.has(id))return"metal"; if(COMMODITIES.has(id))return"commodity"; if(INDICES.has(id))return"index"; if(u[4]&&u[4]!==0&&u[4]!=="0")return"forex"; return"stock"; }
-function isForexSession(){ const d=new Date(),dow=d.getUTCDay(),h=d.getUTCHours()+d.getUTCMinutes()/60; if(dow===6)return false; if(dow===0)return h>=22; if(dow===5)return h<22; return true; }
-function isUSStockSession(){ const d=new Date(),dow=d.getUTCDay(),h=d.getUTCHours()+d.getUTCMinutes()/60; if(dow===0||dow===6)return false; return h>=14.5&&h<21; }
-function isMarketOpen(m){ if(m==="crypto")return true; if(m==="stock")return isUSStockSession(); return isForexSession(); }
+const METALS = new Set(["XAUUSD","XAGUSD","XCUUSD"]);
+const COMMODITIES = new Set(["WTICO","BRENT","NATGAS"]);
+const INDICES = new Set(["SPX500","NAS100","US30","DE30","UK100","JP225"]);
+function mktOf(u){
+  if(u[1]) return "crypto";
+  const id = u[0];
+  if(METALS.has(id)) return "metal";
+  if(COMMODITIES.has(id)) return "commodity";
+  if(INDICES.has(id)) return "index";
+  if(u[4] && u[4]!==0 && u[4]!=="0") return "forex";
+  return "stock";
+}
+function isForexSession(){
+  const d=new Date(), dow=d.getUTCDay(), h=d.getUTCHours()+d.getUTCMinutes()/60;
+  if(dow===6) return false;
+  if(dow===0) return h>=22;
+  if(dow===5) return h<22;
+  return true;
+}
+function isUSStockSession(){
+  const d=new Date(), dow=d.getUTCDay(), h=d.getUTCHours()+d.getUTCMinutes()/60;
+  if(dow===0||dow===6) return false;
+  return h>=14.5 && h<21;
+}
+function isMarketOpen(m){
+  if(m==="crypto") return true;
+  if(m==="stock") return isUSStockSession();
+  return isForexSession();
+}
 function openMarkets(){ return Object.keys(MKT_LABEL).filter(isMarketOpen); }
 
 async function fetchGitJson(filename){
-    const branches=['main','master']; let lastErr=null;
-    for(const b of branches){
-        const url=`https://raw.githubusercontent.com/massud2020/Balanced-Screener/${b}/${filename}?t=${Date.now()}`;
-        try { const c=new AbortController(); const tid=setTimeout(()=>c.abort(),10000); const res=await fetch(url,{cache:'no-store',signal:c.signal}); clearTimeout(tid); if(res.ok) return await res.json(); lastErr=new Error("HTTP "+res.status); } catch(e){ lastErr=e; }
-    }
-    throw lastErr||new Error("Network");
+  const branches = ['main','master']; let lastErr=null;
+  for(const b of branches){
+    const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${b}/${filename}?t=${Date.now()}`;
+    try {
+      const c = new AbortController();
+      const tid = setTimeout(()=>c.abort(), 10000);
+      const res = await fetch(url, {cache:'no-store', signal:c.signal});
+      clearTimeout(tid);
+      if(res.ok) return await res.json();
+      lastErr = new Error("HTTP "+res.status);
+    } catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error("Network");
 }
 
-let D={}, LAST=null, vf="all", busy=false;
+let D = {}, LAST = null, vf = "all", busy = false;
 const selectedMkts = () => [...document.querySelectorAll(".mkt.on")].map(e=>e.dataset.m);
 function renderChips(){
-    if(typeof U==="undefined"||!Array.isArray(U)) return;
-    try {
-        const today = new Date().toISOString().slice(0,10); const lastDay = LS("bs_mkts_day"); let on;
-        if(lastDay!==today){ on=new Set(openMarkets()); LS("bs_mkts_day",today); LS("bs_mkts",[...on].join(",")); }
-        else { const saved=LS("bs_mkts"); on = saved!=null?new Set(saved.split(",").filter(Boolean)):new Set(openMarkets()); for(const m of [...on]) if(!isMarketOpen(m)) on.delete(m); }
-        $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
-            const open=isMarketOpen(m); const active=open&&on.has(m);
-            const cls="mkt"+(active?" on":"")+(open?"":" closed");
-            const cnt=fmtNum(U.filter(u=>mktOf(u)===m).length);
-            return `<button class="${cls}" data-m="${m}" ${open?"":"disabled"}>${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${cnt}</span></button>`;
-        }).join("");
-        updCnt();
-    } catch(e){}
+  if(typeof U==="undefined" || !Array.isArray(U)) return;
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const lastDay = LS("bs_mkts_day");
+    let on;
+    if(lastDay!==today){
+      on = new Set(openMarkets());
+      LS("bs_mkts_day", today);
+      LS("bs_mkts", [...on].join(","));
+    } else {
+      const saved = LS("bs_mkts");
+      on = saved!=null ? new Set(saved.split(",").filter(Boolean)) : new Set(openMarkets());
+      for(const m of [...on]) if(!isMarketOpen(m)) on.delete(m);
+    }
+    $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
+      const open = isMarketOpen(m);
+      const active = open && on.has(m);
+      const cls = "mkt"+(active?" on":"")+(open?"":" closed");
+      const cnt = fmtNum(U.filter(u=>mktOf(u)===m).length);
+      return `<button class="${cls}" data-m="${m}" ${open?"":"disabled"}>${currentLang==='fa'?MKT_LABEL[m]:MKT_LABEL_EN[m]} <span class="cnt">${cnt}</span></button>`;
+    }).join("");
+    updCnt();
+  } catch(e){ console.warn('[BS] renderChips:', e); }
 }
-function updCnt(){ const sel=selectedMkts(); if($("goC")&&typeof U!=="undefined") $("goC").textContent=fmtNum(U.filter(u=>sel.includes(mktOf(u))).length); }
-if($("mkts")) $("mkts").onclick = e => { const t=e.target.closest("button"); if(!t)return; if(t.classList.contains("mkt")){ if(t.classList.contains("closed"))return; t.classList.toggle("on"); LS("bs_mkts",selectedMkts().join(",")); updCnt(); } };
+function updCnt(){
+  const sel = selectedMkts();
+  if($("goC") && typeof U!=="undefined") $("goC").textContent = fmtNum(U.filter(u=>sel.includes(mktOf(u))).length);
+}
+if($("mkts")) $("mkts").onclick = e => {
+  const t = e.target.closest("button"); if(!t) return;
+  if(t.classList.contains("mkt")){
+    if(t.classList.contains("closed")) return;
+    t.classList.toggle("on");
+    LS("bs_mkts", selectedMkts().join(","));
+    updCnt();
+  }
+};
 function setProg(p){ document.documentElement.style.setProperty("--prog", p+"%"); }
 
 const HISTL_KEY = "bs_hist_local";
 function loadLocalHist(){ try { return JSON.parse(LS(HISTL_KEY)||"[]"); } catch(e){ return []; } }
 function saveLocalHist(a){ const lim=Date.now()/1000-30*86400; LS(HISTL_KEY, JSON.stringify(a.filter(x=>x&&x.time>=lim).slice(-500))); }
 function recordLocal(rows){
-    try { const loc=loadLocalHist(), have=new Set(loc.map(x=>x.k));
-        rows.forEach(r => {
-            const day = new Date((r.bt||Date.now()/1000)*1000).toISOString().slice(0,10);
-            const k = r.id+"|"+r.side+"|"+day;
-            if(have.has(k)) return;
-            loc.push({ id:r.id, side:r.side, entry:r.entry, sl:r.sl, tp:r.tp, d:r.d, mode:r.mode, time:r.bt?r.bt+300:Math.floor(Date.now()/1000), k:k });
-        });
-        saveLocalHist(loc);
-    } catch(e){}
+  try {
+    const loc = loadLocalHist(), have = new Set(loc.map(x=>x.k));
+    rows.forEach(r => {
+      const day = new Date((r.bt||Date.now()/1000)*1000).toISOString().slice(0,10);
+      const k = r.id+"|"+r.side+"|"+day;
+      if(have.has(k)) return;
+      loc.push({ id:r.id, side:r.side, entry:r.entry, sl:r.sl, tp:r.tp, d:r.d, mode:r.mode, time:r.bt?r.bt+300:Math.floor(Date.now()/1000), k:k });
+    });
+    saveLocalHist(loc);
+  } catch(e){}
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #3 (بخش scan): استفاده از SIG_LEDGER به‌جای seen
-// ═══════════════════════════════════════════════════════════
 async function scan(isAISilent=false){
-    if(busy) return; busy=true;
-    if(!isAISilent){ if($("go"))$("go").disabled=true; setText("goT",T().goFetch); if($("ld"))$("ld").classList.add("on"); setText("ls",T().scanning); setProg(50); }
-    try {
-        const json = await fetchGitJson('data.json');
-        const rows = json.rows || [];
-        D = {}; rows.forEach(r => { if(Array.isArray(r.a)&&Array.isArray(r.h)){ D[r.id]={id:r.id, a:r.a.map(c=>Array.isArray(c)?{time:c[0],open:c[1],high:c[2],low:c[3],close:c[4]}:c), h:r.h.map(c=>Array.isArray(c)?{time:c[0],open:c[1],high:c[2],low:c[3],close:c[4]}:c)}; } });
-        const cnt = {}; rows.forEach(r => { const m=r.mkt||"stock"; if(!cnt[m]) cnt[m]={n:0,ok:0}; cnt[m].n++; cnt[m].ok++; });
-        LAST = {rows:rows, errs:[], cnt:cnt, time:new Date(json.time)};
-        renderList();
-        const sigCount = rows.filter(r=>r.side).length;
-        if($("st")) $("st").innerHTML = `${T().lastScan} ${fmtDate(new Date(json.time))} · ${fmtNum(sigCount)} ${T().signals}`;
+  if(busy) return; busy=true;
+  if(!isAISilent){
+    if($("go")) $("go").disabled=true;
+    setText("goT", T().goFetch);
+    if($("ld")) $("ld").classList.add("on");
+    setText("ls", T().scanning);
+    setProg(50);
+  }
+  try {
+    const json = await fetchGitJson('data.json');
+    const rows = json.rows || [];
+    D = {};
+    rows.forEach(r => {
+      if(Array.isArray(r.a) && Array.isArray(r.h)){
+        D[r.id] = {
+          id:r.id,
+          a:r.a.map(c=>Array.isArray(c)?{time:c[0],open:c[1],high:c[2],low:c[3],close:c[4]}:c),
+          h:r.h.map(c=>Array.isArray(c)?{time:c[0],open:c[1],high:c[2],low:c[3],close:c[4]}:c)
+        };
+      }
+    });
+    const cnt = {};
+    rows.forEach(r => { const m=r.mkt||"stock"; if(!cnt[m]) cnt[m]={n:0,ok:0}; cnt[m].n++; cnt[m].ok++; });
+    LAST = {rows:rows, errs:[], cnt:cnt, time:new Date(json.time)};
+    renderList();
+    const sigCount = rows.filter(r=>r.side).length;
+    if($("st")) $("st").innerHTML = `${T().lastScan} ${fmtDate(new Date(json.time))} · ${fmtNum(sigCount)} ${T().signals}`;
 
-        // 🔴 Dedup با SIG_LEDGER
-        const ns = Date.now()/1000;
-        const fresh = [];
-        rows.forEach(r => {
-            if(!r.side) return;
-            if(ns - (r.bt + 300) > 3600) return;
-            if(isSignalOpen(r.id)) return;
+    // 🔴 Dedup با SIG_LEDGER
+    const ns = Date.now()/1000;
+    const fresh = [];
+    rows.forEach(r => {
+      if(!r.side) return;
+      if(ns - (r.bt + 300) > 3600) return;
+      if(isSignalOpen(r.id)) return;
+      const ck = r.id + "|" + r.side;
+      const prev = SIG_LEDGER[ck] || {};
+      if(r.bt && prev.bt === r.bt) return;
+      if(prev.ts && (ns - prev.ts) < SIG_MIN_REISSUE_SEC) return;
+      SIG_LEDGER[ck] = {bt: r.bt, ts: ns};
+      fresh.push(r);
+    });
+    LS(SIG_LEDGER_KEY, JSON.stringify(SIG_LEDGER));
 
-            const ck = r.id + "|" + r.side;
-            const prev = SIG_LEDGER[ck] || {};
-            if(r.bt && prev.bt === r.bt) return;
-            if(prev.ts && (ns - prev.ts) < SIG_MIN_REISSUE_SEC) return;
-
-            SIG_LEDGER[ck] = {bt: r.bt, ts: ns};
-            fresh.push(r);
-        });
-        LS(SIG_LEDGER_KEY, JSON.stringify(SIG_LEDGER));
-
-        if(fresh.length){
-            recordLocal(fresh);
-            fresh.forEach(r=>openSignal(r));
-            UNREAD += fresh.length;
-            LS("bs_unread",UNREAD);
-            updateUnreadBadge();
-            try{ beep(); }catch(e){}
-            renderList();
-        }
-        updateDedupBadge();
-    } catch(e){
-        setText("st", T().errFetch);
-        if(!isAISilent && $("list")) $("list").innerHTML = `<div class="empty"><b>⚡</b>${T().errFetch}</div>`;
-    } finally {
-        if(!isAISilent){ if($("ld"))$("ld").classList.remove("on"); setProg(0); if($("go"))$("go").disabled=false; setText("goT",T().scan); }
-        busy=false;
+    if(fresh.length){
+      recordLocal(fresh);
+      fresh.forEach(r=>openSignal(r));
+      UNREAD += fresh.length;
+      LS("bs_unread", UNREAD);
+      updateUnreadBadge();
+      try { beep(); } catch(e){}
+      renderList();
     }
+    updateDedupBadge();
+  } catch(e){
+    console.error('[BS] scan error:', e);
+    setText("st", T().errFetch);
+    if(!isAISilent && $("list")) $("list").innerHTML = `<div class="empty"><b>⚡</b>${T().errFetch}</div>`;
+  } finally {
+    if(!isAISilent){
+      if($("ld")) $("ld").classList.remove("on");
+      setProg(0);
+      if($("go")) $("go").disabled=false;
+      setText("goT", T().scan);
+    }
+    busy = false;
+  }
 }
 
 function sigHtml(r){
-    const d=r.d||2, f=x=>(x==null||isNaN(x))?"-":Number(x).toFixed(d);
-    const L=r.side==="LONG"; const risk=(r.entry&&r.sl)?Math.abs(r.entry-r.sl)/r.entry*100:0;
-    const mk = currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
-    const mode = r.mode==="range"?"range":"pattern";
-    const stratLabel = mode==="range"?(currentLang==='fa'?"رنج":"Range"):(currentLang==='fa'?"روند":"Trend");
-    return `<article class="row sig ${r.side} mode-${mode}" data-id="${r.id}" data-mode="${mode}"><div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span><span class="tag">${stratLabel}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div><div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div><div class="r-foot"><span>${T().risk} ${risk.toFixed(2)}%</span></div></article>`;
+  const d=r.d||2, f=x=>(x==null||isNaN(x))?"-":Number(x).toFixed(d);
+  const L = r.side==="LONG";
+  const risk = (r.entry&&r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
+  const mk = currentLang==='fa'?MKT_LABEL[r.mkt||"stock"]:MKT_LABEL_EN[r.mkt||"stock"];
+  const mode = r.mode==="range"?"range":"pattern";
+  const stratLabel = mode==="range"?(currentLang==='fa'?"رنج":"Range"):(currentLang==='fa'?"روند":"Trend");
+  return `<article class="row sig ${r.side} mode-${mode}" data-id="${r.id}" data-mode="${mode}"><div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag mk">${mk}</span><span class="tag">${stratLabel}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div><div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">${T().rsiDiv}</b></div></div><div class="r-foot"><span>${T().risk} ${risk.toFixed(2)}%</span></div></article>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #1 (بخش renderList): استفاده از LAST.rows برای sides
-// ═══════════════════════════════════════════════════════════
+// 🔴 FIX #1: sides از LAST.rows (نه evaluatedRows)
 function renderList(){
+  try {
+    if(!LAST) return;
+    let rows = [];
     try {
-        if(!LAST) return;
-        let rows=[];
-        try {
-            rows = LAST.rows.map(evalRow);
-            // ✅ FIX: sides از LAST.rows خام، نه از evaluatedRows
-            const sides = {};
-            LAST.rows.forEach(r => { sides[r.id] = r.side || null; });
-            touchActiveSigs(sides);
-        } catch(e){ rows = LAST.rows; }
-        const all = rows.filter(r=>r.side), nl = all.filter(r=>r.side==="LONG").length, ns = all.length-nl;
-        const sg = all.filter(r => vf==="all"||r.side===vf);
-        if($("sum")){ $("sum").style.display="flex"; $("sum").innerHTML = `<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`; }
-        if($("list")){ $("list").innerHTML = sg.length?sg.map(sigHtml).join(""):`<div class="empty"><b>🌙</b>${T().noSignalsYet}</div>`; }
-        if($("st")) $("st").innerHTML = `${T().lastScan} ${fmtDate(LAST.time)} · ${fmtNum(rows.length)} ${T().symbols}`;
-    } catch(err){}
+      rows = LAST.rows.map(evalRow);
+      const sides = {};
+      LAST.rows.forEach(r => { sides[r.id] = r.side || null; });
+      touchActiveSigs(sides);
+    } catch(e){ rows = LAST.rows; }
+    const all = rows.filter(r=>r.side);
+    const nl = all.filter(r=>r.side==="LONG").length;
+    const ns = all.length - nl;
+    const sg = all.filter(r => vf==="all" || r.side===vf);
+    if($("sum")){
+      $("sum").style.display="flex";
+      $("sum").innerHTML = `<div class="cn"><span class="l">▲ ${fmtNum(nl)} ${T().long}</span><span class="s">▼ ${fmtNum(ns)} ${T().short}</span></div><div class="seg">${[["all",T().all],["LONG",T().long],["SHORT",T().short]].map(([v,t])=>`<button data-v="${v}" class="${vf===v?"on":""}">${t}</button>`).join("")}</div>`;
+    }
+    if($("list")){
+      $("list").innerHTML = sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>🌙</b>${T().noSignalsYet}</div>`;
+    }
+    if($("st")) $("st").innerHTML = `${T().lastScan} ${fmtDate(LAST.time)} · ${fmtNum(rows.length)} ${T().symbols}`;
+  } catch(err){ console.warn('[BS] renderList:', err); }
 }
 if($("sum")) $("sum").onclick = e => { const b=e.target.closest("button"); if(!b)return; vf=b.dataset.v; renderList(); };
-function beep(){ try { const C=new(window.AudioContext||window.webkitAudioContext)(); const o=C.createOscillator(), g=C.createGain(); o.frequency.value=850; g.gain.setValueAtTime(0.1,C.currentTime); g.gain.exponentialRampToValueAtTime(0.001,C.currentTime+0.2); o.connect(g); g.connect(C.destination); o.start(); o.stop(C.currentTime+0.2); } catch(e){} }
+function beep(){
+  try {
+    const C = new (window.AudioContext||window.webkitAudioContext)();
+    const o = C.createOscillator(), g = C.createGain();
+    o.frequency.value = 850;
+    g.gain.setValueAtTime(0.1, C.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, C.currentTime+0.2);
+    o.connect(g); g.connect(C.destination);
+    o.start(); o.stop(C.currentTime+0.2);
+  } catch(e){}
+}
 if($("go")) $("go").onclick = () => scan(false);
 
-// ═══════════════════════════════════════════════════════════
-// Charts state
-// ═══════════════════════════════════════════════════════════
+// ═════════ Charts state ═════════
 let chartMain=null, chartDD=null, chartMonthly=null, chartAlpha=null, chartRDist=null, rollingChartInstance=null;
 let currentTimeFilter='all';
 let currentFilterSymbol=null;
@@ -846,385 +857,690 @@ let slMultiplier=1.0;
 let currentHistoryTab='open';
 
 function calcBuyHoldR(s){
-    if(!s||!s.entry||s.sl==null) return null;
-    const d = D && D[s.id]; if(!d||!d.a||!d.a.length) return null;
-    const lastP = d.a[d.a.length-1].close; if(lastP==null||isNaN(lastP)) return null;
-    const risk = Math.abs(s.entry-s.sl); if(!risk) return null;
-    if(s.side==='LONG') return (lastP-s.entry)/risk;
-    return (s.entry-lastP)/risk;
+  if(!s||!s.entry||s.sl==null) return null;
+  const d = D && D[s.id];
+  if(!d||!d.a||!d.a.length) return null;
+  const lastP = d.a[d.a.length-1].close;
+  if(lastP==null||isNaN(lastP)) return null;
+  const risk = Math.abs(s.entry-s.sl);
+  if(!risk) return null;
+  if(s.side==='LONG') return (lastP-s.entry)/risk;
+  return (s.entry-lastP)/risk;
 }
 
 function calcStats(arr){
-    const e={count:0,netR:0,pf:0,winRate:0,expectancy:0,avgWin:0,avgLoss:0,maxConsLoss:0,maxDD:0,recovery:0,wins:0,losses:0};
-    if(!arr.length) return e;
-    const w = arr.filter(s=>s.result==='win'), l = arr.filter(s=>s.result==='loss');
-    const gw = w.reduce((a,s)=>a+(s.R!=null?Math.abs(s.R):tpMultiplier),0);
-    const gl = Math.abs(l.reduce((a,s)=>a+(s.R!=null?s.R:-slMultiplier),0));
-    const nr = arr.reduce((a,s)=>a+(s.R!=null?s.R:0),0);
-    const pf = gl>0?gw/gl:(gw>0?99:0);
-    let mc=0, cl=0;
-    arr.forEach(s => { if(s.result==='loss'){ cl++; if(cl>mc) mc=cl; } else cl=0; });
-    let cum=0, pk=0, mdd=0;
-    arr.forEach(s => { cum+=(s.R!=null?s.R:0); if(cum>pk)pk=cum; if(cum-pk<mdd)mdd=cum-pk; });
-    return {count:arr.length, wins:w.length, losses:l.length, netR:nr, pf, winRate:w.length/arr.length*100, expectancy:nr/arr.length, avgWin:w.length?gw/w.length:0, avgLoss:l.length?gl/l.length:0, maxConsLoss:mc, maxDD:mdd, recovery:mdd<0?nr/Math.abs(mdd):0};
+  const e={count:0,netR:0,pf:0,winRate:0,expectancy:0,avgWin:0,avgLoss:0,maxConsLoss:0,maxDD:0,recovery:0,wins:0,losses:0};
+  if(!arr.length) return e;
+  const w = arr.filter(s=>s.result==='win');
+  const l = arr.filter(s=>s.result==='loss');
+  const gw = w.reduce((a,s)=>a+(s.R!=null?Math.abs(s.R):tpMultiplier),0);
+  const gl = Math.abs(l.reduce((a,s)=>a+(s.R!=null?s.R:-slMultiplier),0));
+  const nr = arr.reduce((a,s)=>a+(s.R!=null?s.R:0),0);
+  const pf = gl>0 ? gw/gl : (gw>0?99:0);
+  let mc=0, cl=0;
+  arr.forEach(s => { if(s.result==='loss'){ cl++; if(cl>mc) mc=cl; } else cl=0; });
+  let cum=0, pk=0, mdd=0;
+  arr.forEach(s => { cum+=(s.R!=null?s.R:0); if(cum>pk)pk=cum; if(cum-pk<mdd)mdd=cum-pk; });
+  return {count:arr.length, wins:w.length, losses:l.length, netR:nr, pf, winRate:w.length/arr.length*100, expectancy:nr/arr.length, avgWin:w.length?gw/w.length:0, avgLoss:l.length?gl/l.length:0, maxConsLoss:mc, maxDD:mdd, recovery:mdd<0?nr/Math.abs(mdd):0};
 }
 
 function estimateOutcome(s){
-    if(!s||!s.entry||s.sl==null) return s;
-    const d = D && D[s.id]; if(!d||!d.a) return s;
-    const origRisk = Math.abs(s.entry-s.sl); if(!origRisk) return s;
-    const risk = origRisk*slMultiplier;
-    const sl = s.side==='LONG'?s.entry-risk:s.entry+risk;
-    const tp = s.side==='LONG'?s.entry+tpMultiplier*risk:s.entry-tpMultiplier*risk;
-    const start = s.bt||s.time||0;
-    for(const c of d.a){
-        const t=c.time, hi=c.high, lo=c.low;
-        if(t<start) continue;
-        if(s.side==='LONG'){
-            if(lo<=sl) return {...s, result:'loss', exit:sl, R:-slMultiplier, closeTime:t};
-            if(hi>=tp) return {...s, result:'win', exit:tp, R:tpMultiplier, closeTime:t};
-        } else {
-            if(hi>=sl) return {...s, result:'loss', exit:sl, R:-slMultiplier, closeTime:t};
-            if(lo<=tp) return {...s, result:'win', exit:tp, R:tpMultiplier, closeTime:t};
-        }
+  if(!s||!s.entry||s.sl==null) return s;
+  const d = D && D[s.id];
+  if(!d||!d.a) return s;
+  const origRisk = Math.abs(s.entry-s.sl);
+  if(!origRisk) return s;
+  const risk = origRisk * slMultiplier;
+  const sl = s.side==='LONG' ? s.entry-risk : s.entry+risk;
+  const tp = s.side==='LONG' ? s.entry+tpMultiplier*risk : s.entry-tpMultiplier*risk;
+  const start = s.bt || s.time || 0;
+  for(const c of d.a){
+    const t=c.time, hi=c.high, lo=c.low;
+    if(t < start) continue;
+    if(s.side==='LONG'){
+      if(lo<=sl) return {...s, result:'loss', exit:sl, R:-slMultiplier, closeTime:t};
+      if(hi>=tp) return {...s, result:'win', exit:tp, R:tpMultiplier, closeTime:t};
+    } else {
+      if(hi>=sl) return {...s, result:'loss', exit:sl, R:-slMultiplier, closeTime:t};
+      if(lo<=tp) return {...s, result:'win', exit:tp, R:tpMultiplier, closeTime:t};
     }
-    return {...s, result:'open', exit:null, R:null, closeTime:null};
+  }
+  return {...s, result:'open', exit:null, R:null, closeTime:null};
 }
 
 function setTimeFilter(f,btn){
-    if(f==='custom'){ document.querySelectorAll('.tw-btn').forEach(b=>b.classList.remove('active')); if(btn)btn.classList.add('active'); const w=$('twCustomWrap'); if(w)w.classList.add('on'); return; }
-    currentTimeFilter=f;
+  if(f==='custom'){
     document.querySelectorAll('.tw-btn').forEach(b=>b.classList.remove('active'));
     if(btn) btn.classList.add('active');
-    const w=$('twCustomWrap'); if(w) w.classList.remove('on');
-    updateHistoryModalContent();
+    const w=$('twCustomWrap'); if(w) w.classList.add('on');
+    return;
+  }
+  currentTimeFilter = f;
+  document.querySelectorAll('.tw-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const w=$('twCustomWrap'); if(w) w.classList.remove('on');
+  updateHistoryModalContent();
 }
-function applyCustomTw(){ const days=parseInt($('twCustomDays')?.value,10)||14; currentTimeFilter='custom:'+days; document.querySelectorAll('.tw-btn').forEach(b=>b.classList.remove('active')); document.querySelector('.tw-btn[data-tw="custom"]')?.classList.add('active'); updateHistoryModalContent(); }
-function setSymbolFilter(sym){ currentFilterSymbol=sym; const chip=$('activeFilterChip'), symEl=$('activeFilterSym'); if(sym&&chip&&symEl){ symEl.textContent=sym; chip.style.display='block'; } updateHistoryModalContent(); }
-function clearSymbolFilter(){ currentFilterSymbol=null; const chip=$('activeFilterChip'); if(chip) chip.style.display='none'; updateHistoryModalContent(); }
-function switchHistoryTab(tab){ currentHistoryTab=tab; document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); if(tab==='open'&&$('btnOpen'))$('btnOpen').classList.add('active'); if(tab==='closed'&&$('btnClosed'))$('btnClosed').classList.add('active'); updateHistoryModalContent(); }
-function resetTpSl(){ tpMultiplier=2.0; slMultiplier=1.0; if($('tpSlider'))$('tpSlider').value=2; if($('slSlider'))$('slSlider').value=1; if($('tpVal'))$('tpVal').textContent='۲.۰R'; if($('slVal'))$('slVal').textContent='۱.۰۰x'; updateHistoryModalContent(); }
-window.setTimeFilter=setTimeFilter; window.applyCustomTw=applyCustomTw;
-window.setSymbolFilter=setSymbolFilter; window.clearSymbolFilter=clearSymbolFilter;
-window.switchHistoryTab=switchHistoryTab; window.resetTpSl=resetTpSl;
+function applyCustomTw(){
+  const days = parseInt($('twCustomDays')?.value, 10) || 14;
+  currentTimeFilter = 'custom:'+days;
+  document.querySelectorAll('.tw-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tw-btn[data-tw="custom"]')?.classList.add('active');
+  updateHistoryModalContent();
+}
+function setSymbolFilter(sym){
+  currentFilterSymbol = sym;
+  const chip=$('activeFilterChip'), symEl=$('activeFilterSym');
+  if(sym && chip && symEl){ symEl.textContent=sym; chip.style.display='block'; }
+  updateHistoryModalContent();
+}
+function clearSymbolFilter(){
+  currentFilterSymbol = null;
+  const chip=$('activeFilterChip');
+  if(chip) chip.style.display='none';
+  updateHistoryModalContent();
+}
+function switchHistoryTab(tab){
+  currentHistoryTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(tab==='open' && $('btnOpen')) $('btnOpen').classList.add('active');
+  if(tab==='closed' && $('btnClosed')) $('btnClosed').classList.add('active');
+  updateHistoryModalContent();
+}
+function resetTpSl(){
+  tpMultiplier = 2.0; slMultiplier = 1.0;
+  if($('tpSlider')) $('tpSlider').value = 2;
+  if($('slSlider')) $('slSlider').value = 1;
+  if($('tpVal')) $('tpVal').textContent = '۲.۰R';
+  if($('slVal')) $('slVal').textContent = '۱.۰۰x';
+  updateHistoryModalContent();
+}
+window.setTimeFilter = setTimeFilter;
+window.applyCustomTw = applyCustomTw;
+window.setSymbolFilter = setSymbolFilter;
+window.clearSymbolFilter = clearSymbolFilter;
+window.switchHistoryTab = switchHistoryTab;
+window.resetTpSl = resetTpSl;
 
 function renderStrategyCharts(closed){
-    if(!$('strategyPerformanceChart')||!window.Chart) return;
-    if(chartMain){ try{chartMain.destroy();}catch(e){} chartMain=null; }
-    if(chartDD){ try{chartDD.destroy();}catch(e){} chartDD=null; }
-    const sorted = [...closed].filter(s=>s.time&&(s.result==='win'||s.result==='loss')).sort((a,b)=>(a.time||0)-(b.time||0));
-    const pat=[], rng=[], bh=[], ddP=[], ddR=[], ddB=[];
-    let cp=0,cr=0,cb=0,pp=0,pr=0,pb=0;
-    sorted.forEach(s => {
-        const r=(s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)), x=(s.time||0)*1000;
-        if(s.mode==='range'){ cr+=r; if(cr>pr)pr=cr; rng.push({x,y:cr}); ddR.push({x,y:cr-pr}); }
-        else { cp+=r; if(cp>pp)pp=cp; pat.push({x,y:cp}); ddP.push({x,y:cp-pp}); }
-        const b=calcBuyHoldR(s); if(b!==null){ cb+=b; if(cb>pb)pb=cb; bh.push({x,y:cb}); ddB.push({x,y:cb-pb}); }
-    });
-    const e=$('strategyChartEmpty'); if(e) e.style.display=(pat.length||rng.length)?'none':'flex';
-    const fa = currentLang==='fa';
-    const base = {responsive:true, maintainAspectRatio:false, interaction:{mode:'nearest',axis:'x',intersect:false}, plugins:{legend:{display:true,position:'top',labels:{color:'#cbd5e1',font:{size:10},boxWidth:9,boxHeight:9,usePointStyle:true}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>i.length?new Date(i[0].parsed.x).toLocaleString(fa?'fa-IR':'en-US'):'',label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{type:'time',time:{unit:'hour'},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(148,163,184,0.08)'}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}};
-    chartMain = new Chart($('strategyPerformanceChart'), {type:'line', data:{datasets:[
-        {label:fa?'روند':'Trend', data:pat, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.10)', borderWidth:2, pointRadius:2.5, tension:0.25, fill:true},
-        {label:fa?'رنج':'Range', data:rng, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.10)', borderWidth:2, pointRadius:2.5, tension:0.25, fill:true},
-        {label:'Buy & Hold', data:bh, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.06)', borderWidth:2, borderDash:[6,4], pointRadius:2, tension:0.25, fill:false}
-    ]}, options:base});
-    if($('strategyDrawdownChart')) chartDD = new Chart($('strategyDrawdownChart'), {type:'line', data:{datasets:[
-        {label:fa?'افت روند':'DD Trend', data:ddP, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.16)', borderWidth:1.5, pointRadius:0, tension:0.15, fill:true},
-        {label:fa?'افت رنج':'DD Range', data:ddR, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.16)', borderWidth:1.5, pointRadius:0, tension:0.15, fill:true},
-        {label:'B&H DD', data:ddB, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.16)', borderWidth:1.5, borderDash:[6,4], pointRadius:0, tension:0.15, fill:true}
+  if(!$('strategyPerformanceChart') || !window.Chart) return;
+  if(chartMain){ try{chartMain.destroy();}catch(e){} chartMain=null; }
+  if(chartDD){ try{chartDD.destroy();}catch(e){} chartDD=null; }
+  const sorted = [...closed].filter(s=>s.time && (s.result==='win'||s.result==='loss')).sort((a,b)=>(a.time||0)-(b.time||0));
+  const pat=[], rng=[], bh=[], ddP=[], ddR=[], ddB=[];
+  let cp=0, cr=0, cb=0, pp=0, pr=0, pb=0;
+  sorted.forEach(s => {
+    const r = (s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+    const x = (s.time||0)*1000;
+    if(s.mode==='range'){ cr+=r; if(cr>pr)pr=cr; rng.push({x,y:cr}); ddR.push({x,y:cr-pr}); }
+    else { cp+=r; if(cp>pp)pp=cp; pat.push({x,y:cp}); ddP.push({x,y:cp-pp}); }
+    const b = calcBuyHoldR(s);
+    if(b!==null){ cb+=b; if(cb>pb)pb=cb; bh.push({x,y:cb}); ddB.push({x,y:cb-pb}); }
+  });
+  const e = $('strategyChartEmpty');
+  if(e) e.style.display = (pat.length||rng.length)?'none':'flex';
+  const fa = currentLang==='fa';
+  const base = {responsive:true, maintainAspectRatio:false, interaction:{mode:'nearest',axis:'x',intersect:false}, plugins:{legend:{display:true,position:'top',labels:{color:'#cbd5e1',font:{size:10},boxWidth:9,boxHeight:9,usePointStyle:true}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>i.length?new Date(i[0].parsed.x).toLocaleString(fa?'fa-IR':'en-US'):'',label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{type:'time',time:{unit:'hour'},ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(148,163,184,0.08)'}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}};
+  chartMain = new Chart($('strategyPerformanceChart'), {type:'line', data:{datasets:[
+    {label:fa?'روند':'Trend', data:pat, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.10)', borderWidth:2, pointRadius:2.5, tension:0.25, fill:true},
+    {label:fa?'رنج':'Range', data:rng, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.10)', borderWidth:2, pointRadius:2.5, tension:0.25, fill:true},
+    {label:'Buy & Hold', data:bh, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.06)', borderWidth:2, borderDash:[6,4], pointRadius:2, tension:0.25, fill:false}
+  ]}, options:base});
+  if($('strategyDrawdownChart')){
+    chartDD = new Chart($('strategyDrawdownChart'), {type:'line', data:{datasets:[
+      {label:fa?'افت روند':'DD Trend', data:ddP, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.16)', borderWidth:1.5, pointRadius:0, tension:0.15, fill:true},
+      {label:fa?'افت رنج':'DD Range', data:ddR, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.16)', borderWidth:1.5, pointRadius:0, tension:0.15, fill:true},
+      {label:'B&H DD', data:ddB, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.16)', borderWidth:1.5, borderDash:[6,4], pointRadius:0, tension:0.15, fill:true}
     ]}, options:{...base, scales:{...base.scales, y:{...base.scales.y, max:0, ticks:{color:'#94a3b8',callback:v=>v+'R'}}}}});
+  }
 }
 
 function renderMonthlyChart(closed){
-    if(!$('monthlyChart')||!window.Chart) return;
-    if(chartMonthly){ try{chartMonthly.destroy();}catch(e){} chartMonthly=null; }
-    const b = {};
-    closed.forEach(s => { if(s.result!=='win'&&s.result!=='loss') return; if(!s.time) return; const d=new Date(s.time*1000); const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(!b[k])b[k]={p:0,r:0,bh:0}; const r=(s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); if(s.mode==='range')b[k].r+=r;else b[k].p+=r; const bh=calcBuyHoldR(s); if(bh!==null)b[k].bh+=bh; });
-    const labels = Object.keys(b).sort(); const e=$('monthlyChartEmpty'); if(e) e.style.display=labels.length?'none':'flex'; if(!labels.length) return;
-    const fa=currentLang==='fa';
-    chartMonthly = new Chart($('monthlyChart'), {type:'bar', data:{labels, datasets:[
-        {label:fa?'روند':'Trend', data:labels.map(k=>b[k].p), backgroundColor:'rgba(34,197,94,0.75)', borderRadius:4},
-        {label:fa?'رنج':'Range', data:labels.map(k=>b[k].r), backgroundColor:'rgba(59,130,246,0.75)', borderRadius:4},
-        {label:'B&H', data:labels.map(k=>b[k].bh), backgroundColor:'rgba(168,85,247,0.75)', borderRadius:4}
-    ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}}});
+  if(!$('monthlyChart') || !window.Chart) return;
+  if(chartMonthly){ try{chartMonthly.destroy();}catch(e){} chartMonthly=null; }
+  const b = {};
+  closed.forEach(s => {
+    if(s.result!=='win' && s.result!=='loss') return;
+    if(!s.time) return;
+    const d = new Date(s.time*1000);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!b[k]) b[k]={p:0,r:0,bh:0};
+    const r = (s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+    if(s.mode==='range') b[k].r += r; else b[k].p += r;
+    const bh = calcBuyHoldR(s);
+    if(bh!==null) b[k].bh += bh;
+  });
+  const labels = Object.keys(b).sort();
+  const e = $('monthlyChartEmpty');
+  if(e) e.style.display = labels.length?'none':'flex';
+  if(!labels.length) return;
+  const fa = currentLang==='fa';
+  chartMonthly = new Chart($('monthlyChart'), {type:'bar', data:{labels, datasets:[
+    {label:fa?'روند':'Trend', data:labels.map(k=>b[k].p), backgroundColor:'rgba(34,197,94,0.75)', borderRadius:4},
+    {label:fa?'رنج':'Range', data:labels.map(k=>b[k].r), backgroundColor:'rgba(59,130,246,0.75)', borderRadius:4},
+    {label:'B&H', data:labels.map(k=>b[k].bh), backgroundColor:'rgba(168,85,247,0.75)', borderRadius:4}
+  ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}}});
 }
 
 function renderAlphaChart(closed){
-    if(!$('alphaChart')||!window.Chart) return;
-    if(chartAlpha){ try{chartAlpha.destroy();}catch(e){} chartAlpha=null; }
-    const b = {};
-    closed.forEach(s => { if(s.result!=='win'&&s.result!=='loss') return; if(!s.time) return; const d=new Date(s.time*1000); const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(!b[k])b[k]={tr:0,rr:0,bhT:0,bhR:0}; const r=(s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); const bh=calcBuyHoldR(s); if(s.mode==='range'){ b[k].rr+=r; if(bh!==null)b[k].bhR+=bh; } else { b[k].tr+=r; if(bh!==null)b[k].bhT+=bh; } });
-    const labels = Object.keys(b).sort(); const e=$('alphaChartEmpty'); if(e) e.style.display=labels.length?'none':'flex'; if(!labels.length) return;
-    const fa=currentLang==='fa';
-    const trendAlpha = labels.map(k=>+(b[k].tr-b[k].bhT).toFixed(2));
-    const rangeAlpha = labels.map(k=>+(b[k].rr-b[k].bhR).toFixed(2));
-    chartAlpha = new Chart($('alphaChart'), {type:'bar', data:{labels, datasets:[
-        {label:fa?'آلفای روند':'Trend α', data:trendAlpha, backgroundColor:'rgba(34,197,94,0.75)', borderRadius:4},
-        {label:fa?'آلفای رنج':'Range α', data:rangeAlpha, backgroundColor:'rgba(59,130,246,0.75)', borderRadius:4}
-    ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}}});
+  if(!$('alphaChart') || !window.Chart) return;
+  if(chartAlpha){ try{chartAlpha.destroy();}catch(e){} chartAlpha=null; }
+  const b = {};
+  closed.forEach(s => {
+    if(s.result!=='win' && s.result!=='loss') return;
+    if(!s.time) return;
+    const d = new Date(s.time*1000);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!b[k]) b[k]={tr:0,rr:0,bhT:0,bhR:0};
+    const r = (s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+    const bh = calcBuyHoldR(s);
+    if(s.mode==='range'){ b[k].rr+=r; if(bh!==null) b[k].bhR+=bh; }
+    else { b[k].tr+=r; if(bh!==null) b[k].bhT+=bh; }
+  });
+  const labels = Object.keys(b).sort();
+  const e = $('alphaChartEmpty');
+  if(e) e.style.display = labels.length?'none':'flex';
+  if(!labels.length) return;
+  const fa = currentLang==='fa';
+  const trendAlpha = labels.map(k=>+(b[k].tr-b[k].bhT).toFixed(2));
+  const rangeAlpha = labels.map(k=>+(b[k].rr-b[k].bhR).toFixed(2));
+  chartAlpha = new Chart($('alphaChart'), {type:'bar', data:{labels, datasets:[
+    {label:fa?'آلفای روند':'Trend α', data:trendAlpha, backgroundColor:'rgba(34,197,94,0.75)', borderRadius:4},
+    {label:fa?'آلفای رنج':'Range α', data:rangeAlpha, backgroundColor:'rgba(59,130,246,0.75)', borderRadius:4}
+  ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}R`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>(v>0?'+':'')+v+'R'},grid:{color:'rgba(148,163,184,0.08)'}}}}});
 }
 
 function renderRDistribution(closed){
-    if(!$('rDistChart')||!window.Chart) return;
-    if(chartRDist){ try{chartRDist.destroy();}catch(e){} chartRDist=null; }
-    const stratR=[], bhR=[];
-    closed.forEach(s => { if(s.result!=='win'&&s.result!=='loss') return; stratR.push(s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); const bh=calcBuyHoldR(s); if(bh!==null)bhR.push(bh); });
-    const e=$('rDistChartEmpty'); if(e) e.style.display=(stratR.length||bhR.length)?'none':'flex'; if(!stratR.length&&!bhR.length) return;
-    const all=[...stratR,...bhR]; let minV=Math.floor(Math.min(...all)), maxV=Math.ceil(Math.max(...all));
-    if(minV>-2)minV=-2; if(maxV<3)maxV=3;
-    const bs=0.5, bins=[]; for(let v=minV;v<maxV;v+=bs) bins.push(v);
-    const sc=bins.map(b=>stratR.filter(v=>v>=b&&v<b+bs).length);
-    const bc=bins.map(b=>bhR.filter(v=>v>=b&&v<b+bs).length);
-    const labels=bins.map(b=>b.toFixed(1));
-    const stratColors=bins.map(b=>(b+bs/2)>=0?'rgba(34,197,94,0.75)':'rgba(239,68,68,0.75)');
-    const bhColors=bins.map(b=>(b+bs/2)>=0?'rgba(168,85,247,0.55)':'rgba(168,85,247,0.35)');
-    const fa=currentLang==='fa';
-    chartRDist = new Chart($('rDistChart'), {type:'bar', data:{labels, datasets:[
-        {label:fa?'استراتژی':'Strategy', data:sc, backgroundColor:stratColors, borderRadius:3},
-        {label:'Buy & Hold', data:bc, backgroundColor:bhColors, borderRadius:3}
-    ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>`R = ${i[0].label}`,label:c=>`${c.dataset.label}: ${c.parsed.y}`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:8},maxRotation:0},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(148,163,184,0.08)'}}}}});
+  if(!$('rDistChart') || !window.Chart) return;
+  if(chartRDist){ try{chartRDist.destroy();}catch(e){} chartRDist=null; }
+  const stratR=[], bhR=[];
+  closed.forEach(s => {
+    if(s.result!=='win' && s.result!=='loss') return;
+    stratR.push(s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+    const bh = calcBuyHoldR(s);
+    if(bh!==null) bhR.push(bh);
+  });
+  const e = $('rDistChartEmpty');
+  if(e) e.style.display = (stratR.length||bhR.length)?'none':'flex';
+  if(!stratR.length && !bhR.length) return;
+  const all = [...stratR, ...bhR];
+  let minV = Math.floor(Math.min(...all)), maxV = Math.ceil(Math.max(...all));
+  if(minV > -2) minV = -2;
+  if(maxV < 3) maxV = 3;
+  const bs = 0.5, bins = [];
+  for(let v=minV; v<maxV; v+=bs) bins.push(v);
+  const sc = bins.map(b => stratR.filter(v=>v>=b && v<b+bs).length);
+  const bc = bins.map(b => bhR.filter(v=>v>=b && v<b+bs).length);
+  const labels = bins.map(b => b.toFixed(1));
+  const stratColors = bins.map(b => (b+bs/2)>=0?'rgba(34,197,94,0.75)':'rgba(239,68,68,0.75)');
+  const bhColors = bins.map(b => (b+bs/2)>=0?'rgba(168,85,247,0.55)':'rgba(168,85,247,0.35)');
+  const fa = currentLang==='fa';
+  chartRDist = new Chart($('rDistChart'), {type:'bar', data:{labels, datasets:[
+    {label:fa?'استراتژی':'Strategy', data:sc, backgroundColor:stratColors, borderRadius:3},
+    {label:'Buy & Hold', data:bc, backgroundColor:bhColors, borderRadius:3}
+  ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:10},boxWidth:10,boxHeight:10}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>`R = ${i[0].label}`,label:c=>`${c.dataset.label}: ${c.parsed.y}`}}}, scales:{x:{ticks:{color:'#94a3b8',font:{size:8},maxRotation:0},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'rgba(148,163,184,0.08)'}}}}});
 }
 
 function renderRollingMetrics(closed, winSize){
-    const canvas=$('rollingChart'); if(!canvas||!window.Chart) return;
-    if(rollingChartInstance){ try{rollingChartInstance.destroy();}catch(e){} rollingChartInstance=null; }
-    const sorted=[...closed].filter(s=>s.result==='win'||s.result==='loss').sort((a,b)=>(a.time||0)-(b.time||0));
-    const values=sorted.map(s=>s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier));
-    const emptyEl=$('rollingEmpty');
-    if(values.length<winSize){ if(emptyEl)emptyEl.style.display='flex'; canvas.style.opacity='0'; return; }
-    if(emptyEl)emptyEl.style.display='none'; canvas.style.opacity='1';
-    const irPts=[], wrPts=[];
-    for(let i=winSize-1;i<values.length;i++){
-        const sl=values.slice(i-winSize+1,i+1);
-        const mean=sl.reduce((a,b)=>a+b,0)/winSize;
-        const vr=sl.reduce((a,b)=>a+(b-mean)**2,0)/winSize;
-        const sd=Math.sqrt(vr);
-        const ir=sd>0?mean/sd:0;
-        const wr=sl.filter(v=>v>0).length/winSize*100;
-        const x=i-winSize+2;
-        irPts.push({x,y:ir}); wrPts.push({x,y:wr});
-    }
-    const fa=currentLang==='fa';
-    rollingChartInstance=new Chart(canvas,{type:'line',data:{datasets:[
-        {label:fa?'IR':'IR',data:irPts,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,0.10)',borderWidth:2,pointRadius:0,tension:0.3,fill:true,yAxisID:'y'},
-        {label:fa?'وین‌ریت':'Win%',data:wrPts,borderColor:'#f59e0b',borderWidth:1.5,borderDash:[5,3],pointRadius:0,tension:0.3,yAxisID:'y1'}
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#cbd5e1',font:{size:9},boxWidth:9,boxHeight:9}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>(fa?'معامله #':'Trade #')+i[0].parsed.x,label:c=>c.dataset.yAxisID==='y'?`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}`:`${c.dataset.label}: ${c.parsed.y.toFixed(0)}%`}}},scales:{x:{type:'linear',ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(148,163,184,0.06)'}},y:{position:'left',ticks:{color:'#22c55e',font:{size:9},callback:v=>(v>=0?'+':'')+v.toFixed(1)},grid:{color:'rgba(148,163,184,0.08)'}},y1:{position:'right',min:0,max:100,ticks:{color:'#f59e0b',font:{size:9},callback:v=>v+'%'},grid:{display:false}}}}});
+  const canvas = $('rollingChart');
+  if(!canvas || !window.Chart) return;
+  if(rollingChartInstance){ try{rollingChartInstance.destroy();}catch(e){} rollingChartInstance=null; }
+  const sorted = [...closed].filter(s=>s.result==='win'||s.result==='loss').sort((a,b)=>(a.time||0)-(b.time||0));
+  const values = sorted.map(s => s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+  const emptyEl = $('rollingEmpty');
+  if(values.length < winSize){
+    if(emptyEl) emptyEl.style.display='flex';
+    canvas.style.opacity='0';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display='none';
+  canvas.style.opacity='1';
+  const irPts=[], wrPts=[];
+  for(let i=winSize-1; i<values.length; i++){
+    const sl = values.slice(i-winSize+1, i+1);
+    const mean = sl.reduce((a,b)=>a+b,0)/winSize;
+    const vr = sl.reduce((a,b)=>a+(b-mean)**2,0)/winSize;
+    const sd = Math.sqrt(vr);
+    const ir = sd>0 ? mean/sd : 0;
+    const wr = sl.filter(v=>v>0).length/winSize*100;
+    const x = i-winSize+2;
+    irPts.push({x, y:ir});
+    wrPts.push({x, y:wr});
+  }
+  const fa = currentLang==='fa';
+  rollingChartInstance = new Chart(canvas, {type:'line', data:{datasets:[
+    {label:fa?'IR':'IR', data:irPts, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.10)', borderWidth:2, pointRadius:0, tension:0.3, fill:true, yAxisID:'y'},
+    {label:fa?'وین‌ریت':'Win%', data:wrPts, borderColor:'#f59e0b', borderWidth:1.5, borderDash:[5,3], pointRadius:0, tension:0.3, yAxisID:'y1'}
+  ]}, options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{labels:{color:'#cbd5e1',font:{size:9},boxWidth:9,boxHeight:9}},tooltip:{backgroundColor:'#1e293b',callbacks:{title:i=>(fa?'معامله #':'Trade #')+i[0].parsed.x,label:c=>c.dataset.yAxisID==='y'?`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${c.parsed.y.toFixed(2)}`:`${c.dataset.label}: ${c.parsed.y.toFixed(0)}%`}}}, scales:{x:{type:'linear',ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(148,163,184,0.06)'}},y:{position:'left',ticks:{color:'#22c55e',font:{size:9},callback:v=>(v>=0?'+':'')+v.toFixed(1)},grid:{color:'rgba(148,163,184,0.08)'}},y1:{position:'right',min:0,max:100,ticks:{color:'#f59e0b',font:{size:9},callback:v=>v+'%'},grid:{display:false}}}}});
 }
 
 function renderHourlyHeatmap(closed){
-    const c=$('hourlyHeatmap'); if(!c) return;
-    const done=closed.filter(s=>s.result==='win'||s.result==='loss');
-    const hours=Array.from({length:24},()=>({total:0,wins:0}));
-    done.forEach(s=>{ if(!s.time)return; const h=new Date(s.time*1000).getHours(); hours[h].total++; if(s.result==='win') hours[h].wins++; });
-    const maxT=Math.max(1,...hours.map(h=>h.total));
-    c.innerHTML=hours.map((h,i)=>{ const wr=h.total>0?(h.wins/h.total*100):null; let bg='rgba(255,255,255,0.05)'; if(h.total>0){ const op=0.35+(h.total/maxT)*0.65; const hue=wr>=60?145:wr>=40?45:0; bg=`hsla(${hue},70%,45%,${op.toFixed(2)})`; } return `<div class="hm-cell ${h.total>0?'has-data':''}" style="background:${bg}" title="${i}:00 · ${h.total} · ${wr?.toFixed(0)||0}%"><span class="hm-label">${i}</span></div>`; }).join('');
-    const wd=hours.map((h,i)=>({i,...h})).filter(h=>h.total>=2);
-    const sm=$('hmSummary');
-    if(sm){ if(!wd.length) sm.innerHTML='<span style="color:#64748b">'+(currentLang==='fa'?'داده کافی نیست':'Not enough data')+'</span>'; else { const best=[...wd].sort((a,b)=>(b.wins/b.total)-(a.wins/a.total))[0]; const worst=[...wd].sort((a,b)=>(a.wins/a.total)-(b.wins/b.total))[0]; sm.innerHTML = currentLang==='fa'?`بهترین: <b class="best">${best.i}:00</b> · بدترین: <b class="worst">${worst.i}:00</b>`:`Best: <b class="best">${best.i}:00</b> · Worst: <b class="worst">${worst.i}:00</b>`; } }
+  const c = $('hourlyHeatmap'); if(!c) return;
+  const done = closed.filter(s=>s.result==='win'||s.result==='loss');
+  const hours = Array.from({length:24}, ()=>({total:0,wins:0}));
+  done.forEach(s => {
+    if(!s.time) return;
+    const h = new Date(s.time*1000).getHours();
+    hours[h].total++;
+    if(s.result==='win') hours[h].wins++;
+  });
+  const maxT = Math.max(1, ...hours.map(h=>h.total));
+  c.innerHTML = hours.map((h,i) => {
+    const wr = h.total>0 ? (h.wins/h.total*100) : null;
+    let bg = 'rgba(255,255,255,0.05)';
+    if(h.total>0){
+      const op = 0.35 + (h.total/maxT)*0.65;
+      const hue = wr>=60 ? 145 : wr>=40 ? 45 : 0;
+      bg = `hsla(${hue},70%,45%,${op.toFixed(2)})`;
+    }
+    return `<div class="hm-cell ${h.total>0?'has-data':''}" style="background:${bg}" title="${i}:00 · ${h.total} · ${wr?.toFixed(0)||0}%"><span class="hm-label">${i}</span></div>`;
+  }).join('');
+  const wd = hours.map((h,i)=>({i,...h})).filter(h=>h.total>=2);
+  const sm = $('hmSummary');
+  if(sm){
+    if(!wd.length){
+      sm.innerHTML = '<span style="color:#64748b">'+(currentLang==='fa'?'داده کافی نیست':'Not enough data')+'</span>';
+    } else {
+      const best = [...wd].sort((a,b)=>(b.wins/b.total)-(a.wins/a.total))[0];
+      const worst = [...wd].sort((a,b)=>(a.wins/a.total)-(b.wins/b.total))[0];
+      sm.innerHTML = currentLang==='fa' ? `بهترین: <b class="best">${best.i}:00</b> · بدترین: <b class="worst">${worst.i}:00</b>` : `Best: <b class="best">${best.i}:00</b> · Worst: <b class="worst">${worst.i}:00</b>`;
+    }
+  }
 }
 
 function renderSymbolLeaderboard(closed){
-    const container=$('symbolLeaderboard'); if(!container) return;
-    const fa=currentLang==='fa';
-    const done=closed.filter(s=>s.result==='win'||s.result==='loss');
-    const by={};
-    done.forEach(s=>{ if(!by[s.id]) by[s.id]={count:0,wins:0,netR:0}; by[s.id].count++; if(s.result==='win')by[s.id].wins++; by[s.id].netR+=(s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); });
-    const arr=Object.entries(by).map(([sym,st])=>({sym,...st,winRate:st.count>0?(st.wins/st.count)*100:0}));
-    if(!arr.length){ container.innerHTML=`<div class="sym-leader-empty">${fa?'معامله بسته‌شده‌ای نیست':'No closed trades'}</div>`; return; }
-    const winners=[...arr].sort((a,b)=>b.netR-a.netR).slice(0,5);
-    const losers=[...arr].filter(x=>x.netR<0).sort((a,b)=>a.netR-b.netR).slice(0,5);
-    function row(s,isWin){ const cls=isWin?'pos':'neg'; return `<div class="sym-leader-row" onclick="setSymbolFilter('${s.sym}')"><span class="sym-badge ${cls}">${s.sym}</span><span class="sym-meta"><b>${s.count}</b> ${fa?'معامله':'trades'} · <b>${s.winRate.toFixed(0)}٪</b></span><span class="sym-netR ${cls}">${s.netR>=0?'+':''}${s.netR.toFixed(1)}R</span></div>`; }
-    let html='';
-    if(winners.length){ html+=`<div class="sym-leader-header pos">🏆 ${fa?'بهترین':'Top'}</div>`+winners.map(s=>row(s,s.netR>=0)).join(''); }
-    if(losers.length){ html+=`<div class="sym-leader-header neg">⚠️ ${fa?'ضعیف‌ترین':'Worst'}</div>`+losers.map(s=>row(s,false)).join(''); }
-    if(!winners.length && !losers.length) html=`<div class="sym-leader-empty">${fa?'داده نیست':'No data'}</div>`;
-    container.innerHTML=html;
+  const container = $('symbolLeaderboard'); if(!container) return;
+  const fa = currentLang==='fa';
+  const done = closed.filter(s=>s.result==='win'||s.result==='loss');
+  const by = {};
+  done.forEach(s => {
+    if(!by[s.id]) by[s.id] = {count:0, wins:0, netR:0};
+    by[s.id].count++;
+    if(s.result==='win') by[s.id].wins++;
+    by[s.id].netR += (s.R!=null ? s.R : (s.result==='win'?tpMultiplier:-slMultiplier));
+  });
+  const arr = Object.entries(by).map(([sym,st])=>({sym, ...st, winRate:st.count>0?(st.wins/st.count)*100:0}));
+  if(!arr.length){
+    container.innerHTML = `<div class="sym-leader-empty">${fa?'معامله بسته‌شده‌ای نیست':'No closed trades'}</div>`;
+    return;
+  }
+  const winners = [...arr].sort((a,b)=>b.netR-a.netR).slice(0,5);
+  const losers = [...arr].filter(x=>x.netR<0).sort((a,b)=>a.netR-b.netR).slice(0,5);
+  function row(s,isWin){
+    const cls = isWin?'pos':'neg';
+    return `<div class="sym-leader-row" onclick="setSymbolFilter('${s.sym}')"><span class="sym-badge ${cls}">${s.sym}</span><span class="sym-meta"><b>${s.count}</b> ${fa?'معامله':'trades'} · <b>${s.winRate.toFixed(0)}٪</b></span><span class="sym-netR ${cls}">${s.netR>=0?'+':''}${s.netR.toFixed(1)}R</span></div>`;
+  }
+  let html = '';
+  if(winners.length){ html += `<div class="sym-leader-header pos">🏆 ${fa?'بهترین':'Top'}</div>` + winners.map(s=>row(s, s.netR>=0)).join(''); }
+  if(losers.length){ html += `<div class="sym-leader-header neg">⚠️ ${fa?'ضعیف‌ترین':'Worst'}</div>` + losers.map(s=>row(s, false)).join(''); }
+  if(!winners.length && !losers.length) html = `<div class="sym-leader-empty">${fa?'داده نیست':'No data'}</div>`;
+  container.innerHTML = html;
 }
 
 function renderIntervalCompare(closed){
-    const container=$('intervalCompare'); if(!container) return;
-    const fa=currentLang==='fa';
-    const done=closed.filter(s=>s.result==='win'||s.result==='loss');
-    if(done.length<10){ container.innerHTML=`<div class="ic-empty">${fa?'حداقل ۱۰ معامله لازم است':'Need 10+ trades'}</div>`; return; }
-    const all=calcStats(done);
-    const last30=done.slice(-Math.min(30,done.length));
-    const r30=calcStats(last30);
-    function row(label,av,rv,fmt,higher){ let cls='',arrow=''; if(typeof av==='number'&&typeof rv==='number'&&av!==0){ const ratio=rv/Math.abs(av); if(higher){ if(ratio>1.10){cls='pos';arrow=' ▲';} else if(ratio<0.90){cls='neg';arrow=' ▼';} } else { if(ratio<0.90){cls='pos';arrow=' ▲';} else if(ratio>1.10){cls='neg';arrow=' ▼';} } } return `<div class="ic-row"><span>${label}</span><span class="ic-all">${fmt(av)}</span><span class="ic-rec ${cls}">${fmt(rv)}<span class="ic-arrow">${arrow}</span></span></div>`; }
-    container.innerHTML=`
-        <div class="ic-header"><span>${fa?'متریک':'Metric'}</span><span>${fa?'همه':'All'}</span><span>${fa?'۳۰ اخیر':'Last 30'}</span></div>
-        ${row(fa?'Net R':'Net R',all.netR,r30.netR,v=>(v>=0?'+':'')+v.toFixed(2)+'R',true)}
-        ${row(fa?'وین‌ریت':'Win%',all.winRate,r30.winRate,v=>v.toFixed(1)+'%',true)}
-        ${row('Profit Factor',all.pf,r30.pf,v=>v>=99?'∞':v.toFixed(2),true)}
-        ${row(fa?'Expectancy':'Exp',all.expectancy,r30.expectancy,v=>(v>=0?'+':'')+v.toFixed(2)+'R',true)}
-        ${row(fa?'حداکثر افت':'Max DD',Math.abs(all.maxDD),Math.abs(r30.maxDD),v=>'-'+v.toFixed(2)+'R',false)}
-        ${row(fa?'باخت پشت‌سرهم':'MaxCL',all.maxConsLoss,r30.maxConsLoss,v=>String(v),false)}
-    `;
+  const container = $('intervalCompare'); if(!container) return;
+  const fa = currentLang==='fa';
+  const done = closed.filter(s=>s.result==='win'||s.result==='loss');
+  if(done.length<10){
+    container.innerHTML = `<div class="ic-empty">${fa?'حداقل ۱۰ معامله لازم است':'Need 10+ trades'}</div>`;
+    return;
+  }
+  const all = calcStats(done);
+  const last30 = done.slice(-Math.min(30, done.length));
+  const r30 = calcStats(last30);
+  function row(label, av, rv, fmt, higher){
+    let cls='', arrow='';
+    if(typeof av==='number' && typeof rv==='number' && av!==0){
+      const ratio = rv/Math.abs(av);
+      if(higher){
+        if(ratio>1.10){ cls='pos'; arrow=' ▲'; }
+        else if(ratio<0.90){ cls='neg'; arrow=' ▼'; }
+      } else {
+        if(ratio<0.90){ cls='pos'; arrow=' ▲'; }
+        else if(ratio>1.10){ cls='neg'; arrow=' ▼'; }
+      }
+    }
+    return `<div class="ic-row"><span>${label}</span><span class="ic-all">${fmt(av)}</span><span class="ic-rec ${cls}">${fmt(rv)}<span class="ic-arrow">${arrow}</span></span></div>`;
+  }
+  container.innerHTML = `
+    <div class="ic-header"><span>${fa?'متریک':'Metric'}</span><span>${fa?'همه':'All'}</span><span>${fa?'۳۰ اخیر':'Last 30'}</span></div>
+    ${row(fa?'Net R':'Net R', all.netR, r30.netR, v=>(v>=0?'+':'')+v.toFixed(2)+'R', true)}
+    ${row(fa?'وین‌ریت':'Win%', all.winRate, r30.winRate, v=>v.toFixed(1)+'%', true)}
+    ${row('Profit Factor', all.pf, r30.pf, v=>v>=99?'∞':v.toFixed(2), true)}
+    ${row(fa?'Expectancy':'Exp', all.expectancy, r30.expectancy, v=>(v>=0?'+':'')+v.toFixed(2)+'R', true)}
+    ${row(fa?'حداکثر افت':'Max DD', Math.abs(all.maxDD), Math.abs(r30.maxDD), v=>'-'+v.toFixed(2)+'R', false)}
+    ${row(fa?'باخت پشت‌سرهم':'MaxCL', all.maxConsLoss, r30.maxConsLoss, v=>String(v), false)}
+  `;
 }
 
 function exportSignalsCSV(closed){
-    const fa=currentLang==='fa';
-    const rows=[['Symbol','Side','Mode','Entry','Exit','Result','R','OpenTime','CloseTime']];
-    closed.forEach(s => { if(s.result!=='win'&&s.result!=='loss') return; rows.push([s.id||'', s.side||'', s.mode==='range'?'Range':'Trend', s.entry||'', s.exit||'', s.result, s.R!=null?s.R.toFixed(2):'', new Date((s.time||0)*1000).toISOString(), s.closeTime?new Date(s.closeTime*1000).toISOString():'']); });
-    if(rows.length===1){ alert(fa?'سیگنالی نیست':'No signals'); return; }
-    const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
-    const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`signals-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+  const fa = currentLang==='fa';
+  const rows = [['Symbol','Side','Mode','Entry','Exit','Result','R','OpenTime','CloseTime']];
+  closed.forEach(s => {
+    if(s.result!=='win' && s.result!=='loss') return;
+    rows.push([s.id||'', s.side||'', s.mode==='range'?'Range':'Trend', s.entry||'', s.exit||'', s.result, s.R!=null?s.R.toFixed(2):'', new Date((s.time||0)*1000).toISOString(), s.closeTime?new Date(s.closeTime*1000).toISOString():'']);
+  });
+  if(rows.length===1){ alert(fa?'سیگنالی نیست':'No signals'); return; }
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `signals-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
-function exportPdf(){ const modal=$('histModal'); if(modal&&modal.style.display==='none'){ modal.style.display='block'; updateHistoryModalContent(); setTimeout(()=>window.print(),500); } else { setTimeout(()=>window.print(),100); } }
-window.exportPdf=exportPdf;
+function exportPdf(){
+  const modal = $('histModal');
+  if(modal && modal.style.display==='none'){
+    modal.style.display='block';
+    updateHistoryModalContent();
+    setTimeout(()=>window.print(), 500);
+  } else {
+    setTimeout(()=>window.print(), 100);
+  }
+}
+window.exportPdf = exportPdf;
 
 function getPresets(){ try { return JSON.parse(LS('bs_presets')||'{}'); } catch(e){ return {}; } }
-function savePresetPrompt(){ const fa=currentLang==='fa'; const n=prompt(fa?'نام:':'Name:'); if(!n||!n.trim())return; const p=getPresets(); p[n.trim()]={mode:currentMode,cond:{...COND},rsiL:parseInt($("rsiL")?.value)||40,rsiS:parseInt($("rsiS")?.value)||60,h1s:$("h1s")?.checked||false,savedAt:Date.now()}; LS('bs_presets',JSON.stringify(p)); alert(fa?'✓ ذخیره شد':'✓ Saved'); renderPresetsPanel(); if($('presetComparePanel')&&$('presetComparePanel').style.display==='block')renderPresetCompare(); }
-function applyPreset(n){ const p=getPresets()[n]; if(!p)return; Object.assign(COND,p.cond); if($("rsiL"))$("rsiL").value=p.rsiL; if($("rsiS"))$("rsiS").value=p.rsiS; if($("h1s"))$("h1s").checked=p.h1s; LS('bs_cond',JSON.stringify(COND)); setMode(p.mode||'pattern'); renderCondChips(); if(LAST)renderList(); alert(currentLang==='fa'?'✓ اعمال شد':'✓ Applied'); }
-function deletePreset(n){ if(!confirm((currentLang==='fa'?'حذف ':'Delete ')+n+'?'))return; const p=getPresets(); delete p[n]; LS('bs_presets',JSON.stringify(p)); renderPresetsPanel(); if($('presetComparePanel')&&$('presetComparePanel').style.display==='block')renderPresetCompare(); }
-window.applyPreset=applyPreset; window.deletePreset=deletePreset;
-function renderPresetsPanel(){ const panel=$('presetsPanel'); if(!panel) return; const fa=currentLang==='fa'; const presets=getPresets(); const names=Object.keys(presets); const currRsiL=parseInt($("rsiL")?.value)||40; const currRsiS=parseInt($("rsiS")?.value)||60; const summary=`<b>${fa?'فعال':'Active'}</b>: ${currentMode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend')} | RSI: ${currRsiL}/${currRsiS}`; if(!names.length) panel.innerHTML=`<div class="preset-current">${summary}</div><div class="preset-empty">${fa?'تنظیماتی ذخیره نشده':'No presets yet'}</div>`; else panel.innerHTML=`<div class="preset-current">${summary}</div>`+names.map(n=>{ const p=presets[n]; const m=p.mode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend'); const isCur=p.mode===currentMode&&p.rsiL===currRsiL&&p.rsiS===currRsiS; return `<div class="preset-item ${isCur?'is-current':''}"><div><div class="pname">${isCur?'✓ ':''}${n}</div><div class="pmeta">${m} · RSI: ${p.rsiL}/${p.rsiS}</div></div><div class="pbtns"><button class="papply" onclick="window.applyPreset('${n.replace(/'/g,"\\'")}')">${fa?'اعمال':'Apply'}</button><button class="pdelete" onclick="window.deletePreset('${n.replace(/'/g,"\\'")}')">🗑</button></div></div>`; }).join(''); panel.classList.add('on'); }
-function renderPresetCompare(){ const container=$('presetCompareTable'); if(!container) return; const fa=currentLang==='fa'; const presets=getPresets(); const names=Object.keys(presets); if(!names.length){ container.innerHTML=`<div class="preset-empty">${fa?'تنظیماتی ذخیره نشده':'No presets'}</div>`; return; } const currRsiL=parseInt($('rsiL')?.value)||40; const currRsiS=parseInt($('rsiS')?.value)||60; const currH1=$('h1s')?.checked||false; const rows=names.map(n=>{ const p=presets[n]; const isCur=p.mode===currentMode&&p.rsiL===currRsiL&&p.rsiS===currRsiS&&p.h1s===currH1; const modeLbl=p.mode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend'); return `<tr class="${isCur?'is-current':''}"><td>${isCur?'✓ ':''}${n}</td><td>${modeLbl}</td><td>${p.rsiL}/${p.rsiS}</td><td>${p.h1s?'✓':'—'}</td><td style="text-align:center;"><button class="p-apply-btn" onclick="window.applyPreset('${n.replace(/'/g,"\\'")}')">${fa?'اعمال':'Apply'}</button></td></tr>`; }).join(''); container.innerHTML=`<table><thead><tr><th>${fa?'نام':'Name'}</th><th>${fa?'حالت':'Mode'}</th><th>RSI</th><th>H1</th><th></th></tr></thead><tbody>${rows}</tbody></table>`; }
+function savePresetPrompt(){
+  const fa = currentLang==='fa';
+  const n = prompt(fa?'نام:':'Name:');
+  if(!n || !n.trim()) return;
+  const p = getPresets();
+  p[n.trim()] = {mode:currentMode, cond:{...COND}, rsiL:parseInt($("rsiL")?.value)||40, rsiS:parseInt($("rsiS")?.value)||60, h1s:$("h1s")?.checked||false, savedAt:Date.now()};
+  LS('bs_presets', JSON.stringify(p));
+  alert(fa?'✓ ذخیره شد':'✓ Saved');
+  renderPresetsPanel();
+  if($('presetComparePanel') && $('presetComparePanel').style.display==='block') renderPresetCompare();
+}
+function applyPreset(n){
+  const p = getPresets()[n];
+  if(!p) return;
+  Object.assign(COND, p.cond);
+  if($("rsiL")) $("rsiL").value = p.rsiL;
+  if($("rsiS")) $("rsiS").value = p.rsiS;
+  if($("h1s")) $("h1s").checked = p.h1s;
+  LS('bs_cond', JSON.stringify(COND));
+  setMode(p.mode||'pattern');
+  renderCondChips();
+  if(LAST) renderList();
+  alert(currentLang==='fa'?'✓ اعمال شد':'✓ Applied');
+}
+function deletePreset(n){
+  if(!confirm((currentLang==='fa'?'حذف ':'Delete ')+n+'?')) return;
+  const p = getPresets();
+  delete p[n];
+  LS('bs_presets', JSON.stringify(p));
+  renderPresetsPanel();
+  if($('presetComparePanel') && $('presetComparePanel').style.display==='block') renderPresetCompare();
+}
+window.applyPreset = applyPreset;
+window.deletePreset = deletePreset;
+
+function renderPresetsPanel(){
+  const panel = $('presetsPanel'); if(!panel) return;
+  const fa = currentLang==='fa';
+  const presets = getPresets();
+  const names = Object.keys(presets);
+  const currRsiL = parseInt($("rsiL")?.value)||40;
+  const currRsiS = parseInt($("rsiS")?.value)||60;
+  const summary = `<b>${fa?'فعال':'Active'}</b>: ${currentMode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend')} | RSI: ${currRsiL}/${currRsiS}`;
+  if(!names.length){
+    panel.innerHTML = `<div class="preset-current">${summary}</div><div class="preset-empty">${fa?'تنظیماتی ذخیره نشده':'No presets yet'}</div>`;
+  } else {
+    panel.innerHTML = `<div class="preset-current">${summary}</div>` + names.map(n => {
+      const p = presets[n];
+      const m = p.mode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend');
+      const isCur = p.mode===currentMode && p.rsiL===currRsiL && p.rsiS===currRsiS;
+      return `<div class="preset-item ${isCur?'is-current':''}"><div><div class="pname">${isCur?'✓ ':''}${n}</div><div class="pmeta">${m} · RSI: ${p.rsiL}/${p.rsiS}</div></div><div class="pbtns"><button class="papply" onclick="window.applyPreset('${n.replace(/'/g,"\\'")}')">${fa?'اعمال':'Apply'}</button><button class="pdelete" onclick="window.deletePreset('${n.replace(/'/g,"\\'")}')">🗑</button></div></div>`;
+    }).join('');
+  }
+  panel.classList.add('on');
+}
+function renderPresetCompare(){
+  const container = $('presetCompareTable'); if(!container) return;
+  const fa = currentLang==='fa';
+  const presets = getPresets();
+  const names = Object.keys(presets);
+  if(!names.length){
+    container.innerHTML = `<div class="preset-empty">${fa?'تنظیماتی ذخیره نشده':'No presets'}</div>`;
+    return;
+  }
+  const currRsiL = parseInt($('rsiL')?.value)||40;
+  const currRsiS = parseInt($('rsiS')?.value)||60;
+  const currH1 = $('h1s')?.checked||false;
+  const rows = names.map(n => {
+    const p = presets[n];
+    const isCur = p.mode===currentMode && p.rsiL===currRsiL && p.rsiS===currRsiS && p.h1s===currH1;
+    const modeLbl = p.mode==='range'?(fa?'رنج':'Range'):(fa?'روند':'Trend');
+    return `<tr class="${isCur?'is-current':''}"><td>${isCur?'✓ ':''}${n}</td><td>${modeLbl}</td><td>${p.rsiL}/${p.rsiS}</td><td>${p.h1s?'✓':'—'}</td><td style="text-align:center;"><button class="p-apply-btn" onclick="window.applyPreset('${n.replace(/'/g,"\\'")}')">${fa?'اعمال':'Apply'}</button></td></tr>`;
+  }).join('');
+  container.innerHTML = `<table><thead><tr><th>${fa?'نام':'Name'}</th><th>${fa?'حالت':'Mode'}</th><th>RSI</th><th>H1</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
 function fillAdvancedStats(closed){
-    const fa=currentLang==='fa';
-    const done=closed.filter(s=>s.result==='win'||s.result==='loss');
-    const trend=calcStats(done.filter(s=>s.mode!=='range'));
-    const range=calcStats(done.filter(s=>s.mode==='range'));
-    const all=calcStats(done);
-    const bhVals=[]; done.forEach(s=>{ const r=calcBuyHoldR(s); if(r!==null) bhVals.push(r); });
-    let bhSum=0,bhPk=0,bhDD=0; bhVals.forEach(v=>{ bhSum+=v; if(bhSum>bhPk)bhPk=bhSum; if(bhSum-bhPk<bhDD)bhDD=bhSum-bhPk; });
-    const bhSt={count:bhVals.length, netR:bhSum, winRate:bhVals.length?bhVals.filter(v=>v>0).length/bhVals.length*100:0, avgR:bhVals.length?bhSum/bhVals.length:0, maxDD:bhDD};
-    function grid(id,st){ const el=$(id); if(!el) return; if(st.count===0){ el.innerHTML=`<span style="grid-column:1/-1;color:#64748b;text-align:center;padding:6px;font-size:11.5px">${fa?'داده نیست':'No data'}</span>`; return; } const pf=st.pf>=99?'∞':st.pf.toFixed(2); el.innerHTML=`<span>تعداد</span><b>${st.count}</b><span>Net R</span><b class="${st.netR>=0?'pos':'neg'}">${(st.netR>=0?'+':'')+st.netR.toFixed(2)}</b><span>Win%</span><b>${st.winRate.toFixed(1)}</b><span>PF</span><b class="${st.pf>=1?'pos':'neg'}">${pf}</b><span>Exp.</span><b class="${st.expectancy>=0?'pos':'neg'}">${(st.expectancy>=0?'+':'')+st.expectancy.toFixed(2)}</b><span>Avg W</span><b class="pos">+${st.avgWin.toFixed(2)}</b><span>Avg L</span><b class="neg">-${st.avgLoss.toFixed(2)}</b><span>Max DD</span><b class="neg">${st.maxDD.toFixed(2)}</b><span>Max CL</span><b class="${st.maxConsLoss>3?'neg':''}">${st.maxConsLoss}</b><span>Recov.</span><b class="${st.recovery>=1?'pos':'neg'}">${st.recovery.toFixed(2)}</b>`; }
-    grid('cmpTrendGrid',trend); grid('cmpRangeGrid',range);
-    const bhEl=$('cmpBHGrid'); if(bhEl){ if(bhSt.count===0) bhEl.innerHTML=`<span style="grid-column:1/-1;color:#64748b;text-align:center;padding:6px;font-size:11.5px">${fa?'داده نیست':'No data'}</span>`; else bhEl.innerHTML=`<span>تعداد</span><b>${bhSt.count}</b><span>Net R</span><b class="${bhSt.netR>=0?'pos':'neg'}">${(bhSt.netR>=0?'+':'')+bhSt.netR.toFixed(2)}</b><span>Win%</span><b>${bhSt.winRate.toFixed(1)}</b><span>Avg R</span><b class="${bhSt.avgR>=0?'pos':'neg'}">${(bhSt.avgR>=0?'+':'')+bhSt.avgR.toFixed(2)}</b><span>Max DD</span><b class="neg">${bhSt.maxDD.toFixed(2)}</b>`; }
-    const pfEl=$('ovPF'); if(pfEl){ if(all.count===0){ pfEl.textContent='—'; pfEl.className='val mu'; } else { pfEl.textContent=all.pf>=99?'∞':all.pf.toFixed(2); pfEl.className='val '+(all.pf>=1?'pos':'neg'); } }
-    const exEl=$('ovExpectancy'); if(exEl){ if(all.count===0){ exEl.textContent='—'; exEl.className='val mu'; } else { exEl.textContent=(all.expectancy>=0?'+':'')+all.expectancy.toFixed(2)+'R'; exEl.className='val '+(all.expectancy>=0?'pos':'neg'); } }
-    const alEl=$('ovAlpha'); if(alEl){ if(all.count===0||bhSt.count===0){ alEl.textContent='—'; alEl.className='val mu'; } else { const a=all.netR-bhSt.netR; alEl.textContent=(a>=0?'+':'')+a.toFixed(2)+'R'; alEl.className='val '+(a>=0?'pos':'neg'); } }
-    const soEl=$('ovSortino'); if(soEl){ if(all.count<2){ soEl.textContent='—'; soEl.className='val mu'; } else { const vals=done.map(s=>s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); const mean=vals.reduce((a,b)=>a+b,0)/vals.length; const neg=vals.filter(v=>v<0); let dd=0; if(neg.length){ dd=Math.sqrt(neg.reduce((a,v)=>a+v*v,0)/neg.length); } const so=dd>0?mean/dd:(mean>0?99:0); soEl.textContent=so.toFixed(2); soEl.className='val '+(so>=0?'pos':'neg'); } }
-    const mlEl=$('ovMaxLoss'); if(mlEl){ if(all.count===0){ mlEl.textContent='—'; mlEl.className='val mu'; } else { mlEl.textContent=all.maxConsLoss; mlEl.className='val '+(all.maxConsLoss>4?'neg':(all.maxConsLoss>=2?'neu':'pos')); } }
-    const rcEl=$('ovRecovery'); if(rcEl){ if(all.maxDD>=0){ rcEl.textContent='—'; rcEl.className='val mu'; } else { rcEl.textContent=all.recovery.toFixed(2); rcEl.className='val '+(all.recovery>=1?'pos':'neg'); } }
-    const wN=$('winnerName'), wV=$('winnerVal'); if(wN&&wV){ const c=[{name:fa?'روند':'Trend',r:trend.netR,count:trend.count,cls:''},{name:fa?'رنج':'Range',r:range.netR,count:range.count,cls:''},{name:'B&H',r:bhSt.netR,count:bhSt.count,cls:'bh'}].filter(x=>x.count>0); if(!c.length){ wN.textContent='—'; wN.className='w-name none'; wV.textContent='— R'; wV.className='w-val neu'; } else { c.sort((a,b)=>b.r-a.r); const w=c[0]; wN.textContent=w.name; wN.className='w-name '+(w.cls||''); wV.textContent=(w.r>=0?'+':'')+w.r.toFixed(2)+'R'; wV.className='w-val '+(w.r>=0?'':'neg'); } }
-    if($('bhTotalR')){ if(bhSt.count===0){ $('bhTotalR').textContent='— R'; $('bhTotalR').style.color='#94a3b8'; } else { $('bhTotalR').textContent=(bhSt.netR>=0?'+':'')+bhSt.netR.toFixed(2)+'R'; $('bhTotalR').style.color=bhSt.netR>=0?'#a855f7':'#ef4444'; } }
-    if($('bhCompare')){ if(bhSt.count===0||all.count===0){ $('bhCompare').textContent='—'; $('bhCompare').style.color='#94a3b8'; } else { const d=bhSt.netR-all.netR; const s=d>=0?'+':''; const cls=d>=0?'bh-pos':'bh-neg'; const lbl=d>=0?(fa?'B&H بهتر':'B&H better'):(fa?'استراتژی بهتر':'Strategy better'); $('bhCompare').innerHTML=`<span class="${cls}">${s}${d.toFixed(2)}R</span> (${lbl})`; } }
+  const fa = currentLang==='fa';
+  const done = closed.filter(s=>s.result==='win'||s.result==='loss');
+  const trend = calcStats(done.filter(s=>s.mode!=='range'));
+  const range = calcStats(done.filter(s=>s.mode==='range'));
+  const all = calcStats(done);
+  const bhVals = [];
+  done.forEach(s => { const r=calcBuyHoldR(s); if(r!==null) bhVals.push(r); });
+  let bhSum=0, bhPk=0, bhDD=0;
+  bhVals.forEach(v => { bhSum+=v; if(bhSum>bhPk)bhPk=bhSum; if(bhSum-bhPk<bhDD)bhDD=bhSum-bhPk; });
+  const bhSt = {count:bhVals.length, netR:bhSum, winRate:bhVals.length?bhVals.filter(v=>v>0).length/bhVals.length*100:0, avgR:bhVals.length?bhSum/bhVals.length:0, maxDD:bhDD};
+
+  function grid(id, st){
+    const el = $(id); if(!el) return;
+    if(st.count===0){
+      el.innerHTML = `<span style="grid-column:1/-1;color:#64748b;text-align:center;padding:6px;font-size:11.5px">${fa?'داده نیست':'No data'}</span>`;
+      return;
+    }
+    const pf = st.pf>=99?'∞':st.pf.toFixed(2);
+    el.innerHTML = `<span>تعداد</span><b>${st.count}</b><span>Net R</span><b class="${st.netR>=0?'pos':'neg'}">${(st.netR>=0?'+':'')+st.netR.toFixed(2)}</b><span>Win%</span><b>${st.winRate.toFixed(1)}</b><span>PF</span><b class="${st.pf>=1?'pos':'neg'}">${pf}</b><span>Exp.</span><b class="${st.expectancy>=0?'pos':'neg'}">${(st.expectancy>=0?'+':'')+st.expectancy.toFixed(2)}</b><span>Avg W</span><b class="pos">+${st.avgWin.toFixed(2)}</b><span>Avg L</span><b class="neg">-${st.avgLoss.toFixed(2)}</b><span>Max DD</span><b class="neg">${st.maxDD.toFixed(2)}</b><span>Max CL</span><b class="${st.maxConsLoss>3?'neg':''}">${st.maxConsLoss}</b><span>Recov.</span><b class="${st.recovery>=1?'pos':'neg'}">${st.recovery.toFixed(2)}</b>`;
+  }
+  grid('cmpTrendGrid', trend);
+  grid('cmpRangeGrid', range);
+  const bhEl = $('cmpBHGrid');
+  if(bhEl){
+    if(bhSt.count===0){
+      bhEl.innerHTML = `<span style="grid-column:1/-1;color:#64748b;text-align:center;padding:6px;font-size:11.5px">${fa?'داده نیست':'No data'}</span>`;
+    } else {
+      bhEl.innerHTML = `<span>تعداد</span><b>${bhSt.count}</b><span>Net R</span><b class="${bhSt.netR>=0?'pos':'neg'}">${(bhSt.netR>=0?'+':'')+bhSt.netR.toFixed(2)}</b><span>Win%</span><b>${bhSt.winRate.toFixed(1)}</b><span>Avg R</span><b class="${bhSt.avgR>=0?'pos':'neg'}">${(bhSt.avgR>=0?'+':'')+bhSt.avgR.toFixed(2)}</b><span>Max DD</span><b class="neg">${bhSt.maxDD.toFixed(2)}</b>`;
+    }
+  }
+
+  const pfEl = $('ovPF');
+  if(pfEl){ if(all.count===0){ pfEl.textContent='—'; pfEl.className='val mu'; } else { pfEl.textContent = all.pf>=99?'∞':all.pf.toFixed(2); pfEl.className='val '+(all.pf>=1?'pos':'neg'); } }
+  const exEl = $('ovExpectancy');
+  if(exEl){ if(all.count===0){ exEl.textContent='—'; exEl.className='val mu'; } else { exEl.textContent = (all.expectancy>=0?'+':'')+all.expectancy.toFixed(2)+'R'; exEl.className='val '+(all.expectancy>=0?'pos':'neg'); } }
+  const alEl = $('ovAlpha');
+  if(alEl){ if(all.count===0 || bhSt.count===0){ alEl.textContent='—'; alEl.className='val mu'; } else { const a = all.netR - bhSt.netR; alEl.textContent = (a>=0?'+':'')+a.toFixed(2)+'R'; alEl.className='val '+(a>=0?'pos':'neg'); } }
+  const soEl = $('ovSortino');
+  if(soEl){ if(all.count<2){ soEl.textContent='—'; soEl.className='val mu'; } else { const vals = done.map(s=>s.R!=null?s.R:(s.result==='win'?tpMultiplier:-slMultiplier)); const mean = vals.reduce((a,b)=>a+b,0)/vals.length; const neg = vals.filter(v=>v<0); let dd=0; if(neg.length){ dd = Math.sqrt(neg.reduce((a,v)=>a+v*v,0)/neg.length); } const so = dd>0?mean/dd:(mean>0?99:0); soEl.textContent = so.toFixed(2); soEl.className='val '+(so>=0?'pos':'neg'); } }
+  const mlEl = $('ovMaxLoss');
+  if(mlEl){ if(all.count===0){ mlEl.textContent='—'; mlEl.className='val mu'; } else { mlEl.textContent = all.maxConsLoss; mlEl.className='val '+(all.maxConsLoss>4?'neg':(all.maxConsLoss>=2?'neu':'pos')); } }
+  const rcEl = $('ovRecovery');
+  if(rcEl){ if(all.maxDD>=0){ rcEl.textContent='—'; rcEl.className='val mu'; } else { rcEl.textContent = all.recovery.toFixed(2); rcEl.className='val '+(all.recovery>=1?'pos':'neg'); } }
+
+  const wN = $('winnerName'), wV = $('winnerVal');
+  if(wN && wV){
+    const c = [
+      {name:fa?'روند':'Trend', r:trend.netR, count:trend.count, cls:''},
+      {name:fa?'رنج':'Range', r:range.netR, count:range.count, cls:''},
+      {name:'B&H', r:bhSt.netR, count:bhSt.count, cls:'bh'}
+    ].filter(x=>x.count>0);
+    if(!c.length){ wN.textContent='—'; wN.className='w-name none'; wV.textContent='— R'; wV.className='w-val neu'; }
+    else {
+      c.sort((a,b)=>b.r-a.r);
+      const w = c[0];
+      wN.textContent = w.name;
+      wN.className = 'w-name '+(w.cls||'');
+      wV.textContent = (w.r>=0?'+':'')+w.r.toFixed(2)+'R';
+      wV.className = 'w-val '+(w.r>=0?'':'neg');
+    }
+  }
+  if($('bhTotalR')){
+    if(bhSt.count===0){ $('bhTotalR').textContent='— R'; $('bhTotalR').style.color='#94a3b8'; }
+    else { $('bhTotalR').textContent = (bhSt.netR>=0?'+':'')+bhSt.netR.toFixed(2)+'R'; $('bhTotalR').style.color = bhSt.netR>=0?'#a855f7':'#ef4444'; }
+  }
+  if($('bhCompare')){
+    if(bhSt.count===0 || all.count===0){ $('bhCompare').textContent='—'; $('bhCompare').style.color='#94a3b8'; }
+    else {
+      const d = bhSt.netR - all.netR;
+      const s = d>=0?'+':'';
+      const cls = d>=0?'bh-pos':'bh-neg';
+      const lbl = d>=0?(fa?'B&H بهتر':'B&H better'):(fa?'استراتژی بهتر':'Strategy better');
+      $('bhCompare').innerHTML = `<span class="${cls}">${s}${d.toFixed(2)}R</span> (${lbl})`;
+    }
+  }
 }
 
 function updateHistoryModalContent(){
-    try {
-        const loc=loadLocalHist();
-        const now=Date.now()/1000;
-        let filtered=loc;
-        if(currentTimeFilter==='today'){ const ts=new Date(); ts.setHours(0,0,0,0); filtered=loc.filter(x=>x.time>=ts.getTime()/1000); }
-        else if(currentTimeFilter==='week') filtered=loc.filter(x=>x.time>=now-7*86400);
-        else if(currentTimeFilter==='month') filtered=loc.filter(x=>x.time>=now-30*86400);
-        else if(currentTimeFilter==='quarter') filtered=loc.filter(x=>x.time>=now-90*86400);
-        else if(currentTimeFilter.startsWith('custom:')){ const days=parseInt(currentTimeFilter.split(':')[1],10)||14; filtered=loc.filter(x=>x.time>=now-days*86400); }
-        if(currentFilterSymbol) filtered=filtered.filter(x=>x.id===currentFilterSymbol);
+  try {
+    const loc = loadLocalHist();
+    const now = Date.now()/1000;
+    let filtered = loc;
+    if(currentTimeFilter==='today'){ const ts=new Date(); ts.setHours(0,0,0,0); filtered = loc.filter(x=>x.time>=ts.getTime()/1000); }
+    else if(currentTimeFilter==='week') filtered = loc.filter(x=>x.time>=now-7*86400);
+    else if(currentTimeFilter==='month') filtered = loc.filter(x=>x.time>=now-30*86400);
+    else if(currentTimeFilter==='quarter') filtered = loc.filter(x=>x.time>=now-90*86400);
+    else if(currentTimeFilter.startsWith('custom:')){ const days = parseInt(currentTimeFilter.split(':')[1],10)||14; filtered = loc.filter(x=>x.time>=now-days*86400); }
+    if(currentFilterSymbol) filtered = filtered.filter(x=>x.id===currentFilterSymbol);
 
-        const openSigs = Object.keys(ACTIVE_SIGS).map(k=>{ const a=ACTIVE_SIGS[k]; return {id:k, side:a.side, entry:a.entry, time:a.time, mode:a.mode, result:'open'}; });
-        const closed = filtered.map(estimateOutcome);
+    const openSigs = Object.keys(ACTIVE_SIGS).map(k => {
+      const a = ACTIVE_SIGS[k];
+      return {id:k, side:a.side, entry:a.entry, time:a.time, mode:a.mode, result:'open'};
+    });
+    const closed = filtered.map(estimateOutcome);
 
-        if($('openCount')) $('openCount').textContent = openSigs.length;
-        if($('closedCount')) $('closedCount').textContent = closed.length;
+    if($('openCount')) $('openCount').textContent = openSigs.length;
+    if($('closedCount')) $('closedCount').textContent = closed.length;
 
-        const activeList = currentHistoryTab==='open'?openSigs:closed;
-        const cont = $('signalsContainer');
-        if(cont){
-            if(!activeList.length) cont.innerHTML=`<div style="text-align:center;color:#94a3b8;padding:20px;">${currentLang==='fa'?'سیگنالی نیست':'No signals'}</div>`;
-            else cont.innerHTML = activeList.map(s => {
-                const isL=s.side==='LONG'; const isW=s.result==='win', isL2=s.result==='loss';
-                const lbl = isW?'✅ Win':isL2?'❌ Loss':'⏳ Open';
-                const mLbl = s.mode==='range'?(currentLang==='fa'?'رنج':'Range'):(currentLang==='fa'?'روند':'Trend');
-                const rTxt = s.R!=null?(s.R>0?'+'+s.R.toFixed(2):s.R.toFixed(2))+'R':'-';
-                const rCls = s.R>0?'#22c55e':s.R<0?'#ef4444':'#94a3b8';
-                const timeStr = s.time?new Date(s.time*1000).toLocaleString(currentLang==='fa'?'fa-IR':'en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
-                return `<div style="background:var(--bg);border:1px solid ${isW?'rgba(34,197,94,0.3)':isL2?'rgba(239,68,68,0.3)':'var(--bd2)'};border-radius:8px;padding:10px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div><strong>${s.id}</strong> <span style="color:${isL?'#22c55e':'#ef4444'};font-weight:bold;">(${isL?'LONG':'SHORT'})</span> <span style="font-size:10px;background:var(--bd2);padding:1px 6px;border-radius:4px;color:var(--mu)">${mLbl}</span></div><div style="font-weight:700;color:${isW?'#22c55e':isL2?'#ef4444':'#94a3b8'}">${lbl}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;color:#94a3b8;"><span>📥 ورود: ${s.entry?.toFixed(5)||'-'}</span><span>📤 خروج: ${s.exit?.toFixed(5)||'-'}</span><span>📊 R: <b style="color:${rCls}">${rTxt}</b></span><span>🕒 ${timeStr}</span></div></div>`;
-            }).join('');
-        }
-        let w=0,l=0,net=0;
-        closed.forEach(s => { if(s.result==='win'){ w++; net+=(s.R!=null?s.R:tpMultiplier); } else if(s.result==='loss'){ l++; net+=(s.R!=null?s.R:-slMultiplier); } });
-        const tot=w+l; const wr=tot?Math.round(w/tot*100):0;
-        if($('totalNetPoints')){ $('totalNetPoints').textContent=(net>=0?'+':'')+net.toFixed(2)+'R'; $('totalNetPoints').style.color=net>=0?'#22c55e':'#ef4444'; }
-        if($('winLossCounts')) $('winLossCounts').textContent = `${w} / ${l}`;
-        if($('totalWinRate')) $('totalWinRate').textContent = `${wr}%`;
+    const activeList = currentHistoryTab==='open' ? openSigs : closed;
+    const cont = $('signalsContainer');
+    if(cont){
+      if(!activeList.length){
+        cont.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:20px;">${currentLang==='fa'?'سیگنالی نیست':'No signals'}</div>`;
+      } else {
+        cont.innerHTML = activeList.map(s => {
+          const isL = s.side==='LONG';
+          const isW = s.result==='win', isL2 = s.result==='loss';
+          const lbl = isW?'✅ Win':isL2?'❌ Loss':'⏳ Open';
+          const mLbl = s.mode==='range'?(currentLang==='fa'?'رنج':'Range'):(currentLang==='fa'?'روند':'Trend');
+          const rTxt = s.R!=null ? (s.R>0?'+'+s.R.toFixed(2):s.R.toFixed(2))+'R' : '-';
+          const rCls = s.R>0?'#22c55e':s.R<0?'#ef4444':'#94a3b8';
+          const timeStr = s.time ? new Date(s.time*1000).toLocaleString(currentLang==='fa'?'fa-IR':'en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-';
+          return `<div style="background:var(--bg);border:1px solid ${isW?'rgba(34,197,94,0.3)':isL2?'rgba(239,68,68,0.3)':'var(--bd2)'};border-radius:8px;padding:10px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div><strong>${s.id}</strong> <span style="color:${isL?'#22c55e':'#ef4444'};font-weight:bold;">(${isL?'LONG':'SHORT'})</span> <span style="font-size:10px;background:var(--bd2);padding:1px 6px;border-radius:4px;color:var(--mu)">${mLbl}</span></div><div style="font-weight:700;color:${isW?'#22c55e':isL2?'#ef4444':'#94a3b8'}">${lbl}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;color:#94a3b8;"><span>📥 ورود: ${s.entry?.toFixed(5)||'-'}</span><span>📤 خروج: ${s.exit?.toFixed(5)||'-'}</span><span>📊 R: <b style="color:${rCls}">${rTxt}</b></span><span>🕒 ${timeStr}</span></div></div>`;
+        }).join('');
+      }
+    }
 
-        renderStrategyCharts(closed);
-        renderMonthlyChart(closed);
-        renderAlphaChart(closed);
-        renderRDistribution(closed);
-        renderHourlyHeatmap(closed);
-        fillAdvancedStats(closed);
-        window._lastClosed = closed;
-        renderRollingMetrics(closed, 50);
-        renderSymbolLeaderboard(closed);
-        renderIntervalCompare(closed);
+    let w=0, l=0, net=0;
+    closed.forEach(s => {
+      if(s.result==='win'){ w++; net += (s.R!=null?s.R:tpMultiplier); }
+      else if(s.result==='loss'){ l++; net += (s.R!=null?s.R:-slMultiplier); }
+    });
+    const tot = w+l;
+    const wr = tot ? Math.round(w/tot*100) : 0;
+    if($('totalNetPoints')){ $('totalNetPoints').textContent = (net>=0?'+':'')+net.toFixed(2)+'R'; $('totalNetPoints').style.color = net>=0?'#22c55e':'#ef4444'; }
+    if($('winLossCounts')) $('winLossCounts').textContent = `${w} / ${l}`;
+    if($('totalWinRate')) $('totalWinRate').textContent = `${wr}%`;
 
-        if($('exportCsvBtn') && !$('exportCsvBtn')._wired){ $('exportCsvBtn')._wired=true; $('exportCsvBtn').onclick=()=>exportSignalsCSV(closed); }
-        if($('exportPdfBtn') && !$('exportPdfBtn')._wired){ $('exportPdfBtn')._wired=true; $('exportPdfBtn').onclick=exportPdf; }
-        if($('savePresetBtn') && !$('savePresetBtn')._wired){ $('savePresetBtn')._wired=true; $('savePresetBtn').onclick=savePresetPrompt; }
-        if($('togglePresetsBtn') && !$('togglePresetsBtn')._wired){ $('togglePresetsBtn')._wired=true; $('togglePresetsBtn').onclick=()=>{ const p=$('presetsPanel'); if(p){ if(p.classList.contains('on')) p.classList.remove('on'); else renderPresetsPanel(); } }; }
-        if($('comparePresetsBtn') && !$('comparePresetsBtn')._wired){ $('comparePresetsBtn')._wired=true; $('comparePresetsBtn').onclick=()=>{ const p=$('presetComparePanel'); if(p){ if(p.style.display==='block') p.style.display='none'; else { p.style.display='block'; renderPresetCompare(); } } }; }
+    renderStrategyCharts(closed);
+    renderMonthlyChart(closed);
+    renderAlphaChart(closed);
+    renderRDistribution(closed);
+    renderHourlyHeatmap(closed);
+    fillAdvancedStats(closed);
+    window._lastClosed = closed;
+    renderRollingMetrics(closed, 50);
+    renderSymbolLeaderboard(closed);
+    renderIntervalCompare(closed);
 
-        document.querySelectorAll('.roll-win-btn').forEach(btn => {
-            if(btn._wired) return; btn._wired=true;
-            btn.onclick = () => {
-                const win = parseInt(btn.dataset.win, 10);
-                document.querySelectorAll('.roll-win-btn').forEach(b=>{ b.classList.remove('active'); b.style.background='var(--bg)'; b.style.borderColor='var(--bd2)'; b.style.color='var(--mu)'; b.style.fontWeight='normal'; });
-                btn.classList.add('active'); btn.style.background='rgba(34,197,94,0.15)'; btn.style.borderColor='rgba(34,197,94,0.35)'; btn.style.color='#22c55e'; btn.style.fontWeight='700';
-                if(window._lastClosed) renderRollingMetrics(window._lastClosed, win);
-            };
+    if($('exportCsvBtn') && !$('exportCsvBtn')._wired){ $('exportCsvBtn')._wired=true; $('exportCsvBtn').onclick=()=>exportSignalsCSV(closed); }
+    if($('exportPdfBtn') && !$('exportPdfBtn')._wired){ $('exportPdfBtn')._wired=true; $('exportPdfBtn').onclick=exportPdf; }
+    if($('savePresetBtn') && !$('savePresetBtn')._wired){ $('savePresetBtn')._wired=true; $('savePresetBtn').onclick=savePresetPrompt; }
+    if($('togglePresetsBtn') && !$('togglePresetsBtn')._wired){ $('togglePresetsBtn')._wired=true; $('togglePresetsBtn').onclick=()=>{ const p=$('presetsPanel'); if(p){ if(p.classList.contains('on')) p.classList.remove('on'); else renderPresetsPanel(); } }; }
+    if($('comparePresetsBtn') && !$('comparePresetsBtn')._wired){ $('comparePresetsBtn')._wired=true; $('comparePresetsBtn').onclick=()=>{ const p=$('presetComparePanel'); if(p){ if(p.style.display==='block') p.style.display='none'; else { p.style.display='block'; renderPresetCompare(); } } }; }
+
+    document.querySelectorAll('.roll-win-btn').forEach(btn => {
+      if(btn._wired) return;
+      btn._wired = true;
+      btn.onclick = () => {
+        const win = parseInt(btn.dataset.win, 10);
+        document.querySelectorAll('.roll-win-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.background='var(--bg)'; b.style.borderColor='var(--bd2)'; b.style.color='var(--mu)'; b.style.fontWeight='normal';
         });
+        btn.classList.add('active');
+        btn.style.background='rgba(34,197,94,0.15)'; btn.style.borderColor='rgba(34,197,94,0.35)'; btn.style.color='#22c55e'; btn.style.fontWeight='700';
+        if(window._lastClosed) renderRollingMetrics(window._lastClosed, win);
+      };
+    });
 
-        const tpS=$('tpSlider'), slS=$('slSlider'), tpV=$('tpVal'), slV=$('slVal');
-        if(tpS && !tpS._wired){ tpS._wired=true; tpS.oninput=()=>{ tpMultiplier=parseFloat(tpS.value); if(tpV) tpV.textContent=tpMultiplier.toFixed(1)+'R'; updateHistoryModalContent(); }; }
-        if(slS && !slS._wired){ slS._wired=true; slS.oninput=()=>{ slMultiplier=parseFloat(slS.value); if(slV) slV.textContent=slMultiplier.toFixed(2)+'x'; updateHistoryModalContent(); }; }
-    } catch(e){ console.error('Modal:',e); }
+    const tpS = $('tpSlider'), slS = $('slSlider'), tpV = $('tpVal'), slV = $('slVal');
+    if(tpS && !tpS._wired){ tpS._wired=true; tpS.oninput=()=>{ tpMultiplier=parseFloat(tpS.value); if(tpV) tpV.textContent = tpMultiplier.toFixed(1)+'R'; updateHistoryModalContent(); }; }
+    if(slS && !slS._wired){ slS._wired=true; slS.oninput=()=>{ slMultiplier=parseFloat(slS.value); if(slV) slV.textContent = slMultiplier.toFixed(2)+'x'; updateHistoryModalContent(); }; }
+  } catch(e){ console.error('[BS] updateHistoryModalContent:', e); }
 }
 
-if($("showHist")) $("showHist").onclick = () => { UNREAD=0; LS("bs_unread",0); updateUnreadBadge(); if($("histModal")) $("histModal").style.display="block"; updateHistoryModalContent(); };
-if($("closeHist")) $("closeHist").onclick = () => { if($("histModal")) $("histModal").style.display="none"; };
+if($("showHist")) $("showHist").onclick = () => {
+  UNREAD = 0; LS("bs_unread", 0); updateUnreadBadge();
+  if($("histModal")) $("histModal").style.display = "block";
+  updateHistoryModalContent();
+};
+if($("closeHist")) $("closeHist").onclick = () => { if($("histModal")) $("histModal").style.display = "none"; };
 
-// ═══════════════════════════════════════════════════════════
-// 🔴 FIX #3 (بخش closed): پاک‌سازی ledger وقتی سیگنال می‌بندد
-// ═══════════════════════════════════════════════════════════
+// 🔴 closed-signal detector
 setInterval(() => {
-    const notifs = [];
-    Object.keys(ACTIVE_SIGS).forEach(id => {
-        const a = ACTIVE_SIGS[id];
-        if(!a || !D[id] || !D[id].a) return;
-        const sl = a.sl; if(!sl) return;
-        const risk = Math.abs(a.entry - sl); if(!risk) return;
-        const tp = a.side==='LONG' ? a.entry+2*risk : a.entry-2*risk;
-        for(const c of D[id].a){
-            if(c.time < (a.time||0)) continue;
-            if(a.side==='LONG'){
-                if(c.low <= sl){ notifs.push({id, result:'loss'}); break; }
-                if(c.high >= tp){ notifs.push({id, result:'win'}); break; }
-            } else {
-                if(c.high >= sl){ notifs.push({id, result:'loss'}); break; }
-                if(c.low <= tp){ notifs.push({id, result:'win'}); break; }
-            }
-        }
-    });
-    if(notifs.length){
-        notifs.forEach(n => {
-            delete ACTIVE_SIGS[n.id];
-            // ✅ پاک‌سازی ledger برای این نماد تا اعلان بعدی مجاز باشد
-            Object.keys(SIG_LEDGER).forEach(k => { if(k.startsWith(n.id + "|")) delete SIG_LEDGER[k]; });
-        });
-        saveActiveSigs();
-        LS(SIG_LEDGER_KEY, JSON.stringify(SIG_LEDGER));
-        try { beep(); } catch(e){}
-        const msg = notifs.map(n => `${n.id} → ${n.result==='win'?'✅ TP':'❌ SL'}`).join('\n');
-        alert((currentLang==='fa'?'🔔 بسته شد:\n\n':'🔔 Closed:\n\n') + msg);
-        updateDedupBadge();
+  const notifs = [];
+  Object.keys(ACTIVE_SIGS).forEach(id => {
+    const a = ACTIVE_SIGS[id];
+    if(!a || !D[id] || !D[id].a) return;
+    const sl = a.sl; if(!sl) return;
+    const risk = Math.abs(a.entry - sl); if(!risk) return;
+    const tp = a.side==='LONG' ? a.entry+2*risk : a.entry-2*risk;
+    for(const c of D[id].a){
+      if(c.time < (a.time||0)) continue;
+      if(a.side==='LONG'){
+        if(c.low <= sl){ notifs.push({id, result:'loss'}); break; }
+        if(c.high >= tp){ notifs.push({id, result:'win'}); break; }
+      } else {
+        if(c.high >= sl){ notifs.push({id, result:'loss'}); break; }
+        if(c.low <= tp){ notifs.push({id, result:'win'}); break; }
+      }
     }
+  });
+  if(notifs.length){
+    notifs.forEach(n => {
+      delete ACTIVE_SIGS[n.id];
+      Object.keys(SIG_LEDGER).forEach(k => { if(k.startsWith(n.id + "|")) delete SIG_LEDGER[k]; });
+    });
+    saveActiveSigs();
+    LS(SIG_LEDGER_KEY, JSON.stringify(SIG_LEDGER));
+    try { beep(); } catch(e){}
+    const msg = notifs.map(n => `${n.id} → ${n.result==='win'?'✅ TP':'❌ SL'}`).join('\n');
+    alert((currentLang==='fa'?'🔔 بسته شد:\n\n':'🔔 Closed:\n\n') + msg);
+    updateDedupBadge();
+  }
 }, 60000);
 
 if($("gs")) $("gs").onclick = () => { if($("set")) $("set").classList.toggle("on"); };
-if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang==="fa"?"en":"fa"; LS("bs_lang",currentLang); applyLanguage(); };
+if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang==="fa"?"en":"fa"; LS("bs_lang", currentLang); applyLanguage(); };
 
-const openRow = e => { const w=e.target.closest(".row"); if(w && D[w.dataset.id]){ document.body.style.overflow="hidden"; if($("ov")){ $("ov").style.display="block"; $("ov").scrollTop=0; } } };
+const openRow = e => {
+  const w = e.target.closest(".row");
+  if(w && D[w.dataset.id]){
+    document.body.style.overflow = "hidden";
+    if($("ov")){ $("ov").style.display="block"; $("ov").scrollTop=0; }
+  }
+};
 if($("list")) $("list").onclick = openRow;
 if($("cx")) $("cx").onclick = () => { document.body.style.overflow=""; if($("ov")) $("ov").style.display="none"; };
 
-try { applyLanguage(); } catch(e){}
+try { applyLanguage(); } catch(e){ console.warn('[BS] applyLanguage:', e); }
 </script>
 </body>
 </html>
