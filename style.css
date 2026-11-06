@@ -87,6 +87,7 @@ body {
     color: #fff;
 }
 
+/* استایل‌های کارت سیگنال */
 .signal-card {
     background-color: #1e293b;
     border: 1px solid #334155;
@@ -97,6 +98,7 @@ body {
 .signal-card.win { border-right: 5px solid #22c55e; }
 .signal-card.loss { border-right: 5px solid #ef4444; }
 .signal-card.open { border-right: 5px solid #3b82f6; }
+.signal-card.time { border-right: 5px solid #eab308; } 
 
 .signal-header {
     display: flex;
@@ -118,3 +120,9 @@ body {
     font-size: 13px;
     color: #cbd5e1;
 }
+
+/* رنگ‌بندی وضعیت‌ها */
+.text-win { color: #22c55e; font-weight: bold; }
+.text-loss { color: #ef4444; font-weight: bold; }
+.text-time { color: #eab308; font-weight: bold; }
+.text-open { color: #3b82f6; font-weight: bold; }
