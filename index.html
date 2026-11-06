@@ -2205,28 +2205,34 @@ window.__startAppFull = async function(){
       let finished = false;
       const finish = () => { if(finished) return; finished = true; resolve(); };
 
+      setTimeout(finish, 3000);
+
       try {
         if (window.speechSynthesis) {
            window.speechSynthesis.cancel(); 
+           if (window.speechSynthesis.paused) {
+               window.speechSynthesis.resume();
+           }
+           
            const u = new SpeechSynthesisUtterance(show);
            u.lang = currentLang === "fa" ? "fa-IR" : "en-US";
-           u.volume = 1.0; // حداکثر صدا
-           u.rate = 0.9;   // کمی آهسته‌تر برای وضوح بیشتر
+           u.volume = 1.0;
+           u.rate = 0.9; 
+           
            u.onend = finish;
            u.onerror = finish;
            
-           // پخش صدا
-           speechSynthesis.speak(u);
+           window.speechSynthesis.speak(u);
+
         } else {
-           setTimeout(finish, 1500); 
+           finish(); 
         }
       } catch(e) {
-        setTimeout(finish, 1500);
+        console.error(e);
+        finish();
       }
-
-      setTimeout(finish, 4000); 
   });
-  }
+}
 
   var failsafe = setTimeout(closeNow, 40000);
 
