@@ -163,6 +163,8 @@ button:focus-visible, select:focus-visible {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    min-width: 0; 
+    max-width: 100%;
 }
 .logo-row {
     display: flex;
@@ -174,6 +176,8 @@ button:focus-visible, select:focus-visible {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .logo-row i {
     flex: none;
