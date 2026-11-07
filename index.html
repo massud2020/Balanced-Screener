@@ -8,9 +8,259 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
-<!-- فراخوانی فایل استایل جداشده -->
-<link rel="stylesheet" href="./style.css?v=87">
+<!-- استایل داخلی (Inline) برای حل قطعی و همیشگی مشکل لود نشدن استایل‌ها روی موبایل -->
+<style>
+:root {
+  --bg: #0b0d11;
+  --card: #141820;
+  --card2: #1b212c;
+  --bd: #232830;
+  --bd2: #2d3442;
+  --tx: #e6e9ee;
+  --tx2: #a7aebb;
+  --mu: #7a828e;
+  --gb: #46c58c;
+  --gd: rgba(70, 197, 140, 0.15);
+  --rb: #ff5c5c;
+  --rd: rgba(255, 92, 92, 0.15);
+  --rad: 14px;
+}
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: system-ui, -apple-system, sans-serif;
+  padding-bottom: 80px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Splash Screen */
+#ai-splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+#ai-splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Header & Capsule Bar */
+header.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--bd);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--tx);
+}
+.brand-pill i { color: var(--gb); }
+.acts { display: flex; gap: 8px; align-items: center; }
+.ic {
+  background: var(--card2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  border-radius: 10px;
+  min-width: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ic svg { width: 18px; height: 18px; fill: currentColor; }
+.badge {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  background: var(--rb);
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 99px;
+  display: none;
+}
+.badge.on { display: block; }
+
+/* Control Panel & Chips */
+.ctl { padding: 12px; }
+.mode-switch {
+  display: flex;
+  gap: 6px;
+  background: var(--card);
+  padding: 4px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.mode-switch button {
+  flex: 1;
+  min-height: 38px;
+  background: transparent;
+  border: none;
+  color: var(--mu);
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.mode-switch button.on {
+  background: var(--card2);
+  color: var(--tx);
+  border: 1px solid var(--bd2);
+}
+
+.strategy-box {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: var(--rad);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.strategy-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13.5px;
+}
+.od {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--gb);
+  border-radius: 50%;
+  margin-inline-end: 6px;
+}
+
+.cond-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.c-chip {
+  background: var(--card2);
+  border: 1px solid var(--bd);
+  color: var(--mu);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.c-chip.on {
+  background: var(--gd);
+  border-color: var(--gb);
+  color: var(--gb);
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.nav a {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--bd);
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--tx);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Rows & Signals */
+#list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.row.sig {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 12px;
+}
+.row.sig.LONG { border-inline-start: 4px solid var(--gb); }
+.row.sig.SHORT { border-inline-start: 4px solid var(--rb); }
+
+.r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sym { font-weight: 700; font-size: 15px; color: var(--tx); }
+.b { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.b.LONG { background: var(--gd); color: var(--gb); }
+.b.SHORT { background: var(--rd); color: var(--rb); }
+
+.r-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: var(--bg);
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; }
+.r-grid b { color: var(--tx); font-size: 13px; }
+.r-grid .neg { color: var(--rb); }
+.r-grid .pos { color: var(--gb); }
+
+.r-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--mu);
+}
+
+/* Big Scan Button */
+.scan-container {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 99;
+}
+.big-scan {
+  width: 100%;
+  min-height: 48px;
+  background: var(--gb);
+  color: #0b0d11;
+  border: none;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(70, 197, 140, 0.3);
+}
+
+.set { display: none; padding: 12px; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); }
+.set h3 { font-size: 14px; color: var(--gb); margin: 12px 0 8px 0; }
+.set label { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bd); font-size: 13px; color: var(--tx2); }
+</style>
 
 <!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -127,7 +377,7 @@
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v87" style="font-size:12px;color:var(--mu);direction:ltr">v87</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span style="font-size:12px;color:var(--mu);direction:ltr">v87</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -296,7 +546,6 @@ const I18N = {
   }
 };
 
-
 const BACKEND_TO_KEY = {
     "الگوی ۳+۱": "fail_pattern", "استراتژی رنج": "fail_range", "هم‌راستایی EMA21/50": "fail_emaAlign",
     "قیمت روی EMA200": "fail_priceEma200", "شیب EMA": "fail_emaSlope", "تقاطع EMA21/50": "fail_emaCross",
@@ -337,7 +586,6 @@ function isSignalOpen(id, side){
   return true;
 }
 
-// مدیریت کول‌داون ضد تکرار ۳۰ دقیقه‌ای
 let COOLDOWNS = {};
 try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) { COOLDOWNS = {}; }
 function saveCooldowns() { try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e) {} }
@@ -356,7 +604,6 @@ function updateUnreadBadge() {
     }
 }
 
-// سخنگوی صوتی با اجبار به زبان انگلیسی
 async function speakAI(text) {
   if (!text || LS("bs_tts_off") === "1") return;
   const raw = String(text).trim();
@@ -429,7 +676,18 @@ window.__startAppFull = window.startApp = async function () {
 
 function renderCondChips() {
     try {
-        let labels = currentMode === "range" ? { rsi: T().c_rsi } : { trend: T().c_trend, emax: T().c_emax, nc: T().c_nc, pat: T().c_pat, m15: T().c_m15, h1: T().c_h1, rsi: T().c_rsi };
+        const t = T();
+        let labels = currentMode === "range" 
+            ? { rsi: t.c_rsi || "RSI" } 
+            : { 
+                trend: t.c_trend || "روند", 
+                emax: t.c_emax || "EMA", 
+                nc: t.c_nc || "کندل", 
+                pat: t.c_pat || "الگو", 
+                m15: t.c_m15 || "M15", 
+                h1: t.c_h1 || "H1", 
+                rsi: t.c_rsi || "RSI" 
+              };
         const el = $("condChips");
         if(el) el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
     } catch(e) {}
@@ -500,7 +758,6 @@ function evalRow(r) {
                 saveCooldowns();
                 ACTIVE_SIGS[r.id] = { side: finalSide, entry: res.entry, time: Math.floor(now / 1000) };
                 saveActiveSigs();
-                // اعلام صوتی انگلیسی سیگنال جدید
                 speakAI(`${finalSide} signal on ${r.id}`);
                 UNREAD++; LS("bs_unread", UNREAD); updateUnreadBadge();
             }
@@ -620,7 +877,6 @@ function renderList(){
 
 if($("go")) $("go").onclick = () => scan(false);
 
-// مدیریت تاریخچه، تب‌ها و فیلترهای زمانی همراه با Chart.js ایمن
 let historyTimeFilter = 'all';
 let historyTabState = 'open';
 const HISTL_KEY = "bs_hist_local";
@@ -705,7 +961,6 @@ function updateHistoryModalContent() {
         if ($('winLossCounts')) $('winLossCounts').textContent = `${wins} / ${losses}`;
         if ($('totalWinRate')) $('totalWinRate').textContent = `${winRate}%`;
 
-        // رسم نمودار عملکرد استراتژی‌ها
         renderStrategyChart([Math.max(0, totalPnl * 0.7), Math.max(0, totalPnl * 0.3)]);
 
         if (historyTabState === 'open') {
