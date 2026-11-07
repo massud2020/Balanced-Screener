@@ -8,8 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
-<!-- استایل داخلی (Inline) برای حل قطعی و همیشگی مشکل لود نشدن استایل‌ها روی موبایل -->
+<!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
+/* ═══════════════════════════════════════════════════════════════════
+   استایل‌های داخلی (اصلاح شده برای موبایل و جلوگیری از بهم ریختگی)
+   ═══════════════════════════════════════════════════════════════════ */
 :root {
   --bg: #0b0d11;
   --card: #141820;
@@ -31,8 +36,9 @@ body {
   background: var(--bg);
   color: var(--tx);
   font-family: system-ui, -apple-system, sans-serif;
-  padding-bottom: 80px;
+  padding-bottom: 90px;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 
 /* Splash Screen */
@@ -49,48 +55,70 @@ body {
   text-align: center;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-#ai-splash.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
+#ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
 /* Header & Capsule Bar */
 header.bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
   background: var(--card);
   border-bottom: 1px solid var(--bd);
   position: sticky;
   top: 0;
   z-index: 100;
+  gap: 10px;
+}
+
+/* اصلاح چیدمان وسط و جلوگیری از بیرون زدن دکمه‌ها */
+.brand-badge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0; /* بسیار مهم برای جلوگیری از بهم ریختگی */
+  text-align: center;
 }
 .brand-pill {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 15px;
   color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.brand-pill i { color: var(--gb); }
-.acts { display: flex; gap: 8px; align-items: center; }
+.brand-pill i { color: var(--gb); font-style: normal; }
+.acts { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
 .ic {
   background: var(--card2);
   border: 1px solid var(--bd);
   color: var(--tx);
   border-radius: 10px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  position: relative;
 }
-.ic svg { width: 18px; height: 18px; fill: currentColor; }
+/* اصلاح آیکون‌ها برای اینکه توپر و لکه نشوند */
+.ic svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .badge {
   position: absolute;
   top: -4px;
@@ -154,17 +182,12 @@ header.bar {
   border-radius: 50%;
   margin-inline-end: 6px;
 }
-
-.cond-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.cond-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .c-chip {
   background: var(--card2);
   border: 1px solid var(--bd);
   color: var(--mu);
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -176,11 +199,7 @@ header.bar {
   color: var(--gb);
 }
 
-.nav {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
+.nav { display: flex; gap: 8px; margin-bottom: 10px; }
 .nav a {
   flex: 1;
   background: var(--card);
@@ -197,6 +216,32 @@ header.bar {
   gap: 6px;
 }
 
+/* Market Chips */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.mkt {
+  flex: none;
+  background: var(--card);
+  border: 1px solid var(--bd);
+  color: var(--tx2);
+  padding: 8px 14px;
+  border-radius: 99px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
+.mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
+
 /* Rows & Signals */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; }
 .row.sig {
@@ -209,8 +254,8 @@ header.bar {
 .row.sig.SHORT { border-inline-start: 4px solid var(--rb); }
 
 .r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.sym { font-weight: 700; font-size: 15px; color: var(--tx); }
-.b { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.sym { font-weight: 700; font-size: 15px; color: var(--tx); direction: ltr;}
+.b { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
 .b.LONG { background: var(--gd); color: var(--gb); }
 .b.SHORT { background: var(--rd); color: var(--rb); }
 
@@ -219,54 +264,52 @@ header.bar {
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   background: var(--bg);
-  padding: 8px;
+  padding: 10px;
   border-radius: 8px;
   font-size: 12px;
 }
-.r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; }
-.r-grid b { color: var(--tx); font-size: 13px; }
+.r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; margin-bottom: 2px;}
+.r-grid b { color: var(--tx); font-size: 13px; direction: ltr; display: block;}
 .r-grid .neg { color: var(--rb); }
 .r-grid .pos { color: var(--gb); }
 
 .r-foot {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 11.5px;
+  margin-top: 10px;
+  font-size: 12px;
   color: var(--mu);
 }
 
 /* Big Scan Button */
 .scan-container {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
   left: 16px;
   right: 16px;
   z-index: 99;
 }
 .big-scan {
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   background: var(--gb);
   color: #0b0d11;
   border: none;
   border-radius: 14px;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(70, 197, 140, 0.3);
 }
 
-.set { display: none; padding: 12px; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); }
+.set { display: none; padding: 12px; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); margin-bottom: 80px;}
 .set h3 { font-size: 14px; color: var(--gb); margin: 12px 0 8px 0; }
 .set label { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bd); font-size: 13px; color: var(--tx2); }
 </style>
-
-<!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
+<!-- ══════════════ SPLASH SCREEN ══════════════ -->
 <div id="ai-splash">
     <div id="splashLangBar" style="position:absolute;top:calc(env(safe-area-inset-top) + 12px);inset-inline-end:14px;z-index:10001;display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:4px">
       <button type="button" id="splashLangFa" data-lang="fa" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">FA</button>
@@ -275,47 +318,12 @@ header.bar {
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
     <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
     <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود و انتخاب رژیم بازار ضربه بزنید</div>
-    <div class="ai-loading" id="ai-loading"><u></u></div>
     <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
     <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
     <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
 </div>
 
-<script>
-(function(){
-  function killSplash(){
-    try{
-      var s=document.getElementById('ai-splash');
-      if(s){
-        s.classList.add('hidden');
-        s.style.display='none';
-        s.style.visibility='hidden';
-        s.style.opacity='0';
-        s.style.pointerEvents='none';
-      }
-    }catch(e){}
-  }
-  window.hideSplash = function(){ killSplash(); };
-  window.startApp = function(){
-    if (window.__startAppFull) {
-      try { window.__startAppFull(); } catch (e) { killSplash(); }
-      setTimeout(killSplash, 55000);
-      return;
-    }
-    killSplash();
-  };
-  document.addEventListener('DOMContentLoaded', function(){
-    var s=document.getElementById('ai-splash');
-    if(s){ s.style.display='flex'; s.classList.remove('hidden'); }
-    var sk=document.getElementById('skip-ai-btn');
-    var st=document.getElementById('start-ai-btn');
-    if(sk) sk.onclick = function(ev){ if(ev) ev.preventDefault(); killSplash(); return false; };
-    if(st) st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
-  });
-})();
-</script>
-
-<!-- هدر کپسولی شیک -->
+<!-- ══════════════ HEADER ══════════════ -->
 <header class="bar">
   <div class="acts left">
     <button class="ic" id="langToggle" aria-label="Language">EN</button>
@@ -325,20 +333,21 @@ header.bar {
     <div class="brand-pill">
       <i>◈</i> <span>Balanced Screener</span>
     </div>
-    <small id="ver"></small>
+    <small id="ver" style="font-size:10px; color:var(--mu); margin-top:2px;">v87</small>
   </div>
   
   <div class="acts right">
     <button class="ic" id="showHist" aria-label="History">
-      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
       <span id="unreadBadge" class="badge">0</span>
     </button>
     <button class="ic" id="gs" aria-label="Settings">
-      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 </header>
 
+<!-- ══════════════ CONTROLS ══════════════ -->
 <section class="ctl">
   <div class="mode-switch">
     <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
@@ -352,10 +361,11 @@ header.bar {
     <div class="cond-chips" id="condChips"></div>
   </div>
 
-  <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span><i id="alN"></i></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
+  <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
   <div class="chips" id="mkts" aria-label="Markets"></div>
 </section>
 
+<!-- ══════════════ SETTINGS ══════════════ -->
 <div class="set" id="set">
   <h3 id="setFilters">تنظیمات پیشرفته</h3>
   <label><span id="setH1Strict">H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
@@ -373,112 +383,77 @@ header.bar {
   
   <h3 id="setSource">منبع داده</h3>
   <label><span id="setOanda">OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
-  <label><span id="setOandaEnv">نوع حساب OANDA</span><select id="env"><option value="practice">Practice</option><option value="live">Live</option></select></label>
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span style="font-size:12px;color:var(--mu);direction:ltr">v87</span></label>
-  <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
-    <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
+  <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی</span>
+    <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700; border-radius:8px; padding:6px;">پاک‌کردن کش</button>
   </label>
 
   <h3 id="setNotifs">اعلان‌ها و صدا</h3>
-  <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt">فعال‌سازی</button></label>
-  <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border-color:var(--gb);">تست صدا</button></label>
+  <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt" style="border-radius:8px; padding:6px;">فعال‌سازی</button></label>
+  <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb); border-radius:8px; padding:6px;">تست صدا</button></label>
   <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
-  <label><span>زیر و بمی: <b id="ttsPitchVal">1.0</b></span><input type="range" id="ttsPitch" min="0.6" max="1.3" step="0.05" value="1" style="width:55%"></label>
-  <label><span id="setBgScan">اسکن پس‌زمینه و آلارم‌ها</span><input type="checkbox" id="bgscan" checked disabled></label>
-  
-  <h3 id="setTg">اعلان‌های تلگرام · وقتی اپ بسته است</h3>
-  <label><span id="setTgAlert">اعلان الگوی ۳+۱<small>خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</small></span><input type="checkbox" id="nN" checked></label>
-  <label><span id="setGh">ریپازیتوری GitHub<small>به شکل نام‌کاربری/نام‌ریپو</small></span><input id="ghr" placeholder="user/repo" autocomplete="off"></label>
-  <label><span id="setGhToken">GitHub token<small>اختیاری · برای ذخیره‌ی خودکار</small></span><input type="password" id="ght" placeholder="github_pat_…" autocomplete="off"></label>
-  <label><span id="nHint">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</span><button id="nSave">ذخیره روی سرور</button></label>
-  <div class="nout" id="nOut"></div>
 </div>
 
-<div class="ld" id="ld">
-  <div class="rd"><i></i></div>
-  <div class="lt">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-       <div>
-         <b id="lp">۰ / ۰</b>
-         <span id="ls">در حال دریافت داده…</span>
-       </div>
-    </div>
-    <div class="pb"><u id="lb"></u></div>
-  </div>
-</div>
+<!-- ══════════════ LIST & LOADING ══════════════ -->
+<div class="st" id="st" style="text-align:center; padding:10px; font-size:12px; color:var(--mu);">آماده</div>
 
-<div class="bn" id="bn"></div>
-<div class="sum" id="sum" style="display:none"></div>
+<main id="list">
+    <div class="sk" style="height:96px; background:var(--card); border-radius:12px;"></div>
+    <div class="sk" style="height:96px; background:var(--card); border-radius:12px; margin-top:10px;"></div>
+</main>
 
+<!-- ══════════════ SCAN BUTTON ══════════════ -->
 <div class="scan-container">
   <button class="big-scan" id="go">
-    <span id="goT">اسکن</span>
-    <small id="goC"></small>
+    <span id="goT">اسکن</span> <small id="goC" style="font-size:12px; opacity:0.8; margin-right:6px;"></small>
   </button>
 </div>
 
-<div class="st" id="st">آماده</div>
-<div class="hl" id="hl"></div>
-<div class="el" id="el"></div>
-<main id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
-
+<!-- ══════════════ HISTORY MODAL ══════════════ -->
 <div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
   <div style="max-width:650px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
       <h3 id="histTitle" style="color:var(--gb); margin:0; font-size:16px;">📊 پنل تحلیل و سیگنال‌ها</h3>
-      <button id="closeHist" style="min-height:32px; padding:0 12px;">✕ بستن</button>
+      <button id="closeHist" style="min-height:32px; padding:0 12px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); border-radius:8px; cursor:pointer;">✕ بستن</button>
     </div>
     
     <div class="screener-history-panel">
-        <div class="pnl-summary-card">
-            <div class="pnl-item">
-                <span class="pnl-label">مجموع سود/زیان خالص</span>
-                <span id="totalNetPoints" class="pnl-value">۰</span>
+        <div class="pnl-summary-card" style="display:flex; justify-content:space-between; background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--bd);">
+            <div style="text-align:center; flex:1;">
+                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">سود/زیان</span>
+                <span id="totalNetPoints" style="font-size:15px; font-weight:800; color:var(--gb); direction:ltr; display:block;">۰</span>
             </div>
-            <div class="pnl-item">
-                <span class="pnl-label">برنده / بازنده</span>
-                <span id="winLossCounts" class="pnl-value">۰ / ۰</span>
+            <div style="text-align:center; flex:1; border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
+                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">برنده / بازنده</span>
+                <span id="winLossCounts" style="font-size:15px; font-weight:700; display:block;">۰ / ۰</span>
             </div>
-            <div class="pnl-item">
-                <span class="pnl-label">درصد موفقیت کل</span>
-                <span id="totalWinRate" class="pnl-value">۰٪</span>
+            <div style="text-align:center; flex:1;">
+                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">وین‌ریت</span>
+                <span id="totalWinRate" style="font-size:15px; font-weight:800; display:block;">۰٪</span>
             </div>
         </div>
 
         <div class="time-filter-container" style="display:flex; gap:6px; margin:12px 0;">
-            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">کل زمان‌ها</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('today', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">امروز</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('week', this)" style="padding:6px 12px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">۷ روز اخیر</button>
+            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">کل زمان‌ها</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('today', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">امروز</button>
+            <button class="filter-time-btn" onclick="setTimeFilter('week', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">۷ روز اخیر</button>
         </div>
 
         <div class="chart-section" style="margin:15px 0; height:200px;">
-            <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
+            <h3 style="font-size:13px; margin-bottom:8px; color:var(--tx2);">📊 مقایسه عملکرد استراتژی‌ها</h3>
             <canvas id="strategyPerformanceChart"></canvas>
         </div>
 
         <div class="history-tabs" style="display:flex; gap:6px; margin-bottom:12px;">
-            <button class="tab-btn active" onclick="switchHistoryTab('open', this)" id="btnOpen" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">سیگنال‌های باز (<span id="openCount">0</span>)</button>
-            <button class="tab-btn" onclick="switchHistoryTab('closed', this)" id="btnClosed" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer;">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
+            <button class="tab-btn active" onclick="switchHistoryTab('open', this)" id="btnOpen" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:13px;">سیگنال‌های باز (<span id="openCount">0</span>)</button>
+            <button class="tab-btn" onclick="switchHistoryTab('closed', this)" id="btnClosed" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:13px;">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
         </div>
 
         <div id="signalsContainer" class="signals-container" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;"></div>
     </div>
-
-    <div id="histSummary" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:var(--bg);border:1px solid var(--bd)"></div>
-    <div id="histList" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;"></div>
   </div>
-</div>
-
-<div id="ov">
-  <div class="oh"><div><span id="ct"></span><span class="lv">● LIVE</span></div><button id="cx" aria-label="Close">✕ بستن</button></div>
-  <div class="oa"><a class="btn tv" id="tv" target="_blank" rel="noopener">↗ TradingView</a><button id="te">TradingView داخل اپ</button></div>
-  <iframe id="tf" referrerpolicy="no-referrer" allow="fullscreen"></iframe>
-  <div id="cw"><canvas id="cv"></canvas></div>
-  <div id="an"></div>
-  <div id="ci"></div>
 </div>
 
 <script>
@@ -501,93 +476,34 @@ window.onerror = function(msg, url, line) {
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
-const setHTML = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
 
 const I18N = {
   fa: {
-    scan: "اسکن", settings: "تنظیمات", history: "تاریخچه",
-    goFetch: "دریافت...", goScan: "اسکن",
-    long: "لانگ", short: "شورت", all: "همه",
-    noSignal: "بدون سیگنال", symbols: "نماد",
-    scanning: "در حال دریافت داده از سرور...", pleaseWait: "لطفاً صبر کنید",
-    scanDone: "تکمیل شد", lastScan: "آخرین اسکن سرور:",
-    signals: "سیگنال", ready: "آماده",
-    noSignalsYet: "فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد",
-    errFetch: "خطا در دریافت دیتا از سرور ابری. لطفاً بعداً تلاش کنید.",
-    risk: "ریسک", entry: "ورود", sl: "حد ضرر", exit: "خروج",
-    minAgo: "دقیقه پیش", justNow: "همین الان",
-    close: "بستن", tvInside: "TradingView داخل اپ",
-    histToday: "📅 سیگنال‌های امروز", btnClose: "✕ بستن", btnSave: "ذخیره",
-    btnClearCache: "پاک‌کردن کش و به‌روزرسانی", btnClearing: "در حال پاک‌سازی…",
-    fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", fail_emaAlign: "هم‌راستایی EMA21/50", fail_priceEma200: "قیمت روی EMA200",
-    fail_emaSlope: "شیب EMA", fail_emaCross: "تقاطع EMA21/50", fail_m15: "فیلتر M15", fail_h1: "فیلتر H1", fail_rsi: "فیلتر RSI",
-    fail_noData: "بدون دیتا", fail_error: "خطا", fail_notReady: "اندیکاتورها آماده نیست", fail_unknown: "خطای نامشخص",
-    c_trend: "روند", c_emax: "EMA", c_nc: "کندل", c_pat: "الگو", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
+    scan: "اسکن", goFetch: "دریافت...", long: "لانگ", short: "شورت", all: "همه",
+    noSignal: "بدون سیگنال", symbols: "نماد", scanning: "در حال دریافت دیتا...", ready: "آماده",
+    noSignalsYet: "فعلاً سیگنالی نیست", errFetch: "خطا در دریافت دیتا", risk: "ریسک", entry: "ورود", sl: "SL", exit: "خروج",
+    fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", c_trend: "روند", c_emax: "EMA", c_nc: "کندل", c_pat: "الگو", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
   },
   en: {
-    scan: "Scan", settings: "Settings", history: "History",
-    goFetch: "Fetching...", goScan: "Scan",
-    long: "LONG", short: "SHORT", all: "All",
-    noSignal: "No Signal", symbols: "Symbols",
-    scanning: "Fetching data from server...", pleaseWait: "Please wait",
-    scanDone: "Done", lastScan: "Last scan:",
-    signals: "Signals", ready: "Ready",
-    noSignalsYet: "No signals yet<br>Auto-scan continues",
-    errFetch: "Error fetching data. Please try again later.",
-    risk: "Risk", entry: "Entry", sl: "SL", exit: "Exit",
-    minAgo: "mins ago", justNow: "Just now",
-    close: "Close", tvInside: "TradingView in App",
-    histToday: "📅 Today's Signals", btnClose: "✕ Close", btnSave: "Save",
-    btnClearCache: "Clear Cache & Reload", btnClearing: "Clearing...",
-    fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", fail_emaAlign: "EMA21/50 Alignment", fail_priceEma200: "Price at EMA200",
-    fail_emaSlope: "EMA Slope", fail_emaCross: "EMA21/50 Cross", fail_m15: "M15 Filter", fail_h1: "H1 Filter", fail_rsi: "RSI Filter",
-    fail_noData: "No Data", fail_error: "Error", fail_notReady: "Indicators not ready", fail_unknown: "Unknown error",
-    c_trend: "Trend", c_emax: "EMA", c_nc: "Candle", c_pat: "Pattern", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
+    scan: "Scan", goFetch: "Fetching...", long: "LONG", short: "SHORT", all: "All",
+    noSignal: "No Signal", symbols: "Symbols", scanning: "Fetching data...", ready: "Ready",
+    noSignalsYet: "No signals yet", errFetch: "Fetch error", risk: "Risk", entry: "Entry", sl: "SL", exit: "Exit",
+    fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", c_trend: "Trend", c_emax: "EMA", c_nc: "Candle", c_pat: "Pattern", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
   }
 };
 
-const BACKEND_TO_KEY = {
-    "الگوی ۳+۱": "fail_pattern", "استراتژی رنج": "fail_range", "هم‌راستایی EMA21/50": "fail_emaAlign",
-    "قیمت روی EMA200": "fail_priceEma200", "شیب EMA": "fail_emaSlope", "تقاطع EMA21/50": "fail_emaCross",
-    "فیلتر M15": "fail_m15", "فیلتر H1": "fail_h1", "فیلتر RSI": "fail_rsi", "No Data": "fail_noData",
-    "Error": "fail_error", "اندیکاتورها آماده نیست": "fail_notReady", "خطای نامشخص": "fail_unknown"
-};
-
-let currentLang = LS("bs_lang");
-if (currentLang !== 'en') currentLang = 'fa';
+let currentLang = LS("bs_lang") || 'fa';
 const T = () => (I18N[currentLang] || I18N.fa);
 
-function trFail(failStr) {
-    if (!failStr) return "";
-    if (currentLang === 'fa') return failStr; 
-    const key = BACKEND_TO_KEY[failStr];
-    if (key && I18N.en[key]) return I18N.en[key];
-    return failStr;
-}
-
 let COND = {trend:true, emax:true, nc:true, pat:true, adx:false, m15:true, h1:true, rsi:true};
-try {
-    const savedCond = LS("bs_cond");
-    if (savedCond) COND = { ...COND, ...JSON.parse(savedCond) };
-} catch(e) {}
+try { const savedCond = LS("bs_cond"); if (savedCond) COND = { ...COND, ...JSON.parse(savedCond) }; } catch(e) {}
 COND.adx = false;
 
 let currentMode = LS("bs_mode") || "pattern";
-let ACTIVE_SIGS = {};
-try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
+let ACTIVE_SIGS = {}; try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
 function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
-const MAX_HOLD_SEC = 6 * 3600;
 
-function isSignalOpen(id, side){
-  const a = ACTIVE_SIGS[id];
-  if(!a) return false;
-  if(side && a.side !== side) return false;
-  if(Date.now()/1000 - a.time > MAX_HOLD_SEC) return false;
-  return true;
-}
-
-let COOLDOWNS = {};
-try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) { COOLDOWNS = {}; }
+let COOLDOWNS = {}; try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) { COOLDOWNS = {}; }
 function saveCooldowns() { try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e) {} }
 const COOLDOWN_DURATION_MS = 30 * 60 * 1000;
 
@@ -595,53 +511,81 @@ let UNREAD = parseInt(LS("bs_unread") || "0");
 function updateUnreadBadge() {
     const b = $("unreadBadge");
     if (b) {
-        if (UNREAD > 0) {
-            b.textContent = UNREAD > 99 ? "99+" : UNREAD;
-            b.classList.add("on");
-        } else {
-            b.classList.remove("on");
-        }
+        if (UNREAD > 0) { b.textContent = UNREAD > 99 ? "99+" : UNREAD; b.classList.add("on"); } else { b.classList.remove("on"); }
     }
 }
 
+/* ══════════════ TTS & SPLASH LOGIC (اصلاح شده) ══════════════ */
 async function speakAI(text) {
   if (!text || LS("bs_tts_off") === "1") return;
   const raw = String(text).trim();
   if (!raw) return;
 
-  try {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      let spokenText = raw
-        .replace("لانگ", "Long signal on")
-        .replace("شورت", "Short signal on")
-        .replace("خرید", "Buy")
-        .replace("فروش", "Sell");
+  return new Promise(function(resolve) {
+      let finished = false;
+      const finish = () => { if(finished) return; finished = true; resolve(); };
+      setTimeout(finish, 4000); // تایمر اضطراری
 
-      const utterance = new SpeechSynthesisUtterance(spokenText);
-      utterance.lang = "en-US";
-      utterance.rate = (+$("ttsRate")?.value || 35) / 50;
-      utterance.pitch = +$("ttsPitch")?.value || 1.0;
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const targetVoice = voices.find(v => v.lang.includes("en-US") || v.lang.includes("en"));
-        if (targetVoice) utterance.voice = targetVoice;
-      }
-
-      window.speechSynthesis.speak(utterance);
-      return;
-    }
-  } catch (e) {}
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+          
+          const utterance = new SpeechSynthesisUtterance(raw);
+          // استفاده از زبان اصلی برنامه (فارسی یا انگلیسی) بدون ترجمه کلمات
+          utterance.lang = currentLang === "fa" ? "fa-IR" : "en-US";
+          utterance.rate = (+$("ttsRate")?.value || 35) / 50;
+          
+          utterance.onend = finish;
+          utterance.onerror = finish;
+          
+          window.speechSynthesis.speak(utterance);
+        } else { finish(); }
+      } catch (e) { finish(); }
+  });
 }
 
 window.testVoice = async () => { 
-  await speakAI("AI voice test successful."); 
+  await speakAI(currentLang === "fa" ? "تست صدا موفقیت آمیز بود" : "AI voice test successful."); 
 };
 
+function killSplash(){
+  try{
+    var s=document.getElementById('ai-splash');
+    if(s){ s.classList.add('hidden'); setTimeout(()=>{s.style.display='none';}, 300); }
+  }catch(e){}
+}
+window.hideSplash = function(){ killSplash(); };
+
+window.__startAppFull = async function () {
+    var fa = currentLang !== "en";
+    var lines = fa ? ["خوش آمدید.","در حال آماده‌سازی..."] : ["Welcome.","Getting ready..."];
+    
+    var el = document.getElementById("ai-text");
+    if (el) el.textContent = "در حال اتصال...";
+
+    for(var i=0; i<lines.length; i++){
+        if (el) el.textContent = lines[i];
+        await speakAI(lines[i]);
+    }
+    
+    killSplash();
+    try { if (typeof scan === "function") scan(true); } catch (e) {}
+};
+
+window.startApp = function(){
+    if (window.__startAppFull) { window.__startAppFull(); }
+    else { killSplash(); }
+};
+
+document.addEventListener('DOMContentLoaded', function(){
+    var sk=document.getElementById('skip-ai-btn');
+    var st=document.getElementById('start-ai-btn');
+    if(sk) sk.onclick = function(ev){ if(ev) ev.preventDefault(); window.hideSplash(); return false; };
+    if(st) st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
+});
+
 window.clearCache = async () => {
-    const btn = $("upd");
-    if (btn) btn.textContent = T().btnClearing;
     try {
         if ("serviceWorker" in navigator) {
             const rs = await navigator.serviceWorker.getRegistrations();
@@ -661,141 +605,56 @@ function updateSplashLangUi() {
   const on = "var(--gd)", onTx = "var(--gb)", off = "transparent", offTx = "var(--mu)";
   if (btnFa) { btnFa.style.background = fa ? on : off; btnFa.style.color = fa ? onTx : offTx; }
   if (btnEn) { btnEn.style.background = !fa ? on : off; btnEn.style.color = !fa ? onTx : offTx; }
-  if ($("ai-text")) $("ai-text").textContent = fa ? "برای ورود و انتخاب رژیم بازار ضربه بزنید" : "Tap to enter and select market regime";
+  if ($("ai-text") && !$("ai-text").textContent.includes("اتصال")) {
+      $("ai-text").textContent = fa ? "برای ورود ضربه بزنید" : "Tap to enter";
+  }
   if ($("start-ai-btn")) $("start-ai-btn").textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
   if ($("skip-ai-btn")) $("skip-ai-btn").textContent = fa ? "رد کردن" : "Skip";
   document.body.dir = fa ? "rtl" : "ltr";
   document.documentElement.lang = currentLang;
 }
 
-window.__startAppFull = window.startApp = async function () {
-    var splash = document.getElementById("ai-splash");
-    if (splash) { splash.classList.add("hidden"); splash.style.display = "none"; }
-    try { if (typeof scan === "function") scan(true); } catch (e) {}
-};
-
+/* ══════════════ UI & LOGIC ══════════════ */
 function renderCondChips() {
     try {
         const t = T();
-        let labels = currentMode === "range" 
-            ? { rsi: t.c_rsi || "RSI" } 
-            : { 
-                trend: t.c_trend || "روند", 
-                emax: t.c_emax || "EMA", 
-                nc: t.c_nc || "کندل", 
-                pat: t.c_pat || "الگو", 
-                m15: t.c_m15 || "M15", 
-                h1: t.c_h1 || "H1", 
-                rsi: t.c_rsi || "RSI" 
-              };
+        let labels = currentMode === "range" ? { rsi: t.c_rsi } : { trend: t.c_trend, emax: t.c_emax, nc: t.c_nc, pat: t.c_pat, m15: t.c_m15, h1: t.c_h1, rsi: t.c_rsi };
         const el = $("condChips");
         if(el) el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
     } catch(e) {}
 }
 
 if ($("condChips")) $("condChips").onclick = e => {
-    const b = e.target.closest(".c-chip");
-    if (!b) return;
-    const k = b.dataset.k;
-    COND[k] = !COND[k];
-    COND.adx = false; LS("bs_cond", JSON.stringify(COND));
-    renderCondChips();
-    if (LAST) renderList(); 
+    const b = e.target.closest(".c-chip"); if (!b) return;
+    const k = b.dataset.k; COND[k] = !COND[k]; COND.adx = false; LS("bs_cond", JSON.stringify(COND));
+    renderCondChips(); if (LAST) renderList(); 
 };
 
 function setMode(mode) {
-    currentMode = mode;
-    LS("bs_mode", mode);
+    currentMode = mode; LS("bs_mode", mode);
     if($("modePattern")) $("modePattern").classList.toggle("on", mode === "pattern");
     if($("modeRange")) $("modeRange").classList.toggle("on", mode === "range");
     setText("stratTitle", mode === "range" ? T().fail_range : T().fail_pattern);
-    renderCondChips();
-    if (LAST) renderList();
+    renderCondChips(); if (LAST) renderList();
 }
-
 if ($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
 if ($("modeRange")) $("modeRange").onclick = () => setMode("range");
-
-const REGIME_MEM = {};
-function pickModeByAdx(adxV, symbol) {
-    if (adxV == null || !isFinite(adxV)) return REGIME_MEM[symbol] || currentMode || "pattern";
-    let mode = adxV >= 24 ? "pattern" : (adxV <= 20 ? "range" : (REGIME_MEM[symbol] || (adxV >= 22 ? "pattern" : "range")));
-    REGIME_MEM[symbol] = mode;
-    return mode;
-}
-
-function evalRow(r) {
-    if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
-    try {
-        const now = Date.now();
-        if (COOLDOWNS[r.id] && (now - COOLDOWNS[r.id] < COOLDOWN_DURATION_MS)) {
-            const remainingMins = Math.ceil((COOLDOWN_DURATION_MS - (now - COOLDOWNS[r.id])) / 60000);
-            return { 
-                ...r, 
-                side: null, 
-                pass: 0, 
-                total: 7, 
-                fail: currentLang === 'fa' ? `کول‌داون (${remainingMins} دقیقه)` : `Cooldown (${remainingMins}m)`, 
-                checks: [] 
-            };
-        }
-
-        const probe = evaluate(r.id, D[r.id].a, D[r.id].h, { mode: "pattern", adx: false }, now / 1000);
-        const useMode = pickModeByAdx(probe.adx, r.id);
-        const opts = {
-            mode: useMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
-            adx: false, m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
-            rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
-        };
-        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, now / 1000);
-        let finalSide = res.side, finalFail = res.fail;
-
-        if (finalSide) {
-            if (isSignalOpen(r.id)) {
-                finalSide = null; finalFail = currentLang === 'fa' ? "سیگنال باز قبلی هنوز بسته نشده" : "Previous signal still open";
-            } else {
-                COOLDOWNS[r.id] = now;
-                saveCooldowns();
-                ACTIVE_SIGS[r.id] = { side: finalSide, entry: res.entry, time: Math.floor(now / 1000) };
-                saveActiveSigs();
-                speakAI(`${finalSide} signal on ${r.id}`);
-                UNREAD++; LS("bs_unread", UNREAD); updateUnreadBadge();
-            }
-        }
-
-        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, pass: res.pass || 0, total: res.total || 7, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: useMode };
-    } catch (e) {
-        return { ...r, side: null, pass: 0, total: 7, fail: "خطا در محاسبه", checks: [] };
-    }
-}
 
 function applyLanguage() {
     try {
         document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
         document.documentElement.lang = currentLang;
         const t = T();
-        setText("goT", t.scan);
-        setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
+        setText("goT", t.scan); setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
         updateSplashLangUi();
         setText("stratTitle", currentMode === 'range' ? t.fail_range : t.fail_pattern);
-        setText("navAlerts", currentLang === 'fa' ? "هشدار قیمت" : "Price Alerts");
-        setText("navBacktest", currentLang === 'fa' ? "بک‌تست" : "Backtest");
-        setText("setFilters", currentLang === 'fa' ? "تنظیمات پیشرفته" : "Advanced Settings");
-        setText("setH1Strict", currentLang === 'fa' ? "H1 سخت‌گیرانه" : "H1 Strict");
-        setText("setOnly", currentLang === 'fa' ? "فقط سیگنال‌دارها" : "Only with Signal");
-        setText("upd", t.btnClearCache);
-        setText("ls", t.scanning);
-        setText("st", t.ready);
-        setText("histTitle", t.histToday);
-        setText("closeHist", t.btnClose);
-        setText("cx", t.btnClose);
-        renderCondChips();
-        if(LAST) renderList();
+        renderCondChips(); if(LAST) renderList();
     } catch(e) {}
 }
 
-const BUILD=87;
+if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang === "fa" ? "en" : "fa"; LS("bs_lang", currentLang); applyLanguage(); };
 
+const BUILD=87;
 async function fetchGitJson(filename) {
     const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
@@ -823,14 +682,61 @@ async function scan(isAISilent = false) {
   }
 }
 
+/* ══════════════ EVALUATION & COOLDOWN (اصلاح منطقی) ══════════════ */
+function evalRow(r) {
+    if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
+    try {
+        const now = Date.now();
+        
+        // اگر در کول‌داون است، فقط رد شو (نباید کول‌داون رو تمدید کنه)
+        if (COOLDOWNS[r.id] && (now - COOLDOWNS[r.id] < COOLDOWN_DURATION_MS)) {
+            const remainingMins = Math.ceil((COOLDOWN_DURATION_MS - (now - COOLDOWNS[r.id])) / 60000);
+            return { ...r, side: null, pass: 0, total: 7, fail: `کول‌داون (${remainingMins} دقیقه)`, checks: [] };
+        }
+
+        const opts = {
+            mode: currentMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
+            adx: false, m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
+            rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
+        };
+        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, now / 1000);
+        let finalSide = res.side, finalFail = res.fail;
+
+        // اگر سیگنال جدیدی صادر شد
+        if (finalSide) {
+            if (isSignalOpen(r.id)) {
+                finalSide = null; finalFail = "سیگنال باز قبلی هنوز بسته نشده";
+            } else {
+                // فقط زمانی که سیگنال صادر می‌شود کول‌داون ست شود
+                COOLDOWNS[r.id] = now;
+                saveCooldowns();
+                ACTIVE_SIGS[r.id] = { side: finalSide, entry: res.entry, sl: res.sl, time: Math.floor(now / 1000) };
+                saveActiveSigs();
+                speakAI(`${finalSide === "LONG" ? "لانگ" : "شورت"} سیگنال روی ${r.id}`);
+                UNREAD++; LS("bs_unread", UNREAD); updateUnreadBadge();
+            }
+        }
+
+        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, pass: res.pass || 0, total: res.total || 7, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: currentMode };
+    } catch (e) {
+        return { ...r, side: null, pass: 0, total: 7, fail: "خطا در محاسبه", checks: [] };
+    }
+}
+
+function isSignalOpen(id, side){
+  const a = ACTIVE_SIGS[id];
+  if(!a) return false;
+  if(side && a.side !== side) return false;
+  if(Date.now()/1000 - a.time > 6 * 3600) return false; // منقضی شدن بعد از ۶ ساعت
+  return true;
+}
+
 function sigHtml(r){
     const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
     const L=r.side==="LONG";
     const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
-    const mode = (r.mode === "range") ? "range" : "pattern";
-    const stratLabel = mode === "range" ? "رنج" : "روند";
-    return `<article class="row sig ${r.side} mode-${mode}" data-id="${r.id}" tabindex="0">
-    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span class="tag strat ${mode}">${stratLabel}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
+    return `<article class="row sig ${r.side}" data-id="${r.id}" tabindex="0">
+    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span style="font-size:11px; padding:2px 8px; background:var(--bd); border-radius:4px; margin-inline-start:8px;">${currentMode === 'range' ? 'رنج' : 'روند'}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
     <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">RSI</b></div></div>
     <div class="r-foot"><span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span></div></article>`;
 }
@@ -838,16 +744,14 @@ function sigHtml(r){
 function noneHtml(r){
     const passCount = r.pass != null ? r.pass : 0;
     const totalCount = r.total != null ? r.total : 7;
-    const scoreText = `${passCount}/${totalCount}`;
     const percent = Math.round((passCount / totalCount) * 100);
-    
-    return `<div class="row none" data-id="${r.id}" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; margin-bottom:8px;">
+    return `<div class="row none" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; margin-bottom:8px;">
       <div class="rn-right" style="display:flex; flex-direction:column; gap:3px;">
         <span class="sym" style="font-weight:700; font-size:15px; color:var(--tx); direction:ltr;">${r.id}</span>
-        <span class="why" style="font-size:12px; color:var(--mu);">${trFail(r.fail)}</span>
+        <span class="why" style="font-size:12px; color:var(--mu);">${r.fail || ''}</span>
       </div>
       <div class="rn-left" style="display:flex; align-items:center; gap:12px;">
-        <span class="score" style="font-size:13px; font-weight:700; color:var(--tx2); direction:ltr;">${scoreText}</span>
+        <span class="score" style="font-size:13px; font-weight:700; color:var(--tx2); direction:ltr;">${passCount}/${totalCount}</span>
         <div class="ring-box" style="position:relative; width:38px; height:38px; display:grid; place-items:center;">
           <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform:rotate(-90deg);">
             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bd)" stroke-width="3.5"/>
@@ -869,14 +773,15 @@ function renderList(){
 
       if($("list")) {
           $("list").innerHTML = 
-              (sg.length ? sg.map(sigHtml).join("") : `<div class="empty"><b>🔍</b>${T().noSignalsYet}</div>`) + 
-              (no.length ? `<details class="nb" style="margin-top:16px;"><summary style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:44px; padding:0 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2); font-size:13.5px; font-weight:600;"><span>بدون سیگنال (${no.length} نماد)</span><span style="font-size:12px; color:var(--mu);">نمایش رتبه‌بندی ▾</span></summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.map(noneHtml).join("")}</div></details>` : "");
+              (sg.length ? sg.map(sigHtml).join("") : `<div class="empty" style="text-align:center; padding:40px 20px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🔍</div>${T().noSignalsYet}</div>`) + 
+              (no.length ? `<details style="margin-top:16px;"><summary style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:44px; padding:0 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2); font-size:13.5px; font-weight:600;"><span>بدون سیگنال (${no.length} نماد)</span><span style="font-size:12px; color:var(--mu);">نمایش رتبه‌بندی ▾</span></summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.map(noneHtml).join("")}</div></details>` : "");
       }
   } catch (err) {}
 }
 
 if($("go")) $("go").onclick = () => scan(false);
 
+/* ══════════════ HISTORY MODAL ══════════════ */
 let historyTimeFilter = 'all';
 let historyTabState = 'open';
 const HISTL_KEY = "bs_hist_local";
@@ -888,6 +793,7 @@ function setTimeFilter(filter, btnEl) {
     if (btnEl) btnEl.classList.add('active');
     updateHistoryModalContent();
 }
+window.setTimeFilter = setTimeFilter;
 
 function switchHistoryTab(tab, btnEl) {
     historyTabState = tab;
@@ -895,21 +801,19 @@ function switchHistoryTab(tab, btnEl) {
     if (btnEl) btnEl.classList.add('active');
     updateHistoryModalContent();
 }
+window.switchHistoryTab = switchHistoryTab;
 
 let myStrategyChart = null;
 function renderStrategyChart(statsData) {
     const canvasEl = $('strategyPerformanceChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
-    if (myStrategyChart) {
-        myStrategyChart.destroy();
-        myStrategyChart = null;
-    }
+    if (myStrategyChart) { myStrategyChart.destroy(); myStrategyChart = null; }
     const dataValues = statsData || [0, 0];
     myStrategyChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['الگوی ۳+۱ (روند)', 'استراتژی رنج'],
+            labels: ['روند', 'رنج'],
             datasets: [{
                 label: 'سود کل (R)',
                 data: dataValues,
@@ -920,8 +824,7 @@ function renderStrategyChart(statsData) {
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
                 x: { grid: { display: false }, ticks: { color: '#a7aebb', font: { size: 11 } } },
@@ -976,7 +879,7 @@ function updateHistoryModalContent() {
         }
 
         if (itemsToRender.length === 0) {
-            container.innerHTML = `<div class="empty" style="padding:20px; text-align:center; color:var(--mu);">موردی برای نمایش وجود ندارد.</div>`;
+            container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--mu);">موردی برای نمایش وجود ندارد.</div>`;
             return;
         }
 
@@ -1006,10 +909,10 @@ if($("showHist")) $("showHist").onclick = () => {
 };
 if($("closeHist")) $("closeHist").onclick = () => { if($("histModal")) $("histModal").style.display = "none"; };
 
+/* ══════════════ INIT ══════════════ */
 try { 
     applyLanguage(); 
     updateSplashLangUi(); 
-    if (LS("bs_bgscan") === null) LS("bs_bgscan", "true");
 } catch(e) {}
 </script>
 </body>
