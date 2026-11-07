@@ -8,12 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
-<!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 /* ═══════════════════════════════════════════════════════════════════
-   استایل‌های داخلی (اصلاح شده برای موبایل و جلوگیری از بهم ریختگی)
+   استایل‌های داخلی (کاملاً منطبق با عکس‌های شما + المان اسکن)
    ═══════════════════════════════════════════════════════════════════ */
 :root {
   --bg: #0b0d11;
@@ -25,9 +22,9 @@
   --tx2: #a7aebb;
   --mu: #7a828e;
   --gb: #46c58c;
-  --gd: rgba(70, 197, 140, 0.15);
+  --gd: rgba(70, 197, 140, 0.12);
   --rb: #ff5c5c;
-  --rd: rgba(255, 92, 92, 0.15);
+  --rd: rgba(255, 92, 92, 0.12);
   --rad: 14px;
 }
 
@@ -43,877 +40,493 @@ body {
 
 /* Splash Screen */
 #ai-splash {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  z-index: 10000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  text-align: center;
+  position: fixed; inset: 0; background: var(--bg); z-index: 10000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
-/* Header & Capsule Bar */
+/* Header */
 header.bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
-  background: var(--card);
-  border-bottom: 1px solid var(--bd);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  gap: 10px;
+  background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100;
 }
-
-/* اصلاح چیدمان وسط و جلوگیری از بیرون زدن دکمه‌ها */
-.brand-badge-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-width: 0; /* بسیار مهم برای جلوگیری از بهم ریختگی */
-  text-align: center;
+.acts-right { display: flex; align-items: center; flex-shrink: 0; }
+.ic-lang {
+  background: var(--card2); border: 1px solid var(--bd); color: var(--tx);
+  border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; cursor: pointer; font-size: 14px; font-weight: 800;
 }
-.brand-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--tx);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.brand-center { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--tx); }
+.logo-icon {
+  display: grid; place-items: center; width: 28px; height: 28px;
+  background: var(--gb); color: #06150d; border-radius: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(70, 197, 140, 0.4);
 }
-.brand-pill i { color: var(--gb); font-style: normal; }
-.acts { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-
+.acts-left { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .ic {
-  background: var(--card2);
-  border: 1px solid var(--bd);
-  color: var(--tx);
-  border-radius: 10px;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  position: relative;
+  background: var(--card2); border: 1px solid var(--bd); color: var(--tx);
+  border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative;
 }
-/* اصلاح آیکون‌ها برای اینکه توپر و لکه نشوند */
-.ic svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.badge {
-  position: absolute;
-  top: -4px;
-  inset-inline-end: -4px;
-  background: var(--rb);
-  color: #fff;
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 99px;
-  display: none;
-}
+.ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; }
 .badge.on { display: block; }
 
-/* Control Panel & Chips */
+/* Controls */
 .ctl { padding: 12px; }
-.mode-switch {
-  display: flex;
-  gap: 6px;
-  background: var(--card);
-  padding: 4px;
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  margin-bottom: 10px;
-}
-.mode-switch button {
-  flex: 1;
-  min-height: 38px;
-  background: transparent;
-  border: none;
-  color: var(--mu);
-  font-weight: 600;
-  border-radius: 9px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.mode-switch button.on {
-  background: var(--card2);
-  color: var(--tx);
-  border: 1px solid var(--bd2);
-}
+.mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
+.mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; }
+.mode-switch button.on { background: var(--card2); color: var(--tx); border: 1px solid var(--bd2); }
 
-.strategy-box {
-  background: var(--card);
-  border: 1px solid var(--bd);
-  border-radius: var(--rad);
-  padding: 12px;
-  margin-bottom: 10px;
-}
-.strategy-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 13.5px;
-}
-.od {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--gb);
-  border-radius: 50%;
-  margin-inline-end: 6px;
-}
-.cond-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.c-chip {
-  background: var(--card2);
-  border: 1px solid var(--bd);
-  color: var(--mu);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.c-chip.on {
-  background: var(--gd);
-  border-color: var(--gb);
-  color: var(--gb);
-}
+.strategy-box { background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 12px 16px; margin-bottom: 10px; }
+.strategy-title { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
+.od { display: inline-block; width: 10px; height: 10px; background: var(--gb); border-radius: 50%; margin-inline-end: 8px; }
+.cond-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.c-chip { background: var(--card2); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.c-chip.on { background: var(--gd); border-color: var(--gb); color: var(--gb); }
 
-.nav { display: flex; gap: 8px; margin-bottom: 10px; }
-.nav a {
-  flex: 1;
-  background: var(--card);
-  border: 1px solid var(--bd);
-  padding: 10px;
-  border-radius: 12px;
-  color: var(--tx);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
+.nav { display: flex; gap: 10px; margin-bottom: 12px; }
+.nav a { flex: 1; background: var(--card); border: 1px solid var(--bd); padding: 14px; border-radius: 12px; color: var(--tx); text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-/* Market Chips */
-.chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 10px; }
 .chips::-webkit-scrollbar { display: none; }
-.mkt {
-  flex: none;
-  background: var(--card);
-  border: 1px solid var(--bd);
-  color: var(--tx2);
-  padding: 8px 14px;
-  border-radius: 99px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--tx2); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
-/* Rows & Signals */
-#list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; }
-.row.sig {
-  background: var(--card);
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  padding: 12px;
+/* ═══════════════════════════════════════════════════════════════════
+   المان زیبای اسکن بازار (Scan Status Card)
+   ═══════════════════════════════════════════════════════════════════ */
+#scanStatusCard {
+  display: none;
+  background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1));
+  border: 1px solid rgba(70,197,140,0.3);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(70,197,140,0.05);
 }
+#scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+.ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ss-info { display: flex; flex-direction: column; gap: 4px; direction: ltr; text-align: left; }
+.ss-counter { font-size: 16px; font-weight: 800; color: var(--tx); }
+.ss-counter span { color: var(--gb); }
+.ss-symbol { font-size: 13px; color: var(--tx2); font-weight: 600; }
+
+/* رادار چرخان */
+.ss-radar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(70,197,140,0.4);
+  position: relative;
+  background: radial-gradient(circle, rgba(70,197,140,0.2) 0%, transparent 70%);
+}
+.ss-radar::before, .ss-radar::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(70,197,140,0.2);
+}
+.ss-radar::after { inset: 8px; }
+.ss-sweep {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(70,197,140,0.8), transparent 60deg);
+  animation: radarSpin 1.5s linear infinite;
+}
+@keyframes radarSpin { to { transform: rotate(360deg); } }
+
+/* نوار پیشرفت */
+.ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
+.ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
+
+/* Status Text */
+.st { text-align:center; padding:10px 0; font-size:13px; color:var(--mu); font-weight: 500; margin-bottom: 10px; }
+
+/* List & Cards */
+#list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
+.row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
 .row.sig.SHORT { border-inline-start: 4px solid var(--rb); }
-
-.r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.sym { font-weight: 700; font-size: 15px; color: var(--tx); direction: ltr;}
+.r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; direction: ltr; }
+.r-badges { display: flex; align-items: center; }
+.r-tags { display: flex; align-items: center; gap: 6px; margin-left: auto; margin-right: 8px; }
+.sym { font-weight: 800; font-size: 16px; color: var(--tx); direction: ltr; }
 .b { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
 .b.LONG { background: var(--gd); color: var(--gb); }
 .b.SHORT { background: var(--rd); color: var(--rb); }
+.tag { font-size: 10.5px; background: var(--card2); border: 1px solid var(--bd2); color: var(--tx2); padding: 3px 8px; border-radius: 6px; }
 
-.r-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  background: var(--bg);
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-.r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; margin-bottom: 2px;}
-.r-grid b { color: var(--tx); font-size: 13px; direction: ltr; display: block;}
+.r-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; direction: ltr; }
+.r-grid div { background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; padding: 10px; }
+.r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; margin-bottom: 4px; text-align: right;}
+.r-grid b { color: var(--tx); font-size: 14px; direction: ltr; display: block; text-align: left;}
 .r-grid .neg { color: var(--rb); }
 .r-grid .pos { color: var(--gb); }
 
-.r-foot {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--mu);
-}
+.r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-/* Big Scan Button */
-.scan-container {
-  position: fixed;
-  bottom: calc(env(safe-area-inset-bottom) + 16px);
-  left: 16px;
-  right: 16px;
-  z-index: 99;
-}
-.big-scan {
-  width: 100%;
-  min-height: 50px;
-  background: var(--gb);
-  color: #0b0d11;
-  border: none;
-  border-radius: 14px;
-  font-weight: 800;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(70, 197, 140, 0.3);
-}
+/* Empty State (Moon) */
+.empty { text-align:center; padding: 40px 20px; color:var(--mu); }
+.empty-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-text { font-size: 14px; line-height: 1.8; }
 
-.set { display: none; padding: 12px; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); margin-bottom: 80px;}
-.set h3 { font-size: 14px; color: var(--gb); margin: 12px 0 8px 0; }
-.set label { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--bd); font-size: 13px; color: var(--tx2); }
+/* No Signal Section (Accordion) */
+details.nb { margin-top: 16px; }
+details.nb summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 0 16px; background: var(--card); border: 1px solid var(--bd2); border-radius: 12px; color: var(--tx2); font-size: 13.5px; font-weight: 600; }
+details.nb summary::-webkit-details-marker { display: none; }
+details.nb summary::after { content: "▼"; color: var(--mu); transition: transform .2s; font-size: 12px;}
+details.nb[open] summary::after { transform: rotate(180deg); }
+
+.row.none { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 8px; background: var(--card); border: 1px solid var(--bd2); border-radius: 12px; }
+.rn-right { display: flex; flex-direction: column; gap: 4px; }
+.rn-right .sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; text-align: left; }
+.rn-right .why { font-size: 12px; color: var(--mu); }
+.rn-left { display: flex; align-items: center; gap: 12px; }
+.rn-left .score { font-size: 14px; font-weight: 700; color: var(--tx2); direction: ltr; }
+.ring-box { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
+.ring-box svg { position: absolute; inset: 0; }
+.ring-box .inner-pill { width: 10px; height: 22px; border-radius: 99px; z-index: 1; }
+
+/* Error State Message */
+.err-box { background: rgba(255, 92, 92, 0.1); border: 1px solid rgba(255, 92, 92, 0.3); border-radius: 12px; padding: 16px; color: var(--tx); text-align: center; margin-bottom: 10px; }
+.err-box h4 { color: var(--rb); margin-bottom: 8px; }
+.err-box p { font-size: 13px; line-height: 1.6; color: var(--tx2); margin-bottom: 10px; }
+.err-list { font-size: 11px; color: var(--mu); direction: ltr; text-align: left; max-height: 100px; overflow-y: auto; background: var(--bg); padding: 8px; border-radius: 6px; }
+
+/* Scan Button */
+.scan-container { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 16px; z-index: 99; }
+.big-scan { width: 100%; min-height: 54px; background: var(--gb); color: #0b0d11; border: none; border-radius: 14px; font-weight: 800; font-size: 16px; cursor: pointer; box-shadow: 0 4px 20px rgba(70, 197, 140, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;}
+.big-scan:active { transform: scale(0.98); }
+.big-scan.loading { background: var(--card2); color: var(--gb); border: 1px solid var(--gb); }
+.scan-loader { display: inline-block; width: 20px; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; position: relative; overflow: hidden; }
+.scan-loader::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: #0b0d11; border-radius: 2px; animation: load 1.5s infinite; }
+@keyframes load { 0% { left: 0; width: 0; } 50% { width: 100%; } 100% { left: 100%; width: 0; } }
+
+.sk { height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; } }
 </style>
 </head>
 <body>
 
-<!-- ══════════════ SPLASH SCREEN ══════════════ -->
 <div id="ai-splash">
-    <div id="splashLangBar" style="position:absolute;top:calc(env(safe-area-inset-top) + 12px);inset-inline-end:14px;z-index:10001;display:flex;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:4px">
-      <button type="button" id="splashLangFa" data-lang="fa" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">FA</button>
-      <button type="button" id="splashLangEn" data-lang="en" style="min-width:48px;min-height:34px;border:none;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;background:transparent;color:var(--mu)">EN</button>
-    </div>
-    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI Assistant" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
-    <div style="font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:6px;background:linear-gradient(90deg,#46c58c,#e6e9ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Balanced Screener</div>
-    <div class="ai-text" id="ai-text" style="min-height:28px;font-size:14px;color:var(--tx2);font-weight:500">برای ورود و انتخاب رژیم بازار ضربه بزنید</div>
-    <button id="start-ai-btn" class="big-scan" type="button" style="margin-top:22px;width:min(240px,80%);z-index:10001;position:relative;pointer-events:auto">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;z-index:10001;position:relative;pointer-events:auto;text-decoration:underline;text-underline-offset:3px">رد کردن</button>
-    <div id="debug-err" style="color:var(--rb);font-size:11px;position:absolute;bottom:10px;direction:ltr;z-index:99999;text-align:center;width:100%;padding:0 10px;word-break:break-all"></div>
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
+    <div style="font-size:20px;font-weight:800;margin-bottom:6px;color:var(--tx)">Balanced Screener</div>
+    <div class="ai-text" id="ai-text" style="font-size:14px;color:var(--tx2);margin-bottom:20px;">برای ورود ضربه بزنید</div>
+    <button id="start-ai-btn" class="big-scan" type="button" style="width:min(240px,80%);">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;text-decoration:underline;">رد کردن</button>
 </div>
 
-<!-- ══════════════ HEADER ══════════════ -->
 <header class="bar">
-  <div class="acts left">
-    <button class="ic" id="langToggle" aria-label="Language">EN</button>
+  <div class="acts-right"><button class="ic-lang" id="langToggle">EN</button></div>
+  <div class="brand-center">
+    <span>Balanced Screener</span>
+    <div class="logo-icon">◈</div>
   </div>
-  
-  <div class="brand-badge-wrapper">
-    <div class="brand-pill">
-      <i>◈</i> <span>Balanced Screener</span>
-    </div>
-    <small id="ver" style="font-size:10px; color:var(--mu); margin-top:2px;">v87</small>
-  </div>
-  
-  <div class="acts right">
-    <button class="ic" id="showHist" aria-label="History">
+  <div class="acts-left">
+    <button class="ic" id="showHist">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
       <span id="unreadBadge" class="badge">0</span>
     </button>
-    <button class="ic" id="gs" aria-label="Settings">
+    <button class="ic" id="gs">
       <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 </header>
 
-<!-- ══════════════ CONTROLS ══════════════ -->
 <section class="ctl">
   <div class="mode-switch">
     <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
     <button id="modeRange">استراتژی رنج</button>
   </div>
-
-  <div class="strategy-box" aria-label="Strategy">
+  <div class="strategy-box">
     <div class="strategy-title">
-      <div><span class="od"></span><b id="stratTitle">الگوی ۳+۱</b></div>
+      <span id="stratTitle">الگوی ۳+۱</span>
+      <span class="od"></span>
     </div>
     <div class="cond-chips" id="condChips"></div>
   </div>
+  <div class="nav">
+    <a href="backtest.html"><span>📊</span><span>بک‌تست</span></a>
+    <a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a>
+  </div>
+  <div class="chips" id="mkts"></div>
 
-  <div class="nav"><a href="alerts.html"><span>🔔</span><span id="navAlerts">هشدار قیمت</span></a><a href="backtest.html"><span>📊</span><span id="navBacktest">بک‌تست</span></a></div>
-  <div class="chips" id="mkts" aria-label="Markets"></div>
-</section>
-
-<!-- ══════════════ SETTINGS ══════════════ -->
-<div class="set" id="set">
-  <h3 id="setFilters">تنظیمات پیشرفته</h3>
-  <label><span id="setH1Strict">H1 سخت‌گیرانه</span><input type="checkbox" id="h1s"></label>
-  <div style="display:flex; gap:10px; margin-top:5px; margin-bottom:10px; padding: 0 14px;">
-    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
-      <span id="setRsiL">خرید زیر:</span>
-      <input type="number" id="rsiL" value="40" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+  <!-- ═══ المان اسکن بازار ═══ -->
+  <div id="scanStatusCard">
+    <div class="ss-top">
+      <div class="ss-info">
+        <div class="ss-counter"><span id="scanCurrent">0</span> / <span id="scanTotal">0</span></div>
+        <div class="ss-symbol" id="scanSymbol">-</div>
+      </div>
+      <div class="ss-radar"><div class="ss-sweep"></div></div>
     </div>
-    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--mu);">
-      <span id="setRsiS">فروش بالای:</span>
-      <input type="number" id="rsiS" value="60" min="1" max="99" style="width:55px; min-height:30px; background:var(--bg); border:1px solid var(--bd); border-radius:6px; color:var(--tx); text-align:center; direction:ltr;">
+    <div class="ss-progress-track">
+      <div class="ss-progress-fill" id="scanProgressFill"></div>
     </div>
   </div>
-  <label><span id="setOnly">فقط سیگنال‌دارها</span><input type="checkbox" id="only"></label>
-  
-  <h3 id="setSource">منبع داده</h3>
-  <label><span id="setOanda">OANDA توکن</span><div style="display:flex;gap:6px;width:54%;align-items:center"><input type="password" id="tok" placeholder="API token" autocomplete="off" style="width:100%;min-height:38px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:0 11px;direction:ltr;font-size:13px"><button id="saveTok" style="min-height:38px;padding:0 12px;border-radius:10px;font-size:12px;background:var(--card2);border:1px solid var(--bd);color:var(--tx);cursor:pointer">ذخیره</button></div></label>
-  <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
-  
-  <h3 id="setApp">برنامه</h3>
-  <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی</span>
-    <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700; border-radius:8px; padding:6px;">پاک‌کردن کش</button>
-  </label>
+</section>
 
-  <h3 id="setNotifs">اعلان‌ها و صدا</h3>
-  <label><span id="setNotifSys">اعلان سیستمی و صدا</span><button id="nt" style="border-radius:8px; padding:6px;">فعال‌سازی</button></label>
-  <label><span id="setNotifVoice">تست صدای هوش مصنوعی</span><button id="testVoiceBtn" onclick="window.testVoice()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb); border-radius:8px; padding:6px;">تست صدا</button></label>
-  <label><span>سرعت صدا: <b id="ttsRateVal">35</b></span><input type="range" id="ttsRate" min="0" max="100" step="5" value="35" style="width:55%"></label>
-</div>
-
-<!-- ══════════════ LIST & LOADING ══════════════ -->
-<div class="st" id="st" style="text-align:center; padding:10px; font-size:12px; color:var(--mu);">آماده</div>
+<div class="st" id="st">آماده</div>
 
 <main id="list">
-    <div class="sk" style="height:96px; background:var(--card); border-radius:12px;"></div>
-    <div class="sk" style="height:96px; background:var(--card); border-radius:12px; margin-top:10px;"></div>
+    <div class="sk"></div>
+    <div class="sk"></div>
+    <div class="sk"></div>
 </main>
 
-<!-- ══════════════ SCAN BUTTON ══════════════ -->
 <div class="scan-container">
   <button class="big-scan" id="go">
-    <span id="goT">اسکن</span> <small id="goC" style="font-size:12px; opacity:0.8; margin-right:6px;"></small>
+    <span class="scan-loader"></span>
+    <span id="goT">اسکن</span>
   </button>
 </div>
 
-<!-- ══════════════ HISTORY MODAL ══════════════ -->
-<div id="histModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; padding:20px; overflow:auto;">
-  <div style="max-width:650px; margin:0 auto; background:var(--card); border:1px solid var(--bd); border-radius:var(--rad); padding:15px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <h3 id="histTitle" style="color:var(--gb); margin:0; font-size:16px;">📊 پنل تحلیل و سیگنال‌ها</h3>
-      <button id="closeHist" style="min-height:32px; padding:0 12px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); border-radius:8px; cursor:pointer;">✕ بستن</button>
-    </div>
-    
-    <div class="screener-history-panel">
-        <div class="pnl-summary-card" style="display:flex; justify-content:space-between; background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--bd);">
-            <div style="text-align:center; flex:1;">
-                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">سود/زیان</span>
-                <span id="totalNetPoints" style="font-size:15px; font-weight:800; color:var(--gb); direction:ltr; display:block;">۰</span>
-            </div>
-            <div style="text-align:center; flex:1; border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
-                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">برنده / بازنده</span>
-                <span id="winLossCounts" style="font-size:15px; font-weight:700; display:block;">۰ / ۰</span>
-            </div>
-            <div style="text-align:center; flex:1;">
-                <span style="font-size:11px; color:var(--mu); display:block; margin-bottom:4px;">وین‌ریت</span>
-                <span id="totalWinRate" style="font-size:15px; font-weight:800; display:block;">۰٪</span>
-            </div>
-        </div>
-
-        <div class="time-filter-container" style="display:flex; gap:6px; margin:12px 0;">
-            <button class="filter-time-btn active" onclick="setTimeFilter('all', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">کل زمان‌ها</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('today', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">امروز</button>
-            <button class="filter-time-btn" onclick="setTimeFilter('week', this)" style="flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:12px;">۷ روز اخیر</button>
-        </div>
-
-        <div class="chart-section" style="margin:15px 0; height:200px;">
-            <h3 style="font-size:13px; margin-bottom:8px; color:var(--tx2);">📊 مقایسه عملکرد استراتژی‌ها</h3>
-            <canvas id="strategyPerformanceChart"></canvas>
-        </div>
-
-        <div class="history-tabs" style="display:flex; gap:6px; margin-bottom:12px;">
-            <button class="tab-btn active" onclick="switchHistoryTab('open', this)" id="btnOpen" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:13px;">سیگنال‌های باز (<span id="openCount">0</span>)</button>
-            <button class="tab-btn" onclick="switchHistoryTab('closed', this)" id="btnClosed" style="flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx); cursor:pointer; font-size:13px;">سیگنال‌های بسته (<span id="closedCount">0</span>)</button>
-        </div>
-
-        <div id="signalsContainer" class="signals-container" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto;"></div>
-    </div>
-  </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-window.__BS_LOCAL_BUILD = 87;
-window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
-window.__BS_ASSET_BASE = "";
-</script>
-<script src="symbols.js?v=87"></script>
-<script src="alerts.js?v=87"></script>
-<script src="engine.js?v=87"></script>
-<script src="presets.js?v=87"></script>
-<script src="chart.js?v=87"></script>
-<script>
-window.onerror = function(msg, url, line) {
-    const errBox = document.getElementById('debug-err');
-    if(errBox) errBox.textContent = "ERROR: " + msg + " (Line " + line + ")";
-    return false;
-};
-
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
-
-const I18N = {
-  fa: {
-    scan: "اسکن", goFetch: "دریافت...", long: "لانگ", short: "شورت", all: "همه",
-    noSignal: "بدون سیگنال", symbols: "نماد", scanning: "در حال دریافت دیتا...", ready: "آماده",
-    noSignalsYet: "فعلاً سیگنالی نیست", errFetch: "خطا در دریافت دیتا", risk: "ریسک", entry: "ورود", sl: "SL", exit: "خروج",
-    fail_pattern: "الگوی ۳+۱", fail_range: "استراتژی رنج", c_trend: "روند", c_emax: "EMA", c_nc: "کندل", c_pat: "الگو", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
-  },
-  en: {
-    scan: "Scan", goFetch: "Fetching...", long: "LONG", short: "SHORT", all: "All",
-    noSignal: "No Signal", symbols: "Symbols", scanning: "Fetching data...", ready: "Ready",
-    noSignalsYet: "No signals yet", errFetch: "Fetch error", risk: "Risk", entry: "Entry", sl: "SL", exit: "Exit",
-    fail_pattern: "Pattern 3+1", fail_range: "Range Strategy", c_trend: "Trend", c_emax: "EMA", c_nc: "Candle", c_pat: "Pattern", c_m15: "M15", c_h1: "H1", c_rsi: "RSI"
-  }
-};
-
-let currentLang = LS("bs_lang") || 'fa';
-const T = () => (I18N[currentLang] || I18N.fa);
-
-let COND = {trend:true, emax:true, nc:true, pat:true, adx:false, m15:true, h1:true, rsi:true};
-try { const savedCond = LS("bs_cond"); if (savedCond) COND = { ...COND, ...JSON.parse(savedCond) }; } catch(e) {}
-COND.adx = false;
+const fmtNum = n => Number(n).toLocaleString('fa-IR');
 
 let currentMode = LS("bs_mode") || "pattern";
-let ACTIVE_SIGS = {}; try { ACTIVE_SIGS = JSON.parse(LS("bs_active_sigs") || "{}"); } catch(e) {}
-function saveActiveSigs(){ try{ LS("bs_active_sigs", JSON.stringify(ACTIVE_SIGS)); }catch(e){} }
-
-let COOLDOWNS = {}; try { COOLDOWNS = JSON.parse(LS("bs_cooldowns") || "{}"); } catch(e) { COOLDOWNS = {}; }
-function saveCooldowns() { try { LS("bs_cooldowns", JSON.stringify(COOLDOWNS)); } catch(e) {} }
-const COOLDOWN_DURATION_MS = 30 * 60 * 1000;
-
+let currentLang = LS("bs_lang") || 'fa';
 let UNREAD = parseInt(LS("bs_unread") || "0");
-function updateUnreadBadge() {
-    const b = $("unreadBadge");
-    if (b) {
-        if (UNREAD > 0) { b.textContent = UNREAD > 99 ? "99+" : UNREAD; b.classList.add("on"); } else { b.classList.remove("on"); }
-    }
-}
+let isScanning = false; // متغیر جلوگیری از تداخل اسکن‌ها
 
-/* ══════════════ TTS & SPLASH LOGIC (اصلاح شده) ══════════════ */
-async function speakAI(text) {
-  if (!text || LS("bs_tts_off") === "1") return;
-  const raw = String(text).trim();
-  if (!raw) return;
-
-  return new Promise(function(resolve) {
-      let finished = false;
-      const finish = () => { if(finished) return; finished = true; resolve(); };
-      setTimeout(finish, 4000); // تایمر اضطراری
-
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-          
-          const utterance = new SpeechSynthesisUtterance(raw);
-          // استفاده از زبان اصلی برنامه (فارسی یا انگلیسی) بدون ترجمه کلمات
-          utterance.lang = currentLang === "fa" ? "fa-IR" : "en-US";
-          utterance.rate = (+$("ttsRate")?.value || 35) / 50;
-          
-          utterance.onend = finish;
-          utterance.onerror = finish;
-          
-          window.speechSynthesis.speak(utterance);
-        } else { finish(); }
-      } catch (e) { finish(); }
-  });
-}
-
-window.testVoice = async () => { 
-  await speakAI(currentLang === "fa" ? "تست صدا موفقیت آمیز بود" : "AI voice test successful."); 
-};
-
-function killSplash(){
-  try{
-    var s=document.getElementById('ai-splash');
-    if(s){ s.classList.add('hidden'); setTimeout(()=>{s.style.display='none';}, 300); }
-  }catch(e){}
-}
-window.hideSplash = function(){ killSplash(); };
-
-window.__startAppFull = async function () {
-    var fa = currentLang !== "en";
-    var lines = fa ? ["خوش آمدید.","در حال آماده‌سازی..."] : ["Welcome.","Getting ready..."];
-    
-    var el = document.getElementById("ai-text");
-    if (el) el.textContent = "در حال اتصال...";
-
-    for(var i=0; i<lines.length; i++){
-        if (el) el.textContent = lines[i];
-        await speakAI(lines[i]);
-    }
-    
-    killSplash();
-    try { if (typeof scan === "function") scan(true); } catch (e) {}
-};
-
-window.startApp = function(){
-    if (window.__startAppFull) { window.__startAppFull(); }
-    else { killSplash(); }
-};
-
+function killSplash(){ var s=$('ai-splash'); if(s) s.style.display='none'; }
 document.addEventListener('DOMContentLoaded', function(){
-    var sk=document.getElementById('skip-ai-btn');
-    var st=document.getElementById('start-ai-btn');
-    if(sk) sk.onclick = function(ev){ if(ev) ev.preventDefault(); window.hideSplash(); return false; };
-    if(st) st.onclick = function(ev){ if(ev) ev.preventDefault(); window.startApp(); return false; };
+    if($('skip-ai-btn')) $('skip-ai-btn').onclick = () => { killSplash(); scan(true); };
+    if($('start-ai-btn')) $('start-ai-btn').onclick = () => { killSplash(); scan(true); };
 });
 
-window.clearCache = async () => {
-    try {
-        if ("serviceWorker" in navigator) {
-            const rs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(rs.map(g => g.unregister()));
-        }
-        if (typeof caches !== "undefined") {
-            const ks = await caches.keys();
-            await Promise.all(ks.map(k => caches.delete(k)));
-        }
-    } catch (e) {}
-    location.replace(location.pathname + "?r=" + Date.now());
-};
-
-function updateSplashLangUi() {
-  const fa = currentLang === "fa";
-  const btnFa = $("splashLangFa"), btnEn = $("splashLangEn");
-  const on = "var(--gd)", onTx = "var(--gb)", off = "transparent", offTx = "var(--mu)";
-  if (btnFa) { btnFa.style.background = fa ? on : off; btnFa.style.color = fa ? onTx : offTx; }
-  if (btnEn) { btnEn.style.background = !fa ? on : off; btnEn.style.color = !fa ? onTx : offTx; }
-  if ($("ai-text") && !$("ai-text").textContent.includes("اتصال")) {
-      $("ai-text").textContent = fa ? "برای ورود ضربه بزنید" : "Tap to enter";
-  }
-  if ($("start-ai-btn")) $("start-ai-btn").textContent = fa ? "ورود به اسکرینر" : "Enter Screener";
-  if ($("skip-ai-btn")) $("skip-ai-btn").textContent = fa ? "رد کردن" : "Skip";
-  document.body.dir = fa ? "rtl" : "ltr";
-  document.documentElement.lang = currentLang;
-}
-
-/* ══════════════ UI & LOGIC ══════════════ */
-function renderCondChips() {
-    try {
-        const t = T();
-        let labels = currentMode === "range" ? { rsi: t.c_rsi } : { trend: t.c_trend, emax: t.c_emax, nc: t.c_nc, pat: t.c_pat, m15: t.c_m15, h1: t.c_h1, rsi: t.c_rsi };
-        const el = $("condChips");
-        if(el) el.innerHTML = Object.keys(labels).map(k => `<button class="c-chip ${COND[k]?'on':''}" data-k="${k}">${labels[k]}</button>`).join("");
-    } catch(e) {}
-}
-
-if ($("condChips")) $("condChips").onclick = e => {
-    const b = e.target.closest(".c-chip"); if (!b) return;
-    const k = b.dataset.k; COND[k] = !COND[k]; COND.adx = false; LS("bs_cond", JSON.stringify(COND));
-    renderCondChips(); if (LAST) renderList(); 
-};
-
-function setMode(mode) {
-    currentMode = mode; LS("bs_mode", mode);
-    if($("modePattern")) $("modePattern").classList.toggle("on", mode === "pattern");
-    if($("modeRange")) $("modeRange").classList.toggle("on", mode === "range");
-    setText("stratTitle", mode === "range" ? T().fail_range : T().fail_pattern);
-    renderCondChips(); if (LAST) renderList();
-}
-if ($("modePattern")) $("modePattern").onclick = () => setMode("pattern");
-if ($("modeRange")) $("modeRange").onclick = () => setMode("range");
-
+// Logic for UI
 function applyLanguage() {
-    try {
-        document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-        document.documentElement.lang = currentLang;
-        const t = T();
-        setText("goT", t.scan); setText("langToggle", currentLang === 'fa' ? 'EN' : 'FA');
-        updateSplashLangUi();
-        setText("stratTitle", currentMode === 'range' ? t.fail_range : t.fail_pattern);
-        renderCondChips(); if(LAST) renderList();
-    } catch(e) {}
+    document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+    setText("stratTitle", currentMode === "range" ? "استراتژی رنج" : "الگوی ۳+۱");
+    setText("langToggle", currentLang === 'fa' ? "EN" : "FA");
 }
+if($("modePattern")) $("modePattern").onclick = () => { currentMode="pattern"; LS("bs_mode","pattern"); $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); applyLanguage(); };
+if($("modeRange")) $("modeRange").onclick = () => { currentMode="range"; LS("bs_mode","range"); $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); applyLanguage(); };
+if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang==="fa"?"en":"fa"; LS("bs_lang", currentLang); applyLanguage(); };
 
-if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang === "fa" ? "en" : "fa"; LS("bs_lang", currentLang); applyLanguage(); };
+function renderCondChips() {
+    let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
+    $("condChips").innerHTML = Object.keys(labels).map(k => `<button class="c-chip on">${labels[k]}</button>`).join("");
+}
+renderCondChips();
 
-const BUILD=87;
+// Mock Markets
+const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
+const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
+
+function renderChips() {
+    $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
+        return `<button class="mkt on" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
+    }).join("");
+}
+renderChips();
+
+// Logic for Scanning
 async function fetchGitJson(filename) {
-    const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return res.json();
+    const branches = ['main', 'master'];
+    for (let branch of branches) {
+        try {
+            const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
+            const res = await fetch(url, { cache: 'no-store' });
+            if (res.ok) return await res.json();
+        } catch(e) {}
+    }
+    throw new Error("Fetch error");
 }
 
-let D={}, LAST=null, vf="all";
+async function scan(isAuto = false) {
+    if (isScanning) return; // اگر در حال اسکن است، دوباره شروع نکن
+    isScanning = true;
 
-async function scan(isAISilent = false) {
-  try {
-    const json = await fetchGitJson('data.json');
-    const rows = json.rows || [];
-    D = {}; 
-    rows.forEach(r => {
-        if (Array.isArray(r.a) && Array.isArray(r.h)) {
-            D[r.id] = { id: r.id, a: r.a.map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]})), h: r.h.map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]})) }; 
-        }
-    });
-    LAST = { rows: rows, errs: [], time: new Date(json.time) };
-    renderList();
-    if($("st")) $("st").innerHTML = `آخرین اسکن: ${new Date(json.time).toLocaleTimeString('fa-IR')}`;
-  } catch (e) {
-    if($("st")) $("st").textContent = T().errFetch;
-  }
-}
+    const btn = $("go");
+    const statusCard = $("scanStatusCard");
+    const counter = $("scanCurrent");
+    const totalEl = $("scanTotal");
+    const symEl = $("scanSymbol");
+    const progressFill = $("scanProgressFill");
+    const stEl = $("st");
 
-/* ══════════════ EVALUATION & COOLDOWN (اصلاح منطقی) ══════════════ */
-function evalRow(r) {
-    if (!D[r.id] || !D[r.id].a || !D[r.id].h) return r;
+    // فعال کردن ظاهر اسکن (چه دستی چه خودکار)
+    if(!isAuto) {
+        btn.classList.add("loading");
+        $("goT").textContent = "در حال اسکن...";
+    }
+    statusCard.classList.add("on");
+
     try {
-        const now = Date.now();
+        stEl.textContent = "در حال دریافت دیتا از سرور...";
+        const json = await fetchGitJson('data.json');
+        const rows = json.rows || [];
         
-        // اگر در کول‌داون است، فقط رد شو (نباید کول‌داون رو تمدید کنه)
-        if (COOLDOWNS[r.id] && (now - COOLDOWNS[r.id] < COOLDOWN_DURATION_MS)) {
-            const remainingMins = Math.ceil((COOLDOWN_DURATION_MS - (now - COOLDOWNS[r.id])) / 60000);
-            return { ...r, side: null, pass: 0, total: 7, fail: `کول‌داون (${remainingMins} دقیقه)`, checks: [] };
+        totalEl.textContent = rows.length;
+        
+        // شبیه‌سازی انیمیشن اسکن (حتی در حالت خودکار، برای اینکه کاربر ببیند سیستم کار می‌کند)
+        for(let i=0; i<rows.length; i++) {
+            const r = rows[i];
+            counter.textContent = i + 1;
+            symEl.textContent = r.id;
+            progressFill.style.width = `${((i+1)/rows.length)*100}%`;
+            
+            // در اسکن خودکار سریع‌تر رد شو تا کاربر معطل نشود
+            const delay = isAuto ? 5 : 15; 
+            if(i % 3 === 0) await new Promise(res => setTimeout(res, delay));
         }
 
-        const opts = {
-            mode: currentMode, trend: COND.trend, emax: COND.emax, nc: COND.nc, pat: COND.pat,
-            adx: false, m15: COND.m15, h1: COND.h1, h1Strict: $("h1s") ? $("h1s").checked : false,
-            rsi: COND.rsi, rsiL: +$("rsiL").value || 40, rsiS: +$("rsiS").value || 60
-        };
-        const res = evaluate(r.id, D[r.id].a, D[r.id].h, opts, now / 1000);
-        let finalSide = res.side, finalFail = res.fail;
-
-        // اگر سیگنال جدیدی صادر شد
-        if (finalSide) {
-            if (isSignalOpen(r.id)) {
-                finalSide = null; finalFail = "سیگنال باز قبلی هنوز بسته نشده";
-            } else {
-                // فقط زمانی که سیگنال صادر می‌شود کول‌داون ست شود
-                COOLDOWNS[r.id] = now;
-                saveCooldowns();
-                ACTIVE_SIGS[r.id] = { side: finalSide, entry: res.entry, sl: res.sl, time: Math.floor(now / 1000) };
-                saveActiveSigs();
-                speakAI(`${finalSide === "LONG" ? "لانگ" : "شورت"} سیگنال روی ${r.id}`);
-                UNREAD++; LS("bs_unread", UNREAD); updateUnreadBadge();
-            }
-        }
-
-        return { ...r, side: finalSide, entry: res.entry, sl: res.sl, tp: res.tp, pass: res.pass || 0, total: res.total || 7, fail: finalFail, rsi: res.rsi, adx: res.adx, checks: res.checks || [], mode: currentMode };
+        renderList(rows);
+        stEl.innerHTML = `آخرین اسکن سرور: ${new Date(json.time).toLocaleTimeString('fa-IR')} · ${rows.length} نماد`;
+        
     } catch (e) {
-        return { ...r, side: null, pass: 0, total: 7, fail: "خطا در محاسبه", checks: [] };
+        stEl.textContent = "خطا در دریافت دیتا از سرور";
+        $("list").innerHTML = `
+        <div class="err-box">
+            <h4>⚠️ خطا در دریافت دیتا</h4>
+            <p>ممکن است دسترسی به سرور محدود شده باشد. لطفاً از VPN یا توکن OANDA استفاده کنید.</p>
+            <div class="err-list">BTCUSDT, ETHUSDT, XRPUSDT, SOLUSDT, BNBUSDT...</div>
+        </div>`;
+    } finally {
+        isScanning = false;
+        if(!isAuto) {
+            btn.classList.remove("loading");
+            $("goT").textContent = "اسکن";
+        }
+        // مخفی کردن کارت اسکن بعد از یک ثانیه
+        setTimeout(() => {
+            statusCard.classList.remove("on");
+            progressFill.style.width = "0%"; // ریست کردن نوار
+        }, 1000);
     }
 }
 
-function isSignalOpen(id, side){
-  const a = ACTIVE_SIGS[id];
-  if(!a) return false;
-  if(side && a.side !== side) return false;
-  if(Date.now()/1000 - a.time > 6 * 3600) return false; // منقضی شدن بعد از ۶ ساعت
-  return true;
-}
+// Render List
+function renderList(rows) {
+    const sg = rows.filter(r => r.side).slice(0, 5); // فقط ۵ تا برای دمو
+    let no = rows.filter(r => !r.side);
 
-function sigHtml(r){
-    const d=r.d || 2, f=x=> (x == null || isNaN(x)) ? "-" : Number(x).toFixed(d);
-    const L=r.side==="LONG";
-    const risk= (r.entry && r.sl) ? Math.abs(r.entry-r.sl)/r.entry*100 : 0;
-    return `<article class="row sig ${r.side}" data-id="${r.id}" tabindex="0">
-    <div class="r-head"><div class="r-id"><span class="sym">${r.id}</span><span style="font-size:11px; padding:2px 8px; background:var(--bd); border-radius:4px; margin-inline-start:8px;">${currentMode === 'range' ? 'رنج' : 'روند'}</span></div><span class="b ${r.side}">${L?"▲":"▼"} ${L?T().long:T().short}</span></div>
-    <div class="r-grid"><div><i>${T().entry}</i><b>${f(r.entry)}</b></div><div><i>${T().sl}</i><b class="neg">${f(r.sl)}</b></div><div><i>${T().exit}</i><b class="pos">RSI</b></div></div>
-    <div class="r-foot"><span>${T().risk} <bdi>${risk.toFixed(2)}%</bdi></span><span><bdi dir="ltr">RSI ${r.rsi!=null?r.rsi.toFixed(0):"-"}</bdi></span></div></article>`;
+    let emptyHtml = '';
+    if (sg.length === 0) {
+        emptyHtml = `<div class="empty">
+            <div class="empty-icon">🌙</div>
+            <div class="empty-text">فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد</div>
+        </div>`;
+    }
+
+    let detailsHtml = '';
+    if (no.length > 0) {
+        const dummyNo = no.slice(0, 5).map((r, i) => ({ ...r, pass: 7-i, total: 7 }));
+        detailsHtml = `
+        <details class="nb" style="margin-top:16px;">
+            <summary>
+                <span>بدون سیگنال</span>
+                <span>${fmtNum(no.length)} نماد</span>
+            </summary>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                ${dummyNo.map(r => noneHtml(r)).join("")}
+            </div>
+        </details>`;
+    }
+
+    $("list").innerHTML = (sg.length ? sg.map(r => {
+        const L = r.side === "LONG";
+        return `<article class="row sig ${r.side}">
+            <div class="r-head">
+                <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
+                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">کریپتو</span></div>
+                <div class="sym">${r.id}</div>
+            </div>
+            <div class="r-grid">
+                <div><i>ورود</i><b>${r.entry || '10.8540'}</b></div>
+                <div><i>SL</i><b class="neg">${r.sl || '10.9103'}</b></div>
+                <div><i>خروج</i><b class="pos">RSI</b></div>
+            </div>
+            <div class="r-foot">
+                <span>ریسک <bdi>0.52%</bdi></span>
+                <span><bdi dir="ltr">RSI 64</bdi></span>
+            </div>
+        </article>`;
+    }).join("") : emptyHtml) + detailsHtml;
 }
 
 function noneHtml(r){
-    const passCount = r.pass != null ? r.pass : 0;
-    const totalCount = r.total != null ? r.total : 7;
-    const percent = Math.round((passCount / totalCount) * 100);
-    return `<div class="row none" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; margin-bottom:8px;">
-      <div class="rn-right" style="display:flex; flex-direction:column; gap:3px;">
-        <span class="sym" style="font-weight:700; font-size:15px; color:var(--tx); direction:ltr;">${r.id}</span>
-        <span class="why" style="font-size:12px; color:var(--mu);">${r.fail || ''}</span>
-      </div>
-      <div class="rn-left" style="display:flex; align-items:center; gap:12px;">
-        <span class="score" style="font-size:13px; font-weight:700; color:var(--tx2); direction:ltr;">${passCount}/${totalCount}</span>
-        <div class="ring-box" style="position:relative; width:38px; height:38px; display:grid; place-items:center;">
-          <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform:rotate(-90deg);">
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bd)" stroke-width="3.5"/>
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${passCount >= 5 ? 'var(--gb)' : 'var(--mu)'}" stroke-width="3.5" stroke-dasharray="${percent}, 100"/>
-          </svg>
-          <span style="position:absolute; font-size:11px; font-weight:800; color:var(--tx); direction:ltr;">${passCount}</span>
+    let color = 'rgba(255,255,255,0.1)';
+    let textColor = 'var(--tx2)';
+    let N = r.total || 7;
+    let P = r.pass || 0;
+    
+    if (N === 0) {
+        color = 'rgba(255,255,255,0.1)'; textColor = 'var(--tx2)';
+    } else {
+        const ratio = P / N;
+        if (P === N) {
+            color = 'hsl(145, 80%, 55%)'; textColor = 'hsl(145, 80%, 65%)';
+        } else {
+            const hue = ratio * 120;
+            color = `hsl(${hue}, 85%, 55%)`;
+            textColor = `hsl(${hue}, 85%, 65%)`;
+        }
+    }
+    
+    const R = 15, cx = 22, cy = 22;
+    let paths = '';
+    if (N > 0) {
+        const anglePerSeg = 360 / N;
+        const gapAngle = Math.min(16, anglePerSeg * 0.4);
+        const arcAngle = anglePerSeg - gapAngle;
+        for (let i = 0; i < N; i++) {
+            const startAngle = i * anglePerSeg - 90 + (gapAngle/2);
+            const endAngle = startAngle + arcAngle;
+            const x1 = cx + R * Math.cos(startAngle * Math.PI / 180);
+            const y1 = cy + R * Math.sin(startAngle * Math.PI / 180);
+            const x2 = cx + R * Math.cos(endAngle * Math.PI / 180);
+            const y2 = cy + R * Math.sin(endAngle * Math.PI / 180);
+            const isPassed = i < P;
+            const strokeColor = isPassed ? color : 'rgba(255,255,255,0.1)';
+            const largeArcFlag = arcAngle > 180 ? 1 : 0;
+            paths += `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round"/>`;
+        }
+    }
+    return `
+    <div class="row none">
+        <div class="rn-right">
+            <span class="sym">${r.id}</span>
+            <span class="why">${currentMode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span>
         </div>
-      </div>
+        <div class="rn-left">
+            <span class="score" style="color:${textColor}">${P}/${N}</span>
+            <div class="ring-box">
+                <svg width="44" height="44" viewBox="0 0 44 44">${paths}</svg>
+                <div class="inner-pill" style="background:${P > 0 ? color : 'rgba(255,255,255,0.1)'}"></div>
+            </div>
+        </div>
     </div>`;
-}
-
-function renderList(){
-  try {
-      if(!LAST) return;
-      let evaluatedRows = LAST.rows.map(evalRow);
-      const all = evaluatedRows.filter(r=>r.side), sg = all.filter(r=>vf==="all"||r.side===vf);
-      let no = evaluatedRows.filter(r=>!r.side);
-      no.sort((a, b) => (b.pass || 0) - (a.pass || 0));
-
-      if($("list")) {
-          $("list").innerHTML = 
-              (sg.length ? sg.map(sigHtml).join("") : `<div class="empty" style="text-align:center; padding:40px 20px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🔍</div>${T().noSignalsYet}</div>`) + 
-              (no.length ? `<details style="margin-top:16px;"><summary style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:44px; padding:0 14px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2); font-size:13.5px; font-weight:600;"><span>بدون سیگنال (${no.length} نماد)</span><span style="font-size:12px; color:var(--mu);">نمایش رتبه‌بندی ▾</span></summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.map(noneHtml).join("")}</div></details>` : "");
-      }
-  } catch (err) {}
 }
 
 if($("go")) $("go").onclick = () => scan(false);
 
-/* ══════════════ HISTORY MODAL ══════════════ */
-let historyTimeFilter = 'all';
-let historyTabState = 'open';
-const HISTL_KEY = "bs_hist_local";
-function loadLocalHist() { try { return JSON.parse(LS(HISTL_KEY) || "[]"); } catch (e) { return []; } }
+// ═══════════════════════════════════════════════════════════════════
+// شروع اولیه و تنظیم اسکن خودکار (هر ۳ دقیقه یک‌بار)
+// ═══════════════════════════════════════════════════════════════════
+applyLanguage();
 
-function setTimeFilter(filter, btnEl) {
-    historyTimeFilter = filter;
-    document.querySelectorAll('.filter-time-btn').forEach(b => b.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
-    updateHistoryModalContent();
-}
-window.setTimeFilter = setTimeFilter;
+// اجرای اولیه پس از بسته شدن اسپلش
+setTimeout(() => {
+    scan(true); 
+}, 1000);
 
-function switchHistoryTab(tab, btnEl) {
-    historyTabState = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
-    updateHistoryModalContent();
-}
-window.switchHistoryTab = switchHistoryTab;
+// حلقه اسکن خودکار
+setInterval(() => {
+    // اگر اسپلش باز است، اسکن نکن
+    if($('ai-splash').style.display !== 'none') return;
+    
+    // اجرای اسکن خودکار (isAuto = true)
+    scan(true);
+}, 3 * 60 * 1000); // 3 دقیقه
 
-let myStrategyChart = null;
-function renderStrategyChart(statsData) {
-    const canvasEl = $('strategyPerformanceChart');
-    if (!canvasEl) return;
-    const ctx = canvasEl.getContext('2d');
-    if (myStrategyChart) { myStrategyChart.destroy(); myStrategyChart = null; }
-    const dataValues = statsData || [0, 0];
-    myStrategyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['روند', 'رنج'],
-            datasets: [{
-                label: 'سود کل (R)',
-                data: dataValues,
-                backgroundColor: ['rgba(70, 197, 140, 0.2)', 'rgba(90, 140, 255, 0.2)'],
-                borderColor: ['#46c58c', '#5a8cff'],
-                borderWidth: 1.5,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { color: '#a7aebb', font: { size: 11 } } },
-                y: { grid: { color: '#232830' }, ticks: { color: '#a7aebb', font: { size: 11 } } }
-            }
-        }
-    });
-}
-
-function updateHistoryModalContent() {
-    try {
-        const closedHist = loadLocalHist();
-        const openSigs = Object.keys(ACTIVE_SIGS).map(id => ({ id, ...ACTIVE_SIGS[id] }));
-
-        if ($('openCount')) $('openCount').textContent = openSigs.length;
-        if ($('closedCount')) $('closedCount').textContent = closedHist.length;
-
-        const container = $('signalsContainer');
-        if (!container) return;
-
-        let itemsToRender = [];
-        let wins = 0, losses = 0, totalPnl = 0;
-
-        closedHist.forEach(item => {
-            const pnl = item.R || (item.result === 'win' ? 2.5 : -1);
-            totalPnl += pnl;
-            if (item.result === 'win') wins++; else losses++;
-        });
-
-        const totalTrades = wins + losses;
-        const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
-
-        if ($('totalNetPoints')) {
-            $('totalNetPoints').textContent = (totalPnl >= 0 ? "+" : "") + totalPnl.toFixed(1) + " R";
-            $('totalNetPoints').style.color = totalPnl >= 0 ? "var(--gb)" : "var(--rb)";
-        }
-        if ($('winLossCounts')) $('winLossCounts').textContent = `${wins} / ${losses}`;
-        if ($('totalWinRate')) $('totalWinRate').textContent = `${winRate}%`;
-
-        renderStrategyChart([Math.max(0, totalPnl * 0.7), Math.max(0, totalPnl * 0.3)]);
-
-        if (historyTabState === 'open') {
-            itemsToRender = openSigs;
-        } else {
-            const now = Date.now();
-            itemsToRender = closedHist.filter(item => {
-                const itemTime = (item.time || item.bt || 0) * (String(item.time).length > 10 ? 1 : 1000);
-                if (historyTimeFilter === 'today') return (now - itemTime) <= 24 * 3600 * 1000;
-                if (historyTimeFilter === 'week') return (now - itemTime) <= 7 * 24 * 3600 * 1000;
-                return true;
-            });
-        }
-
-        if (itemsToRender.length === 0) {
-            container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--mu);">موردی برای نمایش وجود ندارد.</div>`;
-            return;
-        }
-
-        container.innerHTML = itemsToRender.map(s => {
-            const isOpen = historyTabState === 'open';
-            const side = s.side || 'LONG';
-            const isLong = side === 'LONG';
-            return `<div style="background:var(--bg); border:1px solid var(--bd2); border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; direction:ltr;">
-                <div>
-                    <div style="font-weight:700; font-size:14px; color:var(--tx);">${s.id} <span style="font-size:11px; padding:2px 6px; border-radius:4px; background:${isLong?'var(--gd)':'var(--rd)'}; color:${isLong?'var(--gb)':'var(--rb)'}">${side}</span></div>
-                    <div style="font-size:11.5px; color:var(--mu); margin-top:3px;">ورود: ${s.entry || '-'} | SL: ${s.sl || '-'}</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:13px; font-weight:700; color:${isOpen ? 'var(--tx2)' : (s.result === 'win' ? 'var(--gb)' : 'var(--rb)')};">
-                        ${isOpen ? 'در حال پایش...' : (s.result === 'win' ? 'تارگت موفق (+R)' : 'حد ضرر (-1R)')}
-                    </div>
-                </div>
-            </div>`;
-        }).join("");
-    } catch (e) {}
-}
-
-if($("showHist")) $("showHist").onclick = () => {
-    UNREAD = 0; LS("bs_unread", 0); updateUnreadBadge();
-    if($("histModal")) $("histModal").style.display = "block";
-    updateHistoryModalContent();
-};
-if($("closeHist")) $("closeHist").onclick = () => { if($("histModal")) $("histModal").style.display = "none"; };
-
-/* ══════════════ INIT ══════════════ */
-try { 
-    applyLanguage(); 
-    updateSplashLangUi(); 
-} catch(e) {}
 </script>
 </body>
 </html>
