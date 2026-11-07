@@ -9,9 +9,6 @@
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════════
-   استایل‌های داخلی (کاملاً منطبق با عکس‌های شما + المان اسکن)
-   ═══════════════════════════════════════════════════════════════════ */
 :root {
   --bg: #0b0d11;
   --card: #141820;
@@ -33,12 +30,14 @@ body {
   background: var(--bg);
   color: var(--tx);
   font-family: system-ui, -apple-system, sans-serif;
-  padding-bottom: 90px;
+  padding-bottom: 30px;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
 }
 
-/* Splash Screen */
+/* ═══════════════════════════════════════════════════════════════════
+   صفحه خوشامدگویی (Splash Screen)
+   ═══════════════════════════════════════════════════════════════════ */
 #ai-splash {
   position: fixed; inset: 0; background: var(--bg); z-index: 10000;
   display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
@@ -46,104 +45,116 @@ body {
 }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
-/* Header */
+.splash-lang-bar {
+  position: absolute; top: calc(env(safe-area-inset-top) + 20px); inset-inline-end: 20px;
+  display: flex; background: var(--card); border: 1px solid var(--bd); border-radius: 99px; padding: 4px; z-index: 10001;
+}
+.splash-lang-btn {
+  min-width: 54px; min-height: 38px; border: none; border-radius: 99px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; background: transparent; color: var(--mu);
+}
+.splash-lang-btn.active { background: var(--gd); color: var(--gb); }
+
+.ai-avatar-img {
+  width: min(220px, 55vw); height: min(220px, 55vw);
+  border-radius: 50%; object-fit: cover; border: 4px solid var(--gb);
+  box-shadow: 0 0 30px rgba(70,197,140,0.4); margin-bottom: 24px;
+}
+
+.splash-title {
+  font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px;
+  color: #46c58c; 
+  background: linear-gradient(90deg, #46c58c, #e6e9ee);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.splash-subtitle { font-size: 15px; color: var(--tx2); font-weight: 500; margin-bottom: 30px; line-height: 1.6;}
+
+#start-ai-btn {
+  width: min(280px, 90%); min-height: 56px; background: var(--gb); color: #0b0d11;
+  border: none; border-radius: 16px; font-weight: 800; font-size: 17px; cursor: pointer;
+  box-shadow: 0 4px 25px rgba(70, 197, 140, 0.4); transition: transform 0.2s;
+}
+#start-ai-btn:active { transform: scale(0.96); }
+
+#skip-ai-btn {
+  margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px;
+  font-size: 14px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px;
+}
+.mute-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mu); margin-top: 30px; cursor: pointer; }
+.mute-label input { width: 18px; height: 18px; accent-color: var(--gb); cursor: pointer; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   بقیه استایل‌های برنامه
+   ═══════════════════════════════════════════════════════════════════ */
 header.bar {
   display: flex; align-items: center; justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
   background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100;
 }
 .acts-right { display: flex; align-items: center; flex-shrink: 0; }
-.ic-lang {
-  background: var(--card2); border: 1px solid var(--bd); color: var(--tx);
-  border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; cursor: pointer; font-size: 14px; font-weight: 800;
-}
 .brand-center { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--tx); }
-.logo-icon {
-  display: grid; place-items: center; width: 28px; height: 28px;
-  background: var(--gb); color: #06150d; border-radius: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(70, 197, 140, 0.4);
-}
+.logo-icon { display: grid; place-items: center; width: 28px; height: 28px; background: var(--gb); color: #06150d; border-radius: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(70, 197, 140, 0.4); }
 .acts-left { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.ic {
-  background: var(--card2); border: 1px solid var(--bd); color: var(--tx);
-  border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative;
-}
+.ic { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative; }
 .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; }
 .badge.on { display: block; }
 
-/* Controls */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
 .mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; }
 .mode-switch button.on { background: var(--card2); color: var(--tx); border: 1px solid var(--bd2); }
-
 .strategy-box { background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 12px 16px; margin-bottom: 10px; }
 .strategy-title { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
 .od { display: inline-block; width: 10px; height: 10px; background: var(--gb); border-radius: 50%; margin-inline-end: 8px; }
 .cond-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .c-chip { background: var(--card2); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .c-chip.on { background: var(--gd); border-color: var(--gb); color: var(--gb); }
-
 .nav { display: flex; gap: 10px; margin-bottom: 12px; }
 .nav a { flex: 1; background: var(--card); border: 1px solid var(--bd); padding: 14px; border-radius: 12px; color: var(--tx); text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 10px; }
 .chips::-webkit-scrollbar { display: none; }
 .mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--tx2); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   المان زیبای اسکن بازار (Scan Status Card)
-   ═══════════════════════════════════════════════════════════════════ */
-#scanStatusCard {
-  display: none;
-  background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1));
-  border: 1px solid rgba(70,197,140,0.3);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(70,197,140,0.05);
-}
+#scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .ss-info { display: flex; flex-direction: column; gap: 4px; direction: ltr; text-align: left; }
 .ss-counter { font-size: 16px; font-weight: 800; color: var(--tx); }
 .ss-counter span { color: var(--gb); }
 .ss-symbol { font-size: 13px; color: var(--tx2); font-weight: 600; }
-
-/* رادار چرخان */
-.ss-radar {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: 2px solid rgba(70,197,140,0.4);
-  position: relative;
-  background: radial-gradient(circle, rgba(70,197,140,0.2) 0%, transparent 70%);
-}
-.ss-radar::before, .ss-radar::after {
-  content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(70,197,140,0.2);
-}
+.ss-radar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(70,197,140,0.4); position: relative; background: radial-gradient(circle, rgba(70,197,140,0.2) 0%, transparent 70%); }
+.ss-radar::before, .ss-radar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(70,197,140,0.2); }
 .ss-radar::after { inset: 8px; }
-.ss-sweep {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, rgba(70,197,140,0.8), transparent 60deg);
-  animation: radarSpin 1.5s linear infinite;
-}
+.ss-sweep { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, rgba(70,197,140,0.8), transparent 60deg); animation: radarSpin 1.5s linear infinite; }
 @keyframes radarSpin { to { transform: rotate(360deg); } }
-
-/* نوار پیشرفت */
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
 
-/* Status Text */
-.st { text-align:center; padding:10px 0; font-size:13px; color:var(--mu); font-weight: 500; margin-bottom: 10px; }
+.scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
+.cn span { padding: 4px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--bd2); display: flex; align-items: center; gap: 4px;}
+.cn .l { color: var(--gb); }
+.cn .s { color: var(--rb); }
+.seg { display: inline-flex; background: var(--card); border: 1px solid var(--bd2); border-radius: 8px; padding: 2px; }
+.seg button { min-height: 32px; border: none; border-radius: 6px; background: transparent; color: var(--mu); font-size: 12.5px; padding: 0 12px; cursor: pointer; font-weight: 600; }
+.seg button.on { background: var(--card2); color: var(--tx); }
 
-/* List & Cards */
+.big-scan-btn { width: 100%; min-height: 52px; background: var(--gb); color: #0b0d11; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+.big-scan-btn:active { transform: scale(0.98); }
+.big-scan-btn.loading { background: var(--card2); color: var(--gb); border: 1px solid var(--gb); }
+.big-scan-btn .count-pill { background: rgba(0,0,0,0.15); color: #0b0d11; padding: 2px 10px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.big-scan-btn.loading .count-pill { background: rgba(255,255,255,0.1); color: var(--gb); }
+.scan-loader { display: inline-block; width: 20px; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; position: relative; overflow: hidden; }
+.scan-loader::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: #0b0d11; border-radius: 2px; animation: load 1.5s infinite; }
+@keyframes load { 0% { left: 0; width: 0; } 50% { width: 100%; } 100% { left: 100%; width: 0; } }
+
+.status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
+.status-text span { color: var(--tx2); font-weight: 700; }
+
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
@@ -163,15 +174,12 @@ header.bar {
 .r-grid b { color: var(--tx); font-size: 14px; direction: ltr; display: block; text-align: left;}
 .r-grid .neg { color: var(--rb); }
 .r-grid .pos { color: var(--gb); }
-
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-/* Empty State (Moon) */
 .empty { text-align:center; padding: 40px 20px; color:var(--mu); }
 .empty-icon { font-size: 40px; margin-bottom: 10px; }
 .empty-text { font-size: 14px; line-height: 1.8; }
 
-/* No Signal Section (Accordion) */
 details.nb { margin-top: 16px; }
 details.nb summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 0 16px; background: var(--card); border: 1px solid var(--bd2); border-radius: 12px; color: var(--tx2); font-size: 13.5px; font-weight: 600; }
 details.nb summary::-webkit-details-marker { display: none; }
@@ -187,38 +195,32 @@ details.nb[open] summary::after { transform: rotate(180deg); }
 .ring-box { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
 .ring-box svg { position: absolute; inset: 0; }
 .ring-box .inner-pill { width: 10px; height: 22px; border-radius: 99px; z-index: 1; }
-
-/* Error State Message */
-.err-box { background: rgba(255, 92, 92, 0.1); border: 1px solid rgba(255, 92, 92, 0.3); border-radius: 12px; padding: 16px; color: var(--tx); text-align: center; margin-bottom: 10px; }
-.err-box h4 { color: var(--rb); margin-bottom: 8px; }
-.err-box p { font-size: 13px; line-height: 1.6; color: var(--tx2); margin-bottom: 10px; }
-.err-list { font-size: 11px; color: var(--mu); direction: ltr; text-align: left; max-height: 100px; overflow-y: auto; background: var(--bg); padding: 8px; border-radius: 6px; }
-
-/* Scan Button */
-.scan-container { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 16px); left: 16px; right: 16px; z-index: 99; }
-.big-scan { width: 100%; min-height: 54px; background: var(--gb); color: #0b0d11; border: none; border-radius: 14px; font-weight: 800; font-size: 16px; cursor: pointer; box-shadow: 0 4px 20px rgba(70, 197, 140, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;}
-.big-scan:active { transform: scale(0.98); }
-.big-scan.loading { background: var(--card2); color: var(--gb); border: 1px solid var(--gb); }
-.scan-loader { display: inline-block; width: 20px; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; position: relative; overflow: hidden; }
-.scan-loader::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: #0b0d11; border-radius: 2px; animation: load 1.5s infinite; }
-@keyframes load { 0% { left: 0; width: 0; } 50% { width: 100%; } 100% { left: 100%; width: 0; } }
-
-.sk { height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite; }
-@keyframes pulse { 0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; } }
 </style>
 </head>
 <body>
 
 <div id="ai-splash">
-    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" style="width:88px;height:88px;border-radius:50%;object-fit:cover;margin-bottom:16px;box-shadow:0 0 24px rgba(70,197,140,.25)">
-    <div style="font-size:20px;font-weight:800;margin-bottom:6px;color:var(--tx)">Balanced Screener</div>
-    <div class="ai-text" id="ai-text" style="font-size:14px;color:var(--tx2);margin-bottom:20px;">برای ورود ضربه بزنید</div>
-    <button id="start-ai-btn" class="big-scan" type="button" style="width:min(240px,80%);">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" type="button" style="margin-top:12px;background:transparent;border:none;color:var(--mu);padding:8px 16px;font-size:13px;text-decoration:underline;">رد کردن</button>
+    <div class="splash-lang-bar">
+        <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="setLang('fa')">FA</button>
+        <button type="button" id="splashLangEn" class="splash-lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+
+    <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
+    
+    <div class="splash-title" id="splashTitle">Balanced Screener</div>
+    <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
+    
+    <button id="start-ai-btn" type="button" onclick="doEnter()">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" onclick="doSkip()">رد کردن</button>
+    
+    <label class="mute-label">
+        <input type="checkbox" id="splashMute"> 
+        <span id="muteText">بدون صدا</span>
+    </label>
 </div>
 
 <header class="bar">
-  <div class="acts-right"><button class="ic-lang" id="langToggle">EN</button></div>
+  <div class="acts-right"></div>
   <div class="brand-center">
     <span>Balanced Screener</span>
     <div class="logo-icon">◈</div>
@@ -252,7 +254,6 @@ details.nb[open] summary::after { transform: rotate(180deg); }
   </div>
   <div class="chips" id="mkts"></div>
 
-  <!-- ═══ المان اسکن بازار ═══ -->
   <div id="scanStatusCard">
     <div class="ss-top">
       <div class="ss-info">
@@ -267,22 +268,36 @@ details.nb[open] summary::after { transform: rotate(180deg); }
   </div>
 </section>
 
-<div class="st" id="st">آماده</div>
+<div class="scan-section">
+  <div class="sum-row">
+    <div class="cn" id="sumCounts">
+      <span class="l">▲ ۰ لانگ</span>
+      <span class="s">▼ ۰ شورت</span>
+    </div>
+    <div class="seg" id="sumFilters">
+      <button data-v="all" class="on">همه</button>
+      <button data-v="LONG">لانگ</button>
+      <button data-v="SHORT">شورت</button>
+    </div>
+  </div>
 
-<main id="list">
-    <div class="sk"></div>
-    <div class="sk"></div>
-    <div class="sk"></div>
-</main>
-
-<div class="scan-container">
-  <button class="big-scan" id="go">
-    <span class="scan-loader"></span>
+  <button class="big-scan-btn" id="go">
+    <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
     <span id="goT">اسکن</span>
+    <span class="count-pill" id="goC">۰</span>
   </button>
+
+  <div class="status-text" id="st">
+    <span>آماده</span>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<main id="list">
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+</main>
+
 <script>
 const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
@@ -291,24 +306,116 @@ const fmtNum = n => Number(n).toLocaleString('fa-IR');
 
 let currentMode = LS("bs_mode") || "pattern";
 let currentLang = LS("bs_lang") || 'fa';
-let UNREAD = parseInt(LS("bs_unread") || "0");
-let isScanning = false; // متغیر جلوگیری از تداخل اسکن‌ها
+let vf = "all"; 
+let isScanning = false;
+let LAST = null;
+let isSplashActive = true; 
 
-function killSplash(){ var s=$('ai-splash'); if(s) s.style.display='none'; }
-document.addEventListener('DOMContentLoaded', function(){
-    if($('skip-ai-btn')) $('skip-ai-btn').onclick = () => { killSplash(); scan(true); };
-    if($('start-ai-btn')) $('start-ai-btn').onclick = () => { killSplash(); scan(true); };
-});
+// ═══════════════════════════════════════════════════════════════════
+// موتور صدای مقاوم (رفع مشکل TTS در موبایل)
+// ═══════════════════════════════════════════════════════════════════
+function speakText(text, langCode) {
+    if (!('speechSynthesis' in window)) return;
+    
+    // قطع کردن صدای قبلی برای جلوگیری از صف شدن
+    window.speechSynthesis.cancel();
+    
+    // در بعضی گوشی‌ها باید یک وقفه خیلی کوتاه بعد از cancel باشد
+    setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(text);
+        const voices = window.speechSynthesis.getVoices();
+        let selectedVoice = null;
 
-// Logic for UI
+        if (langCode === 'fa') {
+            // تلاش برای پیدا کردن صدای فارسی
+            selectedVoice = voices.find(v => v.lang.includes('fa') || v.lang.includes('IR'));
+            u.lang = 'fa-IR'; // تنظیم پیش‌فرض
+        } else {
+            // تلاش برای پیدا کردن صدای انگلیسی
+            selectedVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
+            u.lang = 'en-US'; // تنظیم پیش‌فرض
+        }
+
+        if (selectedVoice) u.voice = selectedVoice;
+        
+        // پخش صدا
+        window.speechSynthesis.speak(u);
+    }, 50); // 50 میلی‌ثانیه تاخیر برای پایدارسازی در اندروید
+}
+
+// اضافه کردن لیسنر برای لود شدن صداها در iOS/Android
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices(); 
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// توابع صفحه خوشامدگویی
+// ═══════════════════════════════════════════════════════════════════
+window.setLang = function(lang) {
+    currentLang = lang;
+    LS("bs_lang", lang);
+    
+    if(lang === 'fa') {
+        $('splashLangFa').classList.add('active');
+        $('splashLangEn').classList.remove('active');
+        setText("splashSubtitle", "برای ورود ضربه بزنید");
+        $("start-ai-btn").textContent = "ورود به اسکرینر";
+        $("skip-ai-btn").textContent = "رد کردن";
+        setText("muteText", "بدون صدا");
+    } else {
+        $('splashLangEn').classList.add('active');
+        $('splashLangFa').classList.remove('active');
+        setText("splashSubtitle", "Tap to enter");
+        $("start-ai-btn").textContent = "Enter Screener";
+        $("skip-ai-btn").textContent = "Skip";
+        setText("muteText", "Mute");
+    }
+    applyLanguage();
+};
+
+window.doEnter = function() {
+    isSplashActive = false; 
+    
+    // بستن فوری صفحه (بدون معطل کردن کاربر)
+    var s = $('ai-splash');
+    if(s) { s.classList.add('hidden'); setTimeout(() => s.style.display = 'none', 300); }
+    
+    // پخش صدا با متغیر محلی
+    var isMuted = $("splashMute").checked;
+    if(!isMuted) {
+        let regimeText = currentMode === 'pattern' ? "بازار روند دار است." : "بازار در حال رنج است.";
+        let strategyText = currentMode === 'pattern' ? "استراتژی ۳+۱ انتخاب شد." : "استراتژی رنج انتخاب شد.";
+        
+        let msg = "";
+        if (currentLang === 'fa') {
+            msg = `خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند. ${regimeText} ${strategyText}`;
+        } else {
+            msg = `Welcome to Balanced Screener. System is preparing. Markets are being checked. ${currentMode === 'pattern' ? 'The market is trending. Strategy 3+1 selected.' : 'The market is ranging. Range strategy selected.'}`;
+        }
+        speakText(msg, currentLang);
+    }
+    
+    setTimeout(() => { scan(true); }, 500);
+};
+
+window.doSkip = function() {
+    isSplashActive = false; 
+    var s = $('ai-splash');
+    if(s) { s.classList.add('hidden'); setTimeout(() => s.style.display = 'none', 300); }
+    setTimeout(() => { scan(true); }, 300);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// بقیه منطق برنامه
+// ═══════════════════════════════════════════════════════════════════
 function applyLanguage() {
     document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
     setText("stratTitle", currentMode === "range" ? "استراتژی رنج" : "الگوی ۳+۱");
-    setText("langToggle", currentLang === 'fa' ? "EN" : "FA");
 }
-if($("modePattern")) $("modePattern").onclick = () => { currentMode="pattern"; LS("bs_mode","pattern"); $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); applyLanguage(); };
-if($("modeRange")) $("modeRange").onclick = () => { currentMode="range"; LS("bs_mode","range"); $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); applyLanguage(); };
-if($("langToggle")) $("langToggle").onclick = () => { currentLang = currentLang==="fa"?"en":"fa"; LS("bs_lang", currentLang); applyLanguage(); };
+if($("modePattern")) $("modePattern").onclick = () => { currentMode="pattern"; LS("bs_mode","pattern"); $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); applyLanguage(); if(LAST) renderList(LAST.rows); };
+if($("modeRange")) $("modeRange").onclick = () => { currentMode="range"; LS("bs_mode","range"); $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); applyLanguage(); if(LAST) renderList(LAST.rows); };
 
 function renderCondChips() {
     let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
@@ -316,7 +423,6 @@ function renderCondChips() {
 }
 renderCondChips();
 
-// Mock Markets
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
 
@@ -327,7 +433,17 @@ function renderChips() {
 }
 renderChips();
 
-// Logic for Scanning
+if($("sumFilters")) {
+    $("sumFilters").onclick = (e) => {
+        const b = e.target.closest("button");
+        if(!b) return;
+        vf = b.dataset.v;
+        document.querySelectorAll("#sumFilters button").forEach(btn => btn.classList.remove("on"));
+        b.classList.add("on");
+        if(LAST) renderList(LAST.rows);
+    };
+}
+
 async function fetchGitJson(filename) {
     const branches = ['main', 'master'];
     for (let branch of branches) {
@@ -341,10 +457,11 @@ async function fetchGitJson(filename) {
 }
 
 async function scan(isAuto = false) {
-    if (isScanning) return; // اگر در حال اسکن است، دوباره شروع نکن
+    if (isScanning) return;
     isScanning = true;
 
     const btn = $("go");
+    const loader = $("loaderIcon");
     const statusCard = $("scanStatusCard");
     const counter = $("scanCurrent");
     const totalEl = $("scanTotal");
@@ -352,61 +469,68 @@ async function scan(isAuto = false) {
     const progressFill = $("scanProgressFill");
     const stEl = $("st");
 
-    // فعال کردن ظاهر اسکن (چه دستی چه خودکار)
     if(!isAuto) {
         btn.classList.add("loading");
         $("goT").textContent = "در حال اسکن...";
+        loader.style.display = "inline-block";
     }
+    
     statusCard.classList.add("on");
 
     try {
-        stEl.textContent = "در حال دریافت دیتا از سرور...";
+        stEl.innerHTML = "در حال دریافت دیتا از سرور...";
         const json = await fetchGitJson('data.json');
         const rows = json.rows || [];
         
         totalEl.textContent = rows.length;
         
-        // شبیه‌سازی انیمیشن اسکن (حتی در حالت خودکار، برای اینکه کاربر ببیند سیستم کار می‌کند)
         for(let i=0; i<rows.length; i++) {
             const r = rows[i];
             counter.textContent = i + 1;
             symEl.textContent = r.id;
             progressFill.style.width = `${((i+1)/rows.length)*100}%`;
             
-            // در اسکن خودکار سریع‌تر رد شو تا کاربر معطل نشود
-            const delay = isAuto ? 5 : 15; 
-            if(i % 3 === 0) await new Promise(res => setTimeout(res, delay));
+            const delay = isAuto ? 25 : 15; 
+            await new Promise(res => setTimeout(res, delay));
         }
 
+        LAST = { rows: rows, time: json.time };
         renderList(rows);
-        stEl.innerHTML = `آخرین اسکن سرور: ${new Date(json.time).toLocaleTimeString('fa-IR')} · ${rows.length} نماد`;
+        
+        const timeStr = new Date(json.time).toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US');
+        stEl.innerHTML = `آخرین اسکن: <span>${timeStr}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
         
     } catch (e) {
         stEl.textContent = "خطا در دریافت دیتا از سرور";
         $("list").innerHTML = `
-        <div class="err-box">
-            <h4>⚠️ خطا در دریافت دیتا</h4>
-            <p>ممکن است دسترسی به سرور محدود شده باشد. لطفاً از VPN یا توکن OANDA استفاده کنید.</p>
-            <div class="err-list">BTCUSDT, ETHUSDT, XRPUSDT, SOLUSDT, BNBUSDT...</div>
+        <div style="background: rgba(255,92,92,0.1); border:1px solid rgba(255,92,92,0.3); border-radius:12px; padding:16px; text-align:center; color:var(--tx);">
+            <h4 style="color:var(--rb); margin-bottom:8px;">⚠️ خطا در دریافت دیتا</h4>
+            <p style="font-size:13px; color:var(--tx2);">ممکن است دسترسی به سرور محدود شده باشد.</p>
         </div>`;
     } finally {
         isScanning = false;
         if(!isAuto) {
             btn.classList.remove("loading");
             $("goT").textContent = "اسکن";
+            loader.style.display = "none";
         }
-        // مخفی کردن کارت اسکن بعد از یک ثانیه
+        
         setTimeout(() => {
             statusCard.classList.remove("on");
-            progressFill.style.width = "0%"; // ریست کردن نوار
+            progressFill.style.width = "0%";
         }, 1000);
     }
 }
 
-// Render List
 function renderList(rows) {
-    const sg = rows.filter(r => r.side).slice(0, 5); // فقط ۵ تا برای دمو
+    let all = rows.filter(r => r.side);
+    let sg = all.filter(r => vf === "all" || r.side === vf);
     let no = rows.filter(r => !r.side);
+
+    const nl = all.filter(r => r.side === "LONG").length;
+    const ns = all.filter(r => r.side === "SHORT").length;
+    $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
+    $("goC").textContent = fmtNum(rows.length);
 
     let emptyHtml = '';
     if (sg.length === 0) {
@@ -418,7 +542,7 @@ function renderList(rows) {
 
     let detailsHtml = '';
     if (no.length > 0) {
-        const dummyNo = no.slice(0, 5).map((r, i) => ({ ...r, pass: 7-i, total: 7 }));
+        const dummyNo = no.slice(0, 15).map((r, i) => ({ ...r, pass: (7-(i%3)), total: 7 }));
         detailsHtml = `
         <details class="nb" style="margin-top:16px;">
             <summary>
@@ -508,25 +632,8 @@ function noneHtml(r){
 
 if($("go")) $("go").onclick = () => scan(false);
 
-// ═══════════════════════════════════════════════════════════════════
-// شروع اولیه و تنظیم اسکن خودکار (هر ۳ دقیقه یک‌بار)
-// ═══════════════════════════════════════════════════════════════════
-applyLanguage();
-
-// اجرای اولیه پس از بسته شدن اسپلش
-setTimeout(() => {
-    scan(true); 
-}, 1000);
-
-// حلقه اسکن خودکار
-setInterval(() => {
-    // اگر اسپلش باز است، اسکن نکن
-    if($('ai-splash').style.display !== 'none') return;
-    
-    // اجرای اسکن خودکار (isAuto = true)
-    scan(true);
-}, 3 * 60 * 1000); // 3 دقیقه
-
+// تنظیم اولیه زبان
+setLang(currentLang);
 </script>
 </body>
 </html>
