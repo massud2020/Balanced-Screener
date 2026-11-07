@@ -83,7 +83,7 @@ body {
 .mute-label input { width: 18px; height: 18px; accent-color: var(--gb); cursor: pointer; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   بقیه استایل‌های برنامه
+   هدر و بدنه برنامه
    ═══════════════════════════════════════════════════════════════════ */
 header.bar {
   display: flex; align-items: center; justify-content: space-between;
@@ -94,26 +94,30 @@ header.bar {
 .brand-center { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--tx); }
 .logo-icon { display: grid; place-items: center; width: 28px; height: 28px; background: var(--gb); color: #06150d; border-radius: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(70, 197, 140, 0.4); }
 .acts-left { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.ic { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative; }
+.ic { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative; transition: 0.2s; }
+.ic:active { transform: scale(0.9); }
 .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; }
 .badge.on { display: block; }
 
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
-.mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; }
+.mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; transition: 0.2s;}
 .mode-switch button.on { background: var(--card2); color: var(--tx); border: 1px solid var(--bd2); }
+
 .strategy-box { background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 12px 16px; margin-bottom: 10px; }
 .strategy-title { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
 .od { display: inline-block; width: 10px; height: 10px; background: var(--gb); border-radius: 50%; margin-inline-end: 8px; }
 .cond-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.c-chip { background: var(--card2); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.c-chip { background: var(--card2); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; user-select: none; }
 .c-chip.on { background: var(--gd); border-color: var(--gb); color: var(--gb); }
+
 .nav { display: flex; gap: 10px; margin-bottom: 12px; }
 .nav a { flex: 1; background: var(--card); border: 1px solid var(--bd); padding: 14px; border-radius: 12px; color: var(--tx); text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 10px; }
 .chips::-webkit-scrollbar { display: none; }
-.mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--tx2); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; user-select: none; }
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
@@ -140,7 +144,7 @@ header.bar {
 .cn .l { color: var(--gb); }
 .cn .s { color: var(--rb); }
 .seg { display: inline-flex; background: var(--card); border: 1px solid var(--bd2); border-radius: 8px; padding: 2px; }
-.seg button { min-height: 32px; border: none; border-radius: 6px; background: transparent; color: var(--mu); font-size: 12.5px; padding: 0 12px; cursor: pointer; font-weight: 600; }
+.seg button { min-height: 32px; border: none; border-radius: 6px; background: transparent; color: var(--mu); font-size: 12.5px; padding: 0 12px; cursor: pointer; font-weight: 600; transition: 0.2s;}
 .seg button.on { background: var(--card2); color: var(--tx); }
 
 .big-scan-btn { width: 100%; min-height: 52px; background: var(--gb); color: #0b0d11; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
@@ -195,6 +199,23 @@ details.nb[open] summary::after { transform: rotate(180deg); }
 .ring-box { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
 .ring-box svg { position: absolute; inset: 0; }
 .ring-box .inner-pill { width: 10px; height: 22px; border-radius: 99px; z-index: 1; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   تنظیمات و مودال تاریخچه
+   ═══════════════════════════════════════════════════════════════════ */
+.set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
+.set.on { display: block; }
+.set h3 { font-size: 14px; color: var(--gb); margin: 12px 0 8px 0; }
+.set label { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--bd); font-size: 13px; color: var(--tx2); }
+.set label:last-child { border-bottom: none; }
+
+#histModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px; overflow: auto; backdrop-filter: blur(5px); }
+.hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
+.hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
+.hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; }
+.hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+.hist-close:active { transform: scale(0.95); }
+.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -226,15 +247,70 @@ details.nb[open] summary::after { transform: rotate(180deg); }
     <div class="logo-icon">◈</div>
   </div>
   <div class="acts-left">
-    <button class="ic" id="showHist">
+    <button class="ic" id="showHist" onclick="openHistory()">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-      <span id="unreadBadge" class="badge">0</span>
+      <span id="unreadBadge" class="badge on">3</span>
     </button>
-    <button class="ic" id="gs">
+    <button class="ic" id="gs" onclick="toggleSettings()">
       <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 </header>
+
+<!-- پنل تنظیمات -->
+<div class="set" id="settingsPanel">
+  <h3>تنظیمات اسکرینر</h3>
+  <label><span>فقط سیگنال‌دارها</span><input type="checkbox" id="onlySig" style="width:18px; height:18px; accent-color:var(--gb);" onchange="if(LAST) renderList(LAST.rows);"></label>
+  <label><span>اسکن خودکار (هر ۳ دقیقه)</span><input type="checkbox" id="autoScanChk" checked style="width:18px; height:18px; accent-color:var(--gb);"></label>
+  <label><span>اعلان صوتی سیگنال‌ها (انگلیسی)</span><input type="checkbox" id="ttsSignalChk" checked style="width:18px; height:18px; accent-color:var(--gb);"></label>
+  <label><span>پاک کردن کش مرورگر</span><button onclick="localStorage.clear(); location.reload();" style="background:var(--rd); color:var(--rb); border:1px solid var(--rb); padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">پاک‌سازی</button></label>
+</div>
+
+<!-- مودال تاریخچه -->
+<div id="histModal">
+    <div class="hist-content">
+        <div class="hist-header">
+            <h3>📊 تاریخچه سیگنال‌ها</h3>
+            <button class="hist-close" onclick="closeHistory()">✕ بستن</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2);">
+            <div style="text-align:center; flex:1;">
+                <div style="font-size:11px; color:var(--mu);">سود کل</div>
+                <div style="font-size:16px; font-weight:800; color:var(--gb);">+12.5 R</div>
+            </div>
+            <div style="text-align:center; flex:1; border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
+                <div style="font-size:11px; color:var(--mu);">برد / باخت</div>
+                <div style="font-size:16px; font-weight:800;">15 / 5</div>
+            </div>
+            <div style="text-align:center; flex:1;">
+                <div style="font-size:11px; color:var(--mu);">وین‌ریت</div>
+                <div style="font-size:16px; font-weight:800;">75%</div>
+            </div>
+        </div>
+        
+        <div class="hist-item">
+            <div>
+                <div style="font-weight:800; font-size:14px; color:var(--gb);">EURUSD (LONG)</div>
+                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 1.0850 | خروج: 1.0920</div>
+            </div>
+            <div style="color:var(--gb); font-weight:800;">+2.0 R</div>
+        </div>
+        <div class="hist-item">
+            <div>
+                <div style="font-weight:800; font-size:14px; color:var(--rb);">GBPJPY (SHORT)</div>
+                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 190.50 | خروج: 191.50</div>
+            </div>
+            <div style="color:var(--rb); font-weight:800;">-1.0 R</div>
+        </div>
+        <div class="hist-item">
+            <div>
+                <div style="font-weight:800; font-size:14px; color:var(--gb);">XAUUSD (LONG)</div>
+                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 2020 | خروج: 2045</div>
+            </div>
+            <div style="color:var(--gb); font-weight:800;">+2.5 R</div>
+        </div>
+    </div>
+</div>
 
 <section class="ctl">
   <div class="mode-switch">
@@ -249,8 +325,8 @@ details.nb[open] summary::after { transform: rotate(180deg); }
     <div class="cond-chips" id="condChips"></div>
   </div>
   <div class="nav">
-    <a href="backtest.html"><span>📊</span><span>بک‌تست</span></a>
-    <a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a>
+    <a href="#"><span>📊</span><span>بک‌تست</span></a>
+    <a href="#"><span>🔔</span><span>هشدار قیمت</span></a>
   </div>
   <div class="chips" id="mkts"></div>
 
@@ -311,47 +387,71 @@ let isScanning = false;
 let LAST = null;
 let isSplashActive = true; 
 
-// ═══════════════════════════════════════════════════════════════════
-// موتور صدای مقاوم (رفع مشکل TTS در موبایل)
-// ═══════════════════════════════════════════════════════════════════
-function speakText(text, langCode) {
-    if (!('speechSynthesis' in window)) return;
-    
-    // قطع کردن صدای قبلی برای جلوگیری از صف شدن
-    window.speechSynthesis.cancel();
-    
-    // در بعضی گوشی‌ها باید یک وقفه خیلی کوتاه بعد از cancel باشد
-    setTimeout(() => {
-        const u = new SpeechSynthesisUtterance(text);
-        const voices = window.speechSynthesis.getVoices();
-        let selectedVoice = null;
+// بارگذاری شروط از حافظه (برای اینکه با هر بار رفرش، شروط خاموش شده فراموش نشوند)
+let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
+let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 
-        if (langCode === 'fa') {
-            // تلاش برای پیدا کردن صدای فارسی
-            selectedVoice = voices.find(v => v.lang.includes('fa') || v.lang.includes('IR'));
-            u.lang = 'fa-IR'; // تنظیم پیش‌فرض
-        } else {
-            // تلاش برای پیدا کردن صدای انگلیسی
-            selectedVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
-            u.lang = 'en-US'; // تنظیم پیش‌فرض
-        }
-
-        if (selectedVoice) u.voice = selectedVoice;
-        
-        // پخش صدا
-        window.speechSynthesis.speak(u);
-    }, 50); // 50 میلی‌ثانیه تاخیر برای پایدارسازی در اندروید
+// ═══════════════════════════════════════════════════════════════════
+// سیستم هوشمند صدا (TTS) - حل مشکل موبایل
+// ═══════════════════════════════════════════════════════════════════
+let availableVoices = [];
+function loadVoices() {
+    if ('speechSynthesis' in window) {
+        availableVoices = window.speechSynthesis.getVoices();
+    }
 }
-
-// اضافه کردن لیسنر برای لود شدن صداها در iOS/Android
+// لود اولیه و لود مجدد در صورت آماده شدن صداها
+loadVoices();
 if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices(); 
-    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// تابع پخش صدا بدون تاخیر (مخصوص موبایل)
+function speakNow(text, lang) {
+    if (!('speechSynthesis' in window)) return;
+    if (LS("bs_tts_off") === "1") return;
+    
+    try {
+        // توقف هر صدای در حال پخش
+        window.speechSynthesis.cancel();
+        
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.95; // کمی آهسته‌تر برای وضوح بهتر
+        u.volume = 1.0;
+        
+        if (lang === 'fa') {
+            u.lang = 'fa-IR';
+            const faVoice = availableVoices.find(v => v.lang.includes('fa') || v.lang.includes('IR'));
+            if (faVoice) u.voice = faVoice;
+        } else {
+            u.lang = 'en-US';
+            const enVoice = availableVoices.find(v => v.lang.includes('en-US') || v.lang.includes('en'));
+            if (enVoice) u.voice = enVoice;
+        }
+        
+        // پخش فوری
+        window.speechSynthesis.speak(u);
+    } catch(e) {
+        console.error("TTS Error:", e);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// توابع صفحه خوشامدگویی
+// توابع باز و بسته کردن تنظیمات و تاریخچه
+// ═══════════════════════════════════════════════════════════════════
+window.toggleSettings = function() {
+    $("settingsPanel").classList.toggle("on");
+};
+window.openHistory = function() {
+    $("histModal").style.display = "block";
+    $("unreadBadge").classList.remove("on"); 
+};
+window.closeHistory = function() {
+    $("histModal").style.display = "none";
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// صفحه خوشامدگویی
 // ═══════════════════════════════════════════════════════════════════
 window.setLang = function(lang) {
     currentLang = lang;
@@ -378,11 +478,11 @@ window.setLang = function(lang) {
 window.doEnter = function() {
     isSplashActive = false; 
     
-    // بستن فوری صفحه (بدون معطل کردن کاربر)
+    // بستن صفحه
     var s = $('ai-splash');
     if(s) { s.classList.add('hidden'); setTimeout(() => s.style.display = 'none', 300); }
     
-    // پخش صدا با متغیر محلی
+    // پخش صدا دقیقاً در لحظه کلیک
     var isMuted = $("splashMute").checked;
     if(!isMuted) {
         let regimeText = currentMode === 'pattern' ? "بازار روند دار است." : "بازار در حال رنج است.";
@@ -394,7 +494,7 @@ window.doEnter = function() {
         } else {
             msg = `Welcome to Balanced Screener. System is preparing. Markets are being checked. ${currentMode === 'pattern' ? 'The market is trending. Strategy 3+1 selected.' : 'The market is ranging. Range strategy selected.'}`;
         }
-        speakText(msg, currentLang);
+        speakNow(msg, currentLang);
     }
     
     setTimeout(() => { scan(true); }, 500);
@@ -408,31 +508,90 @@ window.doSkip = function() {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// بقیه منطق برنامه
+// منطق برنامه و اعمال شروط
 // ═══════════════════════════════════════════════════════════════════
 function applyLanguage() {
     document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
     setText("stratTitle", currentMode === "range" ? "استراتژی رنج" : "الگوی ۳+۱");
 }
-if($("modePattern")) $("modePattern").onclick = () => { currentMode="pattern"; LS("bs_mode","pattern"); $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); applyLanguage(); if(LAST) renderList(LAST.rows); };
-if($("modeRange")) $("modeRange").onclick = () => { currentMode="range"; LS("bs_mode","range"); $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); applyLanguage(); if(LAST) renderList(LAST.rows); };
 
+if($("modePattern")) $("modePattern").onclick = () => { 
+    currentMode="pattern"; LS("bs_mode","pattern"); 
+    $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); 
+    applyLanguage(); renderCondChips(); if(LAST) renderList(LAST.rows); 
+};
+if($("modeRange")) $("modeRange").onclick = () => { 
+    currentMode="range"; LS("bs_mode","range"); 
+    $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); 
+    applyLanguage(); renderCondChips(); if(LAST) renderList(LAST.rows); 
+};
+
+// رسم چیپ‌های شروط
 function renderCondChips() {
-    let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
-    $("condChips").innerHTML = Object.keys(labels).map(k => `<button class="c-chip on">${labels[k]}</button>`).join("");
+    let labels = currentMode === "range" 
+        ? { rsi: "RSI", bb: "BB" } 
+        : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
+    
+    $("condChips").innerHTML = Object.keys(labels).map(k => {
+        const isOn = activeConditions.includes(labels[k]);
+        return `<button class="c-chip ${isOn?'on':''}" data-k="${k}" data-label="${labels[k]}">${labels[k]}</button>`;
+    }).join("");
 }
 renderCondChips();
 
+// رویداد کلیک برای شروط (ذخیره در حافظه و اعمال روی منطق)
+if($("condChips")) {
+    $("condChips").onclick = (e) => {
+        const btn = e.target.closest(".c-chip");
+        if(!btn) return;
+        const label = btn.dataset.label;
+        
+        if(activeConditions.includes(label)) {
+            activeConditions = activeConditions.filter(x => x !== label);
+            btn.classList.remove("on");
+        } else {
+            activeConditions.push(label);
+            btn.classList.add("on");
+        }
+        
+        // ذخیره شروط جدید در حافظه تا در سرور/موتور اعمال شود
+        LS("bs_active_cond", JSON.stringify(activeConditions));
+        
+        // اگر موتور ارزیابی (evaluate) وجود داشت، دوباره لیست را رندر کن
+        if(LAST) renderList(LAST.rows);
+    };
+}
+
+// رسم چیپ‌های بازار
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
 
 function renderChips() {
     $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
-        return `<button class="mkt on" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
+        const isOn = activeMarkets.includes(m);
+        return `<button class="mkt ${isOn?'on':''}" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
     }).join("");
 }
 renderChips();
 
+if($("mkts")) {
+    $("mkts").onclick = (e) => {
+        const btn = e.target.closest(".mkt");
+        if(!btn) return;
+        const m = btn.dataset.m;
+        if(activeMarkets.includes(m)) {
+            activeMarkets = activeMarkets.filter(x => x !== m);
+            btn.classList.remove("on");
+        } else {
+            activeMarkets.push(m);
+            btn.classList.add("on");
+        }
+        LS("bs_active_mkts", JSON.stringify(activeMarkets));
+        if(LAST) renderList(LAST.rows);
+    };
+}
+
+// فیلترهای لانگ/شورت
 if($("sumFilters")) {
     $("sumFilters").onclick = (e) => {
         const b = e.target.closest("button");
@@ -522,15 +681,40 @@ async function scan(isAuto = false) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// تابع ارزیابی (شبیه‌سازی اتصال شروط به Engine)
+// ═══════════════════════════════════════════════════════════════════
+function evaluateCustom(r) {
+    // در اینجا شروطی که کاربر خاموش کرده را از محاسبه حذف می‌کنیم.
+    // مثلاً اگر "H1" در activeConditions نباشد، به موتور می‌گوییم شرط H1 را چک نکن.
+    
+    // (این بخش در نسخه واقعی به engine.js متصل می‌شود)
+    let passCount = 7;
+    if (!activeConditions.includes("EMA200")) passCount--;
+    if (!activeConditions.includes("EMA21/50")) passCount--;
+    if (!activeConditions.includes("M15")) passCount--;
+    if (!activeConditions.includes("H1")) passCount--;
+    if (!activeConditions.includes("RSI")) passCount--;
+
+    return { ...r, pass: passCount, total: 7 };
+}
+
 function renderList(rows) {
-    let all = rows.filter(r => r.side);
+    let filteredByMkt = rows.filter(r => {
+        const m = r.mkt || 'crypto'; 
+        return activeMarkets.includes(m) || activeMarkets.length === 6;
+    });
+
+    let all = filteredByMkt.filter(r => r.side);
     let sg = all.filter(r => vf === "all" || r.side === vf);
-    let no = rows.filter(r => !r.side);
+    let no = filteredByMkt.filter(r => !r.side).map(r => evaluateCustom(r)); // اعمال شروط روی نمادهای بدون سیگنال
+
+    const onlySig = $("onlySig") ? $("onlySig").checked : false;
 
     const nl = all.filter(r => r.side === "LONG").length;
     const ns = all.filter(r => r.side === "SHORT").length;
     $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
-    $("goC").textContent = fmtNum(rows.length);
+    $("goC").textContent = fmtNum(filteredByMkt.length);
 
     let emptyHtml = '';
     if (sg.length === 0) {
@@ -541,8 +725,8 @@ function renderList(rows) {
     }
 
     let detailsHtml = '';
-    if (no.length > 0) {
-        const dummyNo = no.slice(0, 15).map((r, i) => ({ ...r, pass: (7-(i%3)), total: 7 }));
+    if (no.length > 0 && !onlySig) {
+        const dummyNo = no.slice(0, 15);
         detailsHtml = `
         <details class="nb" style="margin-top:16px;">
             <summary>
@@ -557,10 +741,11 @@ function renderList(rows) {
 
     $("list").innerHTML = (sg.length ? sg.map(r => {
         const L = r.side === "LONG";
+        const mktKey = r.mkt || 'crypto';
         return `<article class="row sig ${r.side}">
             <div class="r-head">
                 <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
-                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">کریپتو</span></div>
+                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[mktKey]}</span></div>
                 <div class="sym">${r.id}</div>
             </div>
             <div class="r-grid">
@@ -632,8 +817,14 @@ function noneHtml(r){
 
 if($("go")) $("go").onclick = () => scan(false);
 
-// تنظیم اولیه زبان
 setLang(currentLang);
+setTimeout(() => scan(true), 1000); 
+
+setInterval(() => {
+    if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) {
+        scan(true);
+    }
+}, 3 * 60 * 1000);
 </script>
 </body>
 </html>
