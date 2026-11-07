@@ -9,7 +9,7 @@
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
 <!-- فراخوانی فایل استایل جداشده -->
-<\link rel="stylesheet" href="style.css?v=87">
+<link rel="stylesheet" href="style.css?v=87">
 
 <!-- کتابخانه Chart.js برای رسم نمودارهای مقایسه‌ای -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -126,7 +126,7 @@
   <label><span id="setExtraStocks">سهام اضافه<small>تیکرها با کاما</small></span><input id="ex" placeholder="مثلاً SHOP, UBER" autocomplete="off"></label>
   
   <h3 id="setApp">برنامه</h3>
-  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v86" style="font-size:12px;color:var(--mu);direction:ltr">v86</span></label>
+  <label><span id="setVer">نسخه‌ی اپ<small id="verl"></small></span><span id="v87" style="font-size:12px;color:var(--mu);direction:ltr">v87</span></label>
   <label><span id="setClearCacheLabel">پاک‌کردن کش و به‌روزرسانی<small id="setClearCacheHint">کش قدیمی را پاک می‌کند و صفحه را تازه می‌کند</small></span>
     <button type="button" id="upd" onclick="window.clearCache()" style="background:var(--gd);color:var(--gb);border:1px solid var(--gb);min-width:120px;font-weight:700">پاک‌کردن کش</button>
   </label>
@@ -231,15 +231,15 @@
 </div>
 
 <script>
-window.__BS_LOCAL_BUILD = 86;
+window.__BS_LOCAL_BUILD = 87;
 window.__BS_REMOTE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/main";
 window.__BS_ASSET_BASE = "";
 </script>
-<script src="symbols.js?v=86"></script>
-<script src="alerts.js?v=86"></script>
-<script src="engine.js?v=86"></script>
-<script src="presets.js?v=86"></script>
-<script src="chart.js?v=86"></script>
+<script src="symbols.js?v=87"></script>
+<script src="alerts.js?v=87"></script>
+<script src="engine.js?v=87"></script>
+<script src="presets.js?v=87"></script>
+<script src="chart.js?v=87"></script>
 <script>
 window.onerror = function(msg, url, line) {
     const errBox = document.getElementById('debug-err');
@@ -536,7 +536,7 @@ function applyLanguage() {
     } catch(e) {}
 }
 
-const BUILD=86;
+const BUILD=87;
 
 async function fetchGitJson(filename) {
     const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
