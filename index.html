@@ -128,7 +128,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
 /* لیست سیگنال */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
-.row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
+.row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; cursor: pointer; transition: 0.2s; }
+.row.sig:active { transform: scale(0.98); border-color: var(--gb); }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
 .row.sig.SHORT { border-inline-start: 4px solid var(--rb); }
 .r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; direction: ltr; }
@@ -247,9 +248,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <button class="set-btn green" onclick="reqNotif()">فعال‌سازی</button>
   </div>
   <div class="set-row">
-    <label>تست صدای هوش مصنوعی</label>
+    <label>تست صدای هوش مصنوعی (فارسی)</label>
     <button class="set-btn green" onclick="testVoice()">تست صدا</button>
   </div>
+  
+  <!-- دکمه تست اعلان سیگنال به انگلیسی -->
+  <div class="set-row">
+    <label>تست اعلان سیگنال (انگلیسی)</label>
+    <button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG')">تست (English TTS)</button>
+  </div>
+
   <div class="set-row">
     <label>سرعت صدا: <b id="ttsRateVal">50</b></label>
     <input type="range" id="ttsRate" min="10" max="100" value="50" oninput="document.getElementById('ttsRateVal').innerText = this.value">
@@ -298,9 +306,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <input type="password" class="set-input" id="ght" placeholder="github_pat_...">
   </div>
   
-  <div class="set-row" style="margin-top:10px;">
-    <label>تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label>
-    <button class="set-btn green" style="width:100%;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button>
+  <!-- اصلاح چیدمان دکمه ذخیره روی سرور به حالت افقی -->
+  <div class="set-row" style="margin-top:10px; gap: 8px;">
+    <label style="font-size: 11.5px; line-height: 1.5; margin: 0; flex: 1;">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label>
+    <button class="set-btn green" style="white-space: nowrap;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button>
   </div>
 </div>
 
@@ -463,6 +472,14 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
         });
     }
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
+}
+
+// تابع جدید: خواندن سیگنال به زبان انگلیسی (هنگام کلیک روی کارت سیگنال یا هشدار)
+async function speakSignal(symbol, side) {
+    if (!$("ttsSymbol")?.checked) return; // بررسی فعال بودن اعلان صوتی
+    const sideEn = side === 'LONG' ? 'Long' : 'Short';
+    const text = `New signal. ${sideEn} on ${symbol}`;
+    await speakNative(text, 'en-US', 1.0);
 }
 
 window.testVoice = async function() {
@@ -641,18 +658,13 @@ window.doEnter = async function() {
     setText("splashSubtitle", "در حال پخش پیام صوتی...");
 
     if(!$("splashMute").checked) {
-        // تعیین جمله چهارم و پنجم بر اساس حالت فعلی (روند یا رنج)
         let marketState = currentMode === 'pattern' ? "بازار روند دار است." : "در حال رنج است.";
         let strategyState = currentMode === 'pattern' ? "استراتژی سه به یک انتخاب شد." : "استراتژی رنج انتخاب شد.";
-        
-        // ترکیب ۵ جمله
         let welcomeText = `خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند. ${marketState} ${strategyState}`;
         
-        // صبر می‌کنیم تا صدا کاملاً پخش شود (await)
         await speakNative(welcomeText, 'fa-IR', 1.0);
     }
     
-    // حالا که صدا تمام شد، به صفحه اصلی می‌رویم
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
     setTimeout(() => { scan(true); }, 500); 
@@ -696,29 +708,24 @@ $("condChips").onclick = (e) => {
     if(LAST) renderList(LAST.rows);
 };
 
-// -------------------------------------------------------------
-// منطق تشخیص خودکار باز یا بسته بودن بازارها
-// -------------------------------------------------------------
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
 
 function isMarketOpen(marketKey) {
-    if (marketKey === 'crypto') return true; // کریپتو ۲۴ ساعته است
+    if (marketKey === 'crypto') return true;
 
     const now = new Date();
-    const day = now.getUTCDay(); // 0=یکشنبه, 1=دوشنبه, ..., 5=جمعه, 6=شنبه
+    const day = now.getUTCDay();
     const timeInMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
 
     if (marketKey === 'forex' || marketKey === 'metal' || marketKey === 'commodity') {
-        // بازار فارکس: یکشنبه ساعت ۲۲:۰۰ UTC باز می‌شود و جمعه ساعت ۲۲:۰۰ UTC بسته می‌شود
-        if (day === 0) return timeInMinutes >= 1320; // یکشنبه >= 22:00
-        if (day >= 1 && day <= 4) return true; // دوشنبه تا پنجشنبه
-        if (day === 5) return timeInMinutes < 1320; // جمعه < 22:00
-        return false; // شنبه تعطیل است
+        if (day === 0) return timeInMinutes >= 1320;
+        if (day >= 1 && day <= 4) return true;
+        if (day === 5) return timeInMinutes < 1320;
+        return false;
     }
 
     if (marketKey === 'stock' || marketKey === 'index') {
-        // بورس آمریکا: دوشنبه تا جمعه، ساعت ۱۴:۳۰ تا ۲۱:۰۰ UTC
         if (day >= 1 && day <= 5) {
             return timeInMinutes >= 870 && timeInMinutes <= 1260;
         }
@@ -733,7 +740,6 @@ function renderChips() {
         const isOpen = isMarketOpen(m);
         let isOn = activeMarkets.includes(m);
         
-        // اگر بازار تعطیل است و قبلا انتخاب شده بود، از حالت انتخاب خارج شود
         if (!isOpen && isOn) {
             activeMarkets = activeMarkets.filter(x => x !== m);
             LS("bs_active_mkts", JSON.stringify(activeMarkets));
@@ -766,10 +772,25 @@ window.setFilter = function(v) {
 };
 
 async function fetchGitJson(filename) {
-    const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if(res.ok) return await res.json();
-    throw new Error("Fetch error");
+    try {
+        const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store' });
+        
+        if (!res.ok) {
+            if (res.status === 404) throw new Error("فایل دیتا (data.json) روی سرور یافت نشد.");
+            throw new Error(`خطای شبکه: سرور با کد ${res.status} پاسخ داد.`);
+        }
+        
+        return await res.json();
+    } catch (e) {
+        if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+            throw new Error("اتصال به اینترنت یا سرور گیت‌هاب برقرار نیست.");
+        }
+        if (e.name === 'SyntaxError') {
+            throw new Error("داده‌های دریافتی از سرور نامعتبر یا ناقص هستند.");
+        }
+        throw e;
+    }
 }
 
 window.scan = async function(isAuto = false) {
@@ -784,8 +805,17 @@ window.scan = async function(isAuto = false) {
 
     try {
         $("st").innerHTML = "در حال دریافت دیتا از سرور...";
+        
         const json = await fetchGitJson('data.json');
-        const rows = json.rows || [];
+        
+        if (json.error) {
+            throw new Error(`خطای صرافی: ${json.error}`);
+        }
+        if (!json.rows || !Array.isArray(json.rows)) {
+            throw new Error("ساختار داده‌ها نامعتبر است (آرایه rows یافت نشد).");
+        }
+
+        const rows = json.rows;
         totalEl.textContent = rows.length;
         
         for(let i=0; i<rows.length; i++) {
@@ -797,11 +827,29 @@ window.scan = async function(isAuto = false) {
 
         LAST = { rows: rows, time: json.time };
         renderList(rows);
-        $("st").innerHTML = `آخرین اسکن: <span>${new Date(json.time).toLocaleTimeString('fa-IR')}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
+        
+        const dataAgeMinutes = Math.round((Date.now() - new Date(json.time).getTime()) / 60000);
+        
+        if (dataAgeMinutes > 30) {
+            $("st").innerHTML = `<span style="color:var(--rb); font-weight:800;">⚠️ هشدار: قیمت‌ها قدیمی هستند (آخرین آپدیت ${dataAgeMinutes} دقیقه پیش). احتمالاً اتصال سرور به صرافی‌ها قطع شده است.</span>`;
+        } else {
+            $("st").innerHTML = `آخرین اسکن: <span>${new Date(json.time).toLocaleTimeString('fa-IR')}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
+        }
         
     } catch (e) {
-        $("st").textContent = "خطا در دریافت دیتا از سرور";
-        $("list").innerHTML = `<div style="text-align:center; color:var(--rb); padding:20px;">⚠️ خطا در اتصال به سرور</div>`;
+        $("st").innerHTML = `<span style="color:var(--rb); font-weight:800;">خطا در دریافت اطلاعات</span>`;
+        
+        $("list").innerHTML = `
+            <div style="text-align:center; padding:40px 20px; background:var(--rd); border:1px solid var(--rb); border-radius:14px; margin: 10px 12px;">
+                <div style="font-size:40px; margin-bottom:10px;">⚠️</div>
+                <div style="color:var(--rb); font-weight:800; font-size:16px; margin-bottom:8px;">اتصال به منبع قیمت برقرار نشد</div>
+                <div style="color:var(--tx2); font-size:13px; line-height:1.8; margin-bottom:15px; direction:rtl;">
+                    ${e.message || 'خطای ناشناخته در دریافت دیتا'}
+                    <br>
+                    <span style="font-size:11px; opacity:0.7;">(لطفا اتصال اینترنت خود یا وضعیت سرور گیت‌هاب را بررسی کنید)</span>
+                </div>
+                <button class="set-btn" style="background:var(--card); color:var(--tx); padding:10px 20px;" onclick="scan(false)">🔄 تلاش مجدد</button>
+            </div>`;
     } finally {
         isScanning = false;
         if(!isAuto) { btn.classList.remove("loading"); $("goT").textContent = "اسکن"; loader.style.display = "none"; }
@@ -841,9 +889,10 @@ function renderList(rows) {
         detailsHtml = `<details style="margin-top:16px;"><summary style="cursor:pointer; padding:10px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2);">بدون سیگنال (${fmtNum(no.length)})</summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.slice(0,15).map(r => `<div class="set-row" style="background:var(--card); padding:10px; border-radius:8px; border:none; margin:0;"><span>${r.id}</span><span style="color:var(--mu); font-size:12px;">${r.pass}/${r.total}</span></div>`).join("")}</div></details>`;
     }
 
+    // اینجا onclick برای خواندن سیگنال به انگلیسی اضافه شده است
     $("list").innerHTML = (sg.length ? sg.map(r => {
         const L = r.side === "LONG";
-        return `<article class="row sig ${r.side}">
+        return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
             <div class="r-head">
                 <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
                 <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
@@ -866,15 +915,13 @@ renderCondChips();
 renderChips();
 scan(true);
 
-// آپدیت خودکار اسکن هر ۳ دقیقه
 setInterval(() => {
     if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true);
 }, 3 * 60 * 1000);
 
-// بررسی باز یا بسته بودن بازارها هر ۱ دقیقه
 setInterval(() => {
     renderChips();
-    if(LAST) renderList(LAST.rows); // به‌روزرسانی لیست در صورت باز/بسته شدن بازار
+    if(LAST) renderList(LAST.rows);
 }, 60 * 1000);
 </script>
 </body>
