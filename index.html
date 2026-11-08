@@ -30,6 +30,7 @@ body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-s
 .splash-subtitle { font-size: 15px; color: var(--tx2); font-weight: 500; margin-bottom: 30px; line-height: 1.6; }
 #start-ai-btn { width: min(280px, 90%); min-height: 56px; background: var(--gb); color: #0b0d11; border: none; border-radius: 16px; font-weight: 800; font-size: 17px; cursor: pointer; box-shadow: 0 4px 25px rgba(70, 197, 140, 0.4); transition: 0.2s; }
 #start-ai-btn:active { transform: scale(0.96); }
+#start-ai-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 #skip-ai-btn { margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px; font-size: 14px; cursor: pointer; text-decoration: underline; }
 .mute-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mu); margin-top: 30px; cursor: pointer; }
 
@@ -432,39 +433,34 @@ let openHistData = [
 ];
 
 // -------------------------------------------------------------
-// بخش جدید: موتور صوتی هوشمند (پشتیبانی از Native TTS و Web Speech)
+// موتور صوتی هوشمند (منتظر اتمام صحبت می‌ماند)
 // -------------------------------------------------------------
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
-    // بررسی اینکه آیا در محیط اپلیکیشن Capacitor هستیم یا خیر
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
             await window.Capacitor.Plugins.TextToSpeech.speak({
-                text: text,
-                lang: lang,
-                rate: rate,
-                pitch: 1.0,
-                volume: 1.0
+                text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0
             });
             return { success: true, engine: 'Native TTS' };
         } catch (e) {
             console.error("Native TTS Error:", e);
             return { success: false, error: e.message || "خطای نامشخص در Native TTS" };
         }
-    } 
-    // پشتیبان برای مرورگرهای وب (دسکتاپ)
-    else if ('speechSynthesis' in window) {
-        try {
-            window.speechSynthesis.cancel(); // قطع کردن صداهای قبلی
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = lang;
-            u.rate = rate;
-            window.speechSynthesis.speak(u);
-            return { success: true, engine: 'Web Speech API' };
-        } catch(e) {
-            return { success: false, error: e.message };
-        }
+    } else if ('speechSynthesis' in window) {
+        return new Promise((resolve) => {
+            try {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = lang;
+                u.rate = rate;
+                u.onend = () => resolve({ success: true, engine: 'Web Speech API' });
+                u.onerror = (e) => resolve({ success: false, error: e.error || "Web Speech Error" });
+                window.speechSynthesis.speak(u);
+            } catch(e) {
+                resolve({ success: false, error: e.message });
+            }
+        });
     }
-    
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
 }
 
@@ -493,7 +489,6 @@ window.testVoice = async function() {
         }
     }
 };
-// -------------------------------------------------------------
 
 window.toggleSettings = function() {
     const p = $("settingsPanel");
@@ -639,17 +634,31 @@ window.changeLanguage = function(lang) {
 };
 
 window.doEnter = async function() {
+    const btn = $('start-ai-btn');
+    btn.disabled = true;
+    btn.textContent = "در حال آماده‌سازی...";
+    setText("splashSubtitle", "در حال پخش پیام صوتی...");
+
+    if(!$("splashMute").checked) {
+        // تعیین جمله چهارم و پنجم بر اساس حالت فعلی (روند یا رنج)
+        let marketState = currentMode === 'pattern' ? "بازار روند دار است." : "در حال رنج است.";
+        let strategyState = currentMode === 'pattern' ? "استراتژی سه به یک انتخاب شد." : "استراتژی رنج انتخاب شد.";
+        
+        // ترکیب ۵ جمله
+        let welcomeText = `خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند. ${marketState} ${strategyState}`;
+        
+        // صبر می‌کنیم تا صدا کاملاً پخش شود (await)
+        await speakNative(welcomeText, 'fa-IR', 1.0);
+    }
+    
+    // حالا که صدا تمام شد، به صفحه اصلی می‌رویم
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
-    
-    if(!$("splashMute").checked) {
-        // استفاده از موتور صوتی هوشمند به جای کد قبلی
-        await speakNative("خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند.", 'fa-IR', 1.0);
-    }
-    setTimeout(() => { scan(true); }, 500);
+    setTimeout(() => { scan(true); }, 500); 
 };
 
 window.doSkip = function() {
+    // اگر کاربر رد کرد، بدون صدا مستقیماً وارد می‌شود
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
     setTimeout(() => { scan(true); }, 300);
