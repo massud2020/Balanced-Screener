@@ -87,6 +87,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .chips::-webkit-scrollbar { display: none; }
 .mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; user-select: none; }
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
+.mkt.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
 /* اسکنر رادار */
@@ -658,7 +659,6 @@ window.doEnter = async function() {
 };
 
 window.doSkip = function() {
-    // اگر کاربر رد کرد، بدون صدا مستقیماً وارد می‌شود
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
     setTimeout(() => { scan(true); }, 300);
@@ -696,18 +696,61 @@ $("condChips").onclick = (e) => {
     if(LAST) renderList(LAST.rows);
 };
 
+// -------------------------------------------------------------
+// منطق تشخیص خودکار باز یا بسته بودن بازارها
+// -------------------------------------------------------------
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
+const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
+
+function isMarketOpen(marketKey) {
+    if (marketKey === 'crypto') return true; // کریپتو ۲۴ ساعته است
+
+    const now = new Date();
+    const day = now.getUTCDay(); // 0=یکشنبه, 1=دوشنبه, ..., 5=جمعه, 6=شنبه
+    const timeInMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+
+    if (marketKey === 'forex' || marketKey === 'metal' || marketKey === 'commodity') {
+        // بازار فارکس: یکشنبه ساعت ۲۲:۰۰ UTC باز می‌شود و جمعه ساعت ۲۲:۰۰ UTC بسته می‌شود
+        if (day === 0) return timeInMinutes >= 1320; // یکشنبه >= 22:00
+        if (day >= 1 && day <= 4) return true; // دوشنبه تا پنجشنبه
+        if (day === 5) return timeInMinutes < 1320; // جمعه < 22:00
+        return false; // شنبه تعطیل است
+    }
+
+    if (marketKey === 'stock' || marketKey === 'index') {
+        // بورس آمریکا: دوشنبه تا جمعه، ساعت ۱۴:۳۰ تا ۲۱:۰۰ UTC
+        if (day >= 1 && day <= 5) {
+            return timeInMinutes >= 870 && timeInMinutes <= 1260;
+        }
+        return false;
+    }
+
+    return true;
+}
+
 function renderChips() {
-    const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
     $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
-        const isOn = activeMarkets.includes(m);
-        return `<button class="mkt ${isOn?'on':''}" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
+        const isOpen = isMarketOpen(m);
+        let isOn = activeMarkets.includes(m);
+        
+        // اگر بازار تعطیل است و قبلا انتخاب شده بود، از حالت انتخاب خارج شود
+        if (!isOpen && isOn) {
+            activeMarkets = activeMarkets.filter(x => x !== m);
+            LS("bs_active_mkts", JSON.stringify(activeMarkets));
+            isOn = false;
+        }
+
+        const statusText = isOpen ? `${MKT_COUNTS[m]}/${MKT_COUNTS[m]}` : 'تعطیل';
+        const disabledClass = isOpen ? '' : 'disabled';
+        const disabledAttr = isOpen ? '' : 'disabled';
+        
+        return `<button class="mkt ${isOn?'on':''} ${disabledClass}" data-m="${m}" ${disabledAttr}>${MKT_LABEL[m]} <span class="cnt">${statusText}</span></button>`;
     }).join("");
 }
 
 $("mkts").onclick = (e) => {
     const btn = e.target.closest(".mkt");
-    if(!btn) return;
+    if(!btn || btn.disabled) return;
     const m = btn.dataset.m;
     if(activeMarkets.includes(m)) { activeMarkets = activeMarkets.filter(x => x !== m); btn.classList.remove("on"); } 
     else { activeMarkets.push(m); btn.classList.add("on"); }
@@ -823,9 +866,16 @@ renderCondChips();
 renderChips();
 scan(true);
 
+// آپدیت خودکار اسکن هر ۳ دقیقه
 setInterval(() => {
     if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true);
 }, 3 * 60 * 1000);
+
+// بررسی باز یا بسته بودن بازارها هر ۱ دقیقه
+setInterval(() => {
+    renderChips();
+    if(LAST) renderList(LAST.rows); // به‌روزرسانی لیست در صورت باز/بسته شدن بازار
+}, 60 * 1000);
 </script>
 </body>
 </html>
