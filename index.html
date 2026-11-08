@@ -251,13 +251,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <label>تست صدای هوش مصنوعی (فارسی)</label>
     <button class="set-btn green" onclick="testVoice()">تست صدا</button>
   </div>
-  
-  <!-- دکمه تست اعلان سیگنال به انگلیسی -->
   <div class="set-row">
     <label>تست اعلان سیگنال (انگلیسی)</label>
     <button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG')">تست (English TTS)</button>
   </div>
-
   <div class="set-row">
     <label>سرعت صدا: <b id="ttsRateVal">50</b></label>
     <input type="range" id="ttsRate" min="10" max="100" value="50" oninput="document.getElementById('ttsRateVal').innerText = this.value">
@@ -280,9 +277,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <label style="text-align:center; font-weight:700; margin-bottom:8px;">وضعیت اسکن پس‌زمینه</label>
     <div style="font-size:12px; color:var(--mu); line-height:1.8; text-align:center;">
       سرویس: <span style="color:var(--gb);">روشن ✅</span> · اعلان‌ها: <span style="color:var(--gb);">مجاز ✅</span><br>
-      آخرین اسکن: 05:06:08 31-10-2026<br>
-      ردیف‌ها: 75 · دارای سیگنال: 0 · تازه: 0 · قدیمی‌شده: 0<br>
-      سن data.json: <span style="color:var(--gb);">5 دقیقه</span>
+      آخرین اسکن: لحظه‌ای<br>
+      ردیف‌ها: زنده · دارای سیگنال: زنده<br>
+      سن data.json: <span style="color:var(--gb);">به‌روز</span>
     </div>
     <button class="set-btn" style="margin-top:10px;" onclick="alert('سیستم پس‌زمینه سالم است')">بررسی</button>
   </div>
@@ -306,7 +303,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <input type="password" class="set-input" id="ght" placeholder="github_pat_...">
   </div>
   
-  <!-- اصلاح چیدمان دکمه ذخیره روی سرور به حالت افقی -->
   <div class="set-row" style="margin-top:10px; gap: 8px;">
     <label style="font-size: 11.5px; line-height: 1.5; margin: 0; flex: 1;">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label>
     <button class="set-btn green" style="white-space: nowrap;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button>
@@ -433,18 +429,9 @@ let LAST = null;
 let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 
-let closedHistData = [
-    { id: "EURUSD", side: "LONG", entry: 1.0850, exit: 1.0920, result: "win", R: 2.0, time: Date.now()/1000 - 3600 },
-    { id: "GBPJPY", side: "SHORT", entry: 190.50, exit: 191.50, result: "loss", R: -1.0, time: Date.now()/1000 - 7200 },
-    { id: "XAUUSD", side: "LONG", entry: 2020, exit: 2045, result: "win", R: 2.5, time: Date.now()/1000 - 86400 }
-];
-let openHistData = [
-    { id: "AUDUSD", side: "LONG", entry: 0.6500, sl: 0.6450, result: "open", time: Date.now()/1000 - 1800 }
-];
+let closedHistData = [];
+let openHistData = [];
 
-// -------------------------------------------------------------
-// موتور صوتی هوشمند (منتظر اتمام صحبت می‌ماند)
-// -------------------------------------------------------------
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
@@ -474,9 +461,8 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
 }
 
-// تابع جدید: خواندن سیگنال به زبان انگلیسی (هنگام کلیک روی کارت سیگنال یا هشدار)
 async function speakSignal(symbol, side) {
-    if (!$("ttsSymbol")?.checked) return; // بررسی فعال بودن اعلان صوتی
+    if (!$("ttsSymbol")?.checked) return;
     const sideEn = side === 'LONG' ? 'Long' : 'Short';
     const text = `New signal. ${sideEn} on ${symbol}`;
     await speakNative(text, 'en-US', 1.0);
@@ -576,7 +562,8 @@ function renderHistory() {
             return `<div class="hist-item">
                 <div>
                     <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'};">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu);">${d.side}</span></div>
-                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry} ${isOpen ? '| SL: '+d.sl : '| خروج: '+d.exit}</div>
+                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div>
+                    <div style="font-size:10px; color:var(--mu); margin-top:2px;">${d.dateStr || ''}</div>
                 </div>
                 <div style="text-align:right;">
                     <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
@@ -808,11 +795,20 @@ window.scan = async function(isAuto = false) {
         
         const json = await fetchGitJson('data.json');
         
-        if (json.error) {
-            throw new Error(`خطای صرافی: ${json.error}`);
-        }
-        if (!json.rows || !Array.isArray(json.rows)) {
-            throw new Error("ساختار داده‌ها نامعتبر است (آرایه rows یافت نشد).");
+        if (json.error) throw new Error(`خطای صرافی: ${json.error}`);
+        if (!json.rows || !Array.isArray(json.rows)) throw new Error("ساختار داده‌ها نامعتبر است (آرایه rows یافت نشد).");
+
+        if (json.state && json.state.sent) {
+            const sentArray = Object.values(json.state.sent);
+            openHistData = sentArray.map(s => ({
+                id: s.id || '?',
+                side: s.side || 'LONG',
+                entry: s.entry,
+                sl: s.sl,
+                result: 'open',
+                time: s.bt || (Date.now()/1000),
+                dateStr: s.bt ? new Date(s.bt * 1000).toLocaleString('fa-IR') : 'نامشخص'
+            })).filter(x => x.id !== '?');
         }
 
         const rows = json.rows;
@@ -831,22 +827,19 @@ window.scan = async function(isAuto = false) {
         const dataAgeMinutes = Math.round((Date.now() - new Date(json.time).getTime()) / 60000);
         
         if (dataAgeMinutes > 30) {
-            $("st").innerHTML = `<span style="color:var(--rb); font-weight:800;">⚠️ هشدار: قیمت‌ها قدیمی هستند (آخرین آپدیت ${dataAgeMinutes} دقیقه پیش). احتمالاً اتصال سرور به صرافی‌ها قطع شده است.</span>`;
+            $("st").innerHTML = `<span style="color:var(--rb); font-weight:800;">⚠️ هشدار: قیمت‌ها قدیمی هستند (آخرین آپدیت ${dataAgeMinutes} دقیقه پیش).</span>`;
         } else {
             $("st").innerHTML = `آخرین اسکن: <span>${new Date(json.time).toLocaleTimeString('fa-IR')}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
         }
         
     } catch (e) {
         $("st").innerHTML = `<span style="color:var(--rb); font-weight:800;">خطا در دریافت اطلاعات</span>`;
-        
         $("list").innerHTML = `
             <div style="text-align:center; padding:40px 20px; background:var(--rd); border:1px solid var(--rb); border-radius:14px; margin: 10px 12px;">
                 <div style="font-size:40px; margin-bottom:10px;">⚠️</div>
                 <div style="color:var(--rb); font-weight:800; font-size:16px; margin-bottom:8px;">اتصال به منبع قیمت برقرار نشد</div>
                 <div style="color:var(--tx2); font-size:13px; line-height:1.8; margin-bottom:15px; direction:rtl;">
                     ${e.message || 'خطای ناشناخته در دریافت دیتا'}
-                    <br>
-                    <span style="font-size:11px; opacity:0.7;">(لطفا اتصال اینترنت خود یا وضعیت سرور گیت‌هاب را بررسی کنید)</span>
                 </div>
                 <button class="set-btn" style="background:var(--card); color:var(--tx); padding:10px 20px;" onclick="scan(false)">🔄 تلاش مجدد</button>
             </div>`;
@@ -857,58 +850,109 @@ window.scan = async function(isAuto = false) {
     }
 };
 
+// -------------------------------------------------------------
+// منطق جدید: گروه‌بندی سیگنال‌ها (یک سیگنال از هر دسته در هر جهت)
+// -------------------------------------------------------------
 function renderList(rows) {
+    // 1. فیلتر بر اساس بازارهای انتخاب شده
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     
-    let activeCondsCount = 0;
-    if (currentMode === 'range') {
-        activeCondsCount = activeConditions.filter(c => c === "RSI" || c === "BB").length;
-    } else {
-        activeCondsCount = activeConditions.filter(c => c !== "BB").length;
-    }
-    if (activeCondsCount === 0) activeCondsCount = 1;
+    // 2. جداسازی سیگنال‌دارها از بدون سیگنال
+    let allSignals = filteredByMkt.filter(r => r.side);
+    let noSignals = filteredByMkt.filter(r => !r.side);
 
-    filteredByMkt = filteredByMkt.map(r => {
-        let pass = r.side ? activeCondsCount : Math.floor(Math.random() * (activeCondsCount + 1)); 
-        return { ...r, pass: pass, total: activeCondsCount };
+    // 3. اعمال منطق "یک سیگنال از هر دسته در هر جهت"
+    let uniqueSignals = [];
+    let duplicateSignals = [];
+    let seenCategories = new Set();
+
+    allSignals.forEach(r => {
+        // کلید یکتا: مثلا crypto_LONG
+        const catKey = `${r.mkt || 'crypto'}_${r.side}`;
+        
+        if (!seenCategories.has(catKey)) {
+            uniqueSignals.push(r);
+            seenCategories.add(catKey);
+        } else {
+            duplicateSignals.push(r);
+        }
     });
 
-    let all = filteredByMkt.filter(r => r.side);
-    let sg = all.filter(r => vf === "all" || r.side === vf);
-    let no = filteredByMkt.filter(r => !r.side);
+    // 4. اعمال فیلتر لانگ/شورت (همه، لانگ، شورت) روی سیگنال‌های یکتای اصلی
+    let sg = uniqueSignals.filter(r => vf === "all" || r.side === vf);
 
-    const nl = all.filter(r => r.side === "LONG").length;
-    const ns = all.filter(r => r.side === "SHORT").length;
+    // 5. بروزرسانی آمار بالای صفحه
+    const nl = uniqueSignals.filter(r => r.side === "LONG").length;
+    const ns = uniqueSignals.filter(r => r.side === "SHORT").length;
     $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
-    $("goC").textContent = fmtNum(filteredByMkt.length);
+    $("goC").textContent = fmtNum(uniqueSignals.length);
 
-    let emptyHtml = sg.length === 0 ? `<div class="empty" style="text-align:center; padding:40px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🌙</div>سیگنالی یافت نشد.</div>` : '';
-    
-    let detailsHtml = '';
-    if(no.length > 0) {
-        detailsHtml = `<details style="margin-top:16px;"><summary style="cursor:pointer; padding:10px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2);">بدون سیگنال (${fmtNum(no.length)})</summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.slice(0,15).map(r => `<div class="set-row" style="background:var(--card); padding:10px; border-radius:8px; border:none; margin:0;"><span>${r.id}</span><span style="color:var(--mu); font-size:12px;">${r.pass}/${r.total}</span></div>`).join("")}</div></details>`;
+    // 6. ساخت کارت‌های اصلی
+    let signalsHtml = sg.length === 0 ? `<div class="empty" style="text-align:center; padding:40px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🌙</div>سیگنال فعالی در این لحظه یافت نشد.</div>` : '';
+    if (sg.length > 0) {
+        signalsHtml = sg.map(r => {
+            const L = r.side === "LONG";
+            return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
+                <div class="r-head">
+                    <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
+                    <div class="r-tags"><span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
+                    <div class="sym">${r.id}</div>
+                </div>
+                <div class="r-grid">
+                    <div><i>ورود</i><b>${r.entry || '-'}</b></div>
+                    <div><i>SL</i><b class="neg">${r.sl || '-'}</b></div>
+                    <div><i>هدف</i><b class="pos">${r.tp || 'RSI'}</b></div>
+                </div>
+                <div class="r-foot">
+                    <span>تایم فریم: <bdi>${r.tf || 'M15'}</bdi></span>
+                    <span><bdi dir="ltr">${r.pattern || 'PA'}</bdi></span>
+                </div>
+            </article>`;
+        }).join("");
     }
 
-    // اینجا onclick برای خواندن سیگنال به انگلیسی اضافه شده است
-    $("list").innerHTML = (sg.length ? sg.map(r => {
-        const L = r.side === "LONG";
-        return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
-            <div class="r-head">
-                <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
-                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
-                <div class="sym">${r.id}</div>
+    // 7. ساخت لیست کشویی برای سیگنال‌های تکراری هم‌دسته
+    let dupHtml = '';
+    if (duplicateSignals.length > 0) {
+        dupHtml = `<details style="margin-top:16px;">
+            <summary style="cursor:pointer; padding:12px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2); font-weight:600; text-align:center;">
+                🔍 سایر سیگنال‌های هم‌دسته (${fmtNum(duplicateSignals.length)} مورد فیلتر شده)
+            </summary>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                ${duplicateSignals.map(r => {
+                    const isL = r.side === 'LONG';
+                    return `<div class="set-row" style="background:var(--bg); padding:12px; border-radius:8px; border:1px solid var(--bd2); margin:0; direction:ltr; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="b ${r.side}" style="font-size:10px; padding:2px 6px;">${isL ? 'LONG' : 'SHORT'}</span>
+                            <span style="font-weight:800; color:var(--tx); font-size:14px;">${r.id}</span>
+                        </div>
+                        <span style="color:var(--mu); font-size:11px;">${MKT_LABEL[r.mkt || 'crypto']}</span>
+                    </div>`;
+                }).join("")}
             </div>
-            <div class="r-grid">
-                <div><i>ورود</i><b>${r.entry || '10.8540'}</b></div>
-                <div><i>SL</i><b class="neg">${r.sl || '10.9103'}</b></div>
-                <div><i>خروج</i><b class="pos">RSI</b></div>
+        </details>`;
+    }
+
+    // 8. ساخت لیست کشویی برای نمادهای بدون سیگنال
+    let noHtml = '';
+    if (noSignals.length > 0) {
+        noHtml = `<details style="margin-top:10px;">
+            <summary style="cursor:pointer; padding:10px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--mu); text-align:center; font-size:13px;">
+                بدون سیگنال (${fmtNum(noSignals.length)} نماد)
+            </summary>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                ${noSignals.slice(0, 20).map(r => `
+                    <div class="set-row" style="background:var(--bg); padding:10px; border-radius:8px; border:none; margin:0; direction:ltr;">
+                        <span style="color:var(--tx2); font-size:13px;">${r.id}</span>
+                        <span style="color:var(--mu); font-size:11px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${r.reason || 'رد شده'}</span>
+                    </div>
+                `).join("")}
             </div>
-            <div class="r-foot">
-                <span>ریسک <bdi>0.52%</bdi></span>
-                <span><bdi dir="ltr">RSI 64</bdi></span>
-            </div>
-        </article>`;
-    }).join("") : emptyHtml) + detailsHtml;
+        </details>`;
+    }
+
+    // 9. نمایش نهایی
+    $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
 renderCondChips();
