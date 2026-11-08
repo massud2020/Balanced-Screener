@@ -440,7 +440,6 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
             });
             return { success: true, engine: 'Native TTS' };
         } catch (e) {
-            console.error("Native TTS Error:", e);
             return { success: false, error: e.message || "خطای نامشخص در Native TTS" };
         }
     } else if ('speechSynthesis' in window) {
@@ -527,43 +526,85 @@ window.setHistTab = function(t, btn) {
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
+    
+    // فیلتر بر اساس زمان
     let filteredClosed = closedHistData.filter(d => {
-        if (histFilter === 'today') return (now - d.time) < 86400;
-        if (histFilter === 'week') return (now - d.time) < 7 * 86400;
+        if (histFilter === 'today') return (now - (d.time || 0)) < 86400;
+        if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400;
         return true;
     });
 
-    let wins = 0, losses = 0, netR = 0;
-    filteredClosed.forEach(d => {
-        if (d.result === 'win') { wins++; netR += d.R; }
-        else { losses++; netR += d.R; }
-    });
-    let winRate = (wins + losses) > 0 ? Math.round((wins / (wins+losses)) * 100) : 0;
+    // محاسبه دقیق آمار بر اساس btengine.js
+    let wins = 0, losses = 0, timeouts = 0, netR = 0;
+    let patternR = 0, rangeR = 0;
 
-    $("histNetR").innerText = (netR >= 0 ? "+" : "") + netR.toFixed(1) + " R";
+    filteredClosed.forEach(d => {
+        const r = Number(d.R || 0);
+        netR += r;
+        
+        if (d.mode === 'range') rangeR += r;
+        else patternR += r;
+
+        if (d.result === 'win') wins++;
+        else if (d.result === 'loss') losses++;
+        else timeouts++;
+    });
+
+    let totalClosed = wins + losses + timeouts;
+    let winRate = totalClosed > 0 ? Math.round((wins / totalClosed) * 100) : 0;
+
+    // به‌روزرسانی UI آمار
+    $("histNetR").innerText = (netR >= 0 ? "+" : "") + netR.toFixed(2) + " R";
     $("histNetR").style.color = netR >= 0 ? "var(--gb)" : "var(--rb)";
-    $("histWinLoss").innerText = wins + " / " + losses;
+    $("histWinLoss").innerText = `${wins} / ${losses}`;
     $("histWinRate").innerText = winRate + "%";
 
+    // لیست کردن سیگنال‌ها
     let items = histTab === 'open' ? openHistData : filteredClosed;
+    
     if(items.length === 0) {
         $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`;
     } else {
+        // مرتب سازی بر اساس زمان (جدیدترین‌ها اول)
+        items.sort((a, b) => (b.time || 0) - (a.time || 0));
+        
         $("signalsContainer").innerHTML = items.map(d => {
             const isL = d.side === 'LONG';
             const isWin = d.result === 'win';
             const isLoss = d.result === 'loss';
             const isOpen = d.result === 'open';
             
-            let statusCol = isOpen ? 'var(--mu)' : (isWin ? 'var(--gb)' : 'var(--rb)');
-            let statusTxt = isOpen ? 'در حال پایش' : (isWin ? 'سود (+R)' : 'ضرر (-R)');
-            let rTxt = isOpen ? '-' : (d.R > 0 ? '+' : '') + d.R.toFixed(1) + 'R';
+            let statusCol = 'var(--mu)';
+            let statusTxt = 'در حال پایش';
+            let rTxt = '-';
+
+            if (!isOpen) {
+                if (isWin) { statusCol = 'var(--gb)'; statusTxt = 'سود (TP)'; }
+                else if (isLoss) { statusCol = 'var(--rb)'; statusTxt = 'ضرر (SL)'; }
+                else { statusCol = '#eab308'; statusTxt = 'تایم‌اوت'; } // رنگ زرد برای FADE/TIME
+                
+                if (d.R !== undefined) {
+                    rTxt = (d.R > 0 ? '+' : '') + Number(d.R).toFixed(2) + 'R';
+                }
+            }
+
+            // دلیل بسته شدن
+            let whyTag = '';
+            if (d.why) {
+                whyTag = `<span style="font-size:10px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--tx2); margin-inline-start:6px;">${d.why}</span>`;
+            }
 
             return `<div class="hist-item">
                 <div>
-                    <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'};">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu);">${d.side}</span></div>
-                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div>
-                    <div style="font-size:10px; color:var(--mu); margin-top:2px;">${d.dateStr || ''}</div>
+                    <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'}; display:flex; align-items:center;">
+                        ${d.id} 
+                        <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu); margin-inline-start:6px;">${d.side}</span>
+                        ${whyTag}
+                    </div>
+                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px; direction:rtl;">
+                        ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}
+                    </div>
+                    <div style="font-size:10px; color:var(--mu); margin-top:4px; direction:rtl;">${d.dateStr || ''}</div>
                 </div>
                 <div style="text-align:right;">
                     <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
@@ -573,6 +614,7 @@ function renderHistory() {
         }).join('');
     }
 
+    // رسم نمودار
     const canvas = $('strategyPerformanceChart');
     if (canvas && window.Chart) {
         if (histChartInstance) histChartInstance.destroy();
@@ -582,7 +624,7 @@ function renderHistory() {
                 labels: ['روند (3+1)', 'استراتژی رنج'],
                 datasets: [{
                     label: 'Net R',
-                    data: [netR * 0.7, netR * 0.3],
+                    data: [patternR, rangeR],
                     backgroundColor: ['rgba(70,197,140,0.6)', 'rgba(90,140,255,0.6)'],
                     borderColor: ['#46c58c', '#8ab4ff'],
                     borderWidth: 1
@@ -764,7 +806,7 @@ async function fetchGitJson(filename) {
         const res = await fetch(url, { cache: 'no-store' });
         
         if (!res.ok) {
-            if (res.status === 404) throw new Error("فایل دیتا (data.json) روی سرور یافت نشد.");
+            if (res.status === 404) throw new Error(`فایل دیتا (${filename}) روی سرور یافت نشد.`);
             throw new Error(`خطای شبکه: سرور با کد ${res.status} پاسخ داد.`);
         }
         
@@ -793,11 +835,27 @@ window.scan = async function(isAuto = false) {
     try {
         $("st").innerHTML = "در حال دریافت دیتا از سرور...";
         
+        // دریافت دیتای زنده
         const json = await fetchGitJson('data.json');
         
         if (json.error) throw new Error(`خطای صرافی: ${json.error}`);
         if (!json.rows || !Array.isArray(json.rows)) throw new Error("ساختار داده‌ها نامعتبر است (آرایه rows یافت نشد).");
 
+        // دریافت دیتای تاریخچه
+        try {
+            const histJson = await fetchGitJson('history.json');
+            if (histJson && Array.isArray(histJson.history)) {
+                // تبدیل به فرمت مورد نیاز اپلیکیشن و اضافه کردن تاریخ شمسی
+                closedHistData = histJson.history.map(h => ({
+                    ...h,
+                    dateStr: new Date((h.time || h.bt || Date.now()/1000) * 1000).toLocaleString('fa-IR')
+                }));
+            }
+        } catch(e) {
+            console.warn("Could not fetch history.json:", e.message);
+        }
+
+        // باز کردن سیگنال‌های در جریان
         if (json.state && json.state.sent) {
             const sentArray = Object.values(json.state.sent);
             openHistData = sentArray.map(s => ({
@@ -854,22 +912,16 @@ window.scan = async function(isAuto = false) {
 // منطق جدید: گروه‌بندی سیگنال‌ها (یک سیگنال از هر دسته در هر جهت)
 // -------------------------------------------------------------
 function renderList(rows) {
-    // 1. فیلتر بر اساس بازارهای انتخاب شده
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
-    
-    // 2. جداسازی سیگنال‌دارها از بدون سیگنال
     let allSignals = filteredByMkt.filter(r => r.side);
     let noSignals = filteredByMkt.filter(r => !r.side);
 
-    // 3. اعمال منطق "یک سیگنال از هر دسته در هر جهت"
     let uniqueSignals = [];
     let duplicateSignals = [];
     let seenCategories = new Set();
 
     allSignals.forEach(r => {
-        // کلید یکتا: مثلا crypto_LONG
         const catKey = `${r.mkt || 'crypto'}_${r.side}`;
-        
         if (!seenCategories.has(catKey)) {
             uniqueSignals.push(r);
             seenCategories.add(catKey);
@@ -878,16 +930,13 @@ function renderList(rows) {
         }
     });
 
-    // 4. اعمال فیلتر لانگ/شورت (همه، لانگ، شورت) روی سیگنال‌های یکتای اصلی
     let sg = uniqueSignals.filter(r => vf === "all" || r.side === vf);
 
-    // 5. بروزرسانی آمار بالای صفحه
     const nl = uniqueSignals.filter(r => r.side === "LONG").length;
     const ns = uniqueSignals.filter(r => r.side === "SHORT").length;
     $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
     $("goC").textContent = fmtNum(uniqueSignals.length);
 
-    // 6. ساخت کارت‌های اصلی
     let signalsHtml = sg.length === 0 ? `<div class="empty" style="text-align:center; padding:40px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🌙</div>سیگنال فعالی در این لحظه یافت نشد.</div>` : '';
     if (sg.length > 0) {
         signalsHtml = sg.map(r => {
@@ -911,7 +960,6 @@ function renderList(rows) {
         }).join("");
     }
 
-    // 7. ساخت لیست کشویی برای سیگنال‌های تکراری هم‌دسته
     let dupHtml = '';
     if (duplicateSignals.length > 0) {
         dupHtml = `<details style="margin-top:16px;">
@@ -933,7 +981,6 @@ function renderList(rows) {
         </details>`;
     }
 
-    // 8. ساخت لیست کشویی برای نمادهای بدون سیگنال
     let noHtml = '';
     if (noSignals.length > 0) {
         noHtml = `<details style="margin-top:10px;">
@@ -951,7 +998,6 @@ function renderList(rows) {
         </details>`;
     }
 
-    // 9. نمایش نهایی
     $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
