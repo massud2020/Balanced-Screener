@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
     env:
+      # تزریق مستقیم آینه به عنوان متغیر محیطی (راه‌حل قطعی خطای is not a valid npm option)
       npm_config_sharp_binary_host: "https://npmmirror.com/mirrors/sharp"
       npm_config_sharp_libvips_binary_host: "https://npmmirror.com/mirrors/sharp-libvips"
       SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
@@ -31,15 +32,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # این مرحله جدید مشکل تایم‌اوت را حل می‌کند (هدایت دانلود به سرور آینه)
-      - name: Configure NPM Mirrors for Sharp
-        run: |
-          npm config set sharp_binary_host "https://npmmirror.com/mirrors/sharp"
-          npm config set sharp_libvips_binary_host "https://npmmirror.com/mirrors/sharp-libvips"
-          npm config set fetch-retries 5
-          npm config set fetch-timeout 300000
-          npm config list
-
+      # نصب پکیج‌ها (حالا متغیرهای env به صورت خودکار توسط npm خوانده می‌شوند)
       - name: Install dependencies
         run: npm install
 
