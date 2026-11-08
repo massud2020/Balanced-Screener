@@ -431,6 +431,70 @@ let openHistData = [
     { id: "AUDUSD", side: "LONG", entry: 0.6500, sl: 0.6450, result: "open", time: Date.now()/1000 - 1800 }
 ];
 
+// -------------------------------------------------------------
+// بخش جدید: موتور صوتی هوشمند (پشتیبانی از Native TTS و Web Speech)
+// -------------------------------------------------------------
+async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
+    // بررسی اینکه آیا در محیط اپلیکیشن Capacitor هستیم یا خیر
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+        try {
+            await window.Capacitor.Plugins.TextToSpeech.speak({
+                text: text,
+                lang: lang,
+                rate: rate,
+                pitch: 1.0,
+                volume: 1.0
+            });
+            return { success: true, engine: 'Native TTS' };
+        } catch (e) {
+            console.error("Native TTS Error:", e);
+            return { success: false, error: e.message || "خطای نامشخص در Native TTS" };
+        }
+    } 
+    // پشتیبان برای مرورگرهای وب (دسکتاپ)
+    else if ('speechSynthesis' in window) {
+        try {
+            window.speechSynthesis.cancel(); // قطع کردن صداهای قبلی
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = lang;
+            u.rate = rate;
+            window.speechSynthesis.speak(u);
+            return { success: true, engine: 'Web Speech API' };
+        } catch(e) {
+            return { success: false, error: e.message };
+        }
+    }
+    
+    return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
+}
+
+window.testVoice = async function() {
+    const errEl = $("voiceEngineStatus");
+    if(errEl) {
+        errEl.innerHTML = "⏳ در حال ارسال درخواست به موتور صدا...";
+        errEl.style.background = 'var(--card2)';
+        errEl.style.color = 'var(--tx2)';
+    }
+
+    const rateVal = (+$("ttsRate")?.value || 50) / 50;
+    const res = await speakNative("تست صدای هوش مصنوعی. سیستم در حال آماده سازی است.", 'fa-IR', rateVal);
+
+    if (res.success) {
+        if(errEl) {
+            errEl.innerHTML = `✅ موتور صدا (${res.engine}) در حال پخش است...`;
+            errEl.style.background = 'var(--gd)';
+            errEl.style.color = 'var(--gb)';
+        }
+    } else {
+        if(errEl) {
+            errEl.innerHTML = `❌ خطای موتور صدا:<br>${res.error}`;
+            errEl.style.background = 'var(--rd)';
+            errEl.style.color = 'var(--rb)';
+        }
+    }
+};
+// -------------------------------------------------------------
+
 window.toggleSettings = function() {
     const p = $("settingsPanel");
     p.classList.toggle("on");
@@ -536,44 +600,6 @@ function renderHistory() {
     }
 }
 
-window.testVoice = function() {
-    const errEl = $("voiceEngineStatus");
-    if(errEl) {
-        errEl.innerHTML = "⏳ در حال ارسال درخواست به موتور صدا...";
-        errEl.style.background = 'var(--card2)';
-        errEl.style.color = 'var(--tx2)';
-    }
-
-    if (!('speechSynthesis' in window)) {
-        if(errEl) {
-            errEl.innerHTML = "❌ Web Speech API در این مرورگر پشتیبانی نمی‌شود.";
-            errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)';
-        }
-        return;
-    }
-
-    try {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance("تست صدای هوش مصنوعی. سیستم در حال آماده سازی است.");
-        u.lang = 'fa-IR';
-        u.rate = (+$("ttsRate")?.value || 50) / 50;
-        
-        u.onstart = () => { 
-            if(errEl) { errEl.innerHTML = "✅ صدای سیستم (Native) در حال پخش است..."; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; }
-        };
-        u.onend = () => { 
-            if(errEl) { errEl.innerHTML = "✅ پخش صدا با موفقیت انجام شد."; }
-        };
-        u.onerror = (e) => { 
-            if(errEl) { errEl.innerHTML = `❌ خطای موتور صدا:<br>${e.error || 'Unknown Error'}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; }
-        };
-
-        window.speechSynthesis.speak(u);
-    } catch(e) {
-        if(errEl) { errEl.innerHTML = `❌ خطای جاوااسکریپت:<br>${e.message}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; }
-    }
-};
-
 window.reqNotif = function() {
     if (!("Notification" in window)) {
         alert("مرورگر شما از اعلان‌ها پشتیبانی نمی‌کند.");
@@ -612,17 +638,13 @@ window.changeLanguage = function(lang) {
     document.body.dir = lang === 'fa' ? 'rtl' : 'ltr';
 };
 
-window.doEnter = function() {
+window.doEnter = async function() {
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
     
     if(!$("splashMute").checked) {
-        try {
-            let msg = "خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند.";
-            const u = new SpeechSynthesisUtterance(msg);
-            u.lang = 'fa-IR';
-            window.speechSynthesis.speak(u);
-        } catch(e) {}
+        // استفاده از موتور صوتی هوشمند به جای کد قبلی
+        await speakNative("خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند.", 'fa-IR', 1.0);
     }
     setTimeout(() => { scan(true); }, 500);
 };
