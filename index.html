@@ -6,15 +6,11 @@
 <meta name="theme-color" content="#0b0d11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
+<title>Balanced Screener - پنل تحلیل</title>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════════
-   استایل‌های پایه
-   ═══════════════════════════════════════════════════════════════════ */
 :root {
   --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
   --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c;
@@ -52,9 +48,7 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .badge.on { display: block; }
 .ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   تنظیمات (دقیقاً مطابق عکس‌ها)
-   ═══════════════════════════════════════════════════════════════════ */
+/* تنظیمات */
 .set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
 .set.on { display: block; }
 .set-section { font-size: 12px; font-weight: 700; color: var(--mu); text-align: right; margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid var(--bd2); }
@@ -67,7 +61,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .set-btn { background: var(--card2); border: 1px solid var(--bd2); color: var(--tx); border-radius: 8px; padding: 8px 16px; font-size: 12.5px; cursor: pointer; font-weight: 600; transition: 0.2s; }
 .set-btn:active { transform: scale(0.95); }
 .set-btn.green { background: var(--gd); color: var(--gb); border-color: var(--gb); }
-.set-btn.red { background: var(--rd); color: var(--rb); border-color: var(--rb); }
 .toggle { position: relative; width: 44px; height: 24px; appearance: none; background: #2a2e37; border-radius: 99px; cursor: pointer; transition: .3s; outline: none; flex-shrink: 0;}
 .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #cfd3da; border-radius: 50%; transition: .3s; }
 .toggle:checked { background: var(--gb); }
@@ -76,9 +69,7 @@ input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; backgroun
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
 .err-box { background: var(--rd); border: 1px solid var(--rb); border-radius: 8px; padding: 10px; font-size: 11.5px; color: var(--rb); direction: ltr; text-align: left; word-break: break-all; margin-top: 10px; display: block; line-height: 1.5; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   بدنه اصلی (لیست و کنترول‌ها)
-   ═══════════════════════════════════════════════════════════════════ */
+/* بدنه اصلی */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
 .mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; transition: 0.2s;}
@@ -97,7 +88,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
-/* اسکنر */
+/* اسکنر رادار */
 #scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -113,7 +104,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
 
-/* کنترول‌های اسکن */
+/* کنترول اسکن */
 .scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
@@ -133,7 +124,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
 
-/* لیست */
+/* لیست سیگنال */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
@@ -153,33 +144,31 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-/* تاریخچه (مودال) */
+/* تاریخچه */
 #histModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px; overflow: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
 .hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; }
-.hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; transition: 0.2s; }
-.hist-close:active { transform: scale(0.95); }
+.hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
 .hist-stats { display:flex; justify-content:space-between; margin-bottom:15px; background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); }
 .hist-stats div { text-align:center; flex:1; }
 .hist-stats .lbl { font-size:11px; color:var(--mu); }
 .hist-stats .val { font-size:16px; font-weight:800; }
 .hist-filters { display:flex; gap:6px; margin-bottom:15px; }
-.hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; transition:0.2s; }
+.hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; }
 .hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
 .hist-tabs { display:flex; gap:6px; margin-bottom:15px; }
 .hist-tabs button { flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx2); font-size:13px; cursor:pointer; }
 .hist-tabs button.on { background:var(--card); color:var(--tx); border-color:var(--gb); }
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
-
-/* Chart Wrap */
-.chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; }
+.chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px;}
 .chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
 
-<!-- ═══ Splash Screen ═══ -->
+<!-- اسپلش -->
 <div id="ai-splash">
     <div class="splash-lang-bar">
         <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="changeLanguage('fa')">FA</button>
@@ -187,7 +176,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
 
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
-    
     <div class="splash-title" id="splashTitle">Balanced Screener</div>
     <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
     
@@ -200,7 +188,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </label>
 </div>
 
-<!-- ═══ Header ═══ -->
+<!-- هدر -->
 <header class="bar">
   <div class="acts-right">
     <button class="ic-lang" id="langToggle" onclick="changeLanguage(currentLang==='fa'?'en':'fa')">EN</button>
@@ -210,7 +198,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub" id="ver">v80</span>
+    <span class="brand-sub">v80</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -223,7 +211,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </header>
 
-<!-- ═══ تنظیمات (مطابق عکس‌ها) ═══ -->
+<!-- پنل تنظیمات -->
 <div class="set" id="settingsPanel">
   <div class="set-section">منبع داده</div>
   <div class="set-row">
@@ -247,7 +235,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc" id="verl">v80</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v80</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -314,7 +302,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </div>
 
-<!-- ═══ مودال تاریخچه ═══ -->
+<!-- مودال تاریخچه -->
 <div id="histModal">
     <div class="hist-content">
         <div class="hist-header">
@@ -345,8 +333,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
             <button id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
         </div>
 
-        <!-- نمودار مقایسه -->
-        <div class="chart-section" style="margin-bottom:15px;">
+        <div class="chart-section">
             <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
             <canvas id="strategyPerformanceChart"></canvas>
         </div>
@@ -355,7 +342,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
 </div>
 
-<!-- ═══ بدنه اصلی برنامه ═══ -->
+<!-- بدنه اصلی -->
 <div id="appBody">
   <section class="ctl">
     <div class="mode-switch">
@@ -375,7 +362,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
     <div class="chips" id="mkts"></div>
 
-    <!-- اسکنر رادار -->
     <div id="scanStatusCard">
       <div class="ss-top">
         <div class="ss-info">
@@ -484,14 +470,12 @@ let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
     
-    // فیلتر تاریخچه
     let filteredClosed = closedHistData.filter(d => {
         if (histFilter === 'today') return (now - d.time) < 86400;
         if (histFilter === 'week') return (now - d.time) < 7 * 86400;
         return true;
     });
 
-    // محاسبه آمار
     let wins = 0, losses = 0, netR = 0;
     filteredClosed.forEach(d => {
         if (d.result === 'win') { wins++; netR += d.R; }
@@ -504,7 +488,6 @@ function renderHistory() {
     $("histWinLoss").innerText = wins + " / " + losses;
     $("histWinRate").innerText = winRate + "%";
 
-    // رندر لیست
     let items = histTab === 'open' ? openHistData : filteredClosed;
     if(items.length === 0) {
         $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`;
@@ -532,7 +515,6 @@ function renderHistory() {
         }).join('');
     }
 
-    // رسم نمودار Chart.js
     const canvas = $('strategyPerformanceChart');
     if (canvas && window.Chart) {
         if (histChartInstance) histChartInstance.destroy();
@@ -771,7 +753,7 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     
-    // شبیه‌سازی اعمال شروط (کاهش مخرج کسر)
+    // اعمال شروط
     let activeCondsCount = 0;
     if (currentMode === 'range') {
         activeCondsCount = activeConditions.filter(c => c === "RSI" || c === "BB").length;
