@@ -11,6 +11,10 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+    env:
+      npm_config_sharp_binary_host: "https://npmmirror.com/mirrors/sharp"
+      npm_config_sharp_libvips_binary_host: "https://npmmirror.com/mirrors/sharp-libvips"
+      SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
