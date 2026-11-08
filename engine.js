@@ -105,7 +105,6 @@ function adx(candles, period = 14) {
   return smoothed(dxArr, period);
 }
 
-// 🛠 تابع جدید: محاسبه باند بولینگر
 function bollingerBands(data, period = 20, mult = 2) {
   if (!data || data.length < period) return { upper: [], middle: [], lower: [] };
   const upper = [], middle = [], lower = [];
@@ -123,7 +122,6 @@ function bollingerBands(data, period = 20, mult = 2) {
   return { upper, middle, lower };
 }
 
-// 🛠 اصلاح تابع پرایس اکشن: استفاده از الگوهای قوی (Pin Bar و Engulfing)
 function checkPriceActionConfirmation(candles, side) {
   if (!candles || candles.length < 2) return false;
   const last = candles[candles.length - 1];
@@ -141,18 +139,28 @@ function checkPriceActionConfirmation(candles, side) {
   const prevBearish = prev.close < prev.open;
 
   if (side === "LONG") {
-    // 1. Pin Bar (سایه پایینی بلند + بدنه کوچک)
     const pinBar = lowerShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBullish;
-    // 2. Bullish Engulfing (پوشا صعودی)
     const engulfing = isBullish && prevBearish && last.close >= prev.open && last.open <= prev.close;
     return pinBar || engulfing;
   } else {
-    // 1. Pin Bar (سایه بالایی بلند + بدنه کوچک)
     const pinBar = upperShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBearish;
-    // 2. Bearish Engulfing (پوشا نزولی)
     const engulfing = isBearish && prevBullish && last.close <= prev.open && last.open >= prev.close;
     return pinBar || engulfing;
   }
+}
+
+// 🛠 تابع جدید: پیدا کردن سطح ساختاری بازار (Swing High / Low)
+function findSwingLevels(candles, lookback = 20) {
+  if (!candles || candles.length < lookback) return { swingHigh: null, swingLow: null };
+  let swingHigh = -Infinity;
+  let swingLow = Infinity;
+  const recent = candles.slice(-lookback);
+  
+  for (const c of recent) {
+    if (c.high > swingHigh) swingHigh = c.high;
+    if (c.low < swingLow) swingLow = c.low;
+  }
+  return { swingHigh, swingLow };
 }
 
 function dropForming(candles, intervalSec = 300, nowSec = Date.now() / 1000) {
@@ -179,8 +187,12 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   if (!cl || cl.length < 50) return { side: null, fail: "کمبود کندل M5" };
 
   const closes = cl.map(c => c.close);
+  
+  // 🛠 ۱. اندیکاتورهای M5 (تغییرات: اضافه شدن EMA50 و EMA200 برای تشخیص روند اصلی)
   const ema9 = ema(closes, 9);
   const ema21 = ema(closes, 21);
+  const ema50 = ema(closes, 50);
+  const ema200 = ema(closes, 200); // اگر دیتا کم باشد، null می‌شود
   const rsiArr = rsi(closes, 14);
   const atrArr = atr(cl, 14);
   const adxArr = adx(cl, 14);
@@ -194,19 +206,41 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   const lastUpper = bb.upper[idx];
   const lastLower = bb.lower[idx];
 
+  // 🛠 ۲. فیلتر Multi-Timeframe (بررسی روند H1)
+  let h1Trend = 'NEUTRAL';
+  if (candlesH1 && candlesH1.length >= 50) {
+    const h1Closes = candlesH1.map(c => c.close);
+    const h1Ema50 = ema(h1Closes, 50);
+    const h1Ema200 = ema(h1Closes, 200);
+    const lastH1Ema50 = h1Ema50[h1Ema50.length - 1];
+    const lastH1Ema200 = h1Ema200[h1Ema200.length - 1] || lastH1Ema50; // فالبک
+
+    if (lastH1Ema50 > lastH1Ema200) h1Trend = 'UP';
+    else if (lastH1Ema50 < lastH1Ema200) h1Trend = 'DOWN';
+  }
+
   const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
   const checks = [];
   let side = null;
 
+  // 🛠 ۳. منطق حالت رنج (Range) با فیلتر Squeeze
   if (mode === "range") {
     const isLowTrend = lastAdx < 25;
     checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend });
     
     if (opts.adx !== false && !isLowTrend) {
-      return { side: null, fail: `روند قوی مناسب رنج نیست (ADX: ${lastAdx.toFixed(1)})`, adx: lastAdx, checks };
+      return { side: null, fail: `روند قوی مناسب رنج نیست (ADX: ${lastAdx.toFixed(1)})`, adx: lastAdx, h1Trend, checks };
     }
 
-    // 🛠 اصلاح منطق رنج: ترکیب RSI و باند بولینگر
+    // فیلتر Squeeze: اگر عرض باند خیلی کم باشد، بازار در حال فشرده شدن است و رنج معتبر نیست
+    const bbWidth = (lastUpper - lastLower);
+    const isNotSqueeze = bbWidth > (lastAtr * 1.5);
+    checks.push({ l: "عرض بولینگر کافی (عدم Squeeze)", ok: isNotSqueeze });
+
+    if (!isNotSqueeze) {
+      return { side: null, fail: "بازار فشرده است (Squeeze)", adx: lastAdx, h1Trend, checks };
+    }
+
     const rsiBuy = lastRsi <= (opts.rsiL || 38);
     const rsiSell = lastRsi >= (opts.rsiS || 62);
     const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
@@ -216,44 +250,74 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
     else if (rsiSell && bbSell) side = "SHORT";
 
     checks.push({ l: `اشباع RSI + برخورد بولینگر (${lastRsi ? lastRsi.toFixed(1) : "-"})`, ok: !!side });
-    if (!side) return { side: null, fail: `شرایط رنج برقرار نیست (RSI: ${lastRsi ? lastRsi.toFixed(1) : "-"})`, adx: lastAdx, checks };
+    if (!side) return { side: null, fail: `شرایط رنج برقرار نیست (RSI: ${lastRsi ? lastRsi.toFixed(1) : "-"})`, adx: lastAdx, h1Trend, checks };
 
-  } else {
+  } 
+  // 🛠 ۴. منطق حالت روند (Pattern) با استفاده از EMA50/200 و Trigger EMA9/21
+  else {
     const isTrending = lastAdx >= 20;
     checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending });
 
-    if (ema9[idx] > ema21[idx]) side = "LONG";
-    else if (ema9[idx] < ema21[idx]) side = "SHORT";
+    // روند اصلی M5
+    const trendUpM5 = ema50[idx] && ema200[idx] ? ema50[idx] > ema200[idx] : ema50[idx] > closes[idx-50];
+    const trendDownM5 = ema50[idx] && ema200[idx] ? ema50[idx] < ema200[idx] : ema50[idx] < closes[idx-50];
+    
+    // ماشه ورود (Trigger)
+    const triggerLong = ema9[idx] > ema21[idx];
+    const triggerShort = ema9[idx] < ema21[idx];
 
-    checks.push({ l: "ترازبندی EMA", ok: !!side });
-    if (!side) return { side: null, fail: "عدم هم‌راستایی روند", adx: lastAdx, checks };
+    if (trendUpM5 && triggerLong) side = "LONG";
+    else if (trendDownM5 && triggerShort) side = "SHORT";
+
+    checks.push({ l: "همسویی روند M5 (EMA50/200) و Trigger", ok: !!side });
+    if (!side) return { side: null, fail: "عدم هم‌راستایی روند M5", adx: lastAdx, h1Trend, checks };
   }
 
+  // 🛠 ۵. فیلتر Multi-Timeframe (رد کردن سیگنال‌های مخالف H1)
+  if (h1Trend === 'UP' && side === 'SHORT') {
+    return { side: null, fail: "سیگنال مخالف روند H1 (فیلتر MTF)", adx: lastAdx, h1Trend, checks };
+  }
+  if (h1Trend === 'DOWN' && side === 'LONG') {
+    return { side: null, fail: "سیگنال مخالف روند H1 (فیلتر MTF)", adx: lastAdx, h1Trend, checks };
+  }
+  checks.push({ l: "همسو با روند H1 (MTF)", ok: true });
+
+  // تاییدیه پرایس اکشن
   const paOk = checkPriceActionConfirmation(cl, side);
   checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk });
   if (opts.pa !== false && !paOk) {
-    return { side: null, fail: "عدم تایید کندل پرایس‌اکشن", adx: lastAdx, checks };
+    return { side: null, fail: "عدم تایید کندل پرایس‌اکشن", adx: lastAdx, h1Trend, checks };
   }
 
-  const slMult = opts.slAtr || 1.5;
+  // 🛠 ۶. فیلتر ساختار بازار (Market Structure)
+  const swings = findSwingLevels(cl, 30);
   const entry = lastClose;
-  const riskDist = lastAtr * slMult;
-
-  const sl = side === "LONG" ? entry - riskDist : entry + riskDist;
+  const riskDist = lastAtr * (opts.slAtr || 1.5);
   
-  // 🛠 اصلاح نهایی TP: 
-  let tp1 = null;
-  let tp2 = null;
-  if (mode === "range") {
-    tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-    tp2 = side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
+  if (side === "LONG") {
+    // برای لانگ، نباید خیلی به مقاومت (Swing High) نزدیک باشیم
+    if (swings.swingHigh && (swings.swingHigh - entry) < riskDist) {
+      return { side: null, fail: "نزدیک به مقاومت قوی (ساختار بازار)", adx: lastAdx, h1Trend, checks };
+    }
+  } else {
+    // برای شورت، نباید خیلی به حمایت (Swing Low) نزدیک باشیم
+    if (swings.swingLow && (entry - swings.swingLow) < riskDist) {
+      return { side: null, fail: "نزدیک به حمایت قوی (ساختار بازار)", adx: lastAdx, h1Trend, checks };
+    }
   }
+  checks.push({ l: "ساختار بازار (فاصله از سوئینگ)", ok: true });
+
+  // 🛠 ۷. تعریف اهداف (TP) برای هر دو حالت
+  const sl = side === "LONG" ? entry - riskDist : entry + riskDist;
+  const tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
+  const tp2 = side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
   const totalPass = checks.filter(c => c.ok).length;
 
   return {
     side,
     mode,
+    h1Trend, // ارسال روند H1 برای نمایش در UI
     entry,
     sl,
     tp: tp1,
@@ -274,6 +338,7 @@ module.exports = {
   adx,
   bollingerBands,
   checkPriceActionConfirmation,
+  findSwingLevels,
   dropForming,
   filterCorrelated,
   evaluate
