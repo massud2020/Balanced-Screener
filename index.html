@@ -419,11 +419,9 @@ let vf = "all";
 let isScanning = false;
 let LAST = null;
 
-// شروط و مارکت‌ها
 let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 
-// دیتای تستی تاریخچه
 let closedHistData = [
     { id: "EURUSD", side: "LONG", entry: 1.0850, exit: 1.0920, result: "win", R: 2.0, time: Date.now()/1000 - 3600 },
     { id: "GBPJPY", side: "SHORT", entry: 190.50, exit: 191.50, result: "loss", R: -1.0, time: Date.now()/1000 - 7200 },
@@ -433,9 +431,6 @@ let openHistData = [
     { id: "AUDUSD", side: "LONG", entry: 0.6500, sl: 0.6450, result: "open", time: Date.now()/1000 - 1800 }
 ];
 
-// ═══════════════════════════════════════════════════════════════════
-// تنظیمات و مودال‌ها
-// ═══════════════════════════════════════════════════════════════════
 window.toggleSettings = function() {
     const p = $("settingsPanel");
     p.classList.toggle("on");
@@ -469,7 +464,6 @@ window.setHistTab = function(t, btn) {
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
-    
     let filteredClosed = closedHistData.filter(d => {
         if (histFilter === 'today') return (now - d.time) < 86400;
         if (histFilter === 'week') return (now - d.time) < 7 * 86400;
@@ -542,9 +536,6 @@ function renderHistory() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// صدا و اعلان
-// ═══════════════════════════════════════════════════════════════════
 window.testVoice = function() {
     const errEl = $("voiceEngineStatus");
     if(errEl) {
@@ -597,9 +588,6 @@ window.reqNotif = function() {
     }).catch(err => { alert("خطا در درخواست اعلان: " + err.message); });
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// زبان و اسپلش
-// ═══════════════════════════════════════════════════════════════════
 window.changeLanguage = function(lang) {
     currentLang = lang;
     LS("bs_lang", lang);
@@ -645,9 +633,6 @@ window.doSkip = function() {
     setTimeout(() => { scan(true); }, 300);
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// منطق برنامه (شروط، مارکت‌ها، اسکن)
-// ═══════════════════════════════════════════════════════════════════
 window.setMode = function(mode) {
     currentMode = mode; LS("bs_mode", mode);
     $("modePattern").classList.toggle("on", mode === "pattern");
@@ -753,7 +738,6 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     
-    // اعمال شروط
     let activeCondsCount = 0;
     if (currentMode === 'range') {
         activeCondsCount = activeConditions.filter(c => c === "RSI" || c === "BB").length;
@@ -804,7 +788,6 @@ function renderList(rows) {
     }).join("") : emptyHtml) + detailsHtml;
 }
 
-// شروع
 renderCondChips();
 renderChips();
 scan(true);
