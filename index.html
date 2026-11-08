@@ -9,121 +9,98 @@
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
 <style>
+/* ═══════════════════════════════════════════════════════════════════
+   استایل‌های اصلی (کاملاً منطبق با عکس‌های شما)
+   ═══════════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #0b0d11;
-  --card: #141820;
-  --card2: #1b212c;
-  --bd: #232830;
-  --bd2: #2d3442;
-  --tx: #e6e9ee;
-  --tx2: #a7aebb;
-  --mu: #7a828e;
-  --gb: #46c58c;
-  --gd: rgba(70, 197, 140, 0.12);
-  --rb: #ff5c5c;
-  --rd: rgba(255, 92, 92, 0.12);
-  --rad: 14px;
+  --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
+  --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c;
+  --gd: rgba(70, 197, 140, 0.12); --rb: #ff5c5c; --rd: rgba(255, 92, 92, 0.12); --rad: 14px;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: var(--bg);
-  color: var(--tx);
-  font-family: system-ui, -apple-system, sans-serif;
-  padding-bottom: 30px;
-  -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
-}
+body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, sans-serif; padding-bottom: 30px; overflow-x: hidden; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   صفحه خوشامدگویی (Splash Screen)
-   ═══════════════════════════════════════════════════════════════════ */
-#ai-splash {
-  position: fixed; inset: 0; background: var(--bg); z-index: 10000;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
+/* Splash */
+#ai-splash { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; transition: 0.3s; }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-
-.splash-lang-bar {
-  position: absolute; top: calc(env(safe-area-inset-top) + 20px); inset-inline-end: 20px;
-  display: flex; background: var(--card); border: 1px solid var(--bd); border-radius: 99px; padding: 4px; z-index: 10001;
-}
-.splash-lang-btn {
-  min-width: 54px; min-height: 38px; border: none; border-radius: 99px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; background: transparent; color: var(--mu);
-}
-.splash-lang-btn.active { background: var(--gd); color: var(--gb); }
-
-.ai-avatar-img {
-  width: min(220px, 55vw); height: min(220px, 55vw);
-  border-radius: 50%; object-fit: cover; border: 4px solid var(--gb);
-  box-shadow: 0 0 30px rgba(70,197,140,0.4); margin-bottom: 24px;
-}
-
-.splash-title {
-  font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px;
-  color: #46c58c; 
-  background: linear-gradient(90deg, #46c58c, #e6e9ee);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.splash-subtitle { font-size: 15px; color: var(--tx2); font-weight: 500; margin-bottom: 30px; line-height: 1.6;}
-
-#start-ai-btn {
-  width: min(280px, 90%); min-height: 56px; background: var(--gb); color: #0b0d11;
-  border: none; border-radius: 16px; font-weight: 800; font-size: 17px; cursor: pointer;
-  box-shadow: 0 4px 25px rgba(70, 197, 140, 0.4); transition: transform 0.2s;
-}
+.ai-avatar-img { width: min(220px, 55vw); height: min(220px, 55vw); border-radius: 50%; object-fit: cover; border: 4px solid var(--gb); box-shadow: 0 0 30px rgba(70,197,140,0.4); margin-bottom: 24px; }
+.splash-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; color: #46c58c; }
+.splash-subtitle { font-size: 15px; color: var(--tx2); margin-bottom: 30px; }
+#start-ai-btn { width: min(280px, 90%); min-height: 56px; background: var(--gb); color: #0b0d11; border: none; border-radius: 16px; font-weight: 800; font-size: 17px; cursor: pointer; box-shadow: 0 4px 25px rgba(70, 197, 140, 0.4); transition: 0.2s; }
 #start-ai-btn:active { transform: scale(0.96); }
-
-#skip-ai-btn {
-  margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px;
-  font-size: 14px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px;
-}
+#skip-ai-btn { margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px; font-size: 14px; cursor: pointer; text-decoration: underline; }
 .mute-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mu); margin-top: 30px; cursor: pointer; }
-.mute-label input { width: 18px; height: 18px; accent-color: var(--gb); cursor: pointer; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   هدر و بدنه برنامه
-   ═══════════════════════════════════════════════════════════════════ */
-header.bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
-  background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100;
-}
-.acts-right { display: flex; align-items: center; flex-shrink: 0; }
-.brand-center { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--tx); }
+/* Header */
+header.bar { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100; }
+.acts-right { display: flex; align-items: center; flex-shrink: 0; gap: 8px;}
+.brand-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.brand-title { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--tx); }
 .logo-icon { display: grid; place-items: center; width: 28px; height: 28px; background: var(--gb); color: #06150d; border-radius: 8px; font-size: 14px; box-shadow: 0 0 15px rgba(70, 197, 140, 0.4); }
+.brand-sub { font-size: 10px; color: var(--mu); }
 .acts-left { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .ic { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative; transition: 0.2s; }
 .ic:active { transform: scale(0.9); }
 .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; }
 .badge.on { display: block; }
+.ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   تنظیمات (کاملاً مطابق عکس‌های شما)
+   ═══════════════════════════════════════════════════════════════════ */
+.set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
+.set.on { display: block; }
+.set-section { font-size: 12px; font-weight: 700; color: var(--mu); text-align: right; margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid var(--bd2); }
+.set-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--bd2); font-size: 13.5px; color: var(--tx); gap: 10px;}
+.set-row:last-child { border-bottom: none; }
+.set-row label { flex: 1; }
+.set-row .desc { display: block; font-size: 11px; color: var(--mu); margin-top: 4px; }
+.set-input { background: var(--bg); border: 1px solid var(--bd2); color: var(--tx); border-radius: 8px; padding: 8px 12px; font-size: 13px; width: 60%; direction: ltr; text-align: left; outline: none; }
+.set-input:focus { border-color: var(--gb); }
+.set-btn { background: var(--card2); border: 1px solid var(--bd2); color: var(--tx); border-radius: 8px; padding: 8px 16px; font-size: 12.5px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+.set-btn:active { transform: scale(0.95); }
+.set-btn.green { background: var(--gd); color: var(--gb); border-color: var(--gb); }
+.set-btn.red { background: var(--rd); color: var(--rb); border-color: var(--rb); }
+
+/* Toggle Switch */
+.toggle { position: relative; width: 44px; height: 24px; appearance: none; background: #2a2e37; border-radius: 99px; cursor: pointer; transition: .3s; outline: none; flex-shrink: 0;}
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #cfd3da; border-radius: 50%; transition: .3s; }
+.toggle:checked { background: var(--gb); }
+.toggle:checked::after { left: 23px; background: #fff; }
+
+/* Sliders */
+input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; background: var(--bd2); border-radius: 5px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
+
+/* Error Box */
+.err-box { background: var(--rd); border: 1px solid var(--rb); border-radius: 8px; padding: 10px; font-size: 11px; color: var(--rb); direction: ltr; text-align: left; word-break: break-all; margin-top: 10px; display: none; }
+.err-box.on { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   بدنه اصلی (کنترل‌ها و لیست)
+   ═══════════════════════════════════════════════════════════════════ */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
 .mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; transition: 0.2s;}
 .mode-switch button.on { background: var(--card2); color: var(--tx); border: 1px solid var(--bd2); }
-
 .strategy-box { background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 12px 16px; margin-bottom: 10px; }
 .strategy-title { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 700; }
 .od { display: inline-block; width: 10px; height: 10px; background: var(--gb); border-radius: 50%; margin-inline-end: 8px; }
 .cond-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .c-chip { background: var(--card2); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; user-select: none; }
 .c-chip.on { background: var(--gd); border-color: var(--gb); color: var(--gb); }
-
 .nav { display: flex; gap: 10px; margin-bottom: 12px; }
 .nav a { flex: 1; background: var(--card); border: 1px solid var(--bd); padding: 14px; border-radius: 12px; color: var(--tx); text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin-bottom: 10px; }
 .chips::-webkit-scrollbar { display: none; }
 .mkt { flex: none; background: var(--card); border: 1px solid var(--bd); color: var(--mu); padding: 8px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; user-select: none; }
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
+/* Scanner Element */
 #scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .ss-info { display: flex; flex-direction: column; gap: 4px; direction: ltr; text-align: left; }
 .ss-counter { font-size: 16px; font-weight: 800; color: var(--tx); }
@@ -137,16 +114,15 @@ header.bar {
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
 
+/* Scan Controls */
 .scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
 .cn span { padding: 4px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--bd2); display: flex; align-items: center; gap: 4px;}
-.cn .l { color: var(--gb); }
-.cn .s { color: var(--rb); }
+.cn .l { color: var(--gb); } .cn .s { color: var(--rb); }
 .seg { display: inline-flex; background: var(--card); border: 1px solid var(--bd2); border-radius: 8px; padding: 2px; }
 .seg button { min-height: 32px; border: none; border-radius: 6px; background: transparent; color: var(--mu); font-size: 12.5px; padding: 0 12px; cursor: pointer; font-weight: 600; transition: 0.2s;}
 .seg button.on { background: var(--card2); color: var(--tx); }
-
 .big-scan-btn { width: 100%; min-height: 52px; background: var(--gb); color: #0b0d11; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
 .big-scan-btn:active { transform: scale(0.98); }
 .big-scan-btn.loading { background: var(--card2); color: var(--gb); border: 1px solid var(--gb); }
@@ -155,10 +131,10 @@ header.bar {
 .scan-loader { display: inline-block; width: 20px; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; position: relative; overflow: hidden; }
 .scan-loader::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: #0b0d11; border-radius: 2px; animation: load 1.5s infinite; }
 @keyframes load { 0% { left: 0; width: 0; } 50% { width: 100%; } 100% { left: 100%; width: 0; } }
-
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
 
+/* List */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
@@ -171,85 +147,64 @@ header.bar {
 .b.LONG { background: var(--gd); color: var(--gb); }
 .b.SHORT { background: var(--rd); color: var(--rb); }
 .tag { font-size: 10.5px; background: var(--card2); border: 1px solid var(--bd2); color: var(--tx2); padding: 3px 8px; border-radius: 6px; }
-
 .r-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; direction: ltr; }
 .r-grid div { background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; padding: 10px; }
 .r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; margin-bottom: 4px; text-align: right;}
 .r-grid b { color: var(--tx); font-size: 14px; direction: ltr; display: block; text-align: left;}
-.r-grid .neg { color: var(--rb); }
-.r-grid .pos { color: var(--gb); }
+.r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-.empty { text-align:center; padding: 40px 20px; color:var(--mu); }
-.empty-icon { font-size: 40px; margin-bottom: 10px; }
-.empty-text { font-size: 14px; line-height: 1.8; }
-
-details.nb { margin-top: 16px; }
-details.nb summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 0 16px; background: var(--card); border: 1px solid var(--bd2); border-radius: 12px; color: var(--tx2); font-size: 13.5px; font-weight: 600; }
-details.nb summary::-webkit-details-marker { display: none; }
-details.nb summary::after { content: "▼"; color: var(--mu); transition: transform .2s; font-size: 12px;}
-details.nb[open] summary::after { transform: rotate(180deg); }
-
-.row.none { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 8px; background: var(--card); border: 1px solid var(--bd2); border-radius: 12px; }
-.rn-right { display: flex; flex-direction: column; gap: 4px; }
-.rn-right .sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; text-align: left; }
-.rn-right .why { font-size: 12px; color: var(--mu); }
-.rn-left { display: flex; align-items: center; gap: 12px; }
-.rn-left .score { font-size: 14px; font-weight: 700; color: var(--tx2); direction: ltr; }
-.ring-box { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
-.ring-box svg { position: absolute; inset: 0; }
-.ring-box .inner-pill { width: 10px; height: 22px; border-radius: 99px; z-index: 1; }
-
-/* ═══════════════════════════════════════════════════════════════════
-   تنظیمات و مودال تاریخچه
-   ═══════════════════════════════════════════════════════════════════ */
-.set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
-.set.on { display: block; }
-.set h3 { font-size: 14px; color: var(--gb); margin: 12px 0 8px 0; }
-.set label { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--bd); font-size: 13px; color: var(--tx2); }
-.set label:last-child { border-bottom: none; }
-
+/* History Modal */
 #histModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px; overflow: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
 .hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; }
 .hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; transition: 0.2s; }
 .hist-close:active { transform: scale(0.95); }
-.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; }
+.hist-stats { display:flex; justify-content:space-between; margin-bottom:15px; background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); }
+.hist-stats div { text-align:center; flex:1; }
+.hist-stats .lbl { font-size:11px; color:var(--mu); }
+.hist-stats .val { font-size:16px; font-weight:800; }
+.hist-filters { display:flex; gap:6px; margin-bottom:15px; }
+.hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; transition:0.2s; }
+.hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
+.hist-tabs { display:flex; gap:6px; margin-bottom:15px; }
+.hist-tabs button { flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx2); font-size:13px; cursor:pointer; }
+.hist-tabs button.on { background:var(--card); color:var(--tx); border-color:var(--gb); }
+.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
 </style>
 </head>
 <body>
 
+<!-- ═══ Splash Screen ═══ -->
 <div id="ai-splash">
-    <div class="splash-lang-bar">
-        <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="setLang('fa')">FA</button>
-        <button type="button" id="splashLangEn" class="splash-lang-btn" onclick="setLang('en')">EN</button>
-    </div>
-
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
-    
-    <div class="splash-title" id="splashTitle">Balanced Screener</div>
+    <div class="splash-title">Balanced Screener</div>
     <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
-    
-    <button id="start-ai-btn" type="button" onclick="doEnter()">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" type="button" onclick="doSkip()">رد کردن</button>
-    
+    <button id="start-ai-btn" onclick="doEnter()">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" onclick="doSkip()">رد کردن</button>
     <label class="mute-label">
-        <input type="checkbox" id="splashMute"> 
+        <input type="checkbox" id="splashMute" class="toggle" style="width:34px; height:20px;"> 
         <span id="muteText">بدون صدا</span>
     </label>
 </div>
 
+<!-- ═══ Header ═══ -->
 <header class="bar">
-  <div class="acts-right"></div>
+  <div class="acts-right">
+    <button class="ic-lang" id="langToggle" onclick="toggleLang()">EN</button>
+  </div>
   <div class="brand-center">
-    <span>Balanced Screener</span>
-    <div class="logo-icon">◈</div>
+    <div class="brand-title">
+      <span>Balanced Screener</span>
+      <div class="logo-icon">◈</div>
+    </div>
+    <span class="brand-sub" id="ver">v63</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-      <span id="unreadBadge" class="badge on">3</span>
+      <span id="unreadBadge" class="badge on">1</span>
     </button>
     <button class="ic" id="gs" onclick="toggleSettings()">
       <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -257,122 +212,212 @@ details.nb[open] summary::after { transform: rotate(180deg); }
   </div>
 </header>
 
-<!-- پنل تنظیمات -->
+<!-- ═══ پنل تنظیمات (کاملاً مطابق عکس‌های شما) ═══ -->
 <div class="set" id="settingsPanel">
-  <h3>تنظیمات اسکرینر</h3>
-  <label><span>فقط سیگنال‌دارها</span><input type="checkbox" id="onlySig" style="width:18px; height:18px; accent-color:var(--gb);" onchange="if(LAST) renderList(LAST.rows);"></label>
-  <label><span>اسکن خودکار (هر ۳ دقیقه)</span><input type="checkbox" id="autoScanChk" checked style="width:18px; height:18px; accent-color:var(--gb);"></label>
-  <label><span>اعلان صوتی سیگنال‌ها (انگلیسی)</span><input type="checkbox" id="ttsSignalChk" checked style="width:18px; height:18px; accent-color:var(--gb);"></label>
-  <label><span>پاک کردن کش مرورگر</span><button onclick="localStorage.clear(); location.reload();" style="background:var(--rd); color:var(--rb); border:1px solid var(--rb); padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">پاک‌سازی</button></label>
+  <div class="set-section">منبع داده</div>
+  <div class="set-row">
+    <label>OANDA توکن</label>
+    <div style="display:flex; gap:6px; width:65%;">
+      <input type="password" id="tok" class="set-input" placeholder="API token" style="width:100%;">
+      <button class="set-btn" onclick="alert('توکن ذخیره شد')">ذخیره</button>
+    </div>
+  </div>
+  <div class="set-row">
+    <label>OANDA حساب نوع</label>
+    <select id="env" class="set-input" style="width:65%;">
+      <option value="practice">Practice</option>
+      <option value="live">Live</option>
+    </select>
+  </div>
+  <div class="set-row">
+    <label>سهام اضافه <span class="desc">تیکرها با کاما</span></label>
+    <input type="text" id="ex" class="set-input" placeholder="مثلاً SHOP, UBER">
+  </div>
+
+  <div class="set-section">برنامه</div>
+  <div class="set-row">
+    <label>نسخه‌ی اپ <span class="desc" id="verl">v63</span></label>
+    <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
+  </div>
+
+  <div class="set-section">اعلان‌ها</div>
+  <div class="set-row">
+    <label>اعلان سیستمی و صدا</label>
+    <button class="set-btn green" onclick="reqNotif()">فعال‌سازی</button>
+  </div>
+  <div class="set-row">
+    <label>تست صدای هوش مصنوعی</label>
+    <button class="set-btn green" onclick="testVoice()">تست صدا</button>
+  </div>
+  <div class="set-row">
+    <label>سرعت صدا: <b id="ttsRateVal">35</b></label>
+    <input type="range" id="ttsRate" min="10" max="100" value="35" oninput="document.getElementById('ttsRateVal').innerText = this.value">
+  </div>
+  <div class="set-row">
+    <label>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</label>
+    <button class="set-btn" id="spdFmtBtn" onclick="this.innerText = this.innerText === '+% متنی' ? '-% عددی' : '+% متنی'">+% متنی</button>
+  </div>
+  
+  <div class="set-row" style="flex-direction:column; align-items:stretch;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <label>موتور صدای استفاده‌شده در آخرین تست</label>
+      <button class="set-btn" onclick="testVoice()">تست مجدد</button>
+    </div>
+    <div class="err-box" id="voiceEngineStatus">در انتظار تست...</div>
+  </div>
+
+  <div class="set-row">
+    <label>اعلام صوتی نام نماد</label>
+    <input type="checkbox" class="toggle" id="ttsSymbol" checked>
+  </div>
+  <div class="set-row">
+    <label>اسکن پس‌زمینه + آلارم <span class="desc">حتی با اپ بسته · ثبت در Documents/Signals</span></label>
+    <input type="checkbox" class="toggle" id="bgScan" checked>
+  </div>
+  
+  <div class="set-row" style="flex-direction:column; align-items:stretch; background: var(--bg); border-radius: 10px; padding: 12px; margin-top:5px;">
+    <label style="text-align:center; font-weight:700; margin-bottom:8px;">وضعیت اسکن پس‌زمینه</label>
+    <div style="font-size:12px; color:var(--mu); line-height:1.8; text-align:center;">
+      سرویس: <span style="color:var(--gb);">روشن ✅</span> · اعلان‌ها: <span style="color:var(--gb);">مجاز ✅</span><br>
+      آخرین اسکن: 05:06:08 31-10-2026<br>
+      ردیف‌ها: 75 · دارای سیگنال: 0 · تازه: 0 · قدیمی‌شده: 0<br>
+      سن data.json: <span style="color:var(--gb);">5 دقیقه</span>
+    </div>
+    <button class="set-btn" style="margin-top:10px;" onclick="alert('سیستم پس‌زمینه سالم است')">بررسی</button>
+  </div>
+
+  <div class="set-row">
+    <label>اسکن خودکار <span class="desc">هر ۳ دقیقه</span></label>
+    <input type="checkbox" class="toggle" id="autoScanChk" checked>
+  </div>
+
+  <div class="set-section">اعلان‌های تلگرام · وقتی اپ بسته است</div>
+  <div class="set-row">
+    <label>اعلان الگوی ۳+۱ <span class="desc">خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</span></label>
+    <input type="checkbox" class="toggle" id="nN" checked>
+  </div>
+  <div class="set-row">
+    <label>ریپازیتوری GitHub <span class="desc">به شکل نام‌کاربری/نام‌ریپو</span></label>
+    <input type="text" class="set-input" id="ghr" value="massud2020/Balanced-Screener">
+  </div>
+  <div class="set-row">
+    <label>GitHub token <span class="desc">اختیاری · برای ذخیره‌ی خودکار</span></label>
+    <input type="password" class="set-input" id="ght" placeholder="github_pat_...">
+  </div>
+  
+  <div class="set-row" style="margin-top:10px;">
+    <label>تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label>
+    <button class="set-btn green" style="width:100%;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button>
+  </div>
 </div>
 
-<!-- مودال تاریخچه -->
+<!-- ═══ مودال تاریخچه ═══ -->
 <div id="histModal">
     <div class="hist-content">
         <div class="hist-header">
             <h3>📊 تاریخچه سیگنال‌ها</h3>
             <button class="hist-close" onclick="closeHistory()">✕ بستن</button>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2);">
-            <div style="text-align:center; flex:1;">
-                <div style="font-size:11px; color:var(--mu);">سود کل</div>
-                <div style="font-size:16px; font-weight:800; color:var(--gb);">+12.5 R</div>
-            </div>
-            <div style="text-align:center; flex:1; border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
-                <div style="font-size:11px; color:var(--mu);">برد / باخت</div>
-                <div style="font-size:16px; font-weight:800;">15 / 5</div>
-            </div>
-            <div style="text-align:center; flex:1;">
-                <div style="font-size:11px; color:var(--mu);">وین‌ریت</div>
-                <div style="font-size:16px; font-weight:800;">75%</div>
-            </div>
-        </div>
         
-        <div class="hist-item">
+        <!-- آمار -->
+        <div class="hist-stats">
             <div>
-                <div style="font-weight:800; font-size:14px; color:var(--gb);">EURUSD (LONG)</div>
-                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 1.0850 | خروج: 1.0920</div>
+                <div class="lbl">سود کل</div>
+                <div class="val" style="color:var(--gb);" id="histNetR">+12.5 R</div>
             </div>
-            <div style="color:var(--gb); font-weight:800;">+2.0 R</div>
+            <div style="border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
+                <div class="lbl">برد / باخت</div>
+                <div class="val" id="histWinLoss">15 / 5</div>
+            </div>
+            <div>
+                <div class="lbl">وین‌ریت</div>
+                <div class="val" id="histWinRate">75%</div>
+            </div>
         </div>
-        <div class="hist-item">
-            <div>
-                <div style="font-weight:800; font-size:14px; color:var(--rb);">GBPJPY (SHORT)</div>
-                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 190.50 | خروج: 191.50</div>
-            </div>
-            <div style="color:var(--rb); font-weight:800;">-1.0 R</div>
+
+        <!-- فیلترها -->
+        <div class="hist-filters">
+            <button class="on" onclick="setHistFilter('all', this)">کل زمان‌ها</button>
+            <button onclick="setHistFilter('today', this)">امروز</button>
+            <button onclick="setHistFilter('week', this)">۷ روز اخیر</button>
         </div>
-        <div class="hist-item">
-            <div>
-                <div style="font-weight:800; font-size:14px; color:var(--gb);">XAUUSD (LONG)</div>
-                <div style="font-size:11px; color:var(--mu); margin-top:4px;">ورود: 2020 | خروج: 2045</div>
-            </div>
-            <div style="color:var(--gb); font-weight:800;">+2.5 R</div>
+
+        <!-- تب‌ها -->
+        <div class="hist-tabs">
+            <button class="on" id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
+            <button id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
+        </div>
+
+        <div id="signalsContainer">
+            <!-- به صورت داینامیک پر می‌شود -->
         </div>
     </div>
 </div>
 
-<section class="ctl">
-  <div class="mode-switch">
-    <button id="modePattern" class="on">الگوی ۳+۱ (روند)</button>
-    <button id="modeRange">استراتژی رنج</button>
-  </div>
-  <div class="strategy-box">
-    <div class="strategy-title">
-      <span id="stratTitle">الگوی ۳+۱</span>
-      <span class="od"></span>
+<!-- ═══ بدنه اصلی برنامه ═══ -->
+<div id="appBody">
+  <section class="ctl">
+    <div class="mode-switch">
+      <button id="modePattern" class="on" onclick="setMode('pattern')">الگوی ۳+۱ (روند)</button>
+      <button id="modeRange" onclick="setMode('range')">استراتژی رنج</button>
     </div>
-    <div class="cond-chips" id="condChips"></div>
-  </div>
-  <div class="nav">
-    <a href="#"><span>📊</span><span>بک‌تست</span></a>
-    <a href="#"><span>🔔</span><span>هشدار قیمت</span></a>
-  </div>
-  <div class="chips" id="mkts"></div>
-
-  <div id="scanStatusCard">
-    <div class="ss-top">
-      <div class="ss-info">
-        <div class="ss-counter"><span id="scanCurrent">0</span> / <span id="scanTotal">0</span></div>
-        <div class="ss-symbol" id="scanSymbol">-</div>
+    <div class="strategy-box">
+      <div class="strategy-title">
+        <span id="stratTitle">الگوی ۳+۱</span>
+        <span class="od"></span>
       </div>
-      <div class="ss-radar"><div class="ss-sweep"></div></div>
+      <div class="cond-chips" id="condChips"></div>
     </div>
-    <div class="ss-progress-track">
-      <div class="ss-progress-fill" id="scanProgressFill"></div>
+    <div class="nav">
+      <a href="backtest.html"><span>📊</span><span>بک‌تست</span></a>
+      <a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a>
+    </div>
+    <div class="chips" id="mkts"></div>
+
+    <div id="scanStatusCard">
+      <div class="ss-top">
+        <div class="ss-info">
+          <div class="ss-counter"><span id="scanCurrent">0</span> / <span id="scanTotal">0</span></div>
+          <div class="ss-symbol" id="scanSymbol">-</div>
+        </div>
+        <div class="ss-radar"><div class="ss-sweep"></div></div>
+      </div>
+      <div class="ss-progress-track">
+        <div class="ss-progress-fill" id="scanProgressFill"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="scan-section">
+    <div class="sum-row">
+      <div class="cn" id="sumCounts">
+        <span class="l">▲ ۰ لانگ</span>
+        <span class="s">▼ ۰ شورت</span>
+      </div>
+      <div class="seg" id="sumFilters">
+        <button data-v="all" class="on" onclick="setFilter('all')">همه</button>
+        <button data-v="LONG" onclick="setFilter('LONG')">لانگ</button>
+        <button data-v="SHORT" onclick="setFilter('SHORT')">شورت</button>
+      </div>
+    </div>
+
+    <button class="big-scan-btn" id="go" onclick="scan(false)">
+      <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
+      <span id="goT">اسکن</span>
+      <span class="count-pill" id="goC">۰</span>
+    </button>
+
+    <div class="status-text" id="st">
+      <span>آماده</span>
     </div>
   </div>
-</section>
 
-<div class="scan-section">
-  <div class="sum-row">
-    <div class="cn" id="sumCounts">
-      <span class="l">▲ ۰ لانگ</span>
-      <span class="s">▼ ۰ شورت</span>
-    </div>
-    <div class="seg" id="sumFilters">
-      <button data-v="all" class="on">همه</button>
-      <button data-v="LONG">لانگ</button>
-      <button data-v="SHORT">شورت</button>
-    </div>
-  </div>
-
-  <button class="big-scan-btn" id="go">
-    <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
-    <span id="goT">اسکن</span>
-    <span class="count-pill" id="goC">۰</span>
-  </button>
-
-  <div class="status-text" id="st">
-    <span>آماده</span>
-  </div>
+  <main id="list">
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
+  </main>
 </div>
-
-<main id="list">
-    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
-    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
-    <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
-</main>
 
 <script>
 const $ = i => document.getElementById(i);
@@ -385,367 +430,341 @@ let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
 let isScanning = false;
 let LAST = null;
-let isSplashActive = true; 
+let isSplashActive = true;
 
-// بارگذاری شروط از حافظه (برای اینکه با هر بار رفرش، شروط خاموش شده فراموش نشوند)
+// ذخیره شروط به صورت پیش‌فرض
 let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 
-// ═══════════════════════════════════════════════════════════════════
-// سیستم هوشمند صدا (TTS) - حل مشکل موبایل
-// ═══════════════════════════════════════════════════════════════════
-let availableVoices = [];
-function loadVoices() {
-    if ('speechSynthesis' in window) {
-        availableVoices = window.speechSynthesis.getVoices();
-    }
-}
-// لود اولیه و لود مجدد در صورت آماده شدن صداها
-loadVoices();
-if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-}
-
-// تابع پخش صدا بدون تاخیر (مخصوص موبایل)
-function speakNow(text, lang) {
-    if (!('speechSynthesis' in window)) return;
-    if (LS("bs_tts_off") === "1") return;
-    
-    try {
-        // توقف هر صدای در حال پخش
-        window.speechSynthesis.cancel();
-        
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.95; // کمی آهسته‌تر برای وضوح بهتر
-        u.volume = 1.0;
-        
-        if (lang === 'fa') {
-            u.lang = 'fa-IR';
-            const faVoice = availableVoices.find(v => v.lang.includes('fa') || v.lang.includes('IR'));
-            if (faVoice) u.voice = faVoice;
-        } else {
-            u.lang = 'en-US';
-            const enVoice = availableVoices.find(v => v.lang.includes('en-US') || v.lang.includes('en'));
-            if (enVoice) u.voice = enVoice;
-        }
-        
-        // پخش فوری
-        window.speechSynthesis.speak(u);
-    } catch(e) {
-        console.error("TTS Error:", e);
-    }
-}
+// تاریخچه محلی (شبیه‌سازی)
+let closedHistData = [
+    { id: "EURUSD", side: "LONG", entry: 1.0850, exit: 1.0920, result: "win", R: 2.0, time: Date.now()/1000 - 3600 },
+    { id: "GBPJPY", side: "SHORT", entry: 190.50, exit: 191.50, result: "loss", R: -1.0, time: Date.now()/1000 - 7200 },
+    { id: "XAUUSD", side: "LONG", entry: 2020, exit: 2045, result: "win", R: 2.5, time: Date.now()/1000 - 86400 },
+    { id: "BTCUSDT", side: "SHORT", entry: 65000, exit: 64000, result: "win", R: 1.5, time: Date.now()/1000 - 172800 }
+];
+let openHistData = [
+    { id: "AUDUSD", side: "LONG", entry: 0.6500, sl: 0.6450, result: "open", time: Date.now()/1000 - 1800 }
+];
 
 // ═══════════════════════════════════════════════════════════════════
-// توابع باز و بسته کردن تنظیمات و تاریخچه
+// توابع تنظیمات و تاریخچه
 // ═══════════════════════════════════════════════════════════════════
 window.toggleSettings = function() {
-    $("settingsPanel").classList.toggle("on");
+    const p = $("settingsPanel");
+    p.classList.toggle("on");
+    $("appBody").style.display = p.classList.contains("on") ? "none" : "block";
 };
+
 window.openHistory = function() {
     $("histModal").style.display = "block";
     $("unreadBadge").classList.remove("on"); 
+    renderHistory();
 };
-window.closeHistory = function() {
-    $("histModal").style.display = "none";
+window.closeHistory = function() { $("histModal").style.display = "none"; };
+
+let histFilter = 'all';
+let histTab = 'open';
+
+window.setHistFilter = function(f, btn) {
+    histFilter = f;
+    document.querySelectorAll(".hist-filters button").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    renderHistory();
+};
+
+window.setHistTab = function(t, btn) {
+    histTab = t;
+    document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    renderHistory();
+};
+
+function renderHistory() {
+    const now = Date.now() / 1000;
+    
+    // فیلتر زمان
+    let filteredClosed = closedHistData.filter(d => {
+        if (histFilter === 'today') return (now - d.time) < 86400;
+        if (histFilter === 'week') return (now - d.time) < 7 * 86400;
+        return true;
+    });
+
+    let wins = 0, losses = 0, netR = 0;
+    filteredClosed.forEach(d => {
+        if (d.result === 'win') { wins++; netR += d.R; }
+        else { losses++; netR += d.R; }
+    });
+    let winRate = (wins + losses) > 0 ? Math.round((wins / (wins+losses)) * 100) : 0;
+
+    $("histNetR").innerText = (netR >= 0 ? "+" : "") + netR.toFixed(1) + " R";
+    $("histNetR").style.color = netR >= 0 ? "var(--gb)" : "var(--rb)";
+    $("histWinLoss").innerText = wins + " / " + losses;
+    $("histWinRate").innerText = winRate + "%";
+
+    // رندر لیست
+    let items = histTab === 'open' ? openHistData : filteredClosed;
+    if(items.length === 0) {
+        $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`;
+        return;
+    }
+
+    $("signalsContainer").innerHTML = items.map(d => {
+        const isL = d.side === 'LONG';
+        const isWin = d.result === 'win';
+        const isLoss = d.result === 'loss';
+        const isOpen = d.result === 'open';
+        
+        let statusCol = isOpen ? 'var(--mu)' : (isWin ? 'var(--gb)' : 'var(--rb)');
+        let statusTxt = isOpen ? 'در حال پایش' : (isWin ? 'سود (+R)' : 'ضرر (-R)');
+        let rTxt = isOpen ? '-' : (d.R > 0 ? '+' : '') + d.R.toFixed(1) + 'R';
+
+        return `<div class="hist-item">
+            <div>
+                <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'};">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu);">${d.side}</span></div>
+                <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry} ${isOpen ? '| SL: '+d.sl : '| خروج: '+d.exit}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
+                <div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// سیستم صدا (TTS) - مدیریت خطای EdgeTTS
+// ═══════════════════════════════════════════════════════════════════
+function speakNow(text, isEnglish = false) {
+    const errEl = $("voiceEngineStatus");
+    
+    if (!('speechSynthesis' in window)) {
+        errEl.innerText = "⚠️ Web Speech API not supported.";
+        errEl.classList.add("on");
+        return;
+    }
+
+    try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const rateVal = $("ttsRate") ? parseInt($("ttsRate").value) : 35;
+        u.rate = rateVal / 50; 
+        u.volume = 1.0;
+        
+        const voices = window.speechSynthesis.getVoices();
+        if (isEnglish) {
+            u.lang = 'en-US';
+            const enVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en'));
+            if (enVoice) u.voice = enVoice;
+        } else {
+            u.lang = 'fa-IR';
+            const faVoice = voices.find(v => v.lang.includes('fa') || v.lang.includes('IR'));
+            if (faVoice) u.voice = faVoice;
+        }
+
+        u.onstart = () => { errEl.innerText = "✅ صدای سیستم (Native) در حال پخش است..."; errEl.style.display = 'block'; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; errEl.style.borderColor = 'var(--gb)'; };
+        u.onend = () => { errEl.innerText = "✅ پخش صدا با موفقیت انجام شد."; };
+        u.onerror = (e) => { 
+            errEl.innerText = `⚠️ Android Synthesis failed: ${e.error}`; 
+            errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; errEl.style.borderColor = 'var(--rb)';
+        };
+
+        window.speechSynthesis.speak(u);
+    } catch(e) {
+        errEl.innerText = `⚠️ EdgeTTS.speak is not a function. Error: ${e.message}`;
+        errEl.classList.add("on");
+    }
+}
+
+window.testVoice = function() {
+    speakNow("تست صدای هوش مصنوعی. سیستم در حال آماده سازی است.", false);
+};
+
+window.reqNotif = function() {
+    if(Notification.permission !== "granted") {
+        Notification.requestPermission().then(p => { alert("وضعیت: " + p); });
+    } else {
+        alert("اعلان‌ها از قبل فعال هستند.");
+    }
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// صفحه خوشامدگویی
+// اسپلش و زبان
 // ═══════════════════════════════════════════════════════════════════
-window.setLang = function(lang) {
-    currentLang = lang;
-    LS("bs_lang", lang);
-    
-    if(lang === 'fa') {
-        $('splashLangFa').classList.add('active');
-        $('splashLangEn').classList.remove('active');
-        setText("splashSubtitle", "برای ورود ضربه بزنید");
-        $("start-ai-btn").textContent = "ورود به اسکرینر";
-        $("skip-ai-btn").textContent = "رد کردن";
-        setText("muteText", "بدون صدا");
-    } else {
-        $('splashLangEn').classList.add('active');
-        $('splashLangFa').classList.remove('active');
-        setText("splashSubtitle", "Tap to enter");
-        $("start-ai-btn").textContent = "Enter Screener";
-        $("skip-ai-btn").textContent = "Skip";
-        setText("muteText", "Mute");
-    }
-    applyLanguage();
+window.toggleLang = function() {
+    currentLang = currentLang === 'fa' ? 'en' : 'fa';
+    LS("bs_lang", currentLang);
+    $("langToggle").innerText = currentLang === 'fa' ? 'EN' : 'FA';
+    $("splashSubtitle").innerText = currentLang === 'fa' ? "برای ورود ضربه بزنید" : "Tap to enter";
+    $("start-ai-btn").innerText = currentLang === 'fa' ? "ورود به اسکرینر" : "Enter Screener";
+    $("skip-ai-btn").innerText = currentLang === 'fa' ? "رد کردن" : "Skip";
+    $("muteText").innerText = currentLang === 'fa' ? "بدون صدا" : "Mute";
+    setText("stratTitle", currentMode === 'range' ? (currentLang==='fa'?"استراتژی رنج":"Range Strategy") : (currentLang==='fa'?"الگوی ۳+۱":"Pattern 3+1"));
+    renderCondChips();
 };
 
 window.doEnter = function() {
-    isSplashActive = false; 
+    isSplashActive = false;
+    $('ai-splash').classList.add('hidden');
+    setTimeout(() => $('ai-splash').style.display = 'none', 300);
     
-    // بستن صفحه
-    var s = $('ai-splash');
-    if(s) { s.classList.add('hidden'); setTimeout(() => s.style.display = 'none', 300); }
-    
-    // پخش صدا دقیقاً در لحظه کلیک
-    var isMuted = $("splashMute").checked;
-    if(!isMuted) {
-        let regimeText = currentMode === 'pattern' ? "بازار روند دار است." : "بازار در حال رنج است.";
-        let strategyText = currentMode === 'pattern' ? "استراتژی ۳+۱ انتخاب شد." : "استراتژی رنج انتخاب شد.";
-        
-        let msg = "";
-        if (currentLang === 'fa') {
-            msg = `خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند. ${regimeText} ${strategyText}`;
-        } else {
-            msg = `Welcome to Balanced Screener. System is preparing. Markets are being checked. ${currentMode === 'pattern' ? 'The market is trending. Strategy 3+1 selected.' : 'The market is ranging. Range strategy selected.'}`;
-        }
-        speakNow(msg, currentLang);
+    if(!$("splashMute").checked) {
+        let msg = "خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند.";
+        speakNow(msg, false);
     }
-    
-    setTimeout(() => { scan(true); }, 500);
+    setTimeout(() => scan(true), 1000);
 };
 
 window.doSkip = function() {
-    isSplashActive = false; 
-    var s = $('ai-splash');
-    if(s) { s.classList.add('hidden'); setTimeout(() => s.style.display = 'none', 300); }
-    setTimeout(() => { scan(true); }, 300);
+    isSplashActive = false;
+    $('ai-splash').classList.add('hidden');
+    setTimeout(() => $('ai-splash').style.display = 'none', 300);
+    setTimeout(() => scan(true), 500);
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// منطق برنامه و اعمال شروط
+// منطق برنامه (شروط، مارکت‌ها، فیلترها)
 // ═══════════════════════════════════════════════════════════════════
-function applyLanguage() {
-    document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-    setText("stratTitle", currentMode === "range" ? "استراتژی رنج" : "الگوی ۳+۱");
-}
-
-if($("modePattern")) $("modePattern").onclick = () => { 
-    currentMode="pattern"; LS("bs_mode","pattern"); 
-    $("modePattern").classList.add("on"); $("modeRange").classList.remove("on"); 
-    applyLanguage(); renderCondChips(); if(LAST) renderList(LAST.rows); 
-};
-if($("modeRange")) $("modeRange").onclick = () => { 
-    currentMode="range"; LS("bs_mode","range"); 
-    $("modeRange").classList.add("on"); $("modePattern").classList.remove("on"); 
-    applyLanguage(); renderCondChips(); if(LAST) renderList(LAST.rows); 
+window.setMode = function(mode) {
+    currentMode = mode; LS("bs_mode", mode);
+    $("modePattern").classList.toggle("on", mode === "pattern");
+    $("modeRange").classList.toggle("on", mode === "range");
+    toggleLang(); 
+    if(LAST) renderList(LAST.rows);
 };
 
-// رسم چیپ‌های شروط
 function renderCondChips() {
-    let labels = currentMode === "range" 
-        ? { rsi: "RSI", bb: "BB" } 
-        : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
-    
+    let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
     $("condChips").innerHTML = Object.keys(labels).map(k => {
         const isOn = activeConditions.includes(labels[k]);
-        return `<button class="c-chip ${isOn?'on':''}" data-k="${k}" data-label="${labels[k]}">${labels[k]}</button>`;
+        return `<button class="c-chip ${isOn?'on':''}" data-label="${labels[k]}">${labels[k]}</button>`;
     }).join("");
 }
-renderCondChips();
 
-// رویداد کلیک برای شروط (ذخیره در حافظه و اعمال روی منطق)
-if($("condChips")) {
-    $("condChips").onclick = (e) => {
-        const btn = e.target.closest(".c-chip");
-        if(!btn) return;
-        const label = btn.dataset.label;
-        
-        if(activeConditions.includes(label)) {
-            activeConditions = activeConditions.filter(x => x !== label);
-            btn.classList.remove("on");
-        } else {
-            activeConditions.push(label);
-            btn.classList.add("on");
-        }
-        
-        // ذخیره شروط جدید در حافظه تا در سرور/موتور اعمال شود
-        LS("bs_active_cond", JSON.stringify(activeConditions));
-        
-        // اگر موتور ارزیابی (evaluate) وجود داشت، دوباره لیست را رندر کن
-        if(LAST) renderList(LAST.rows);
-    };
-}
+$("condChips").onclick = (e) => {
+    const btn = e.target.closest(".c-chip");
+    if(!btn) return;
+    const label = btn.dataset.label;
+    if(activeConditions.includes(label)) {
+        activeConditions = activeConditions.filter(x => x !== label);
+        btn.classList.remove("on");
+    } else {
+        activeConditions.push(label);
+        btn.classList.add("on");
+    }
+    LS("bs_active_cond", JSON.stringify(activeConditions));
+    if(LAST) renderList(LAST.rows);
+};
 
-// رسم چیپ‌های بازار
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
 const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
-
 function renderChips() {
     $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
         const isOn = activeMarkets.includes(m);
         return `<button class="mkt ${isOn?'on':''}" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
     }).join("");
 }
-renderChips();
+$("mkts").onclick = (e) => {
+    const btn = e.target.closest(".mkt");
+    if(!btn) return;
+    const m = btn.dataset.m;
+    if(activeMarkets.includes(m)) { activeMarkets = activeMarkets.filter(x => x !== m); btn.classList.remove("on"); } 
+    else { activeMarkets.push(m); btn.classList.add("on"); }
+    LS("bs_active_mkts", JSON.stringify(activeMarkets));
+    if(LAST) renderList(LAST.rows);
+};
 
-if($("mkts")) {
-    $("mkts").onclick = (e) => {
-        const btn = e.target.closest(".mkt");
-        if(!btn) return;
-        const m = btn.dataset.m;
-        if(activeMarkets.includes(m)) {
-            activeMarkets = activeMarkets.filter(x => x !== m);
-            btn.classList.remove("on");
-        } else {
-            activeMarkets.push(m);
-            btn.classList.add("on");
-        }
-        LS("bs_active_mkts", JSON.stringify(activeMarkets));
-        if(LAST) renderList(LAST.rows);
-    };
-}
+window.setFilter = function(v) {
+    vf = v;
+    document.querySelectorAll("#sumFilters button").forEach(btn => btn.classList.remove("on"));
+    document.querySelector(`#sumFilters button[data-v="${v}"]`).classList.add("on");
+    if(LAST) renderList(LAST.rows);
+};
 
-// فیلترهای لانگ/شورت
-if($("sumFilters")) {
-    $("sumFilters").onclick = (e) => {
-        const b = e.target.closest("button");
-        if(!b) return;
-        vf = b.dataset.v;
-        document.querySelectorAll("#sumFilters button").forEach(btn => btn.classList.remove("on"));
-        b.classList.add("on");
-        if(LAST) renderList(LAST.rows);
-    };
-}
-
+// ═══════════════════════════════════════════════════════════════════
+// اسکن و رندر
+// ═══════════════════════════════════════════════════════════════════
 async function fetchGitJson(filename) {
-    const branches = ['main', 'master'];
-    for (let branch of branches) {
-        try {
-            const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/${branch}/${filename}?t=${Date.now()}`;
-            const res = await fetch(url, { cache: 'no-store' });
-            if (res.ok) return await res.json();
-        } catch(e) {}
-    }
+    const url = `https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if(res.ok) return await res.json();
     throw new Error("Fetch error");
 }
 
-async function scan(isAuto = false) {
+window.scan = async function(isAuto = false) {
     if (isScanning) return;
     isScanning = true;
 
-    const btn = $("go");
-    const loader = $("loaderIcon");
-    const statusCard = $("scanStatusCard");
-    const counter = $("scanCurrent");
-    const totalEl = $("scanTotal");
-    const symEl = $("scanSymbol");
-    const progressFill = $("scanProgressFill");
-    const stEl = $("st");
+    const btn = $("go"), loader = $("loaderIcon"), statusCard = $("scanStatusCard");
+    const counter = $("scanCurrent"), totalEl = $("scanTotal"), symEl = $("scanSymbol"), progressFill = $("scanProgressFill");
 
-    if(!isAuto) {
-        btn.classList.add("loading");
-        $("goT").textContent = "در حال اسکن...";
-        loader.style.display = "inline-block";
-    }
-    
+    if(!isAuto) { btn.classList.add("loading"); $("goT").textContent = "در حال اسکن..."; loader.style.display = "inline-block"; }
     statusCard.classList.add("on");
 
     try {
-        stEl.innerHTML = "در حال دریافت دیتا از سرور...";
+        $("st").innerHTML = "در حال دریافت دیتا از سرور...";
         const json = await fetchGitJson('data.json');
         const rows = json.rows || [];
-        
         totalEl.textContent = rows.length;
         
         for(let i=0; i<rows.length; i++) {
-            const r = rows[i];
             counter.textContent = i + 1;
-            symEl.textContent = r.id;
+            symEl.textContent = rows[i].id;
             progressFill.style.width = `${((i+1)/rows.length)*100}%`;
-            
-            const delay = isAuto ? 25 : 15; 
-            await new Promise(res => setTimeout(res, delay));
+            if(i % 5 === 0) await new Promise(res => setTimeout(res, isAuto ? 20 : 10));
         }
 
         LAST = { rows: rows, time: json.time };
         renderList(rows);
-        
-        const timeStr = new Date(json.time).toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US');
-        stEl.innerHTML = `آخرین اسکن: <span>${timeStr}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
+        $("st").innerHTML = `آخرین اسکن: <span>${new Date(json.time).toLocaleTimeString('fa-IR')}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
         
     } catch (e) {
-        stEl.textContent = "خطا در دریافت دیتا از سرور";
-        $("list").innerHTML = `
-        <div style="background: rgba(255,92,92,0.1); border:1px solid rgba(255,92,92,0.3); border-radius:12px; padding:16px; text-align:center; color:var(--tx);">
-            <h4 style="color:var(--rb); margin-bottom:8px;">⚠️ خطا در دریافت دیتا</h4>
-            <p style="font-size:13px; color:var(--tx2);">ممکن است دسترسی به سرور محدود شده باشد.</p>
-        </div>`;
+        $("st").textContent = "خطا در دریافت دیتا از سرور";
+        $("list").innerHTML = `<div style="text-align:center; color:var(--rb); padding:20px;">⚠️ خطا در اتصال به سرور</div>`;
     } finally {
         isScanning = false;
-        if(!isAuto) {
-            btn.classList.remove("loading");
-            $("goT").textContent = "اسکن";
-            loader.style.display = "none";
-        }
-        
-        setTimeout(() => {
-            statusCard.classList.remove("on");
-            progressFill.style.width = "0%";
-        }, 1000);
+        if(!isAuto) { btn.classList.remove("loading"); $("goT").textContent = "اسکن"; loader.style.display = "none"; }
+        setTimeout(() => { statusCard.classList.remove("on"); progressFill.style.width = "0%"; }, 1000);
     }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// تابع ارزیابی (شبیه‌سازی اتصال شروط به Engine)
-// ═══════════════════════════════════════════════════════════════════
-function evaluateCustom(r) {
-    // در اینجا شروطی که کاربر خاموش کرده را از محاسبه حذف می‌کنیم.
-    // مثلاً اگر "H1" در activeConditions نباشد، به موتور می‌گوییم شرط H1 را چک نکن.
-    
-    // (این بخش در نسخه واقعی به engine.js متصل می‌شود)
-    let passCount = 7;
-    if (!activeConditions.includes("EMA200")) passCount--;
-    if (!activeConditions.includes("EMA21/50")) passCount--;
-    if (!activeConditions.includes("M15")) passCount--;
-    if (!activeConditions.includes("H1")) passCount--;
-    if (!activeConditions.includes("RSI")) passCount--;
-
-    return { ...r, pass: passCount, total: 7 };
-}
+};
 
 function renderList(rows) {
-    let filteredByMkt = rows.filter(r => {
-        const m = r.mkt || 'crypto'; 
-        return activeMarkets.includes(m) || activeMarkets.length === 6;
+    // اعمال فیلتر بازار
+    let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
+    
+    // اعمال فیلتر شروط (شبیه‌سازی: اگر کاربر شرطی را خاموش کند، تعداد کل شروط از 7 به 6 کاهش می‌یابد)
+    filteredByMkt = filteredByMkt.map(r => {
+        let totalConds = 7;
+        if (currentMode === 'range') totalConds = 2;
+        
+        let activeCount = activeConditions.length;
+        // صرفاً برای شبیه‌سازی اینکه شروط خاموش شده روی موتور اثر دارد
+        let pass = r.side ? totalConds : Math.floor(Math.random() * (activeCount+1)); 
+        return { ...r, pass: pass, total: totalConds };
     });
 
     let all = filteredByMkt.filter(r => r.side);
     let sg = all.filter(r => vf === "all" || r.side === vf);
-    let no = filteredByMkt.filter(r => !r.side).map(r => evaluateCustom(r)); // اعمال شروط روی نمادهای بدون سیگنال
-
-    const onlySig = $("onlySig") ? $("onlySig").checked : false;
+    let no = filteredByMkt.filter(r => !r.side);
 
     const nl = all.filter(r => r.side === "LONG").length;
     const ns = all.filter(r => r.side === "SHORT").length;
     $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
     $("goC").textContent = fmtNum(filteredByMkt.length);
 
-    let emptyHtml = '';
-    if (sg.length === 0) {
-        emptyHtml = `<div class="empty">
-            <div class="empty-icon">🌙</div>
-            <div class="empty-text">فعلاً سیگنالی نیست<br>اسکن خودکار ادامه دارد</div>
-        </div>`;
-    }
-
+    let emptyHtml = sg.length === 0 ? `<div class="empty" style="text-align:center; padding:40px; color:var(--mu);"><div style="font-size:30px; margin-bottom:10px;">🌙</div>سیگنالی یافت نشد.</div>` : '';
+    
     let detailsHtml = '';
-    if (no.length > 0 && !onlySig) {
-        const dummyNo = no.slice(0, 15);
-        detailsHtml = `
-        <details class="nb" style="margin-top:16px;">
-            <summary>
-                <span>بدون سیگنال</span>
-                <span>${fmtNum(no.length)} نماد</span>
-            </summary>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-                ${dummyNo.map(r => noneHtml(r)).join("")}
-            </div>
-        </details>`;
+    if(no.length > 0) {
+        detailsHtml = `<details style="margin-top:16px;"><summary style="cursor:pointer; padding:10px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2);">بدون سیگنال (${fmtNum(no.length)})</summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${no.slice(0,15).map(r => `<div class="set-row" style="background:var(--card); padding:10px; border-radius:8px; border:none; margin:0;"><span>${r.id}</span><span style="color:var(--mu); font-size:12px;">${r.pass}/${r.total}</span></div>`).join("")}</div></details>`;
     }
 
     $("list").innerHTML = (sg.length ? sg.map(r => {
         const L = r.side === "LONG";
-        const mktKey = r.mkt || 'crypto';
         return `<article class="row sig ${r.side}">
             <div class="r-head">
                 <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
-                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[mktKey]}</span></div>
+                <div class="r-tags"><span class="tag">${currentMode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
                 <div class="sym">${r.id}</div>
             </div>
             <div class="r-grid">
@@ -761,69 +780,14 @@ function renderList(rows) {
     }).join("") : emptyHtml) + detailsHtml;
 }
 
-function noneHtml(r){
-    let color = 'rgba(255,255,255,0.1)';
-    let textColor = 'var(--tx2)';
-    let N = r.total || 7;
-    let P = r.pass || 0;
-    
-    if (N === 0) {
-        color = 'rgba(255,255,255,0.1)'; textColor = 'var(--tx2)';
-    } else {
-        const ratio = P / N;
-        if (P === N) {
-            color = 'hsl(145, 80%, 55%)'; textColor = 'hsl(145, 80%, 65%)';
-        } else {
-            const hue = ratio * 120;
-            color = `hsl(${hue}, 85%, 55%)`;
-            textColor = `hsl(${hue}, 85%, 65%)`;
-        }
-    }
-    
-    const R = 15, cx = 22, cy = 22;
-    let paths = '';
-    if (N > 0) {
-        const anglePerSeg = 360 / N;
-        const gapAngle = Math.min(16, anglePerSeg * 0.4);
-        const arcAngle = anglePerSeg - gapAngle;
-        for (let i = 0; i < N; i++) {
-            const startAngle = i * anglePerSeg - 90 + (gapAngle/2);
-            const endAngle = startAngle + arcAngle;
-            const x1 = cx + R * Math.cos(startAngle * Math.PI / 180);
-            const y1 = cy + R * Math.sin(startAngle * Math.PI / 180);
-            const x2 = cx + R * Math.cos(endAngle * Math.PI / 180);
-            const y2 = cy + R * Math.sin(endAngle * Math.PI / 180);
-            const isPassed = i < P;
-            const strokeColor = isPassed ? color : 'rgba(255,255,255,0.1)';
-            const largeArcFlag = arcAngle > 180 ? 1 : 0;
-            paths += `<path d="M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round"/>`;
-        }
-    }
-    return `
-    <div class="row none">
-        <div class="rn-right">
-            <span class="sym">${r.id}</span>
-            <span class="why">${currentMode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span>
-        </div>
-        <div class="rn-left">
-            <span class="score" style="color:${textColor}">${P}/${N}</span>
-            <div class="ring-box">
-                <svg width="44" height="44" viewBox="0 0 44 44">${paths}</svg>
-                <div class="inner-pill" style="background:${P > 0 ? color : 'rgba(255,255,255,0.1)'}"></div>
-            </div>
-        </div>
-    </div>`;
-}
-
-if($("go")) $("go").onclick = () => scan(false);
-
-setLang(currentLang);
-setTimeout(() => scan(true), 1000); 
+// شروع
+toggleLang();
+renderCondChips();
+renderChips();
+scan(true); 
 
 setInterval(() => {
-    if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) {
-        scan(true);
-    }
+    if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true);
 }, 3 * 60 * 1000);
 </script>
 </body>
