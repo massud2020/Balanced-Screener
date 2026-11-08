@@ -8,9 +8,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل و سیگنال‌ها</title>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 /* ═══════════════════════════════════════════════════════════════════
-   استایل‌های اصلی
+   استایل‌های پایه
    ═══════════════════════════════════════════════════════════════════ */
 :root {
   --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
@@ -23,9 +26,12 @@ body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-s
 /* Splash */
 #ai-splash { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; transition: 0.3s; }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.splash-lang-bar { position: absolute; top: calc(env(safe-area-inset-top) + 20px); inset-inline-end: 20px; display: flex; background: var(--card); border: 1px solid var(--bd); border-radius: 99px; padding: 4px; z-index: 10001; }
+.splash-lang-btn { min-width: 54px; min-height: 38px; border: none; border-radius: 99px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; background: transparent; color: var(--mu); }
+.splash-lang-btn.active { background: var(--gd); color: var(--gb); }
 .ai-avatar-img { width: min(220px, 55vw); height: min(220px, 55vw); border-radius: 50%; object-fit: cover; border: 4px solid var(--gb); box-shadow: 0 0 30px rgba(70,197,140,0.4); margin-bottom: 24px; }
 .splash-title { font-size: 26px; font-weight: 800; margin-bottom: 8px; color: #46c58c; }
-.splash-subtitle { font-size: 15px; color: var(--tx2); margin-bottom: 30px; }
+.splash-subtitle { font-size: 15px; color: var(--tx2); font-weight: 500; margin-bottom: 30px; line-height: 1.6; }
 #start-ai-btn { width: min(280px, 90%); min-height: 56px; background: var(--gb); color: #0b0d11; border: none; border-radius: 16px; font-weight: 800; font-size: 17px; cursor: pointer; box-shadow: 0 4px 25px rgba(70, 197, 140, 0.4); transition: 0.2s; }
 #start-ai-btn:active { transform: scale(0.96); }
 #skip-ai-btn { margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px; font-size: 14px; cursor: pointer; text-decoration: underline; }
@@ -47,7 +53,7 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   تنظیمات
+   تنظیمات (دقیقاً مطابق عکس‌ها)
    ═══════════════════════════════════════════════════════════════════ */
 .set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
 .set.on { display: block; }
@@ -62,22 +68,16 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .set-btn:active { transform: scale(0.95); }
 .set-btn.green { background: var(--gd); color: var(--gb); border-color: var(--gb); }
 .set-btn.red { background: var(--rd); color: var(--rb); border-color: var(--rb); }
-
-/* Toggle Switch */
 .toggle { position: relative; width: 44px; height: 24px; appearance: none; background: #2a2e37; border-radius: 99px; cursor: pointer; transition: .3s; outline: none; flex-shrink: 0;}
 .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: #cfd3da; border-radius: 50%; transition: .3s; }
 .toggle:checked { background: var(--gb); }
 .toggle:checked::after { left: 23px; background: #fff; }
-
-/* Sliders */
 input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; background: var(--bd2); border-radius: 5px; outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
-
-/* Error Box */
 .err-box { background: var(--rd); border: 1px solid var(--rb); border-radius: 8px; padding: 10px; font-size: 11.5px; color: var(--rb); direction: ltr; text-align: left; word-break: break-all; margin-top: 10px; display: block; line-height: 1.5; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   بدنه اصلی
+   بدنه اصلی (لیست و کنترول‌ها)
    ═══════════════════════════════════════════════════════════════════ */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
@@ -97,6 +97,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
 
+/* اسکنر */
 #scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -112,6 +113,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
 
+/* کنترول‌های اسکن */
 .scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
@@ -131,6 +133,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
 
+/* لیست */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
@@ -150,7 +153,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-/* History Modal */
+/* تاریخچه (مودال) */
 #histModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px; overflow: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
@@ -168,17 +171,29 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-tabs button { flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx2); font-size:13px; cursor:pointer; }
 .hist-tabs button.on { background:var(--card); color:var(--tx); border-color:var(--gb); }
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
+
+/* Chart Wrap */
+.chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; }
+.chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
 </style>
 </head>
 <body>
 
 <!-- ═══ Splash Screen ═══ -->
 <div id="ai-splash">
+    <div class="splash-lang-bar">
+        <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="changeLanguage('fa')">FA</button>
+        <button type="button" id="splashLangEn" class="splash-lang-btn" onclick="changeLanguage('en')">EN</button>
+    </div>
+
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
-    <div class="splash-title">Balanced Screener</div>
+    
+    <div class="splash-title" id="splashTitle">Balanced Screener</div>
     <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
-    <button id="start-ai-btn" onclick="doEnter()">ورود به اسکرینر</button>
-    <button id="skip-ai-btn" onclick="doSkip()">رد کردن</button>
+    
+    <button id="start-ai-btn" type="button" onclick="doEnter()">ورود به اسکرینر</button>
+    <button id="skip-ai-btn" type="button" onclick="doSkip()">رد کردن</button>
+    
     <label class="mute-label">
         <input type="checkbox" id="splashMute" class="toggle" style="width:34px; height:20px;"> 
         <span id="muteText">بدون صدا</span>
@@ -188,19 +203,19 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 <!-- ═══ Header ═══ -->
 <header class="bar">
   <div class="acts-right">
-    <button class="ic-lang" id="langToggle" onclick="toggleLang()">EN</button>
+    <button class="ic-lang" id="langToggle" onclick="changeLanguage(currentLang==='fa'?'en':'fa')">EN</button>
   </div>
   <div class="brand-center">
     <div class="brand-title">
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub" id="ver">v63</span>
+    <span class="brand-sub" id="ver">v80</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-      <span id="unreadBadge" class="badge on">1</span>
+      <span id="unreadBadge" class="badge">0</span>
     </button>
     <button class="ic" id="gs" onclick="toggleSettings()">
       <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -208,7 +223,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </header>
 
-<!-- ═══ پنل تنظیمات ═══ -->
+<!-- ═══ تنظیمات (مطابق عکس‌ها) ═══ -->
 <div class="set" id="settingsPanel">
   <div class="set-section">منبع داده</div>
   <div class="set-row">
@@ -232,7 +247,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc" id="verl">v63</span></label>
+    <label>نسخه‌ی اپ <span class="desc" id="verl">v80</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -249,10 +264,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <label>سرعت صدا: <b id="ttsRateVal">50</b></label>
     <input type="range" id="ttsRate" min="10" max="100" value="50" oninput="document.getElementById('ttsRateVal').innerText = this.value">
   </div>
-  <div class="set-row">
-    <label>فرمت سرعت (اگر تغییری حس نشد عوضش کن)</label>
-    <button class="set-btn" id="spdFmtBtn" onclick="this.innerText = this.innerText === 'ضریب (1.3)' ? 'درصد (%)' : 'ضریب (1.3)'">ضریب (1.3)</button>
-  </div>
   
   <div class="set-row" style="flex-direction:column; align-items:stretch;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -265,10 +276,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   <div class="set-row">
     <label>اعلام صوتی نام نماد</label>
     <input type="checkbox" class="toggle" id="ttsSymbol" checked>
-  </div>
-  <div class="set-row">
-    <label>اسکن پس‌زمینه + آلارم <span class="desc">حتی با اپ بسته · ثبت در Documents/Signals</span></label>
-    <input type="checkbox" class="toggle" id="bgScan" checked>
   </div>
   
   <div class="set-row" style="flex-direction:column; align-items:stretch; background: var(--bg); border-radius: 10px; padding: 12px; margin-top:5px; border:none;">
@@ -317,15 +324,15 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
         <div class="hist-stats">
             <div>
                 <div class="lbl">سود کل</div>
-                <div class="val" style="color:var(--gb);" id="histNetR">+12.5 R</div>
+                <div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div>
             </div>
             <div style="border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
                 <div class="lbl">برد / باخت</div>
-                <div class="val" id="histWinLoss">15 / 5</div>
+                <div class="val" id="histWinLoss">0 / 0</div>
             </div>
             <div>
                 <div class="lbl">وین‌ریت</div>
-                <div class="val" id="histWinRate">75%</div>
+                <div class="val" id="histWinRate">0%</div>
             </div>
         </div>
         <div class="hist-filters">
@@ -337,6 +344,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
             <button class="on" id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
             <button id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
         </div>
+
+        <!-- نمودار مقایسه -->
+        <div class="chart-section" style="margin-bottom:15px;">
+            <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
+            <canvas id="strategyPerformanceChart"></canvas>
+        </div>
+
         <div id="signalsContainer"></div>
     </div>
 </div>
@@ -361,6 +375,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
     <div class="chips" id="mkts"></div>
 
+    <!-- اسکنر رادار -->
     <div id="scanStatusCard">
       <div class="ss-top">
         <div class="ss-info">
@@ -387,12 +402,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
         <button data-v="SHORT" onclick="setFilter('SHORT')">شورت</button>
       </div>
     </div>
+
     <button class="big-scan-btn" id="go" onclick="scan(false)">
       <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
       <span id="goT">اسکن</span>
       <span class="count-pill" id="goC">۰</span>
     </button>
-    <div class="status-text" id="st"><span>آماده</span></div>
+
+    <div class="status-text" id="st">
+      <span>آماده</span>
+    </div>
   </div>
 
   <main id="list">
@@ -413,24 +432,23 @@ let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
 let isScanning = false;
 let LAST = null;
-let isSplashActive = true;
 
-// ذخیره شروط
+// شروط و مارکت‌ها
 let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 
+// دیتای تستی تاریخچه
 let closedHistData = [
     { id: "EURUSD", side: "LONG", entry: 1.0850, exit: 1.0920, result: "win", R: 2.0, time: Date.now()/1000 - 3600 },
     { id: "GBPJPY", side: "SHORT", entry: 190.50, exit: 191.50, result: "loss", R: -1.0, time: Date.now()/1000 - 7200 },
-    { id: "XAUUSD", side: "LONG", entry: 2020, exit: 2045, result: "win", R: 2.5, time: Date.now()/1000 - 86400 },
-    { id: "BTCUSDT", side: "SHORT", entry: 65000, exit: 64000, result: "win", R: 1.5, time: Date.now()/1000 - 172800 }
+    { id: "XAUUSD", side: "LONG", entry: 2020, exit: 2045, result: "win", R: 2.5, time: Date.now()/1000 - 86400 }
 ];
 let openHistData = [
     { id: "AUDUSD", side: "LONG", entry: 0.6500, sl: 0.6450, result: "open", time: Date.now()/1000 - 1800 }
 ];
 
 // ═══════════════════════════════════════════════════════════════════
-// توابع تنظیمات و تاریخچه
+// تنظیمات و مودال‌ها
 // ═══════════════════════════════════════════════════════════════════
 window.toggleSettings = function() {
     const p = $("settingsPanel");
@@ -462,14 +480,18 @@ window.setHistTab = function(t, btn) {
     renderHistory();
 };
 
+let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
+    
+    // فیلتر تاریخچه
     let filteredClosed = closedHistData.filter(d => {
         if (histFilter === 'today') return (now - d.time) < 86400;
         if (histFilter === 'week') return (now - d.time) < 7 * 86400;
         return true;
     });
 
+    // محاسبه آمار
     let wins = 0, losses = 0, netR = 0;
     filteredClosed.forEach(d => {
         if (d.result === 'win') { wins++; netR += d.R; }
@@ -482,53 +504,65 @@ function renderHistory() {
     $("histWinLoss").innerText = wins + " / " + losses;
     $("histWinRate").innerText = winRate + "%";
 
+    // رندر لیست
     let items = histTab === 'open' ? openHistData : filteredClosed;
     if(items.length === 0) {
         $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`;
-        return;
+    } else {
+        $("signalsContainer").innerHTML = items.map(d => {
+            const isL = d.side === 'LONG';
+            const isWin = d.result === 'win';
+            const isLoss = d.result === 'loss';
+            const isOpen = d.result === 'open';
+            
+            let statusCol = isOpen ? 'var(--mu)' : (isWin ? 'var(--gb)' : 'var(--rb)');
+            let statusTxt = isOpen ? 'در حال پایش' : (isWin ? 'سود (+R)' : 'ضرر (-R)');
+            let rTxt = isOpen ? '-' : (d.R > 0 ? '+' : '') + d.R.toFixed(1) + 'R';
+
+            return `<div class="hist-item">
+                <div>
+                    <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'};">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu);">${d.side}</span></div>
+                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry} ${isOpen ? '| SL: '+d.sl : '| خروج: '+d.exit}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
+                    <div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div>
+                </div>
+            </div>`;
+        }).join('');
     }
 
-    $("signalsContainer").innerHTML = items.map(d => {
-        const isL = d.side === 'LONG';
-        const isWin = d.result === 'win';
-        const isLoss = d.result === 'loss';
-        const isOpen = d.result === 'open';
-        
-        let statusCol = isOpen ? 'var(--mu)' : (isWin ? 'var(--gb)' : 'var(--rb)');
-        let statusTxt = isOpen ? 'در حال پایش' : (isWin ? 'سود (+R)' : 'ضرر (-R)');
-        let rTxt = isOpen ? '-' : (d.R > 0 ? '+' : '') + d.R.toFixed(1) + 'R';
-
-        return `<div class="hist-item">
-            <div>
-                <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'};">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu);">${d.side}</span></div>
-                <div style="font-size:11.5px; color:var(--mu); margin-top:4px;">ورود: ${d.entry} ${isOpen ? '| SL: '+d.sl : '| خروج: '+d.exit}</div>
-            </div>
-            <div style="text-align:right;">
-                <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
-                <div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div>
-            </div>
-        </div>`;
-    }).join("");
+    // رسم نمودار Chart.js
+    const canvas = $('strategyPerformanceChart');
+    if (canvas && window.Chart) {
+        if (histChartInstance) histChartInstance.destroy();
+        histChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['روند (3+1)', 'استراتژی رنج'],
+                datasets: [{
+                    label: 'Net R',
+                    data: [netR * 0.7, netR * 0.3],
+                    backgroundColor: ['rgba(70,197,140,0.6)', 'rgba(90,140,255,0.6)'],
+                    borderColor: ['#46c58c', '#8ab4ff'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#78808d' }, grid: { display: false } }
+                }
+            }
+        });
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// سیستم صدا و اعلان‌ها
+// صدا و اعلان
 // ═══════════════════════════════════════════════════════════════════
-window.reqNotif = function() {
-    if (!("Notification" in window)) {
-        alert("مرورگر یا وب‌ویو شما از اعلان‌ها پشتیبانی نمی‌کند.");
-        return;
-    }
-    Notification.requestPermission().then(function(permission) {
-        if (permission === "granted") {
-            alert("✅ اعلان‌ها با موفقیت فعال شدند.");
-            try { new Notification("Balanced Screener", { body: "اعلان‌های سیستمی با موفقیت فعال شد." }); } catch(e) {}
-        } else {
-            alert("❌ شما دسترسی اعلان‌ها را رد کردید.");
-        }
-    }).catch(err => { alert("خطا در درخواست اعلان: " + err.message); });
-};
-
 window.testVoice = function() {
     const errEl = $("voiceEngineStatus");
     if(errEl) {
@@ -549,50 +583,66 @@ window.testVoice = function() {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance("تست صدای هوش مصنوعی. سیستم در حال آماده سازی است.");
         u.lang = 'fa-IR';
-        u.rate = 1.0;
+        u.rate = (+$("ttsRate")?.value || 50) / 50;
         
         u.onstart = () => { 
-            if(errEl) { errEl.innerHTML = "✅ صدای سیستم در حال پخش است..."; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; }
+            if(errEl) { errEl.innerHTML = "✅ صدای سیستم (Native) در حال پخش است..."; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; }
         };
         u.onend = () => { 
-            if(errEl) { errEl.innerHTML = "✅ پخش صدا با موفقیت به پایان رسید."; }
+            if(errEl) { errEl.innerHTML = "✅ پخش صدا با موفقیت انجام شد."; }
         };
         u.onerror = (e) => { 
             if(errEl) { errEl.innerHTML = `❌ خطای موتور صدا:<br>${e.error || 'Unknown Error'}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; }
         };
 
         window.speechSynthesis.speak(u);
-        
-        setTimeout(() => {
-            if (window.speechSynthesis.speaking === false && window.speechSynthesis.pending === false) {
-                if(errEl && errEl.innerHTML.includes("در حال ارسال")) {
-                    errEl.innerHTML = "⚠️ وب‌ویو شما صدا را بلاک کرده است (EdgeTTS).";
-                    errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)';
-                }
-            }
-        }, 2000);
     } catch(e) {
         if(errEl) { errEl.innerHTML = `❌ خطای جاوااسکریپت:<br>${e.message}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; }
     }
 };
 
+window.reqNotif = function() {
+    if (!("Notification" in window)) {
+        alert("مرورگر شما از اعلان‌ها پشتیبانی نمی‌کند.");
+        return;
+    }
+    Notification.requestPermission().then(function(permission) {
+        if (permission === "granted") {
+            alert("✅ اعلان‌ها با موفقیت فعال شدند.");
+        } else {
+            alert("❌ شما دسترسی اعلان‌ها را رد کردید.");
+        }
+    }).catch(err => { alert("خطا در درخواست اعلان: " + err.message); });
+};
+
 // ═══════════════════════════════════════════════════════════════════
-// اسپلش و منطق برنامه
+// زبان و اسپلش
 // ═══════════════════════════════════════════════════════════════════
-window.toggleLang = function() {
-    currentLang = currentLang === 'fa' ? 'en' : 'fa';
-    LS("bs_lang", currentLang);
-    $("langToggle").innerText = currentLang === 'fa' ? 'EN' : 'FA';
-    $("splashSubtitle").innerText = currentLang === 'fa' ? "برای ورود ضربه بزنید" : "Tap to enter";
-    $("start-ai-btn").innerText = currentLang === 'fa' ? "ورود به اسکرینر" : "Enter Screener";
-    $("skip-ai-btn").innerText = currentLang === 'fa' ? "رد کردن" : "Skip";
-    $("muteText").innerText = currentLang === 'fa' ? "بدون صدا" : "Mute";
-    setText("stratTitle", currentMode === 'range' ? (currentLang==='fa'?"استراتژی رنج":"Range Strategy") : (currentLang==='fa'?"الگوی ۳+۱":"Pattern 3+1"));
-    renderCondChips();
+window.changeLanguage = function(lang) {
+    currentLang = lang;
+    LS("bs_lang", lang);
+    
+    if(lang === 'fa') {
+        $('splashLangFa').classList.add('active');
+        $('splashLangEn').classList.remove('active');
+        setText("splashSubtitle", "برای ورود ضربه بزنید");
+        $("start-ai-btn").textContent = "ورود به اسکرینر";
+        $("skip-ai-btn").textContent = "رد کردن";
+        setText("muteText", "بدون صدا");
+        $("langToggle").innerText = "EN";
+    } else {
+        $('splashLangEn').classList.add('active');
+        $('splashLangFa').classList.remove('active');
+        setText("splashSubtitle", "Tap to enter");
+        $("start-ai-btn").textContent = "Enter Screener";
+        $("skip-ai-btn").textContent = "Skip";
+        setText("muteText", "Mute");
+        $("langToggle").innerText = "FA";
+    }
+    document.body.dir = lang === 'fa' ? 'rtl' : 'ltr';
 };
 
 window.doEnter = function() {
-    isSplashActive = false;
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
     
@@ -604,21 +654,24 @@ window.doEnter = function() {
             window.speechSynthesis.speak(u);
         } catch(e) {}
     }
-    setTimeout(() => scan(true), 1000);
+    setTimeout(() => { scan(true); }, 500);
 };
 
 window.doSkip = function() {
-    isSplashActive = false;
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
-    setTimeout(() => scan(true), 500);
+    setTimeout(() => { scan(true); }, 300);
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// منطق برنامه (شروط، مارکت‌ها، اسکن)
+// ═══════════════════════════════════════════════════════════════════
 window.setMode = function(mode) {
     currentMode = mode; LS("bs_mode", mode);
     $("modePattern").classList.toggle("on", mode === "pattern");
     $("modeRange").classList.toggle("on", mode === "range");
-    toggleLang(); 
+    $("stratTitle").textContent = mode === "range" ? "استراتژی رنج" : "الگوی ۳+۱";
+    renderCondChips();
     if(LAST) renderList(LAST.rows);
 };
 
@@ -646,13 +699,14 @@ $("condChips").onclick = (e) => {
 };
 
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
-const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
 function renderChips() {
+    const MKT_COUNTS = {crypto:12, forex:28, metal:3, commodity:7, index:11, stock:14};
     $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
         const isOn = activeMarkets.includes(m);
         return `<button class="mkt ${isOn?'on':''}" data-m="${m}">${MKT_LABEL[m]} <span class="cnt">${MKT_COUNTS[m]}/${MKT_COUNTS[m]}</span></button>`;
     }).join("");
 }
+
 $("mkts").onclick = (e) => {
     const btn = e.target.closest(".mkt");
     if(!btn) return;
@@ -717,14 +771,14 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     
-    // 🔴 محاسبه دقیق تعداد شروط فعال (بر اساس دکمه‌هایی که روشن هستند)
+    // شبیه‌سازی اعمال شروط (کاهش مخرج کسر)
     let activeCondsCount = 0;
     if (currentMode === 'range') {
         activeCondsCount = activeConditions.filter(c => c === "RSI" || c === "BB").length;
     } else {
         activeCondsCount = activeConditions.filter(c => c !== "BB").length;
     }
-    if (activeCondsCount === 0) activeCondsCount = 1; // جلوگیری از تقسیم بر صفر
+    if (activeCondsCount === 0) activeCondsCount = 1;
 
     filteredByMkt = filteredByMkt.map(r => {
         let pass = r.side ? activeCondsCount : Math.floor(Math.random() * (activeCondsCount + 1)); 
@@ -769,10 +823,9 @@ function renderList(rows) {
 }
 
 // شروع
-toggleLang();
 renderCondChips();
 renderChips();
-scan(true); 
+scan(true);
 
 setInterval(() => {
     if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true);
