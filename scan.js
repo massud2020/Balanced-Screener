@@ -34,7 +34,7 @@ const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]
 const NAME = { pattern: "روند / الگوی ۳+۱", range: "استراتژی رنج" };
 
 const MAX_HOLD_SEC = 6 * 3600;
-const CLOSE_SCANS = 2;
+const CLOSE_SCANS = 60; // 👈 تغییر: از ۱۵ به ۶۰ افزایش یافت (معادل ۱ ساعت اسکن)
 
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
@@ -318,18 +318,24 @@ function touchActives(currentSides, now, barMap, history) {
       continue;
     }
     const cur = currentSides[id];
-    if (cur && cur === a.side) a.scansWithout = 0;
-    else {
-      a.scansWithout = (a.scansWithout || 0) + 1;
-      if (a.scansWithout >= CLOSE_SCANS) {
-        const o = resolveFromBars({ ...a, time: a.time - MAX_HOLD_SEC }, bars, now);
-        let outcome = null;
-        if (bars && bars.length) {
-          const last = bars[bars.length - 1];
-          outcome = { result: "time", exit: last.close, why: "FADE", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+    if (cur && cur === a.side) {
+        a.scansWithout = 0;
+    } else {
+        a.scansWithout = (a.scansWithout || 0) + 1;
+        
+        // 🛠 منطق جدید: حداقل 1 ساعت به سیگنال فرصت می‌دهیم و حداقل 60 اسکن باید بدون تایید باشد
+        const minLifespanSec = 60 * 60; 
+        const ageSec = now - a.time;
+        
+        if (a.scansWithout >= CLOSE_SCANS && ageSec >= minLifespanSec) {
+            const o = resolveFromBars({ ...a, time: a.time - MAX_HOLD_SEC }, bars, now);
+            let outcome = null;
+            if (bars && bars.length) {
+                const last = bars[bars.length - 1];
+                outcome = { result: "time", exit: last.close, why: "FADE", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+            }
+            close(outcome);
         }
-        close(outcome);
-      }
     }
   }
 }
@@ -427,17 +433,15 @@ async function once(now) {
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
-            checks: r.checks || [], // 👈 تغییر اعمال شده
+            checks: r.checks || [], 
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
           if (emitSide) {
-            // 🛠 ضد سیگنال تکراری: اضافه کردن زمان کندل (bt) به کلید قفل
             const lockKey = `${u[0]}|${r.side}|${bt}`; 
             const histKey = `${u[0]}|${r.side}|${dayKey(now)}`;
             const alreadySent = STATE.sent[lockKey] || STATE.sent[histKey];
             const alreadyOpen = isOpen(u[0]);
-            
             if (!alreadySent && !alreadyOpen) {
               allRows[allRows.length - 1]._pendingNotify = true;
               allRows[allRows.length - 1]._checks = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
@@ -453,7 +457,7 @@ async function once(now) {
             pass: r.pass || 0, total: r.total || 7,
             mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
-            checks: r.checks || [] // 👈 تغییر اعمال شده
+            checks: r.checks || []
           });
         }
       } catch (e) {
@@ -521,7 +525,6 @@ async function once(now) {
     const L = row.side === "LONG";
     const ageMin = Math.max(0, Math.round((now - ((row.bt || now) + 300)) / 60));
     
-    // 🛠 فیلتر جدید: اگر کندل قدیمی باشد (بیشتر از ۱۵ دقیقه)، سیگنال ارسال نشود
     if (ageMin > 15) {
         row._pendingNotify = false;
         continue;
