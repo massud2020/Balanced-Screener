@@ -851,16 +851,30 @@ window.scan = async function(isAuto = false) {
 
         let rows = json.rows;
 
-        // 🛠 تزریق سیگنال‌های فعال (برای نمایش در لیست اصلی)
+        // 🛠 تزریق سیگنال‌های فعال همراه با وضعیت داینامیک
         if (json.state && json.state.active) {
             Object.keys(json.state.active).forEach(activeId => {
                 const activeTrade = json.state.active[activeId];
                 let mkt = activeId.endsWith('USDT') ? 'crypto' : (['XAUUSD', 'XAGUSD'].includes(activeId) ? 'metal' : 'forex');
                 const rowIndex = rows.findIndex(r => r.id === activeId);
                 if (rowIndex !== -1) {
-                    rows[rowIndex].side = activeTrade.side; rows[rowIndex].entry = activeTrade.entry; rows[rowIndex].sl = activeTrade.sl; rows[rowIndex].tp = activeTrade.tp; rows[rowIndex].isActive = true; rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
+                    rows[rowIndex].side = activeTrade.side; 
+                    rows[rowIndex].entry = activeTrade.entry; 
+                    rows[rowIndex].sl = activeTrade.currentSl || activeTrade.sl; 
+                    rows[rowIndex].originalSl = activeTrade.sl; // ذخیره SL اولیه برای تشخیص تریلینگ
+                    rows[rowIndex].currentR = activeTrade.currentR !== undefined ? activeTrade.currentR : 0; // سود شناور
+                    rows[rowIndex].tp = activeTrade.tp; 
+                    rows[rowIndex].isActive = true; 
+                    rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
                 } else {
-                    rows.push({ id: activeId, side: activeTrade.side, entry: activeTrade.entry, sl: activeTrade.sl, tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', isActive: true, mkt: mkt });
+                    rows.push({ 
+                        id: activeId, side: activeTrade.side, entry: activeTrade.entry, 
+                        sl: activeTrade.currentSl || activeTrade.sl, 
+                        originalSl: activeTrade.sl,
+                        currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0,
+                        tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', 
+                        isActive: true, mkt: mkt 
+                    });
                 }
             });
         }
@@ -870,7 +884,6 @@ window.scan = async function(isAuto = false) {
             if (histJson && Array.isArray(histJson.history)) closedHistData = histJson.history.map(h => ({ ...h, dateStr: new Date((h.time || h.bt || Date.now()/1000) * 1000).toLocaleString('fa-IR') }));
         } catch(e) { console.warn("History fetch error:", e.message); }
 
-        // 🛠 اصلاح باگ نوتیفیکیشن: خواندن از state.active به جای state.sent
         if (json.state && json.state.active) {
             openHistData = Object.keys(json.state.active).map(id => {
                 const s = json.state.active[id];
@@ -882,7 +895,7 @@ window.scan = async function(isAuto = false) {
                     result: 'open',
                     time: s.time || (Date.now()/1000),
                     dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'نامشخص',
-                    k: id + '|' + s.side + '|' + s.time // تولید کلید یکتا برای مقایسه
+                    k: id + '|' + s.side + '|' + s.time
                 };
             });
 
@@ -958,9 +971,22 @@ function renderList(rows) {
         signalsHtml = sg.map(r => {
             const L = r.side === "LONG";
             const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
+            
+            // 🛠 منطق نمایش وضعیت داینامیک
+            const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
+            const currentRStr = r.currentR !== undefined ? `${r.currentR > 0 ? '+' : ''}${r.currentR}R` : (r.tp ? r.tp.toFixed(5) : 'RSI');
+            const currentRColor = (r.currentR || 0) >= 0 ? 'var(--gb)' : 'var(--rb)';
+            const targetLabel = r.isActive ? 'سود شناور' : 'هدف';
+            const targetValue = r.isActive ? currentRStr : (r.tp ? r.tp.toFixed(5) : 'RSI');
+            const targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
+
             return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
                 <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
-                <div class="r-grid"><div><i>ورود</i><b>${r.entry ? r.entry.toFixed(5) : '-'}</b></div><div><i>SL</i><b class="neg">${r.sl ? r.sl.toFixed(5) : '-'}</b></div><div><i>هدف</i><b class="pos">${r.tp ? r.tp.toFixed(5) : 'RSI'}</b></div></div>
+                <div class="r-grid">
+                    <div><i>ورود</i><b>${r.entry ? r.entry.toFixed(5) : '-'}</b></div>
+                    <div><i>${trailIcon}SL</i><b class="neg">${r.sl ? r.sl.toFixed(5) : '-'}</b></div>
+                    <div><i>${targetLabel}</i><b class="${targetClass}" style="${r.isActive ? 'color:'+currentRColor : ''}">${targetValue}</b></div>
+                </div>
                 <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">PA</bdi></span></div>
             </article>`;
         }).join("");
