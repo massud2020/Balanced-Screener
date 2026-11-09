@@ -221,7 +221,6 @@ function resolveFromBars(a, bars, now) {
   const risk = Math.abs(a.entry - a.sl);
   if (!risk || !isFinite(risk)) return null;
   
-  // 🛠 اصلاح: اگر استراتژی روند است و TP ندارد، TP را بی‌نهایت می‌گذاریم تا فقط با تریلینگ یا SL بسته شود
   const tp = (a.mode === "pattern") 
              ? (a.side === "LONG" ? Infinity : -Infinity) 
              : (a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk));
@@ -428,15 +427,17 @@ async function once(now) {
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
-            checks: r.checks || [], // 👈 این خط اضافه شد
+            checks: r.checks || [], // 👈 تغییر اعمال شده
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
           if (emitSide) {
-            const lockKey = `${u[0]}|${r.side}`;
+            // 🛠 ضد سیگنال تکراری: اضافه کردن زمان کندل (bt) به کلید قفل
+            const lockKey = `${u[0]}|${r.side}|${bt}`; 
             const histKey = `${u[0]}|${r.side}|${dayKey(now)}`;
             const alreadySent = STATE.sent[lockKey] || STATE.sent[histKey];
             const alreadyOpen = isOpen(u[0]);
+            
             if (!alreadySent && !alreadyOpen) {
               allRows[allRows.length - 1]._pendingNotify = true;
               allRows[allRows.length - 1]._checks = (r.checks || []).map(c => ({ l: c.l, o: c.ok ? 1 : 0 }));
@@ -452,7 +453,7 @@ async function once(now) {
             pass: r.pass || 0, total: r.total || 7,
             mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
-            checks: r.checks || [] // 👈 این خط اضافه شد
+            checks: r.checks || [] // 👈 تغییر اعمال شده
           });
         }
       } catch (e) {
@@ -519,6 +520,13 @@ async function once(now) {
     }
     const L = row.side === "LONG";
     const ageMin = Math.max(0, Math.round((now - ((row.bt || now) + 300)) / 60));
+    
+    // 🛠 فیلتر جدید: اگر کندل قدیمی باشد (بیشتر از ۱۵ دقیقه)، سیگنال ارسال نشود
+    if (ageMin > 15) {
+        row._pendingNotify = false;
+        continue;
+    }
+    
     const modeName = NAME[row.mode] || row.mode;
     const sent = await tg(
       "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
@@ -531,7 +539,6 @@ async function once(now) {
       delete STATE.sent[histKey];
     } else {
       try {
-        // 🛠 اصلاح خروجی متاتریدر: ارسال صحیح SL و TP
         const riskDist = Math.abs(row.entry - row.sl);
         const tpVal = row.tp != null ? row.tp : (L ? row.entry + 2 * riskDist : row.entry - 2 * riskDist);
         fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + "," + fd(tpVal, row.d) + "," + now);
