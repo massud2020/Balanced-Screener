@@ -1,6 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V2 - Unified Architecture)
-// این فایل هم در Node.js (سرور) و هم در مرورگر (اپلیکیشن) قابل استفاده است.
-
+// engine.js — Balanced Screener Core Engine (V3 - Full Checks & Directional Gauge)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define([], factory);
@@ -12,9 +10,6 @@
 }(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // ==========================================
-    // 1. اندیکاتورهای پایه
-    // ==========================================
     function ema(data, period) {
         if (!data || data.length < period) return new Array(data ? data.length : 0).fill(null);
         const k = 2 / (period + 1);
@@ -22,9 +17,7 @@
         let sum = 0;
         for (let i = 0; i < period; i++) sum += data[i];
         out[period - 1] = sum / period;
-        for (let i = period; i < data.length; i++) {
-            out[i] = data[i] * k + out[i - 1] * (1 - k);
-        }
+        for (let i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k);
         return out;
     }
 
@@ -34,13 +27,10 @@
         let gains = 0, losses = 0;
         for (let i = 1; i <= period; i++) {
             const diff = data[i] - data[i - 1];
-            if (diff >= 0) gains += diff;
-            else losses += Math.abs(diff);
+            if (diff >= 0) gains += diff; else losses += Math.abs(diff);
         }
-        let avgGain = gains / period;
-        let avgLoss = losses / period;
+        let avgGain = gains / period, avgLoss = losses / period;
         out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
-
         for (let i = period + 1; i < data.length; i++) {
             const diff = data[i] - data[i - 1];
             const g = diff >= 0 ? diff : 0;
@@ -63,9 +53,7 @@
         let sum = 0;
         for (let i = 0; i < period; i++) sum += tr[i];
         out[period - 1] = sum / period;
-        for (let i = period; i < candles.length; i++) {
-            out[i] = (out[i - 1] * (period - 1) + tr[i]) / period;
-        }
+        for (let i = period; i < candles.length; i++) out[i] = (out[i - 1] * (period - 1) + tr[i]) / period;
         return out;
     }
 
@@ -73,46 +61,27 @@
         if (!candles || candles.length < period * 2) return new Array(candles ? candles.length : 0).fill(null);
         const tr = [], plusDM = [], minusDM = [];
         for (let i = 0; i < candles.length; i++) {
-            if (i === 0) {
-                tr.push(candles[i].high - candles[i].low);
-                plusDM.push(0); minusDM.push(0);
-                continue;
-            }
+            if (i === 0) { tr.push(candles[i].high - candles[i].low); plusDM.push(0); minusDM.push(0); continue; }
             const cur = candles[i], prev = candles[i - 1];
-            const h_l = cur.high - cur.low;
-            const h_pc = Math.abs(cur.high - prev.close);
-            const l_pc = Math.abs(cur.low - prev.close);
-            tr.push(Math.max(h_l, h_pc, l_pc));
-
-            const upMove = cur.high - prev.high;
-            const downMove = prev.low - cur.low;
+            tr.push(Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close)));
+            const upMove = cur.high - prev.high, downMove = prev.low - cur.low;
             plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0);
             minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
         }
-
         function smoothed(arr, p) {
             const res = new Array(arr.length).fill(null);
             let sum = 0;
             for (let i = 0; i < arr.length; i++) {
-                if (i < p) {
-                    sum += arr[i];
-                    if (i === p - 1) res[i] = sum;
-                } else {
-                    res[i] = res[i - 1] - (res[i - 1] / p) + arr[i];
-                }
+                if (i < p) { sum += arr[i]; if (i === p - 1) res[i] = sum; }
+                else { res[i] = res[i - 1] - (res[i - 1] / p) + arr[i]; }
             }
             return res;
         }
-
-        const atrArr = smoothed(tr, period);
-        const pDMSmoothed = smoothed(plusDM, period);
-        const mDMSmoothed = smoothed(minusDM, period);
+        const atrArr = smoothed(tr, period), pDMSmoothed = smoothed(plusDM, period), mDMSmoothed = smoothed(minusDM, period);
         const dxArr = new Array(candles.length).fill(null);
-
         for (let i = 0; i < candles.length; i++) {
             if (!atrArr[i] || atrArr[i] === 0) continue;
-            const pDI = (pDMSmoothed[i] / atrArr[i]) * 100;
-            const mDI = (mDMSmoothed[i] / atrArr[i]) * 100;
+            const pDI = (pDMSmoothed[i] / atrArr[i]) * 100, mDI = (mDMSmoothed[i] / atrArr[i]) * 100;
             const sumDI = pDI + mDI;
             dxArr[i] = sumDI === 0 ? 0 : (Math.abs(pDI - mDI) / sumDI) * 100;
         }
@@ -129,16 +98,11 @@
             const sma = sum / period;
             const variance = slice.reduce((a, b) => a + Math.pow(b - sma, 2), 0) / period;
             const stdDev = Math.sqrt(variance);
-            upper.push(sma + mult * stdDev);
-            middle.push(sma);
-            lower.push(sma - mult * stdDev);
+            upper.push(sma + mult * stdDev); middle.push(sma); lower.push(sma - mult * stdDev);
         }
         return { upper, middle, lower };
     }
 
-    // ==========================================
-    // 2. توابع کمکی (ساختار بازار و الگوها)
-    // ==========================================
     function dropForming(candles, intervalSec = 300, nowSec = Date.now() / 1000) {
         if (!candles || !candles.length) return [];
         const last = candles[candles.length - 1];
@@ -146,66 +110,38 @@
         return candles;
     }
 
-    // تشخیص دقیق سوئینگ با الگوریتم فراکتال (5 کندلی)
     function findSwingLevels(candles, lookback = 50) {
         if (!candles || candles.length < 5) return { swingHigh: null, swingLow: null };
         let swingHigh = null, swingLow = null;
         const start = Math.max(2, candles.length - lookback);
-
         for (let i = candles.length - 3; i >= start; i--) {
             const c = candles[i];
-            const isHigh = c.high > candles[i - 1].high && c.high > candles[i - 2].high &&
-                           c.high > candles[i + 1].high && c.high > candles[i + 2].high;
-            if (isHigh) { swingHigh = c.high; break; }
+            if (c.high > candles[i - 1].high && c.high > candles[i - 2].high && c.high > candles[i + 1].high && c.high > candles[i + 2].high) { swingHigh = c.high; break; }
         }
         for (let i = candles.length - 3; i >= start; i--) {
             const c = candles[i];
-            const isLow = c.low < candles[i - 1].low && c.low < candles[i - 2].low &&
-                          c.low < candles[i + 1].low && c.low < candles[i + 2].low;
-            if (isLow) { swingLow = c.low; break; }
+            if (c.low < candles[i - 1].low && c.low < candles[i - 2].low && c.low < candles[i + 1].low && c.low < candles[i + 2].low) { swingLow = c.low; break; }
         }
         return { swingHigh, swingLow };
     }
 
-    // بررسی دقیق الگوی 3+1 (تعداد کندل‌ها + جهت کندل آخر)
     function checkPattern3to1(candles) {
         if (!candles || candles.length < 4) return { pattern_buy: false, pattern_sell: false };
         const c = candles.slice(-4);
         let greenCount = 0, redCount = 0;
-        
-        c.forEach(x => {
-            if (x.close > x.open) greenCount++;
-            else if (x.close < x.open) redCount++;
-        });
-
-        const last = c[3];
-        const isLastGreen = last.close > last.open;
-        const isLastRed = last.close < last.open;
-
-        // لانگ: ۳ کندل قرمز و ۱ کندل سبز (آخری) | شورت: ۳ کندل سبز و ۱ کندل قرمز (آخری)
-        const pattern_buy = (redCount === 3 && greenCount === 1 && isLastGreen);
-        const pattern_sell = (greenCount === 3 && redCount === 1 && isLastRed);
-
-        return { pattern_buy, pattern_sell };
+        c.forEach(x => { if (x.close > x.open) greenCount++; else if (x.close < x.open) redCount++; });
+        const last = c[3], isLastGreen = last.close > last.open, isLastRed = last.close < last.open;
+        return { pattern_buy: (redCount === 3 && greenCount === 1 && isLastGreen), pattern_sell: (greenCount === 3 && redCount === 1 && isLastRed) };
     }
 
-    // تاییدیه پرایس اکشن (پین‌بار و اینگولفینگ)
     function checkPriceActionConfirmation(candles, side) {
         if (!candles || candles.length < 2) return false;
-        const last = candles[candles.length - 1];
-        const prev = candles[candles.length - 2];
-        const body = Math.abs(last.close - last.open);
-        const totalRange = last.high - last.low;
+        const last = candles[candles.length - 1], prev = candles[candles.length - 2];
+        const body = Math.abs(last.close - last.open), totalRange = last.high - last.low;
         if (totalRange === 0) return false;
-
-        const upperShadow = last.high - Math.max(last.open, last.close);
-        const lowerShadow = Math.min(last.open, last.close) - last.low;
-        
-        const isBullish = last.close > last.open;
-        const isBearish = last.close < last.open;
-        const prevBullish = prev.close > prev.open;
-        const prevBearish = prev.close < prev.open;
-
+        const upperShadow = last.high - Math.max(last.open, last.close), lowerShadow = Math.min(last.open, last.close) - last.low;
+        const isBullish = last.close > last.open, isBearish = last.close < last.open;
+        const prevBullish = prev.close > prev.open, prevBearish = prev.close < prev.open;
         if (side === "LONG") {
             const pinBar = lowerShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBullish;
             const engulfing = isBullish && prevBearish && last.close >= prev.open && last.open <= prev.close;
@@ -217,67 +153,55 @@
         }
     }
 
-    // ==========================================
-    // 3. موتور اصلی ارزیابی
-    // ==========================================
+    // 🛠 تغییرات اصلی: ارزیابی کامل تمام شروط بدون توقف
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
         const cl = dropForming(candlesM5, 300, nowSec);
         
-        // نیاز مبرم به ۲۰۰ کندل برای اعتبار EMA200
         if (!cl || cl.length < 200) {
-            return { side: null, fail: "کمبود کندل M5 (نیاز به ۲۰۰ کندل)", checks: [] };
+            return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 7, checks: [] };
         }
 
         const closes = cl.map(c => c.close);
-        const ema9 = ema(closes, 9);
-        const ema21 = ema(closes, 21);
-        const ema50 = ema(closes, 50);
-        const ema200 = ema(closes, 200);
-        const rsiArr = rsi(closes, 14);
-        const atrArr = atr(cl, 14);
-        const adxArr = adx(cl, 14);
+        const ema50 = ema(closes, 50), ema200 = ema(closes, 200);
+        const rsiArr = rsi(closes, 14), atrArr = atr(cl, 14), adxArr = adx(cl, 14);
         const bb = bollingerBands(closes, 20, 2);
 
         const idx = cl.length - 1;
-        const lastClose = closes[idx];
-        const lastRsi = rsiArr[idx];
-        const lastAtr = atrArr[idx] || (cl[idx].high - cl[idx].low);
-        const lastAdx = adxArr[idx] || 20;
-        const lastUpper = bb.upper[idx];
-        const lastLower = bb.lower[idx];
+        const lastClose = closes[idx], lastRsi = rsiArr[idx], lastAtr = atrArr[idx] || 1, lastAdx = adxArr[idx] || 20;
+        const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
 
-        // محاسبه روند H1 (نیاز به ۲۰۰ کندل)
         let h1Trend = 'NEUTRAL';
         if (candlesH1 && candlesH1.length >= 200) {
-            const h1Closes = candlesH1.map(c => c.close);
-            const h1Ema50 = ema(h1Closes, 50)[candlesH1.length - 1];
-            const h1Ema200 = ema(h1Closes, 200)[candlesH1.length - 1];
-            if (h1Ema50 > h1Ema200) h1Trend = 'UP';
-            else if (h1Ema50 < h1Ema200) h1Trend = 'DOWN';
+            const h1Ema50 = ema(candlesH1.map(c => c.close), 50)[candlesH1.length - 1];
+            const h1Ema200 = ema(candlesH1.map(c => c.close), 200)[candlesH1.length - 1];
+            if (h1Ema50 > h1Ema200) h1Trend = 'UP'; else if (h1Ema50 < h1Ema200) h1Trend = 'DOWN';
         }
 
-        // محاسبه روند M15 (نیاز به ۵۰ کندل)
         let m15Trend = 'NEUTRAL';
         if (candlesM15 && candlesM15.length >= 50) {
-            const m15Closes = candlesM15.map(c => c.close);
-            const m15Ema21 = ema(m15Closes, 21)[candlesM15.length - 1];
-            const m15Ema50 = ema(m15Closes, 50)[candlesM15.length - 1];
-            if (m15Ema21 > m15Ema50) m15Trend = 'UP';
-            else if (m15Ema21 < m15Ema50) m15Trend = 'DOWN';
+            const m15Ema21 = ema(candlesM15.map(c => c.close), 21)[candlesM15.length - 1];
+            const m15Ema50 = ema(candlesM15.map(c => c.close), 50)[candlesM15.length - 1];
+            if (m15Ema21 > m15Ema50) m15Trend = 'UP'; else if (m15Ema21 < m15Ema50) m15Trend = 'DOWN';
         }
 
         const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
+        
+        // تعیین جهت مورد بررسی (بر اساس روند M5)
+        const trendUpM5 = ema50[idx] > ema200[idx];
+        const checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
+
         const checks = [];
         let side = null;
+        let failReason = null;
 
         if (mode === "range") {
             const isLowTrend = lastAdx < 25;
-            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend });
-            
-            const bbWidth = lastUpper - lastLower;
-            const isNotSqueeze = bbWidth > (lastAtr * 1.5);
-            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze });
-            if (!isNotSqueeze) return { side: null, fail: "بازار فشرده است (Squeeze)", checks };
+            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد' });
+            if (!isLowTrend && !failReason) failReason = "ADX قوی است";
+
+            const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
+            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد' });
+            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده است";
 
             const rsiBuy = lastRsi <= (opts.rsiL || 38);
             const rsiSell = lastRsi >= (opts.rsiS || 62);
@@ -287,99 +211,75 @@
             if (rsiBuy && bbBuy) side = "LONG";
             else if (rsiSell && bbSell) side = "SHORT";
 
-            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: !!side });
-            if (!side) return { side: null, fail: `شرایط رنج برقرار نیست (RSI: ${lastRsi.toFixed(1)})`, checks };
+            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: !!side, v: `RSI ${lastRsi.toFixed(1)}` });
+            if (!side && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
             const isTrending = lastAdx >= 20;
-            checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending });
-
-            const trendUpM5 = ema50[idx] > ema200[idx];
-            const trendDownM5 = ema50[idx] < ema200[idx];
+            checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد' });
+            if (!isTrending && !failReason) failReason = "ADX ضعیف";
 
             if (trendUpM5) side = "LONG";
-            else if (trendDownM5) side = "SHORT";
+            else if (ema50[idx] < ema200[idx]) side = "SHORT";
 
-            checks.push({ l: "همسویی روند M5 (EMA50/200)", ok: !!side });
-            if (!side) return { side: null, fail: "عدم هم‌راستایی روند M5", checks };
+            checks.push({ l: "همسویی روند M5 (EMA50/200)", ok: !!side, v: side ? checkedSide : 'رد' });
+            if (!side && !failReason) failReason = "عدم هم‌راستایی روند M5";
         }
 
-        // فیلتر H1
         if (opts.h1 !== false) {
-            if (h1Trend === 'UP' && side === 'SHORT') return { side: null, fail: "سیگنال مخالف روند H1", checks };
-            if (h1Trend === 'DOWN' && side === 'LONG') return { side: null, fail: "سیگنال مخالف روند H1", checks };
-            checks.push({ l: "همسو با روند H1 (MTF)", ok: true });
+            const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
+            checks.push({ l: "همسو با روند H1 (MTF)", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            if (!isOk && !failReason) failReason = "مخالف روند H1";
         }
 
-        // فیلتر M15
         if (opts.m15 !== false) {
-            if (m15Trend === 'UP' && side === 'SHORT') return { side: null, fail: "سیگنال مخالف روند M15", checks };
-            if (m15Trend === 'DOWN' && side === 'LONG') return { side: null, fail: "سیگنال مخالف روند M15", checks };
-            checks.push({ l: "همسو با روند M15", ok: true });
+            const isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN');
+            checks.push({ l: "همسو با روند M15", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            if (!isOk && !failReason) failReason = "مخالف روند M15";
         }
 
-        // فیلتر الگوی ۳+۱
         if (opts.pat !== false && mode === "pattern") {
             const pattern = checkPattern3to1(cl);
-            const isOk = side === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
-            checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk });
-            if (!isOk) return { side: null, fail: "الگوی ۳+۱ معتبر نیست", checks };
+            const isOk = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
+            checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            if (!isOk && !failReason) failReason = "الگوی ۳+۱ معتبر نیست";
         }
 
-        // تاییدیه پرایس اکشن
         if (opts.pa !== false) {
-            const paOk = checkPriceActionConfirmation(cl, side);
-            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk });
-            if (!paOk) return { side: null, fail: "عدم تایید کندل پرایس‌اکشن", checks };
+            const paOk = checkPriceActionConfirmation(cl, checkedSide);
+            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد' });
+            if (!paOk && !failReason) failReason = "عدم تایید PA";
         }
 
-        // ساختار بازار
         const swings = findSwingLevels(cl, 50);
         const riskDist = lastAtr * (opts.slAtr || 1.5);
+        let structOk = true;
+        if (checkedSide === "LONG" && swings.swingHigh && (swings.swingHigh - lastClose) < riskDist) structOk = false;
+        if (checkedSide === "SHORT" && swings.swingLow && (lastClose - swings.swingLow) < riskDist) structOk = false;
         
-        if (side === "LONG" && swings.swingHigh && (swings.swingHigh - lastClose) < riskDist) {
-            return { side: null, fail: "نزدیک به مقاومت قوی (ساختار بازار)", checks };
-        }
-        if (side === "SHORT" && swings.swingLow && (lastClose - swings.swingLow) < riskDist) {
-            return { side: null, fail: "نزدیک به حمایت قوی (ساختار بازار)", checks };
-        }
-        checks.push({ l: "ساختار بازار (فاصله از سوئینگ)", ok: true });
+        checks.push({ l: "ساختار بازار (فاصله از سوئینگ)", ok: structOk, v: structOk ? 'تایید' : 'رد' });
+        if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
-        // محاسبه SL و TP
         const entry = lastClose;
-        const sl = side === "LONG" ? entry - riskDist : entry + riskDist;
-        const tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-        const tp2 = side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
+        const sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
+        const tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
+        const tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
         const totalPass = checks.filter(c => c.ok).length;
+        const total = checks.length;
+        const allPassed = (totalPass === total);
 
         return {
-            side,
+            side: allPassed ? checkedSide : null,
+            checkedSide: checkedSide, // جهت مورد بررسی
             mode,
-            h1Trend,
-            m15Trend,
-            entry,
-            sl,
-            tp: tp1,
-            tp2: tp2,
-            trailingAtrStep: lastAtr * 1.2,
-            rsi: lastRsi,
-            adx: lastAdx,
+            entry, sl, tp: tp1, tp2,
+            rsi: lastRsi, adx: lastAdx,
             pass: totalPass,
-            total: checks.length,
-            checks
+            total: total,
+            checks,
+            fail: allPassed ? null : (failReason || "شرایط کافی نیست")
         };
     }
 
-    // خروجی ماژول
-    return {
-        ema,
-        rsi,
-        atr,
-        adx,
-        bollingerBands,
-        dropForming,
-        findSwingLevels,
-        checkPattern3to1,
-        evaluate
-    };
+    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate };
 }));
