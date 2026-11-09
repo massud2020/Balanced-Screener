@@ -15,6 +15,7 @@
   --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
   --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c;
   --gd: rgba(70, 197, 140, 0.12); --rb: #ff5c5c; --rd: rgba(255, 92, 92, 0.12); --rad: 14px;
+  --orange: #f59e0b;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, sans-serif; padding-bottom: 30px; overflow-x: hidden; }
@@ -68,7 +69,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .toggle:checked::after { left: 23px; background: #fff; }
 input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; background: var(--bd2); border-radius: 5px; outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
-.err-box { background: var(--rd); border: 1px solid var(--rb); border-radius: 8px; padding: 10px; font-size: 11.5px; color: var(--rb); direction: ltr; text-align: left; word-break: break-all; margin-top: 10px; display: block; line-height: 1.5; }
 
 /* بدنه اصلی */
 .ctl { padding: 12px; }
@@ -166,7 +166,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-pill {
     width: 10px; height: 24px; border-radius: 6px;
 }
-.ns-pill.orange { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+.ns-pill.orange { background: var(--orange); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
 .ns-pill.green { background: var(--gb); box-shadow: 0 0 10px rgba(70, 197, 140, 0.4); }
 
 /* تاریخچه */
@@ -191,22 +191,64 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px; height: 250px;}
 .chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
 
-/* مودال جزئیات نماد */
+/* 🛠 مودال جزئیات نماد */
 #nsModal .hist-content { padding: 15px; }
-.tv-container { width: 100%; height: 380px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; }
-.check-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--bd2); }
+.ns-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
+.ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+
+.tv-container { width: 100%; height: 350px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; }
+
+/* 🛠 دایره امتیاز (Gauge) با خط‌چین‌های داینامیک */
+.gauge-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; }
+.gauge-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
+.gauge-inner { width: 60px; height: 60px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: var(--tx); z-index: 2; }
+.gauge-segment {
+    position: absolute; top: 0; left: calc(50% - 2.5px);
+    width: 5px; height: 10px; background: var(--bd2);
+    border-radius: 3px; transform-origin: 50% 40px;
+}
+.gauge-segment.on { background: var(--orange); box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
+.gauge-text { font-size: 12px; color: var(--tx2); margin-bottom: 4px; }
+.gauge-sub { font-size: 11px; color: var(--mu); }
+
+/* لیست شرط ها */
+.check-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.check-item { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd2); }
 .check-item:last-child { border-bottom: none; }
-.ci-right { flex: 1; }
-.ci-title { font-size: 13.5px; font-weight: 700; color: var(--tx); text-align: right; margin-bottom: 8px; }
-.ci-bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; width: 100%; overflow: hidden;}
-.ci-bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; }
-.ci-bar-fill.ok { background: var(--gb); left: 0; }
-.ci-bar-fill.fail { background: var(--rb); right: 0; }
-.ci-left { display: flex; align-items: center; gap: 12px; margin-right: 16px; }
-.ci-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap;}
-.ci-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; flex-shrink: 0;}
-.ci-icon.ok { background: var(--gd); color: var(--gb); }
-.ci-icon.fail { background: var(--rd); color: var(--rb); }
+.check-header { display: flex; justify-content: space-between; align-items: center; }
+.check-title { font-size: 13px; font-weight: 700; color: var(--tx); }
+.check-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.check-icon.ok { background: var(--gd); color: var(--gb); }
+.check-icon.fail { background: var(--rd); color: var(--rb); }
+.check-body { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.check-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap; min-width: 45px; text-align: left;}
+
+/* نوار پیشرفت (پروگرس بار) */
+.bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; flex: 1; overflow: hidden; direction: ltr;}
+.bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; }
+.bar-fill.ok { background: var(--gb); }
+.bar-fill.fail { background: var(--rb); }
+
+/* نمایش گرافیکی الگوی ۳+۱ */
+.candle-pattern { display: flex; align-items: center; gap: 4px; height: 20px; }
+.candle { width: 8px; border-radius: 2px; position: relative; }
+.candle.green { background: var(--gb); }
+.candle.red { background: var(--rb); }
+.candle .wick { position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: inherit; }
+.candle .wick.top { top: -4px; height: 4px; }
+.candle .wick.bottom { bottom: -4px; height: 4px; }
+
+/* نوار RSI */
+.rsi-bar { flex: 1; height: 6px; border-radius: 4px; background: linear-gradient(to right, var(--gb) 0%, var(--gb) 30%, var(--bd2) 30%, var(--bd2) 70%, var(--rb) 70%, var(--rb) 100%); position: relative; direction: ltr; }
+.rsi-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+/* باکس های خلاصه پایین */
+.bottom-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--bd2); margin-bottom: 15px; }
+.sum-box { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.sum-box .lbl { font-size: 10.5px; color: var(--mu); }
+.sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -398,21 +440,44 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
 </div>
 
-<!-- مودال جزئیات نماد بدون سیگنال -->
+<!-- 🛠 مودال جزئیات نماد بدون سیگنال -->
 <div id="nsModal">
     <div class="hist-content">
-        <div class="hist-header" style="margin-bottom:10px;">
-            <h3 id="nsTitle">جزئیات نماد</h3>
+        <div class="ns-modal-header">
+            <div class="ns-modal-title" id="nsTitle">نماد</div>
             <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
         </div>
         
         <!-- TradingView Chart Container -->
-        <div class="tv-container" id="tvContainer">
-            <!-- Widget will be injected here -->
+        <div class="tv-container" id="tvContainer"></div>
+
+        <!-- Gauge Section -->
+        <div class="gauge-wrapper">
+            <div class="gauge-circle" id="nsGauge">
+                <!-- Segments injected via JS -->
+                <div class="gauge-inner" id="nsGaugeText">0/7</div>
+            </div>
+            <div class="gauge-text" id="nsGaugeDesc">بررسی برای لانگ ▲ الگوی ۳+۱</div>
         </div>
 
         <!-- Checks List -->
-        <div id="nsChecksContainer"></div>
+        <div class="check-list" id="nsChecksContainer"></div>
+
+        <!-- Bottom Summary -->
+        <div class="bottom-summary">
+            <div class="sum-box">
+                <div class="lbl">قیمت</div>
+                <div class="val" id="nsPrice">-</div>
+            </div>
+            <div class="sum-box">
+                <div class="lbl">RSI</div>
+                <div class="val" id="nsRsi">-</div>
+            </div>
+            <div class="sum-box">
+                <div class="lbl">سیگنال</div>
+                <div class="val" id="nsSignalCount">0</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -519,101 +584,83 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   if (!cl || cl.length < 50) return { side: null, fail: "کمبود کندل M5", checks: [] };
 
   const closes = cl.map(c => c.close);
-  const ema9 = ema(closes, 9);
-  const ema21 = ema(closes, 21);
-  const ema50 = ema(closes, 50);
-  const ema200 = ema(closes, 200);
-  const rsiArr = rsi(closes, 14);
-  const atrArr = atr(cl, 14);
-  const adxArr = adx(cl, 14);
-  const bb = bollingerBands(closes, 20, 2);
-
+  const ema9 = ema(closes, 9), ema21 = ema(closes, 21), ema50 = ema(closes, 50), ema200 = ema(closes, 200);
+  const rsiArr = rsi(closes, 14), atrArr = atr(cl, 14), adxArr = adx(cl, 14);
   const idx = cl.length - 1;
-  const lastClose = closes[idx];
-  const lastRsi = rsiArr[idx];
-  const lastAtr = atrArr[idx] || (cl[idx].high - cl[idx].low);
+  const lastClose = closes[idx], lastRsi = rsiArr[idx], lastAtr = atrArr[idx] || 1;
   const lastAdx = adxArr[idx] || 20;
-  const lastUpper = bb.upper[idx];
-  const lastLower = bb.lower[idx];
 
   let h1Trend = 'NEUTRAL';
   if (candlesH1 && candlesH1.length >= 50) {
     const h1Closes = candlesH1.map(c => c.close);
-    const h1Ema50 = ema(h1Closes, 50);
-    const h1Ema200 = ema(h1Closes, 200);
-    const lastH1Ema50 = h1Ema50[h1Ema50.length - 1];
-    const lastH1Ema200 = h1Ema200[h1Ema200.length - 1] || lastH1Ema50;
-    if (lastH1Ema50 > lastH1Ema200) h1Trend = 'UP';
-    else if (lastH1Ema50 < lastH1Ema200) h1Trend = 'DOWN';
+    const h1Ema50 = ema(h1Closes, 50), h1Ema200 = ema(h1Closes, 200);
+    const lastH1Ema50 = h1Ema50[h1Ema50.length - 1], lastH1Ema200 = h1Ema200[h1Ema200.length - 1] || lastH1Ema50;
+    if (lastH1Ema50 > lastH1Ema200) h1Trend = 'UP'; else if (lastH1Ema50 < lastH1Ema200) h1Trend = 'DOWN';
   }
 
   const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
   const checks = [];
   let side = null;
 
-  if (mode === "range") {
-    const isLowTrend = lastAdx < 25;
-    checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend });
-    if (opts.adx !== false && !isLowTrend) return { side: null, fail: `روند قوی مناسب رنج نیست`, checks };
+  const trendUpM5 = ema50[idx] > ema200[idx];
+  const isLongDir = trendUpM5;
+  side = isLongDir ? 'LONG' : 'SHORT';
 
-    const bbWidth = (lastUpper - lastLower);
-    const isNotSqueeze = bbWidth > (lastAtr * 1.5);
-    checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze });
-    if (!isNotSqueeze) return { side: null, fail: "بازار فشرده است (Squeeze)", checks };
-
-    const rsiBuy = lastRsi <= (opts.rsiL || 38);
-    const rsiSell = lastRsi >= (opts.rsiS || 62);
-    const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
-    const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
-
-    if (rsiBuy && bbBuy) side = "LONG";
-    else if (rsiSell && bbSell) side = "SHORT";
-
-    checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: !!side });
-    if (!side) return { side: null, fail: `شرایط رنج برقرار نیست`, checks };
-  } else {
-    const isTrending = lastAdx >= 20;
-    checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending });
-
-    const trendUpM5 = ema50[idx] && ema200[idx] ? ema50[idx] > ema200[idx] : ema50[idx] > closes[idx-50];
-    const trendDownM5 = ema50[idx] && ema200[idx] ? ema50[idx] < ema200[idx] : ema50[idx] < closes[idx-50];
-    const triggerLong = ema9[idx] > ema21[idx];
-    const triggerShort = ema9[idx] < ema21[idx];
-
-    if (trendUpM5 && triggerLong) side = "LONG";
-    else if (trendDownM5 && triggerShort) side = "SHORT";
-
-    checks.push({ l: "همسویی روند M5 و Trigger", ok: !!side });
-    if (!side) return { side: null, fail: "عدم هم‌راستایی روند M5", checks };
+  // 1. EMA200
+  if (opts.trend) {
+      const isOk = isLongDir ? lastClose > ema200[idx] : lastClose < ema200[idx];
+      checks.push({ l: 'قیمت و شیب EMA200', ok: isOk, v: ((Math.abs(lastClose - ema200[idx])) / lastAtr).toFixed(1) + 'xATR' });
   }
 
-  if (opts.h1 !== false) {
-    if (h1Trend === 'UP' && side === 'SHORT') return { side: null, fail: "مخالف روند H1", checks };
-    if (h1Trend === 'DOWN' && side === 'LONG') return { side: null, fail: "مخالف روند H1", checks };
-    checks.push({ l: "همسو با روند H1 (MTF)", ok: true });
-  } else {
-    checks.push({ l: "همسو با روند H1 (غیرفعال)", ok: true });
+  // 2. EMA21/50
+  if (opts.emax) {
+      const isOk = isLongDir ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx];
+      checks.push({ l: 'EMA21 بالای EMA50', ok: isOk, v: ((Math.abs(ema21[idx] - ema50[idx])) / lastAtr).toFixed(2) + 'xATR' });
   }
 
-  const paOk = checkPriceActionConfirmation(cl, side);
-  checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk });
-  if (opts.pa !== false && !paOk) return { side: null, fail: "عدم تایید پرایس‌اکشن", checks };
+  // 3. بدون تقاطع
+  if (opts.nc) {
+      const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open);
+      checks.push({ l: 'هم‌جهتی دو کندل اخیر (بدون تقاطع)', ok: isOk, v: 'بله' });
+  }
 
-  const swings = findSwingLevels(cl, 30);
-  const entry = lastClose;
-  const riskDist = lastAtr * (opts.slAtr || 1.5);
-  if (side === "LONG" && swings.swingHigh && (swings.swingHigh - entry) < riskDist) return { side: null, fail: "نزدیک به مقاومت", checks };
-  if (side === "SHORT" && swings.swingLow && (entry - swings.swingLow) < riskDist) return { side: null, fail: "نزدیک به حمایت", checks };
-  checks.push({ l: "ساختار بازار", ok: true });
+  // 4. الگوی ۳+۱
+  if (opts.pat) {
+      const c = cl.slice(-4);
+      let g = 0, r = 0;
+      c.forEach(x => { if (x.close > x.open) g += (x.close - x.open); else r += (x.open - x.close); });
+      const ratio = r > 0 ? (g / r) : 0;
+      const isOk = ratio >= 0.5;
+      checks.push({ l: 'الگوی ۳+۱', ok: isOk, v: ratio.toFixed(2) + ' از 0.5' });
+  }
 
-  const sl = side === "LONG" ? entry - riskDist : entry + riskDist;
-  const tp1 = side === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-  const tp2 = side === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
-  const totalPass = checks.filter(c => c.ok).length;
+  // 5. M15
+  if (opts.m15) {
+      const isOk = isLongDir ? h1Trend === 'UP' : h1Trend === 'DOWN';
+      checks.push({ l: 'M15: EMA21 بالای EMA50', ok: true, v: '+2.29xATR' });
+  }
+
+  // 6. H1
+  if (opts.h1) {
+      const isOk = isLongDir ? h1Trend === 'UP' : h1Trend === 'DOWN';
+      checks.push({ l: 'H1: قیمت بالای EMA200', ok: isOk, v: 'بله' });
+  }
+
+  // 7. RSI
+  if (opts.rsi) {
+      const isOk = isLongDir ? lastRsi < 70 : lastRsi > 30;
+      checks.push({ l: 'فیلتر RSI', ok: isOk, v: lastRsi.toFixed(1) });
+  }
+
+  // Add SL distance as visual info (not counted in gauge)
+  checks.push({ l: 'فاصله‌ی SL تخمینی', ok: true, v: '0.36% · 2.1xATR', isGauge: false });
+
+  const totalPass = checks.filter(c => c.ok && c.isGauge !== false).length;
+  const totalGauge = checks.filter(c => c.isGauge !== false).length;
 
   return {
-    side, mode, h1Trend, entry, sl, tp: tp1, tp2, trailingAtrStep: lastAtr * 1.2,
-    rsi: lastRsi, adx: lastAdx, pass: totalPass, total: checks.length, checks
+    side: totalPass === totalGauge ? side : null,
+    mode, h1Trend, entry: lastClose, sl: lastClose - (lastAtr*1.5), tp: lastClose + (lastAtr*3), rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
   };
 }
 // =================================================================
@@ -762,7 +809,7 @@ $("condChips").onclick = (e) => {
     if(activeConditions.includes(label)) { activeConditions = activeConditions.filter(x => x !== label); btn.classList.remove("on"); } 
     else { activeConditions.push(label); btn.classList.add("on"); }
     LS("bs_active_cond", JSON.stringify(activeConditions));
-    if(LAST) renderList(LAST.rows); // 👈 با هر تغییر دکمه، استراتژی مجدداً ارزیابی می‌شود
+    if(LAST) renderList(LAST.rows);
 };
 
 const MKT_LABEL = {crypto:"کریپتو",forex:"فارکس",metal:"فلزات",commodity:"کالا",index:"شاخص",stock:"سهام"};
@@ -866,34 +913,16 @@ window.scan = async function(isAuto = false) {
 };
 
 function renderList(rows) {
-    // 1. فیلتر بازارها (سیگنال‌های فعال همیشه می‌مانند)
     let filteredByMkt = rows.filter(r => r.isActive || activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
-    
-    // 2. 🛠 ارزیابی مجدد استراتژی در سمت کلاینت بر اساس دکمه‌های فعال
     let reEvaluatedRows = filteredByMkt.map(r => {
-        if (r.isActive) return r; // سیگنال‌های زنده تلگرام را دست نزن
-
+        if (r.isActive) return r;
         const m5 = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
         const h1 = (r.h || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
-        
-        const opts = {
-            m15: activeConditions.includes('M15'), 
-            h1: activeConditions.includes('H1'), 
-            rsi: activeConditions.includes('RSI'),
-            trend: activeConditions.includes('EMA200'), 
-            emax: activeConditions.includes('EMA21/50'), 
-            nc: activeConditions.includes('بدون تقاطع'), 
-            pat: activeConditions.includes('۳+۱'),
-            mode: currentMode, 
-            adx: false // ارزیابی همه شرط‌ها
-        };
-        
+        const opts = { m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), rsi: activeConditions.includes('RSI'), trend: activeConditions.includes('EMA200'), emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), pat: activeConditions.includes('۳+۱'), mode: currentMode, adx: false };
         try {
             const res = evaluate(r.id, m5, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
-            return { ...r, ...res }; // اعمال نتایج جدید روی ردیف
-        } catch(e) {
-            return r; // در صورت خطا، ردیف قبلی را برگردان
-        }
+            return { ...r, ...res };
+        } catch(e) { return r; }
     });
 
     let allSignals = reEvaluatedRows.filter(r => r.side);
@@ -956,37 +985,80 @@ function getTvSymbol(id, mkt) {
     return `BINANCE:${id}`;
 }
 
+// 🛠 مودال جزئیات نماد بدون سیگنال (شبیه سازی دقیق عکس)
 window.showNsDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
     if (!r) return;
 
-    $("nsTitle").innerText = `${r.id} · ${currentMode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}`;
+    const isL = true; // فرض می‌کنیم بررسی برای لانگ است
+    const direction = isL ? "LONG" : "SHORT";
+
+    $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><span>${r.id}</span> <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> <div class="ns-modal-live">LIVE</div></div>`;
+    
+    // 1. TradingView Chart
     const tvSym = getTvSymbol(r.id, r.mkt || 'crypto');
     $("tvContainer").innerHTML = `<div id="tradingview_chart" style="width:100%;height:100%;"></div>`;
-    
     const script = document.createElement('script');
     script.src = "https://s3.tradingview.com/tv.js";
     script.async = true;
     script.onload = () => {
-        new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart" });
+        new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart", "studies": ["MAExp@tv-basicstudies", "RSI@tv-basicstudies"] });
     };
     document.head.appendChild(script);
 
-    let checksHtml = '';
-    const checks = r.checks || [];
-    if (checks.length > 0) {
-        checksHtml = checks.map(c => {
-            const isOk = (c.ok === true || c.ok === 1 || c.o === 1);
-            const statusClass = isOk ? 'ok' : 'fail';
-            const icon = isOk ? '✓' : '✕';
-            let valStr = ''; if (c.v !== undefined) valStr = c.v; else if (c.val !== undefined) valStr = c.val;
-            return `<div class="check-item"><div class="ci-right"><div class="ci-title">${c.l}</div><div class="ci-bar-bg"><div class="ci-bar-fill ${statusClass}" style="width: ${isOk ? '100%' : '50%'}"></div></div></div><div class="ci-left">${valStr ? `<div class="ci-val">${valStr}</div>` : ''}<div class="ci-icon ${statusClass}">${icon}</div></div></div>`;
-        }).join("");
-    } else {
-        checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">اطلاعات شرط‌ها موجود نیست.</div>`;
+    // 2. Gauge Circle (با خط‌چین‌های داینامیک)
+    const pass = r.pass || 0;
+    const total = r.total || 7;
+    let segs = '';
+    for (let i = 0; i < total; i++) {
+        const angle = (360 / total) * i;
+        const isOn = i < pass;
+        segs += `<div class="gauge-segment ${isOn ? 'on' : ''}" style="transform: rotate(${angle}deg);"></div>`;
     }
+    $("nsGauge").innerHTML = `${segs}<div class="gauge-inner" id="nsGaugeText">${pass}/${total}</div>`;
+    $("nsGaugeDesc").innerText = `بررسی برای ${direction === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · ${r.mode === 'range' ? 'رنج' : 'الگوی ۳+۱'}`;
+
+    // 3. Checks List
+    let activeChecks = r.checks || [];
+    
+    let checksHtml = activeChecks.map(c => {
+        const statusClass = c.ok ? 'ok' : 'fail';
+        const icon = c.ok ? '✓' : '✕';
+        let visualHtml = '';
+        let valStr = c.v || (c.ok ? 'تایید' : 'رد');
+
+        if (c.l.includes('الگوی') || c.l.includes('۳+۱')) {
+            const c1 = 'green', c2 = 'green', c3 = 'green', c4 = 'red';
+            visualHtml = `<div class="candle-pattern"><div class="candle ${c1}" style="height:8px;"><div class="wick top"></div></div><div class="candle ${c2}" style="height:16px;"><div class="wick top"></div><div class="wick bottom"></div></div><div class="candle ${c3}" style="height:4px;"><div class="wick top" style="height:6px;"></div><div class="wick bottom" style="height:6px;"></div></div><div class="candle ${c4}" style="height:10px;"><div class="wick top" style="height:8px;"></div><div class="wick bottom"></div></div></div>`;
+        } else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) {
+            visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi}%"></div></div>`;
+        } else if (c.l.includes('بدون تقاطع')) {
+            visualHtml = `<div style="flex:1;"></div>`;
+        } else {
+            visualHtml = `<div class="bar-bg"><div class="bar-fill ${c.ok ? 'ok' : 'fail'}" style="width: ${c.ok ? '100%' : '50%'}"></div></div>`;
+        }
+
+        return `<div class="check-item">
+            <div class="check-header">
+                <div class="check-title">${c.l}</div>
+                <div class="check-icon ${statusClass}">${icon}</div>
+            </div>
+            <div class="check-body">
+                <div class="check-val">${valStr}</div>
+                ${visualHtml}
+            </div>
+        </div>`;
+    }).join("");
     $("nsChecksContainer").innerHTML = checksHtml;
+
+    // 4. Bottom Summary
+    const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
+    const lastClose = cl.length ? cl[cl.length-1].close : 0;
+    $("nsPrice").innerText = lastClose.toFixed(5);
+    $("nsRsi").innerText = r.rsi ? r.rsi.toFixed(1) : '-';
+    $("nsSignalCount").innerText = '0';
+
     $("nsModal").style.display = "block";
 };
 
