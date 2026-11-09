@@ -1,73 +1,66 @@
-name: Balanced Screener Scan
+name: Run Background Scanner
 
 on:
-  # 🛠️ ۱. اجرای دستی (از داخل خود گیت‌هاب)
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
   workflow_dispatch:
 
-  # 🛠️ ۲. زمان‌بندی داخلی پشتیبان (هر ۱۵ دقیقه)
-  # کارهای دقیق ۵ دقیقه‌ای توسط cron-job.org انجام می‌شود
-  schedule:
-    - cron: '*/15 * * * *'
-
-# 🛠️ جلوگیری از اجرای همزمان چند اسکن (صف‌بندی)
+# 👈 این بخش جادویی است: از اجرای همزمان دو اسکنر جلوگیری می‌کند و سیگنال تکراری را ریشه‌کن می‌کند
 concurrency:
-  group: scan-market
+  group: "scanner-group"
   cancel-in-progress: false
 
-permissions:
-  contents: write # دسترسی نوشتن برای کامیت کردن فایل‌ها
-
 jobs:
-  run_scan:
+  scan:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    env:
+      # تنظیمات آینه برای دانلود سریع پکیج‌ها
+      npm_config_sharp_binary_host: "https://npmmirror.com/mirrors/sharp"
+      npm_config_sharp_libvips_binary_host: "https://npmmirror.com/mirrors/sharp-libvips"
+      SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
       
-      - uses: actions/setup-node@v4
+      # توکن‌ها و تنظیمات (مطمئن شوید این مقادیر در Secrets گیت‌هاب تنظیم شده‌اند)
+      OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
+      OANDA_ENV: ${{ secrets.OANDA_ENV }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_SIGNALS_THREAD_ID: ${{ secrets.TELEGRAM_SIGNALS_THREAD_ID }}
+      TELEGRAM_ALERTS_THREAD_ID: ${{ secrets.TELEGRAM_ALERTS_THREAD_ID }}
+      
+      # تنظیمات استراتژی
+      M15: "1"
+      H1: "1"
+      RSI: "1"
+      RSI_L: "38"
+      RSI_S: "62"
+      MODES: "pattern,range"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
-      - name: Install Dependencies
+
+      - name: Install dependencies
         run: npm install
-        
+
       - name: Run Scanner
-        env:
-          OANDA_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
-          OANDA_ENV: "practice"
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # شناسه‌ی موضوع‌ها (Topic) در سوپرگروه تلگرام
-          TELEGRAM_SIGNAL_THREAD_ID: ${{ secrets.TELEGRAM_SIGNAL_THREAD_ID }}
-          TELEGRAM_ALERT_THREAD_ID: ${{ secrets.TELEGRAM_ALERT_THREAD_ID }}
-          LOOP_SECONDS: 270
-          INTERVAL: 60
-          M15: "1"
-          H1: "0"
-          RSI: "1"
-          RSI_L: "40"
-          RSI_S: "60"
         run: node scan.js
-        
-      # 🛠️ مرحله نهایی: ذخیره فایل‌ها با استفاده از Force Push (کاملاً ضدخطا)
-      - name: Force Commit and Push
+
+      - name: Commit and Push changes
         run: |
-          # ۱. فایل‌های تولید شده (دیتای جدید) را در یک پوشه موقت کپی می‌کنیم
-          cp data.json /tmp/data.json
-          cp history.json /tmp/history.json
-          
-          # ۲. ریپازیتوری را به آخرین نسخه روی سرور (گیت‌هاب) برمی‌گردانیم تا هرگونه تداخلی پاک شود
-          git fetch origin main
-          git reset --hard origin/main
-          
-          # ۳. فایل‌های جدید خودمان را جایگزین می‌کنیم
-          cp /tmp/data.json data.json
-          cp /tmp/history.json history.json
-          
-          # ۴. تنظیمات و کامیت کردن
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data.json history.json
-          git commit -m "Update market data [skip ci]" || echo "No changes to commit"
-          
-          # ۵. پوش اجباری (Force Push) برای جلوگیری از هرگونه خطای همزمانی
-          git push --force origin main
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json history.json latest_signal.txt
+          git commit -m "Update scanner data [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push origin main
