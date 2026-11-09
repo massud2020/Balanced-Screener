@@ -606,45 +606,26 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
   const isLongDir = trendUpM5;
   side = isLongDir ? 'LONG' : 'SHORT';
 
-  if (opts.trend) {
-      const isOk = isLongDir ? lastClose > ema200[idx] : lastClose < ema200[idx];
-      checks.push({ l: 'قیمت و شیب EMA200', ok: isOk, v: ((Math.abs(lastClose - ema200[idx])) / lastAtr).toFixed(1) + 'xATR' });
-  }
-  if (opts.emax) {
-      const isOk = isLongDir ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx];
-      checks.push({ l: 'EMA21 بالای EMA50', ok: isOk, v: ((Math.abs(ema21[idx] - ema50[idx])) / lastAtr).toFixed(2) + 'xATR' });
-  }
-  if (opts.nc) {
-      const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open);
-      checks.push({ l: 'هم‌جهتی دو کندل اخیر (بدون تقاطع)', ok: isOk, v: 'بله' });
-  }
-  if (opts.pat) {
-      const c = cl.slice(-4);
-      let g = 0, r = 0;
-      c.forEach(x => { if (x.close > x.open) g += (x.close - x.open); else r += (x.open - x.close); });
-      const ratio = r > 0 ? (g / r) : 0;
-      const isOk = ratio >= 0.5;
-      checks.push({ l: 'الگوی ۳+۱', ok: isOk, v: ratio.toFixed(2) + ' از 0.5' });
-  }
-  if (opts.m15) {
-      checks.push({ l: 'M15: EMA21 بالای EMA50', ok: true, v: '+2.29xATR' });
-  }
-  if (opts.h1) {
-      const isOk = isLongDir ? h1Trend === 'UP' : h1Trend === 'DOWN';
-      checks.push({ l: 'H1: قیمت بالای EMA200', ok: isOk, v: 'بله' });
-  }
-  if (opts.rsi) {
-      const isOk = isLongDir ? lastRsi < 70 : lastRsi > 30;
-      checks.push({ l: 'فیلتر RSI', ok: isOk, v: lastRsi.toFixed(1) });
-  }
+  if (opts.trend) { const isOk = isLongDir ? lastClose > ema200[idx] : lastClose < ema200[idx]; checks.push({ l: 'قیمت و شیب EMA200', ok: isOk, v: ((Math.abs(lastClose - ema200[idx])) / lastAtr).toFixed(1) + 'xATR' }); }
+  if (opts.emax) { const isOk = isLongDir ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx]; checks.push({ l: 'EMA21 بالای EMA50', ok: isOk, v: ((Math.abs(ema21[idx] - ema50[idx])) / lastAtr).toFixed(2) + 'xATR' }); }
+  if (opts.nc) { const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open); checks.push({ l: 'هم‌جهتی دو کندل اخیر (بدون تقاطع)', ok: isOk, v: 'بله' }); }
+  if (opts.pat) { const c = cl.slice(-4); let g = 0, r = 0; c.forEach(x => { if (x.close > x.open) g += (x.close - x.open); else r += (x.open - x.close); }); const ratio = r > 0 ? (g / r) : 0; const isOk = ratio >= 0.5; checks.push({ l: 'الگوی ۳+۱', ok: isOk, v: ratio.toFixed(2) + ' از 0.5' }); }
+  if (opts.m15) { checks.push({ l: 'M15: EMA21 بالای EMA50', ok: true, v: '+2.29xATR' }); }
+  if (opts.h1) { const isOk = isLongDir ? h1Trend === 'UP' : h1Trend === 'DOWN'; checks.push({ l: 'H1: قیمت بالای EMA200', ok: isOk, v: 'بله' }); }
+  if (opts.rsi) { const isOk = isLongDir ? lastRsi < 70 : lastRsi > 30; checks.push({ l: 'فیلتر RSI', ok: isOk, v: lastRsi.toFixed(1) }); }
   checks.push({ l: 'فاصله‌ی SL تخمینی', ok: true, v: '0.36% · 2.1xATR', isGauge: false });
 
   const totalPass = checks.filter(c => c.ok && c.isGauge !== false).length;
   const totalGauge = checks.filter(c => c.isGauge !== false).length;
 
+  // 🛠 محاسبه صحیح SL و TP بر اساس جهت معامله (رفع باگ)
+  const riskDist = lastAtr * 1.5;
+  const sl = side === "LONG" ? lastClose - riskDist : lastClose + riskDist;
+  const tp = side === "LONG" ? lastClose + riskDist : lastClose - riskDist;
+
   return {
     side: totalPass === totalGauge ? side : null,
-    mode, h1Trend, entry: lastClose, sl: lastClose - (lastAtr*1.5), tp: lastClose + (lastAtr*1.5), rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
+    mode, h1Trend, entry: lastClose, sl: sl, tp: tp, rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
   };
 }
 // =================================================================
@@ -937,7 +918,6 @@ function renderList(rows) {
             const L = r.side === "LONG";
             const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
             
-            // 🛠 منطق نمایش وضعیت داینامیک
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
             
             let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
