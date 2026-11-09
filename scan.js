@@ -1,5 +1,5 @@
 // Background scanner for GitHub Actions
-// v41: Professional Strategy Logic + Corrected MT4 Output
+// v42: Full MTF (M5, M15, H1) + Partial TP Logic
 const fs = require("fs"),
   { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
   AL = require("./alerts.js");
@@ -67,12 +67,18 @@ async function yh(sy, iv, rg) {
   return o;
 }
 
+// 🛠 آپدیت: پشتیبانی از M15
 async function tf(u, which) {
-  const m = which === "5m";
   let a = [], src = null;
-  if (u[4] && TOK) { try { a = await oanda(u[4], m ? "M5" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {} }
-  if (u[1]) { try { a = await okx(u[1], m ? "5m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {} }
-  if (u[2]) { try { const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {} }
+  if (u[4] && TOK) {
+    try { a = await oanda(u[4], which === "5m" ? "M5" : which === "15m" ? "M15" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {}
+  }
+  if (u[1]) {
+    try { a = await okx(u[1], which === "5m" ? "5m" : which === "15m" ? "15m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {}
+  }
+  if (u[2]) {
+    try { const y = await yh(u[2], which === "5m" ? "5m" : which === "15m" ? "15m" : "1h", which === "5m" ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {}
+  }
   return a;
 }
 
@@ -89,20 +95,23 @@ async function fetchOandaBarsForActive(activeMap) {
   return out;
 }
 
-const DC = new Map(), slot5 = t => Math.floor((t - 20) / 300);
+// 🛠 آپدیت کش برای M15
+const DC = new Map(), slot5 = t => Math.floor((t - 20) / 300), slot15 = t => Math.floor((t - 20) / 900);
 async function loadCached(u, now) {
   const c = DC.get(u[0]) || {};
   const backoff = c.fail && now - c.try5 < 120;
   const need5 = (!c.a || slot5(now) > slot5(c.t5)) && !backoff;
+  const need15 = (!c.m15 || slot15(now) > slot15(c.t15)) && !backoff;
   const need1 = (!c.h || now - c.t1 > (u[1] ? 600 : 3300)) && !backoff;
-  if (!need5 && !need1) return [c.a || [], c.h || []];
+  if (!need5 && !need15 && !need1) return [c.a || [], c.m15 || [], c.h || []];
   const e = { ...c }; e.try5 = now;
   await Promise.all([
-    need5 && tf(u, "5m").then(a => { if (a.length >= 50) { e.a = a; e.t5 = now; e.fail = 0; e.src = a._src || e.src; } else e.fail = (c.fail || 0) + 1; }).catch(() => { e.fail = (c.fail || 0) + 1; }),
-    need1 && tf(u, "1h").then(h => { if (h.length) { e.h = h; e.t1 = now; e.src = h._src || e.src; } }).catch(() => {}),
+    need5 && tf(u, "5m").then(a => { if (a.length >= 50) { e.a = a; e.t5 = now; e.fail = 0; } else e.fail = (c.fail || 0) + 1; }).catch(() => { e.fail = (c.fail || 0) + 1; }),
+    need15 && tf(u, "15m").then(m => { if (m.length >= 50) { e.m15 = m; e.t15 = now; } }).catch(() => {}),
+    need1 && tf(u, "1h").then(h => { if (h.length) { e.h = h; e.t1 = now; } }).catch(() => {}),
   ]);
   DC.set(u[0], e);
-  return [e.a || [], e.h || []];
+  return [e.a || [], e.m15 || [], e.h || []];
 }
 
 const TH_SIG = String(process.env.TELEGRAM_SIGNALS_THREAD_ID || process.env.TELEGRAM_SIGNAL_THREAD_ID || process.env.TELEGRAM_THREAD_ID || "").trim();
@@ -163,7 +172,6 @@ function calcR(side, entry, sl, exitPx) {
   return (L ? (exitPx - entry) : (entry - exitPx)) / risk;
 }
 
-// 🛠 تابع محاسبه وضعیت داینامیک (Trailing & Partial)
 function updateTrailingState(a, bars) {
   if (!bars || !bars.length) return;
   const risk = Math.abs(a.entry - a.sl);
@@ -175,7 +183,7 @@ function updateTrailingState(a, bars) {
   const trailAfterR = 1.0;
   let tp1Hit = a.tp1Hit || false;
 
-  if (tp1Hit) trailSl = Math.max(trailSl, a.entry); // اگر TP1 خورد، SL به نقطه ورود می‌رود
+  if (tp1Hit) trailSl = Math.max(trailSl, a.entry);
 
   const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
   const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
@@ -184,26 +192,17 @@ function updateTrailingState(a, bars) {
   for (const b of bars) {
     if (b.time < start) continue;
     if (a.side === "LONG") {
-      // Check TP1
-      const tp1 = a.side === "LONG" ? a.entry + 1.5 * risk : a.entry - 1.5 * risk;
-      if (!tp1Hit && b.high >= tp1) {
-          tp1Hit = true;
-          trailSl = Math.max(trailSl, a.entry);
-      }
-
+      const tp1 = a.entry + 1.5 * risk;
+      if (!tp1Hit && b.high >= tp1) { tp1Hit = true; trailSl = Math.max(trailSl, a.entry); }
       const fav = (b.high - a.entry) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR && tp1Hit) { // فقط بعد از TP1 تریلینگ میکنیم
+      if (fav >= trailAfterR && tp1Hit) {
         const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
         if (newSl > trailSl) trailSl = newSl;
       }
     } else {
       const tp1 = a.entry - 1.5 * risk;
-      if (!tp1Hit && b.low <= tp1) {
-          tp1Hit = true;
-          trailSl = Math.min(trailSl, a.entry);
-      }
-      
+      if (!tp1Hit && b.low <= tp1) { tp1Hit = true; trailSl = Math.min(trailSl, a.entry); }
       const fav = (a.entry - b.low) / risk;
       if (fav > peakFav) peakFav = fav;
       if (fav >= trailAfterR && tp1Hit) {
@@ -212,19 +211,15 @@ function updateTrailingState(a, bars) {
       }
     }
   }
-  
   a.currentSl = trailSl;
   a.tp1Hit = tp1Hit;
-  
   const last = bars[bars.length - 1];
   if (last) {
     const liveR = calcR(a.side, a.entry, a.sl, last.close);
-    // اگر TP1 خورده باشد، ۵۰٪ با 1.5R بسته شده و ۵۰٪ دیگر با R لحظه‌ای محاسبه می‌شود
     a.currentR = tp1Hit ? +((0.5 * 1.5) + (0.5 * liveR)).toFixed(2) : +liveR.toFixed(2);
   }
 }
 
-// 🛠 منطق خروج پله‌ای (Partial TP)
 function resolveFromBars(a, bars, now) {
   if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
   const risk = Math.abs(a.entry - a.sl);
@@ -245,26 +240,17 @@ function resolveFromBars(a, bars, now) {
     if (b.time < start) continue;
     
     if (a.side === "LONG") {
-      // 1. بررسی TP1
-      if (!tp1Hit && b.high >= tp1) {
-          tp1Hit = true;
-          trailSl = Math.max(trailSl, a.entry); // SL -> BE
-      }
-      
-      // 2. بررسی Target نهایی (R4)
+      if (!tp1Hit && b.high >= tp1) { tp1Hit = true; trailSl = Math.max(trailSl, a.entry); }
       if (b.high >= finalTp) {
           const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0; 
           return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
       }
-
-      // 3. بررسی Trailing Stop / SL
       const fav = (b.high - a.entry) / risk;
       if (fav > peakFav) peakFav = fav;
       if (fav >= trailAfterR && tp1Hit) { 
         const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
         if (newSl > trailSl) trailSl = newSl;
       }
-      
       if (b.low <= trailSl) {
         if (tp1Hit) {
             const trailR = calcR(a.side, a.entry, a.sl, trailSl);
@@ -275,11 +261,7 @@ function resolveFromBars(a, bars, now) {
         }
       }
     } else {
-      // منطق SHORT (دقیقا مانند لانگ اما برعکس)
-      if (!tp1Hit && b.low <= tp1) {
-          tp1Hit = true;
-          trailSl = Math.min(trailSl, a.entry);
-      }
+      if (!tp1Hit && b.low <= tp1) { tp1Hit = true; trailSl = Math.min(trailSl, a.entry); }
       if (b.low <= finalTp) {
           const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0;
           return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
@@ -307,10 +289,7 @@ function resolveFromBars(a, bars, now) {
   if (last && now - a.time >= holdLimit) {
     let R = calcR(a.side, a.entry, a.sl, last.close);
     let why = "TIME";
-    if (tp1Hit) {
-        R = (0.5 * 1.5) + (0.5 * R);
-        why = "TIME_PARTIAL";
-    }
+    if (tp1Hit) { R = (0.5 * 1.5) + (0.5 * R); why = "TIME_PARTIAL"; }
     return { result: R >= 0 ? "win" : "loss", exit: last.close, why: why, R: R, closeTime: last.time, tp1Hit: tp1Hit };
   }
   return null;
@@ -332,7 +311,6 @@ function touchActives(now, barMap, history) {
   for (const id of Object.keys(STATE.active)) {
     const a = STATE.active[id];
     const bars = barMap && barMap[id];
-    
     const hit = resolveFromBars(a, bars, now);
     if (hit) {
       applyOutcomeToHistory(history, id, a.side, day, hit, now);
@@ -400,11 +378,11 @@ async function once(now) {
       if (!u[1] && !u[2] && !(u[4] && TOK)) continue;
 
       try {
-        const [a, h] = await loadCached(u, now);
+        const [a, m15, h] = await loadCached(u, now);
         const dataSrc = (a && a._src) || (DC.get(u[0]) && DC.get(u[0]).src) || (u[4] && TOK ? "oanda" : (u[1] ? "okx" : "yahoo"));
 
-        if (a.length < 50) {
-          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
+        if (a.length < 200) { // 🛠 آپدیت: نیاز به ۲۰۰ کندل
+          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data (Need 200 M5)", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
           continue;
         }
 
@@ -412,12 +390,12 @@ async function once(now) {
         const bt = cl.length ? cl[cl.length - 1].time : 0;
         const packCandles = (arr) => arr.slice(-210).map(c => [c.time, c.open, c.high, c.low, c.close]);
 
-        const probe = evaluate(u[0], a, h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, now);
+        const probe = evaluate(u[0], a, m15, h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, now);
         let useMode = pickModeByAdx(probe.adx);
         if (!modes.includes(useMode)) useMode = modes[0];
 
         const opts = { mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, adx: false };
-        const r = evaluate(u[0], a, h, opts, now);
+        const r = evaluate(u[0], a, m15, h, opts, now);
 
         const blocked = r.side && isOpen(u[0]);
         const emitSide = blocked ? null : r.side;
@@ -426,7 +404,7 @@ async function once(now) {
           allRows.push({
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
-            a: packCandles(a), h: packCandles(h), checks: r.checks || [], 
+            a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: r.checks || [], 
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
@@ -446,7 +424,7 @@ async function once(now) {
           allRows.push({
             id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "خطای نامشخص",
             pass: r.pass || 0, total: r.total || 7, mode: useMode, u: u, src: dataSrc,
-            a: packCandles(a), h: packCandles(h), checks: r.checks || []
+            a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: r.checks || []
           });
         }
       } catch (e) {
