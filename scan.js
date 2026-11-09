@@ -4,7 +4,6 @@ const fs = require("fs"),
   { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
   AL = require("./alerts.js");
 
-// 🛠 خواندن ایمن لیست نمادها
 const symbolsModule = require("./symbols.js");
 const U = symbolsModule.U || (Array.isArray(symbolsModule) ? symbolsModule : []);
 
@@ -13,16 +12,9 @@ if (!Array.isArray(U) || U.length === 0) {
   process.exit(1); 
 }
 
-const TOK = process.env.OANDA_TOKEN,
-  ENV = process.env.OANDA_ENV || "practice";
-
-const F15 = process.env.M15 !== "0";
-const FH1 = process.env.H1 !== "0";
-const RSI_ON = process.env.RSI !== "0";
-const RSI_L = +(process.env.RSI_L || 38);
-const RSI_S = +(process.env.RSI_S || 62);
-const STRICT = process.env.H1_STRICT === "1";
-
+const TOK = process.env.OANDA_TOKEN, ENV = process.env.OANDA_ENV || "practice";
+const F15 = process.env.M15 !== "0", FH1 = process.env.H1 !== "0", RSI_ON = process.env.RSI !== "0";
+const RSI_L = +(process.env.RSI_L || 38), RSI_S = +(process.env.RSI_S || 62), STRICT = process.env.H1_STRICT === "1";
 const MODES = (process.env.MODES || "pattern,range").split(",").map(x => x.trim()).filter(x => x === "pattern" || x === "range");
 if (!MODES.length) MODES.push("pattern");
 function enabledModes() { return MODES; }
@@ -45,11 +37,7 @@ const okx = async (id, bar) => {
   const j = await J(`https://www.okx.com/api/v5/market/candles?instId=${id}&bar=${bar}&limit=300`);
   if (j.code !== "0") return [];
   return j.data.map(r => ({
-    time: +r[0] / 1000,
-    open: +Number(r[1]).toFixed(5),
-    high: +Number(r[2]).toFixed(5),
-    low: +Number(r[3]).toFixed(5),
-    close: +Number(r[4]).toFixed(5)
+    time: +r[0] / 1000, open: +Number(r[1]).toFixed(5), high: +Number(r[2]).toFixed(5), low: +Number(r[3]).toFixed(5), close: +Number(r[4]).toFixed(5)
   })).sort((a, b) => a.time - b.time);
 };
 
@@ -59,11 +47,7 @@ const oanda = async (i, g) => {
     headers: { Authorization: "Bearer " + TOK }
   });
   return j.candles.map(c => ({
-    time: Date.parse(c.time) / 1000,
-    open: +Number(c.mid.o).toFixed(5),
-    high: +Number(c.mid.h).toFixed(5),
-    low: +Number(c.mid.l).toFixed(5),
-    close: +Number(c.mid.c).toFixed(5)
+    time: Date.parse(c.time) / 1000, open: +Number(c.mid.o).toFixed(5), high: +Number(c.mid.h).toFixed(5), low: +Number(c.mid.l).toFixed(5), close: +Number(c.mid.c).toFixed(5)
   })).filter(c => isFinite(c.close));
 };
 
@@ -78,13 +62,7 @@ async function yh(sy, iv, rg) {
   const q = res.indicators.quote[0], o = [];
   (res.timestamp || []).forEach((t, i) => {
     if ([q.open[i], q.high[i], q.low[i], q.close[i]].every(v => v != null))
-      o.push({
-        time: t,
-        open: +Number(q.open[i]).toFixed(5),
-        high: +Number(q.high[i]).toFixed(5),
-        low: +Number(q.low[i]).toFixed(5),
-        close: +Number(q.close[i]).toFixed(5)
-      });
+      o.push({ time: t, open: +Number(q.open[i]).toFixed(5), high: +Number(q.high[i]).toFixed(5), low: +Number(q.low[i]).toFixed(5), close: +Number(q.close[i]).toFixed(5) });
   });
   return o;
 }
@@ -93,22 +71,13 @@ async function tf(u, which) {
   const m = which === "5m";
   let a = [], src = null;
   if (u[4] && TOK) {
-    try {
-      a = await oanda(u[4], m ? "M5" : "H1");
-      if (a.length >= 50) { a._src = "oanda"; return a; }
-    } catch (e) { console.warn("oanda", u[0], e.message || e); }
+    try { a = await oanda(u[4], m ? "M5" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {}
   }
   if (u[1]) {
-    try {
-      a = await okx(u[1], m ? "5m" : "1H");
-      if (a.length) { a._src = "okx"; return a; }
-    } catch (e) {}
+    try { a = await okx(u[1], m ? "5m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {}
   }
   if (u[2]) {
-    try {
-      const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo");
-      if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; }
-    } catch (e) {}
+    try { const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {}
   }
   return a;
 }
@@ -121,10 +90,7 @@ async function fetchOandaBarsForActive(activeMap) {
   await Promise.all(ids.map(async (id) => {
     const u = byId.get(id);
     if (!u || !u[4]) return;
-    try {
-      const bars = await oanda(u[4], "M5");
-      if (bars && bars.length) out[id] = bars;
-    } catch (e) { console.warn("oanda active", id, e.message || e); }
+    try { const bars = await oanda(u[4], "M5"); if (bars && bars.length) out[id] = bars; } catch (e) {}
   }));
   return out;
 }
@@ -136,8 +102,7 @@ async function loadCached(u, now) {
   const need5 = (!c.a || slot5(now) > slot5(c.t5)) && !backoff;
   const need1 = (!c.h || now - c.t1 > (u[1] ? 600 : 3300)) && !backoff;
   if (!need5 && !need1) return [c.a || [], c.h || []];
-  const e = { ...c };
-  e.try5 = now;
+  const e = { ...c }; e.try5 = now;
   await Promise.all([
     need5 && tf(u, "5m").then(a => { if (a.length >= 50) { e.a = a; e.t5 = now; e.fail = 0; e.src = a._src || e.src; } else e.fail = (c.fail || 0) + 1; }).catch(() => { e.fail = (c.fail || 0) + 1; }),
     need1 && tf(u, "1h").then(h => { if (h.length) { e.h = h; e.t1 = now; e.src = h._src || e.src; } }).catch(() => {}),
@@ -163,24 +128,18 @@ async function tg(text, thread) {
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.ok) return true;
       if (r.status === 429) { await tgSleep((((j.parameters || {}).retry_after) || 3) * 1000 + 300); continue; }
-      if (r.status === 400 && th && /thread/i.test(j.description || "")) { console.error("telegram: thread id invalid, sending without thread"); th = null; continue; }
-      console.error("telegram error:", r.status, j.description || "");
+      if (r.status === 400 && th && /thread/i.test(j.description || "")) { th = null; continue; }
       return false;
     } catch (e) { await tgSleep(1000); }
   }
   return false;
 }
-async function notify(title, message) { return tg(title + "\n\n" + message, TH_SIG); }
 const fd = (x, d) => (x == null || !isFinite(x)) ? "-" : (d == null ? String(+Number(x).toPrecision(7)) : Number(x).toFixed(d));
 
 let STATE = { sent: {}, alerts: {}, active: {} };
 try {
   const d0 = JSON.parse(fs.readFileSync("data.json", "utf8"));
-  if (d0 && d0.state) STATE = {
-    sent: d0.state.sent || {},
-    alerts: d0.state.alerts || {},
-    active: d0.state.active || {}
-  };
+  if (d0 && d0.state) STATE = { sent: d0.state.sent || {}, alerts: d0.state.alerts || {}, active: d0.state.active || {} };
 } catch (e) {}
 
 try {
@@ -190,9 +149,7 @@ try {
   }
 } catch (e) {}
 
-function dayKey(ts) {
-  return new Date((ts || Date.now() / 1000) * 1000).toISOString().slice(0, 10);
-}
+function dayKey(ts) { return new Date((ts || Date.now() / 1000) * 1000).toISOString().slice(0, 10); }
 function isOpen(id) {
   const a = STATE.active[id];
   if (!a) return false;
@@ -203,10 +160,7 @@ function openSig(id, side, entry, mode, now, extra) {
   const e = extra || {};
   const risk = (e.sl != null && entry != null) ? Math.abs(entry - e.sl) : null;
   const tp = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 2 * risk : entry - 2 * risk) : null);
-  STATE.active[id] = {
-    side, entry, mode, time: now,
-    sl: e.sl, tp, d: e.d, bt: e.bt
-  };
+  STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp, d: e.d, bt: e.bt, currentSl: e.sl, currentR: 0 };
 }
 function calcR(side, entry, sl, exitPx) {
   const risk = Math.abs(entry - sl);
@@ -215,20 +169,15 @@ function calcR(side, entry, sl, exitPx) {
   return (L ? (exitPx - entry) : (entry - exitPx)) / risk;
 }
 
-function resolveFromBars(a, bars, now) {
-  if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
+// 🛠 تابع جدید: محاسبه وضعیت لحظه‌ای (Trailing SL و سود فعلی)
+function updateTrailingState(a, bars) {
+  if (!bars || !bars.length) return;
   const risk = Math.abs(a.entry - a.sl);
-  if (!risk || !isFinite(risk)) return null;
-  
-  const tp = (a.mode === "pattern") 
-             ? (a.side === "LONG" ? Infinity : -Infinity) 
-             : (a.tp != null ? a.tp : (a.side === "LONG" ? a.entry + 2 * risk : a.entry - 2 * risk));
-             
+  if (!risk) return;
   const start = a.bt || a.time;
   
   let trailSl = a.sl;
-  let armed = false;
-  let peakFav = 0; 
+  let peakFav = 0;
   const trailAfterR = 1.0;
   
   const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
@@ -241,10 +190,49 @@ function resolveFromBars(a, bars, now) {
       const fav = (b.high - a.entry) / risk;
       if (fav > peakFav) peakFav = fav;
       if (fav >= trailAfterR) {
-        armed = true;
         const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
         if (newSl > trailSl) trailSl = newSl;
       }
+    } else {
+      const fav = (a.entry - b.low) / risk;
+      if (fav > peakFav) peakFav = fav;
+      if (fav >= trailAfterR) {
+        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
+        if (newSl < trailSl) trailSl = newSl;
+      }
+    }
+  }
+  
+  a.currentSl = trailSl;
+  a.peakFav = peakFav;
+  
+  const last = bars[bars.length - 1];
+  if (last) {
+    a.currentR = +calcR(a.side, a.entry, a.sl, last.close).toFixed(2);
+  }
+}
+
+function resolveFromBars(a, bars, now) {
+  if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
+  const risk = Math.abs(a.entry - a.sl);
+  if (!risk || !isFinite(risk)) return null;
+  
+  const tp = (a.tp != null) ? a.tp : (a.side === "LONG" ? a.entry + 3 * risk : a.entry - 3 * risk);
+  const start = a.bt || a.time;
+  
+  let trailSl = a.sl, armed = false, peakFav = 0;
+  const trailAfterR = 1.0;
+  
+  const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
+  const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
+  const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
+
+  for (const b of bars) {
+    if (b.time < start) continue;
+    if (a.side === "LONG") {
+      const fav = (b.high - a.entry) / risk;
+      if (fav > peakFav) peakFav = fav;
+      if (fav >= trailAfterR) { armed = true; const newSl = Math.max(trailSl, b.high - trailDist, a.entry); if (newSl > trailSl) trailSl = newSl; }
       if (b.low <= trailSl) {
         const why = armed && trailSl >= a.entry ? (trailSl > a.entry ? "TRAIL" : "BE") : "SL";
         const exit = trailSl;
@@ -254,11 +242,7 @@ function resolveFromBars(a, bars, now) {
     } else {
       const fav = (a.entry - b.low) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR) {
-        armed = true;
-        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
-        if (newSl < trailSl) trailSl = newSl;
-      }
+      if (fav >= trailAfterR) { armed = true; const newSl = Math.min(trailSl, b.low + trailDist, a.entry); if (newSl < trailSl) trailSl = newSl; }
       if (b.high >= trailSl) {
         const why = armed && trailSl <= a.entry ? (trailSl < a.entry ? "TRAIL" : "BE") : "SL";
         const exit = trailSl;
@@ -279,35 +263,27 @@ function applyOutcomeToHistory(history, id, side, day, outcome, now) {
   for (let i = history.length - 1; i >= 0; i--) {
     const h = history[i];
     if (h.id === id && h.side === side && !h.result) {
-      h.result = outcome.result;
-      h.exit = outcome.exit;
-      h.why = outcome.why;
-      h.R = +Number(outcome.R).toFixed(2);
-      h.closeTime = outcome.closeTime || now;
+      h.result = outcome.result; h.exit = outcome.exit; h.why = outcome.why; h.R = +Number(outcome.R).toFixed(2); h.closeTime = outcome.closeTime || now;
       return;
     }
   }
-  history.push({
-    id, side, entry: null, result: outcome.result, exit: outcome.exit,
-    why: outcome.why, R: +Number(outcome.R).toFixed(2),
-    time: now, closeTime: outcome.closeTime || now, k: id + "|" + side + "|out|" + day
-  });
+  history.push({ id, side, entry: null, result: outcome.result, exit: outcome.exit, why: outcome.why, R: +Number(outcome.R).toFixed(2), time: now, closeTime: outcome.closeTime || now, k: id + "|" + side + "|out|" + day });
 }
 
-// 🛠 تابع تغییر یافته: منطق FADE کاملاً حذف شد
 function touchActives(now, barMap, history) {
   const day = dayKey(now);
   for (const id of Object.keys(STATE.active)) {
     const a = STATE.active[id];
     const bars = barMap && barMap[id];
     
-    // فقط بررسی می‌کنیم که آیا به SL، TP یا محدودیت زمانی (TIME) خورده است یا نه
     const hit = resolveFromBars(a, bars, now);
-    
     if (hit) {
       applyOutcomeToHistory(history, id, a.side, day, hit, now);
       delete STATE.sent[id + "|" + a.side];
       delete STATE.active[id];
+    } else {
+      // 🛠 اگر بسته نشد، وضعیت تریلینگ را آپدیت کن
+      updateTrailingState(a, bars);
     }
   }
 }
@@ -359,9 +335,7 @@ async function once(now) {
     const parsed = JSON.parse(rawHistory);
     if (Array.isArray(parsed)) history = parsed;
     else if (parsed && Array.isArray(parsed.history)) history = parsed.history;
-  } catch (e) {
-    console.log("No valid history.json found. Starting fresh.");
-  }
+  } catch (e) {}
 
   let i = 0;
   await Promise.all(Array.from({ length: 6 }, async () => {
@@ -386,12 +360,7 @@ async function once(now) {
         let useMode = pickModeByAdx(probe.adx);
         if (!modes.includes(useMode)) useMode = modes[0];
 
-        const opts = {
-          mode: useMode,
-          m15: F15, h1: FH1, h1Strict: STRICT,
-          rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S,
-          adx: false
-        };
+        const opts = { mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, adx: false };
         const r = evaluate(u[0], a, h, opts, now);
 
         const blocked = r.side && isOpen(u[0]);
@@ -401,8 +370,7 @@ async function once(now) {
           allRows.push({
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
-            a: packCandles(a), h: packCandles(h),
-            checks: r.checks || [], 
+            a: packCandles(a), h: packCandles(h), checks: r.checks || [], 
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
@@ -420,12 +388,9 @@ async function once(now) {
           }
         } else {
           allRows.push({
-            id: u[0], side: null, d: u[3], mkt: mktOf(u),
-            fail: r.fail || "خطای نامشخص",
-            pass: r.pass || 0, total: r.total || 7,
-            mode: useMode, u: u, src: dataSrc,
-            a: packCandles(a), h: packCandles(h),
-            checks: r.checks || []
+            id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: r.fail || "خطای نامشخص",
+            pass: r.pass || 0, total: r.total || 7, mode: useMode, u: u, src: dataSrc,
+            a: packCandles(a), h: packCandles(h), checks: r.checks || []
           });
         }
       } catch (e) {
@@ -437,35 +402,24 @@ async function once(now) {
   const barMap = {};
   allRows.forEach(r => {
     if (!r || !r.id || !r.a) return;
-    barMap[r.id] = (r.a || []).map(c => Array.isArray(c)
-      ? { time: c[0], open: c[1], high: c[2], low: c[3], close: c[4] }
-      : c);
+    barMap[r.id] = (r.a || []).map(c => Array.isArray(c) ? { time: c[0], open: c[1], high: c[2], low: c[3], close: c[4] } : c);
     if (r._src) barMap[r.id]._src = r._src;
   });
 
   try {
     const oandaBars = await fetchOandaBarsForActive(STATE.active);
-    Object.keys(oandaBars).forEach(id => {
-      barMap[id] = oandaBars[id];
-      barMap[id]._src = "oanda";
-    });
-  } catch (e) { console.warn("oanda refresh", e.message || e); }
+    Object.keys(oandaBars).forEach(id => { barMap[id] = oandaBars[id]; barMap[id]._src = "oanda"; });
+  } catch (e) {}
   
-  // فراخوانی تابع بدون پارامتر currentSides
   touchActives(now, barMap, history);
 
   try {
     if (typeof filterCorrelated === "function") {
       const active = allRows.filter(r => r && r.side);
       const kept = new Set(filterCorrelated(active).map(r => r.id + "|" + r.side));
-      allRows.forEach(r => {
-        if (r.side && !kept.has(r.id + "|" + r.side)) {
-          r.side = null;
-          r.fail = r.fail || "حذف به‌خاطر همبستگی با سیگنال قوی‌تر";
-        }
-      });
+      allRows.forEach(r => { if (r.side && !kept.has(r.id + "|" + r.side)) { r.side = null; r.fail = r.fail || "حذف به‌خاطر همبستگی با سیگنال قوی‌تر"; } });
     }
-  } catch (e) { console.warn("corr filter", e.message); }
+  } catch (e) {}
 
   const MAX_NEW_PER_SCAN = 6;
   const pending = allRows.filter(r => r && r.side && r._pendingNotify)
@@ -476,28 +430,20 @@ async function once(now) {
     if (!row || !row.side || !row._pendingNotify) continue;
     const lockKey = row._lockKey || (row.id + "|" + row.side);
     const histKey = row._histKey || (row.id + "|" + row.side + "|" + dayKey(now));
-    if (STATE.sent[lockKey] || STATE.sent[histKey] || isOpen(row.id)) {
-      row._pendingNotify = false;
-      continue;
-    }
+    if (STATE.sent[lockKey] || STATE.sent[histKey] || isOpen(row.id)) { row._pendingNotify = false; continue; }
+    
     STATE.sent[lockKey] = now;
     STATE.sent[histKey] = now;
     openSig(row.id, row.side, row.entry, row.mode, now, { sl: row.sl, tp: row.tp, d: row.d, bt: row.bt });
+    
     const checksData = row._checks || [];
     if (!history.some(h => h.id === row.id && h.side === row.side && dayKey(h.time) === dayKey(now))) {
-      history.push({
-        id: row.id, side: row.side, entry: row.entry, sl: row.sl, rsi: row.rsi,
-        time: now, bt: row.bt, k: histKey, d: row.d, mode: row.mode, src: row.src || "oanda",
-        checks: checksData, totalConds: row.total
-      });
+      history.push({ id: row.id, side: row.side, entry: row.entry, sl: row.sl, rsi: row.rsi, time: now, bt: row.bt, k: histKey, d: row.d, mode: row.mode, src: row.src || "oanda", checks: checksData, totalConds: row.total });
     }
+    
     const L = row.side === "LONG";
     const ageMin = Math.max(0, Math.round((now - ((row.bt || now) + 300)) / 60));
-    
-    if (ageMin > 15) {
-        row._pendingNotify = false;
-        continue;
-    }
+    if (ageMin > 15) { row._pendingNotify = false; continue; }
     
     const modeName = NAME[row.mode] || row.mode;
     const sent = await tg(
@@ -506,9 +452,9 @@ async function once(now) {
       "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش بسته شد\nخروج: " + (row.mode === "range" ? "حد سود 1.5R یا SL" : "تریلینگ استاپ / SL"),
       TH_SIG
     );
+    
     if (!sent && process.env.TELEGRAM_TOKEN) {
-      delete STATE.sent[lockKey];
-      delete STATE.sent[histKey];
+      delete STATE.sent[lockKey]; delete STATE.sent[histKey];
     } else {
       try {
         const riskDist = Math.abs(row.entry - row.sl);
@@ -519,7 +465,7 @@ async function once(now) {
     row._pendingNotify = false;
   }
 
-  try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) { console.error("alerts failed", e.message); }
+  try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) {}
   for (const k of Object.keys(STATE.sent)) if (now - STATE.sent[k] > 2 * 86400) delete STATE.sent[k];
 
   const threeDaysAgo = now - (3 * 24 * 3600);
@@ -539,26 +485,16 @@ async function once(now) {
 }
 
 if (require.main === module) (async () => {
-  console.log("OANDA:", TOK ? "token OK" : "NO TOKEN");
-  console.log("Settings:", JSON.stringify({
-    modes: MODES, m15: F15, h1: FH1, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, strict: STRICT,
-    telegram: !!(process.env.TELEGRAM_TOKEN && process.env.TELEGRAM_CHAT_ID), signalsThread: !!TH_SIG, alertsThread: !!TH_ALR,
-    loopSec: LOOP, intervalMs: IV
-  }));
   const t0 = Date.now();
   for (;;) {
-    try { await once(Date.now() / 1000); } catch (e) { console.error("scan failed", e.message); }
+    try { await once(Date.now() / 1000); } catch (e) {}
     if (!LOOP) break; 
     const elapsed = Date.now() - t0;
-    if (elapsed >= LOOP * 1000) {
-      console.log(`Loop finished after ${(elapsed/1000).toFixed(0)}s (limit ${LOOP}s)`);
-      break;
-    }
+    if (elapsed >= LOOP * 1000) break;
     const wait = Math.min(IV, Math.max(0, LOOP * 1000 - elapsed));
     if (wait <= 0) break;
     await sleep(wait);
   }
-  console.log("Scanner process exiting cleanly.");
   process.exit(0);
 })();
 
