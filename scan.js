@@ -398,7 +398,7 @@ async function once(now) {
         const dataSrc = (a && a._src) || (DC.get(u[0]) && DC.get(u[0]).src) || (u[4] && TOK ? "oanda" : (u[1] ? "okx" : "yahoo"));
 
         if (a.length < 50) {
-          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u });
+          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
           currentSides[u[0]] = null;
           continue;
         }
@@ -426,8 +426,9 @@ async function once(now) {
           currentSides[u[0]] = r.side;
           allRows.push({
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
-            pass: r.total || 7, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
+            pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), h: packCandles(h),
+            checks: r.checks || [], // 👈 این خط اضافه شد
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
           });
 
@@ -450,11 +451,12 @@ async function once(now) {
             fail: r.fail || "خطای نامشخص",
             pass: r.pass || 0, total: r.total || 7,
             mode: useMode, u: u, src: dataSrc,
-            a: packCandles(a), h: packCandles(h)
+            a: packCandles(a), h: packCandles(h),
+            checks: r.checks || [] // 👈 این خط اضافه شد
           });
         }
       } catch (e) {
-        allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", pass: 0, total: 7, mode: modes[0], u: u });
+        allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
         currentSides[u[0]] = null;
       }
     }
