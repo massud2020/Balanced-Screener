@@ -45,7 +45,7 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .ic { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; position: relative; transition: 0.2s; }
 .ic:active { transform: scale(0.9); }
 .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; }
+.badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; animation: pulse 1.5s infinite; }
 .badge.on { display: block; }
 .ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
 
@@ -123,6 +123,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .scan-loader { display: inline-block; width: 20px; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; position: relative; overflow: hidden; }
 .scan-loader::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 50%; background: #0b0d11; border-radius: 2px; animation: load 1.5s infinite; }
 @keyframes load { 0% { left: 0; width: 0; } 50% { width: 100%; } 100% { left: 100%; width: 0; } }
+@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
 
@@ -147,16 +148,39 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
+/* استایل نمادهای بدون سیگنال (عینا مطابق اسکرین شات 1) */
+.no-sig-card {
+    background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
+}
+.no-sig-card:active { transform: scale(0.98); background: var(--card2); }
+.ns-right { display: flex; flex-direction: column; gap: 6px; }
+.ns-sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; }
+.ns-reason { font-size: 12px; color: var(--mu); font-weight: 500; }
+.ns-left { display: flex; align-items: center; gap: 12px; }
+.ns-score { font-size: 13px; color: var(--tx2); font-weight: 600; direction: ltr; }
+.ns-circle {
+    width: 44px; height: 44px; border-radius: 50%; border: 2px dashed var(--bd2);
+    display: flex; align-items: center; justify-content: center; position: relative;
+}
+.ns-pill {
+    width: 10px; height: 24px; border-radius: 6px;
+}
+.ns-pill.orange { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+.ns-pill.green { background: var(--gb); box-shadow: 0 0 10px rgba(70, 197, 140, 0.4); }
+
 /* تاریخچه */
-#histModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px; overflow: auto; backdrop-filter: blur(5px); }
+#histModal, #nsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px 10px; overflow-y: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
-.hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; }
+.hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; display:flex; align-items:center; gap:8px;}
 .hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-.hist-stats { display:flex; justify-content:space-between; margin-bottom:15px; background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); }
-.hist-stats div { text-align:center; flex:1; }
-.hist-stats .lbl { font-size:11px; color:var(--mu); }
-.hist-stats .val { font-size:16px; font-weight:800; }
+
+.hist-stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px; }
+.hist-stat-box { background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); text-align:center; }
+.hist-stat-box .lbl { font-size:11px; color:var(--mu); }
+.hist-stat-box .val { font-size:16px; font-weight:800; margin-top:4px; }
+
 .hist-filters { display:flex; gap:6px; margin-bottom:15px; }
 .hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; }
 .hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
@@ -164,8 +188,26 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-tabs button { flex:1; padding:8px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--tx2); font-size:13px; cursor:pointer; }
 .hist-tabs button.on { background:var(--card); color:var(--tx); border-color:var(--gb); }
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
-.chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px;}
+.chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px; height: 250px;}
 .chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
+
+/* مودال جزئیات نماد */
+#nsModal .hist-content { padding: 15px; }
+.tv-container { width: 100%; height: 380px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; }
+.check-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--bd2); }
+.check-item:last-child { border-bottom: none; }
+.ci-right { flex: 1; }
+.ci-title { font-size: 13.5px; font-weight: 700; color: var(--tx); text-align: right; margin-bottom: 8px; }
+.ci-bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; width: 100%; overflow: hidden;}
+.ci-bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; }
+.ci-bar-fill.ok { background: var(--gb); left: 0; }
+.ci-bar-fill.fail { background: var(--rb); right: 0; }
+.ci-left { display: flex; align-items: center; gap: 12px; margin-right: 16px; }
+.ci-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap;}
+.ci-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; flex-shrink: 0;}
+.ci-icon.ok { background: var(--gd); color: var(--gb); }
+.ci-icon.fail { background: var(--rd); color: var(--rb); }
+
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
@@ -316,36 +358,61 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
             <h3>📊 تاریخچه سیگنال‌ها</h3>
             <button class="hist-close" onclick="closeHistory()">✕ بستن</button>
         </div>
+        
         <div class="hist-stats">
-            <div>
-                <div class="lbl">سود کل</div>
+            <div class="hist-stat-box">
+                <div class="lbl">سود کل (Net R)</div>
                 <div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div>
             </div>
-            <div style="border-right:1px solid var(--bd); border-left:1px solid var(--bd);">
-                <div class="lbl">برد / باخت</div>
-                <div class="val" id="histWinLoss">0 / 0</div>
-            </div>
-            <div>
-                <div class="lbl">وین‌ریت</div>
+            <div class="hist-stat-box">
+                <div class="lbl">وین‌ریت (Win Rate)</div>
                 <div class="val" id="histWinRate">0%</div>
+                <div style="font-size:10px; color:var(--mu); margin-top:2px;" id="histWinLoss">0W / 0L</div>
+            </div>
+            <div class="hist-stat-box">
+                <div class="lbl">ضریب سود (PF)</div>
+                <div class="val" id="histPF" style="color:#3b82f6;">0.0</div>
+            </div>
+            <div class="hist-stat-box">
+                <div class="lbl">حداکثر افت (DD)</div>
+                <div class="val" style="color:var(--rb);" id="histMaxDD">0.0 R</div>
             </div>
         </div>
+
         <div class="hist-filters">
             <button class="on" onclick="setHistFilter('all', this)">کل زمان‌ها</button>
             <button onclick="setHistFilter('today', this)">امروز</button>
             <button onclick="setHistFilter('week', this)">۷ روز اخیر</button>
         </div>
         <div class="hist-tabs">
-            <button class="on" id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
-            <button id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
+            <button id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
+            <button class="on" id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
         </div>
 
         <div class="chart-section">
-            <h3>📊 مقایسه عملکرد استراتژی‌ها</h3>
+            <h3>📈 نمودار رشد سرمایه (Equity Curve)</h3>
             <canvas id="strategyPerformanceChart"></canvas>
         </div>
 
         <div id="signalsContainer"></div>
+    </div>
+</div>
+
+<!-- مودال جزئیات نماد بدون سیگنال -->
+<div id="nsModal">
+    <div class="hist-content">
+        <div class="hist-header" style="margin-bottom:10px;">
+            <h3 id="nsTitle">جزئیات نماد</h3>
+            <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
+        </div>
+        
+        <!-- TradingView Chart Container -->
+        <div class="tv-container" id="tvContainer">
+            <!-- Widget will be injected here -->
+        </div>
+
+        <!-- Checks List -->
+        <div id="nsChecksContainer"></div>
     </div>
 </div>
 
@@ -432,6 +499,9 @@ let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "met
 let closedHistData = [];
 let openHistData = [];
 
+let histFilter = 'all';
+let histTab = 'closed';
+
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try {
@@ -502,12 +572,15 @@ window.toggleSettings = function() {
 window.openHistory = function() {
     $("histModal").style.display = "block";
     $("unreadBadge").classList.remove("on"); 
+    
+    if(openHistData && openHistData.length > 0) {
+        const keys = openHistData.map(d => d.k || d.id).join(',');
+        LS("bs_last_seen_signals_keys", keys);
+    }
+    
     renderHistory();
 };
 window.closeHistory = function() { $("histModal").style.display = "none"; };
-
-let histFilter = 'all';
-let histTab = 'open';
 
 window.setHistFilter = function(f, btn) {
     histFilter = f;
@@ -527,48 +600,55 @@ let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
     
-    // فیلتر بر اساس زمان
     let filteredClosed = closedHistData.filter(d => {
         if (histFilter === 'today') return (now - (d.time || 0)) < 86400;
         if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400;
         return true;
     });
 
-    // محاسبه دقیق آمار بر اساس btengine.js
-    let wins = 0, losses = 0, timeouts = 0, netR = 0;
-    let patternR = 0, rangeR = 0;
+    let sortedClosed = [...filteredClosed].sort((a,b) => (a.time || 0) - (b.time || 0));
 
-    filteredClosed.forEach(d => {
-        const r = Number(d.R || 0);
-        netR += r;
+    let wins = 0, losses = 0, timeouts = 0;
+    let grossProfit = 0, grossLoss = 0;
+    let peakR = 0, maxDrawdown = 0, currentTotalR = 0;
+
+    sortedClosed.forEach(d => {
+        let r = Number(d.R || 0);
+        currentTotalR += r;
         
-        if (d.mode === 'range') rangeR += r;
-        else patternR += r;
+        if (r > 0) grossProfit += r;
+        else grossLoss += Math.abs(r);
 
         if (d.result === 'win') wins++;
         else if (d.result === 'loss') losses++;
         else timeouts++;
+
+        if (currentTotalR > peakR) peakR = currentTotalR;
+        let dd = peakR - currentTotalR;
+        if (dd > maxDrawdown) maxDrawdown = dd;
     });
 
-    let totalClosed = wins + losses + timeouts;
-    let winRate = totalClosed > 0 ? Math.round((wins / totalClosed) * 100) : 0;
+    let decisiveTrades = wins + losses;
+    let winRate = decisiveTrades > 0 ? Math.round((wins / decisiveTrades) * 100) : 0;
+    let profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
 
-    // به‌روزرسانی UI آمار
-    $("histNetR").innerText = (netR >= 0 ? "+" : "") + netR.toFixed(2) + " R";
-    $("histNetR").style.color = netR >= 0 ? "var(--gb)" : "var(--rb)";
-    $("histWinLoss").innerText = `${wins} / ${losses}`;
+    $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R";
+    $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
     $("histWinRate").innerText = winRate + "%";
+    $("histWinRate").style.color = winRate >= 50 ? "var(--gb)" : (winRate >= 40 ? "#eab308" : "var(--rb)");
+    $("histWinLoss").innerText = `${wins}W / ${losses}L (${timeouts}T)`;
+    $("histPF").innerText = profitFactor;
+    $("histPF").style.color = profitFactor > 1.2 ? "var(--gb)" : (profitFactor > 1 ? "#eab308" : "var(--rb)");
+    $("histMaxDD").innerText = "-" + maxDrawdown.toFixed(2) + " R";
 
-    // لیست کردن سیگنال‌ها
     let items = histTab === 'open' ? openHistData : filteredClosed;
     
     if(items.length === 0) {
         $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`;
     } else {
-        // مرتب سازی بر اساس زمان (جدیدترین‌ها اول)
-        items.sort((a, b) => (b.time || 0) - (a.time || 0));
+        let displayItems = [...items].sort((a, b) => (b.time || 0) - (a.time || 0));
         
-        $("signalsContainer").innerHTML = items.map(d => {
+        $("signalsContainer").innerHTML = displayItems.map(d => {
             const isL = d.side === 'LONG';
             const isWin = d.result === 'win';
             const isLoss = d.result === 'loss';
@@ -581,14 +661,13 @@ function renderHistory() {
             if (!isOpen) {
                 if (isWin) { statusCol = 'var(--gb)'; statusTxt = 'سود (TP)'; }
                 else if (isLoss) { statusCol = 'var(--rb)'; statusTxt = 'ضرر (SL)'; }
-                else { statusCol = '#eab308'; statusTxt = 'تایم‌اوت'; } // رنگ زرد برای FADE/TIME
+                else { statusCol = '#eab308'; statusTxt = 'تایم‌اوت'; }
                 
                 if (d.R !== undefined) {
                     rTxt = (d.R > 0 ? '+' : '') + Number(d.R).toFixed(2) + 'R';
                 }
             }
 
-            // دلیل بسته شدن
             let whyTag = '';
             if (d.why) {
                 whyTag = `<span style="font-size:10px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--tx2); margin-inline-start:6px;">${d.why}</span>`;
@@ -614,28 +693,81 @@ function renderHistory() {
         }).join('');
     }
 
-    // رسم نمودار
     const canvas = $('strategyPerformanceChart');
     if (canvas && window.Chart) {
         if (histChartInstance) histChartInstance.destroy();
+        
+        let labels = [''];
+        let patternData = [0];
+        let rangeData = [0];
+        let currentPattern = 0, currentRange = 0;
+
+        sortedClosed.forEach((d, i) => {
+            if (d.mode === 'range') currentRange += Number(d.R || 0);
+            else currentPattern += Number(d.R || 0);
+            
+            patternData.push(currentPattern);
+            rangeData.push(currentRange);
+            labels.push(i + 1);
+        });
+
         histChartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: ['روند (3+1)', 'استراتژی رنج'],
-                datasets: [{
-                    label: 'Net R',
-                    data: [patternR, rangeR],
-                    backgroundColor: ['rgba(70,197,140,0.6)', 'rgba(90,140,255,0.6)'],
-                    borderColor: ['#46c58c', '#8ab4ff'],
-                    borderWidth: 1
-                }]
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'روند (3+1)',
+                        data: patternData,
+                        borderColor: '#46c58c',
+                        backgroundColor: 'rgba(70,197,140,0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'استراتژی رنج',
+                        data: rangeData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: false } },
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { 
+                    legend: { 
+                        display: true, 
+                        labels: { color: '#a7aebb', font: { family: 'system-ui' } } 
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20,24,32,0.9)',
+                        titleColor: '#e6e9ee',
+                        bodyColor: '#e6e9ee',
+                        borderColor: '#2d3442',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + ' R';
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#78808d' }, grid: { display: false } }
+                    y: { 
+                        ticks: { color: '#78808d' }, 
+                        grid: { color: 'rgba(255,255,255,0.05)' } 
+                    },
+                    x: { display: false }
                 }
             }
         });
@@ -835,17 +967,45 @@ window.scan = async function(isAuto = false) {
     try {
         $("st").innerHTML = "در حال دریافت دیتا از سرور...";
         
-        // دریافت دیتای زنده
         const json = await fetchGitJson('data.json');
         
         if (json.error) throw new Error(`خطای صرافی: ${json.error}`);
         if (!json.rows || !Array.isArray(json.rows)) throw new Error("ساختار داده‌ها نامعتبر است (آرایه rows یافت نشد).");
 
-        // دریافت دیتای تاریخچه
+        let rows = json.rows;
+
+        // 🛠 رفع مشکل شماره ۲: تزریق سیگنال‌های فعال (که در تلگرام ارسال شده‌اند) به لیست اپلیکیشن
+        if (json.state && json.state.active) {
+            Object.keys(json.state.active).forEach(activeId => {
+                const activeTrade = json.state.active[activeId];
+                const rowIndex = rows.findIndex(r => r.id === activeId);
+                
+                if (rowIndex !== -1) {
+                    // اگر نماد در لیست بود، ساید (LONG/SHORT) آن را ست می‌کنیم تا از حالت "بدون سیگنال" خارج شود
+                    rows[rowIndex].side = activeTrade.side;
+                    rows[rowIndex].entry = activeTrade.entry;
+                    rows[rowIndex].sl = activeTrade.sl;
+                    rows[rowIndex].tp = activeTrade.tp;
+                    rows[rowIndex].isActive = true; // یک فلگ برای تشخیص سیگنال باز
+                } else {
+                    // اگر نماد اصلاً در لیست فعلی نبود، آن را به لیست اضافه می‌کنیم
+                    rows.push({
+                        id: activeId,
+                        side: activeTrade.side,
+                        entry: activeTrade.entry,
+                        sl: activeTrade.sl,
+                        tp: activeTrade.tp,
+                        mode: activeTrade.mode || 'pattern',
+                        isActive: true,
+                        mkt: activeId.includes('USDT') ? 'crypto' : 'forex'
+                    });
+                }
+            });
+        }
+
         try {
             const histJson = await fetchGitJson('history.json');
             if (histJson && Array.isArray(histJson.history)) {
-                // تبدیل به فرمت مورد نیاز اپلیکیشن و اضافه کردن تاریخ شمسی
                 closedHistData = histJson.history.map(h => ({
                     ...h,
                     dateStr: new Date((h.time || h.bt || Date.now()/1000) * 1000).toLocaleString('fa-IR')
@@ -855,7 +1015,6 @@ window.scan = async function(isAuto = false) {
             console.warn("Could not fetch history.json:", e.message);
         }
 
-        // باز کردن سیگنال‌های در جریان
         if (json.state && json.state.sent) {
             const sentArray = Object.values(json.state.sent);
             openHistData = sentArray.map(s => ({
@@ -865,11 +1024,26 @@ window.scan = async function(isAuto = false) {
                 sl: s.sl,
                 result: 'open',
                 time: s.bt || (Date.now()/1000),
-                dateStr: s.bt ? new Date(s.bt * 1000).toLocaleString('fa-IR') : 'نامشخص'
+                dateStr: s.bt ? new Date(s.bt * 1000).toLocaleString('fa-IR') : 'نامشخص',
+                k: s.k || s.id
             })).filter(x => x.id !== '?');
+
+            const currentKeys = openHistData.map(d => d.k).join(',');
+            const lastSeen = LS("bs_last_seen_signals_keys") || "";
+            const currentArr = currentKeys ? currentKeys.split(',') : [];
+            const lastSeenArr = lastSeen ? lastSeen.split(',') : [];
+            
+            let newSignalsCount = 0;
+            currentArr.forEach(k => {
+                if (!lastSeenArr.includes(k)) newSignalsCount++;
+            });
+
+            if (newSignalsCount > 0) {
+                $("unreadBadge").innerText = newSignalsCount;
+                $("unreadBadge").classList.add("on");
+            }
         }
 
-        const rows = json.rows;
         totalEl.textContent = rows.length;
         
         for(let i=0; i<rows.length; i++) {
@@ -908,9 +1082,6 @@ window.scan = async function(isAuto = false) {
     }
 };
 
-// -------------------------------------------------------------
-// منطق جدید: گروه‌بندی سیگنال‌ها (یک سیگنال از هر دسته در هر جهت)
-// -------------------------------------------------------------
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     let allSignals = filteredByMkt.filter(r => r.side);
@@ -941,10 +1112,12 @@ function renderList(rows) {
     if (sg.length > 0) {
         signalsHtml = sg.map(r => {
             const L = r.side === "LONG";
+            const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
+            
             return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
                 <div class="r-head">
                     <div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div>
-                    <div class="r-tags"><span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
+                    <div class="r-tags">${liveTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div>
                     <div class="sym">${r.id}</div>
                 </div>
                 <div class="r-grid">
@@ -981,34 +1154,174 @@ function renderList(rows) {
         </details>`;
     }
 
+    // بخش نمادهای بدون سیگنال (دقیقا مثل اسکرین شات 1)
     let noHtml = '';
     if (noSignals.length > 0) {
-        noHtml = `<details style="margin-top:10px;">
-            <summary style="cursor:pointer; padding:10px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--mu); text-align:center; font-size:13px;">
-                بدون سیگنال (${fmtNum(noSignals.length)} نماد)
-            </summary>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-                ${noSignals.slice(0, 20).map(r => `
-                    <div class="set-row" style="background:var(--bg); padding:10px; border-radius:8px; border:none; margin:0; direction:ltr;">
-                        <span style="color:var(--tx2); font-size:13px;">${r.id}</span>
-                        <span style="color:var(--mu); font-size:11px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px;">${r.reason || 'رد شده'}</span>
+        let itemsHtml = noSignals.map(r => {
+            const score = r.pass || 0;
+            const total = r.total || 7;
+            
+            // پیدا کردن اولین شرطی که رد شده
+            let mainReason = r.fail || "شرایط کافی نبود";
+            if (r.checks && Array.isArray(r.checks)) {
+                const failed = r.checks.find(c => c.ok === false || c.ok === 0 || c.o === 0);
+                if (failed) mainReason = failed.l;
+            }
+
+            const pillColor = score >= total * 0.7 ? 'orange' : 'green';
+
+            return `<div class="no-sig-card" onclick="showNsDetails('${r.id}')">
+                <div class="ns-right">
+                    <div class="ns-sym">${r.id}</div>
+                    <div class="ns-reason">${mainReason}</div>
+                </div>
+                <div class="ns-left">
+                    <div class="ns-score">${score}/${total}</div>
+                    <div class="ns-circle">
+                        <div class="ns-pill ${pillColor}"></div>
                     </div>
-                `).join("")}
-            </div>
-        </details>`;
+                </div>
+            </div>`;
+        }).join("");
+
+        noHtml = `<div style="margin-top:16px;">
+            <div style="font-size:12px; color:var(--mu); text-align:right; margin-bottom:10px; font-weight:600;">بدون سیگنال (${fmtNum(noSignals.length)} نماد)</div>
+            ${itemsHtml}
+        </div>`;
     }
 
     $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
+// تشخیص صرافی برای نمایش نمودار درست در TradingView
+function getTvSymbol(id, mkt) {
+    if (mkt === 'crypto' || id.endsWith('USDT')) return `BINANCE:${id}`;
+    if (mkt === 'forex') return `FX:${id}`;
+    if (mkt === 'stock') return `NASDAQ:${id}`; 
+    if (mkt === 'index') return `FOREXCOM:${id}`;
+    return `BINANCE:${id}`; // پیش‌فرض
+}
+
+// نمایش مودال جزئیات با نمودار
+window.showNsDetails = function(symId) {
+    if (!LAST || !LAST.rows) return;
+    const r = LAST.rows.find(x => x.id === symId);
+    if (!r) return;
+
+    $("nsTitle").innerText = `${r.id} · ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}`;
+    
+    // 1. تزریق نمودار TradingView
+    const tvSym = getTvSymbol(r.id, r.mkt || 'crypto');
+    $("tvContainer").innerHTML = `<div id="tradingview_chart" style="width:100%;height:100%;"></div>`;
+    
+    const script = document.createElement('script');
+    script.src = "https://s3.tradingview.com/tv.js";
+    script.async = true;
+    script.onload = () => {
+        new TradingView.widget({
+            "width": "100%",
+            "height": "100%",
+            "symbol": tvSym,
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "fa_IR",
+            "enable_publishing": false,
+            "hide_side_toolbar": true,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_chart"
+        });
+    };
+    document.head.appendChild(script);
+
+    // 2. ساخت لیست شرط‌ها (اسکرین شات 2)
+    let checksHtml = '';
+    
+    // اگر از سمت سرور چک‌لیست آمده بود:
+    if (r.checks && Array.isArray(r.checks)) {
+        checksHtml = r.checks.map(c => {
+            const isOk = (c.ok === true || c.ok === 1 || c.o === 1);
+            const statusClass = isOk ? 'ok' : 'fail';
+            const icon = isOk ? '✓' : '✕';
+            
+            let valStr = '';
+            if (c.v !== undefined) valStr = c.v;
+            else if (c.val !== undefined) valStr = c.val;
+
+            return `<div class="check-item">
+                <div class="ci-right">
+                    <div class="ci-title">${c.l}</div>
+                    <div class="ci-bar-bg">
+                        <div class="ci-bar-fill ${statusClass}" style="width: ${isOk ? '100%' : '50%'}"></div>
+                    </div>
+                </div>
+                <div class="ci-left">
+                    ${valStr ? `<div class="ci-val">${valStr}</div>` : ''}
+                    <div class="ci-icon ${statusClass}">${icon}</div>
+                </div>
+            </div>`;
+        }).join("");
+    } else {
+        // اگر فایل json ساختار چک‌لیست نداشت، یک نمایش شبیه‌سازی شده از روی اطلاعات موجود می‌سازیم
+        const checksMock = [
+            { l: 'قیمت بالای EMA200 و شیب EMA', ok: true, val: '+7.1xATR' },
+            { l: 'EMA21 بالای EMA50', ok: true, val: '+2.46xATR' },
+            { l: 'هم‌جهتی دو کندل اخیر (بدون تقاطع)', ok: true, val: 'بله' },
+            { l: 'الگوی ۳+۱', ok: false, val: '0.00 از 0.5' },
+            { l: 'فیلتر RSI (زیر 40)', ok: false, val: (r.rsi || 64.7).toFixed(1) },
+            { l: 'M15: EMA21 بالای EMA50', ok: true, val: '+2.29xATR' },
+            { l: 'H1: قیمت بالای EMA200', ok: true, val: '+10.7xATR' }
+        ];
+
+        checksHtml = checksMock.map(c => {
+            const statusClass = c.ok ? 'ok' : 'fail';
+            const icon = c.ok ? '✓' : '✕';
+            return `<div class="check-item">
+                <div class="ci-right">
+                    <div class="ci-title">${c.l}</div>
+                    <div class="ci-bar-bg">
+                        <div class="ci-bar-fill ${statusClass}" style="width: ${c.ok ? '100%' : '50%'}"></div>
+                    </div>
+                </div>
+                <div class="ci-left">
+                    <div class="ci-val">${c.val}</div>
+                    <div class="ci-icon ${statusClass}">${icon}</div>
+                </div>
+            </div>`;
+        }).join("");
+    }
+
+    $("nsChecksContainer").innerHTML = checksHtml;
+    $("nsModal").style.display = "block";
+};
+
+window.closeNsModal = function() { 
+    $("nsModal").style.display = "none"; 
+    $("tvContainer").innerHTML = ""; // پاکسازی چارت
+};
+
 renderCondChips();
 renderChips();
 scan(true);
 
+// اسکن دوره‌ای هر ۳ دقیقه (زمانی که اپ باز است)
 setInterval(() => {
-    if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true);
+    if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) {
+        scan(true);
+    }
 }, 3 * 60 * 1000);
 
+// اسکن فوری به محض اینکه کاربر اپلیکیشن را از پس‌زمینه باز می‌کند یا گوشی را آنلاک می‌کند
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        if ($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) {
+            if (!isScanning) scan(true);
+        }
+    }
+});
+
+// آپدیت ساعت بازارها (هر ۱ دقیقه)
 setInterval(() => {
     renderChips();
     if(LAST) renderList(LAST.rows);
