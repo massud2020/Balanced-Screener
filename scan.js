@@ -34,7 +34,6 @@ const mktOf = u => u[1] ? "crypto" : METALS.has(u[0]) ? "metal" : COMMS.has(u[0]
 const NAME = { pattern: "روند / الگوی ۳+۱", range: "استراتژی رنج" };
 
 const MAX_HOLD_SEC = 6 * 3600;
-const CLOSE_SCANS = 60; // 👈 تغییر: از ۱۵ به ۶۰ افزایش یافت (معادل ۱ ساعت اسکن)
 
 async function J(url, o = {}) {
   const r = await fetch(url, { ...o, signal: AbortSignal.timeout(15000) });
@@ -205,7 +204,7 @@ function openSig(id, side, entry, mode, now, extra) {
   const risk = (e.sl != null && entry != null) ? Math.abs(entry - e.sl) : null;
   const tp = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 2 * risk : entry - 2 * risk) : null);
   STATE.active[id] = {
-    side, entry, mode, time: now, scansWithout: 0,
+    side, entry, mode, time: now,
     sl: e.sl, tp, d: e.d, bt: e.bt
   };
 }
@@ -295,47 +294,20 @@ function applyOutcomeToHistory(history, id, side, day, outcome, now) {
   });
 }
 
-function touchActives(currentSides, now, barMap, history) {
+// 🛠 تابع تغییر یافته: منطق FADE کاملاً حذف شد
+function touchActives(now, barMap, history) {
   const day = dayKey(now);
   for (const id of Object.keys(STATE.active)) {
     const a = STATE.active[id];
     const bars = barMap && barMap[id];
+    
+    // فقط بررسی می‌کنیم که آیا به SL، TP یا محدودیت زمانی (TIME) خورده است یا نه
     const hit = resolveFromBars(a, bars, now);
-    if (hit && (hit.why === "SL" || hit.why === "TP")) {
+    
+    if (hit) {
       applyOutcomeToHistory(history, id, a.side, day, hit, now);
       delete STATE.sent[id + "|" + a.side];
       delete STATE.active[id];
-      continue;
-    }
-    const close = (outcome) => {
-      if (outcome) applyOutcomeToHistory(history, id, a.side, day, outcome, now);
-      delete STATE.sent[id + "|" + a.side];
-      delete STATE.active[id];
-    };
-    const strongHold = 18 * 3600;
-    if (now - a.time > strongHold) {
-      close(hit || resolveFromBars(a, bars, now) || { result: "time", exit: a.entry, why: "TIME", R: 0, closeTime: now });
-      continue;
-    }
-    const cur = currentSides[id];
-    if (cur && cur === a.side) {
-        a.scansWithout = 0;
-    } else {
-        a.scansWithout = (a.scansWithout || 0) + 1;
-        
-        // 🛠 منطق جدید: حداقل 1 ساعت به سیگنال فرصت می‌دهیم و حداقل 60 اسکن باید بدون تایید باشد
-        const minLifespanSec = 60 * 60; 
-        const ageSec = now - a.time;
-        
-        if (a.scansWithout >= CLOSE_SCANS && ageSec >= minLifespanSec) {
-            const o = resolveFromBars({ ...a, time: a.time - MAX_HOLD_SEC }, bars, now);
-            let outcome = null;
-            if (bars && bars.length) {
-                const last = bars[bars.length - 1];
-                outcome = { result: "time", exit: last.close, why: "FADE", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
-            }
-            close(outcome);
-        }
     }
   }
 }
@@ -380,7 +352,6 @@ const LOOP = +(process.env.LOOP_SECONDS || 0), IV = +(process.env.INTERVAL || 60
 async function once(now) {
   const modes = enabledModes();
   const allRows = [];
-  const currentSides = {};
 
   let history = [];
   try {
@@ -404,7 +375,6 @@ async function once(now) {
 
         if (a.length < 50) {
           allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "No Data", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
-          currentSides[u[0]] = null;
           continue;
         }
 
@@ -428,7 +398,6 @@ async function once(now) {
         const emitSide = blocked ? null : r.side;
 
         if (r.side) {
-          currentSides[u[0]] = r.side;
           allRows.push({
             id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
@@ -450,7 +419,6 @@ async function once(now) {
             }
           }
         } else {
-          currentSides[u[0]] = null;
           allRows.push({
             id: u[0], side: null, d: u[3], mkt: mktOf(u),
             fail: r.fail || "خطای نامشخص",
@@ -462,7 +430,6 @@ async function once(now) {
         }
       } catch (e) {
         allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "Error", pass: 0, total: 7, mode: modes[0], u: u, checks: [] });
-        currentSides[u[0]] = null;
       }
     }
   }));
@@ -483,7 +450,9 @@ async function once(now) {
       barMap[id]._src = "oanda";
     });
   } catch (e) { console.warn("oanda refresh", e.message || e); }
-  touchActives(currentSides, now, barMap, history);
+  
+  // فراخوانی تابع بدون پارامتر currentSides
+  touchActives(now, barMap, history);
 
   try {
     if (typeof filterCorrelated === "function") {
