@@ -1,262 +1,174 @@
-// backtest.js — v45 validation script
-// Runs 4 scenarios against data.json to validate engine patches
-// Also analyzes history.json for quality metrics
-//
-// Usage:  node backtest.js
-// Requires: engine.js (v45), data.json, optionally history.json
-'use strict';
+// btengine.js — Unified Backtest Engine (Browser & Node Compatible)
+// این فایل از موتور مرکزی Engine.evaluate استفاده می‌کند تا منطق با اسکنر زنده یکسان باشد.
 
-const fs = require('fs');
-const path = require('path');
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['./engine.js'], factory);
+    } else if (typeof module === 'object' && module.exports) {
+        module.exports = factory(require('./engine.js'));
+    } else {
+        root.Backtest = factory(root.Engine);
+    }
+}(typeof self !== 'undefined' ? self : this, function (Engine) {
+    'use strict';
 
-// ---------- load engine ----------
-let ENG;
-try {
-  ENG = require('./engine.js');
-} catch (e) {
-  console.error('❌ Cannot load engine.js:', e.message);
-  console.error('   Make sure engine.js is in the same folder as backtest.js');
-  process.exit(1);
-}
-const { evaluate, DEF, ENGINE_VER } = ENG;
+    if (!Engine) {
+        throw new Error("Engine.js must be loaded before btengine.js");
+    }
 
-// ---------- load data ----------
-let data;
-try {
-  const raw = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf8');
-  data = JSON.parse(raw);
-} catch (e) {
-  console.error('❌ Cannot load data.json:', e.message);
-  process.exit(1);
-}
+    // شبیه‌سازی معامله: بررسی اینکه آیا کندل‌های بعدی به SL یا TP برخورد کرده‌اند یا خیر
+    function simulateTrade(side, entry, sl, tp1, tp2, futureCandles) {
+        let tp1Hit = false;
+        let peakFav = 0;
+        const risk = Math.abs(entry - sl);
+        const trailAfterR = 1.0;
+        
+        // تخمین ATR برای تریلینگ (از خود کندل‌ها)
+        const ranges = futureCandles.map(b => b.high - b.low).filter(x => x > 0);
+        const atrEst = ranges.length ? ranges.slice(0, 14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
+        const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
+        
+        let currentSl = sl;
 
-if (!Array.isArray(data.rows)) {
-  console.error('❌ data.json has no "rows" array — is it the right file?');
-  process.exit(1);
-}
+        for (const b of futureCandles) {
+            if (side === "LONG") {
+                // Check TP1
+                if (!tp1Hit && b.high >= tp1) {
+                    tp1Hit = true;
+                    currentSl = Math.max(currentSl, entry); // Move to Breakeven
+                }
+                // Check Final TP
+                if (b.high >= tp2) {
+                    const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 3.0) : 3.0;
+                    return { result: "win", exit: tp2, why: "TP2", R: finalR, tp1Hit };
+                }
+                // Check Trailing / SL
+                const fav = (b.high - entry) / risk;
+                if (fav > peakFav) peakFav = fav;
+                if (fav >= trailAfterR && tp1Hit) {
+                    const newSl = Math.max(currentSl, b.high - trailDist, entry);
+                    if (newSl > currentSl) currentSl = newSl;
+                }
+                if (b.low <= currentSl) {
+                    if (tp1Hit) {
+                        const trailR = (currentSl - entry) / risk;
+                        const combinedR = (0.5 * 1.5) + (0.5 * trailR);
+                        return { result: combinedR >= 0 ? "win" : "loss", exit: currentSl, why: "TP1+TRAIL", R: combinedR, tp1Hit: true };
+                    } else {
+                        return { result: "loss", exit: currentSl, why: "SL", R: -1, tp1Hit: false };
+                    }
+                }
+            } else {
+                // SHORT Logic
+                if (!tp1Hit && b.low <= tp1) {
+                    tp1Hit = true;
+                    currentSl = Math.min(currentSl, entry);
+                }
+                if (b.low <= tp2) {
+                    const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 3.0) : 3.0;
+                    return { result: "win", exit: tp2, why: "TP2", R: finalR, tp1Hit };
+                }
+                const fav = (entry - b.low) / risk;
+                if (fav > peakFav) peakFav = fav;
+                if (fav >= trailAfterR && tp1Hit) {
+                    const newSl = Math.min(currentSl, b.low + trailDist, entry);
+                    if (newSl < currentSl) currentSl = newSl;
+                }
+                if (b.high >= currentSl) {
+                    if (tp1Hit) {
+                        const trailR = (entry - currentSl) / risk;
+                        const combinedR = (0.5 * 1.5) + (0.5 * trailR);
+                        return { result: combinedR >= 0 ? "win" : "loss", exit: currentSl, why: "TP1+TRAIL", R: combinedR, tp1Hit: true };
+                    } else {
+                        return { result: "loss", exit: currentSl, why: "SL", R: -1, tp1Hit: false };
+                    }
+                }
+            }
+        }
+        // اگر به هیچ کدام نخورد (پایان دیتا)
+        const last = futureCandles[futureCandles.length - 1];
+        const closeR = side === "LONG" ? (last.close - entry) / risk : (entry - last.close) / risk;
+        const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * closeR) : closeR;
+        return { result: finalR >= 0 ? "win" : "loss", exit: last.close, why: "TIME", R: finalR, tp1Hit };
+    }
 
-console.log('═'.repeat(72));
-console.log(`  Engine version: ${ENGINE_VER}`);
-console.log(`  Data snapshot:  ${new Date(data.time).toISOString()}`);
-console.log(`  Total rows:     ${data.rows.length}`);
-console.log(`  Active signals: ${Object.keys(data.state?.active || {}).length}`);
-console.log(`  Sent signals:   ${Object.keys(data.state?.sent || {}).length}`);
-console.log('═'.repeat(72));
+    // اجرای بک‌تست روی یک نماد
+    function runBacktestOnSymbol(symbol, candlesM5, candlesM15, candlesH1, opts = {}) {
+        const trades = [];
+        let openTrade = null;
+        
+        // حداقل ۲۰۰ کندل برای شروع نیاز است
+        if (candlesM5.length < 200) return trades;
 
-// ---------- helpers ----------
-function normalizeRows(rows) {
-  return rows.filter(r => {
-    if (!r || !r.id) return false;
-    if (!Array.isArray(r.a) || !Array.isArray(r.h)) return false;
-    if (r.a.length < 210 || r.h.length < 210) return false;
-    return true;
-  });
-}
+        for (let i = 200; i < candlesM5.length; i++) {
+            const currentM5 = candlesM5.slice(0, i + 1);
+            const currentM15 = candlesM15.filter(c => c.time <= currentM5[i].time);
+            const currentH1 = candlesH1.filter(c => c.time <= currentM5[i].time);
 
-function runScenario(label, opts) {
-  const rows = normalizeRows(data.rows);
-  const result = {
-    signals: [],
-    byFail: {},
-    skipped: data.rows.length - rows.length,
-    total: rows.length,
-  };
+            // ۱. اگر معامله‌ای باز است، بررسی میکنیم که آیا به SL/TP خورده یا نه
+            if (openTrade) {
+                // برای سادگی در بک‌تست، کندل به کندل چک می‌کنیم
+                // (در اینجا از یک کندل جلوتر شروع میکنیم چون کندل فعلی زمان صدور سیگنال بود)
+                // ...
+            }
 
-  for (const row of rows) {
-    try {
-      const r = evaluate(row.id, row.a, row.h, opts, data.time / 1000);
-      if (r.side) {
-        result.signals.push({
-          id: row.id,
-          side: r.side,
-          mode: r.mode || opts.mode || 'pattern',
-          pass: r.pass,
-          total: r.total,
-          entry: r.entry,
-          sl: r.sl,
-          tp: r.tp,
-          rr: r.rr,
-          adx: r.adx,
+            // ۲. ارزیابی سیگنال جدید
+            if (!openTrade) {
+                const result = Engine.evaluate(symbol, currentM5, currentM15, currentH1, opts, currentM5[i].time);
+                if (result.side) {
+                    // شبیه‌سازی از کندل بعدی تا ۵۰۰ کندل جلوتر (یا تا پایان دیتا)
+                    const futureCandles = candlesM5.slice(i + 1, i + 500);
+                    if (futureCandles.length === 0) break;
+                    
+                    const outcome = simulateTrade(result.side, result.entry, result.sl, result.tp, result.tp2, futureCandles);
+                    trades.push({
+                        symbol,
+                        side: result.side,
+                        entry: result.entry,
+                        sl: result.sl,
+                        tp1: result.tp,
+                        tp2: result.tp2,
+                        openTime: currentM5[i].time,
+                        ...outcome
+                    });
+                    
+                    // جلوگیری از باز شدن معامله جدید تا بسته شدن معامله قبلی (منطق اسکنر)
+                    // برای بک‌تست دقیق، به جای پرش، اجازه میدهیم معامله در آینده بسته شود
+                    // اما برای سادگی، فرض میکنیم تا ۵۰۰ کندل بعدی نماد بلاک است
+                    // در پیاده‌سازی واقعی‌تر، باید زمان بسته شدن معامله را ثبت کنیم و از آن نقطه جلو برویم.
+                    i += 10; // جلوگیری از سیگنال‌های همپوشانی (ساده سازی)
+                }
+            }
+        }
+        return trades;
+    }
+
+    // محاسبه آمار کلی
+    function calculateStats(trades) {
+        if (!trades || !trades.length) return { total: 0, wins: 0, losses: 0, winRate: 0, netR: 0, pf: 0, maxDD: 0 };
+        
+        let wins = 0, losses = 0, netR = 0, grossProfit = 0, grossLoss = 0;
+        let peakR = 0, maxDD = 0, currentR = 0;
+
+        trades.forEach(t => {
+            const r = Number(t.R || 0);
+            netR += r;
+            currentR += r;
+            if (r > 0) { wins++; grossProfit += r; } else { losses++; grossLoss += Math.abs(r); }
+            if (currentR > peakR) peakR = currentR;
+            const dd = peakR - currentR;
+            if (dd > maxDD) maxDD = dd;
         });
-      } else {
-        const k = r.fail || 'unknown';
-        result.byFail[k] = (result.byFail[k] || 0) + 1;
-      }
-    } catch (e) {
-      const k = `EXCEPTION: ${e.message || e}`;
-      result.byFail[k] = (result.byFail[k] || 0) + 1;
-    }
-  }
 
-  console.log(`\n${'─'.repeat(72)}`);
-  console.log(`📊 ${label}`);
-  console.log('─'.repeat(72));
-  console.log(`  Rows analyzed:  ${result.total}  (skipped: ${result.skipped})`);
-  console.log(`  ✅ Signals:     ${result.signals.length}`);
-  console.log(`  ❌ No signal:   ${result.total - result.signals.length}`);
+        const total = wins + losses;
+        const winRate = total > 0 ? (wins / total) * 100 : 0;
+        const pf = grossLoss > 0 ? (grossProfit / grossLoss) : (grossProfit > 0 ? Infinity : 0);
 
-  if (result.signals.length) {
-    console.log('\n  📈 Signal list:');
-    result.signals.forEach(s => {
-      const passInfo = `pass ${s.pass}/${s.total}`;
-      const adxInfo = s.adx != null ? ` ADX ${s.adx.toFixed(1)}` : '';
-      const rrInfo = s.rr != null ? ` R:R ${s.rr}` : '';
-      console.log(`    ${String(s.id).padEnd(12)} ${String(s.side).padEnd(5)} [${String(s.mode).padEnd(7)}] ${passInfo}${adxInfo}${rrInfo}`);
-    });
-  }
-
-  const failEntries = Object.entries(result.byFail).sort((a, b) => b[1] - a[1]);
-  if (failEntries.length) {
-    console.log('\n  🚫 Failure reasons (top):');
-    failEntries.slice(0, 8).forEach(([k, v]) => {
-      console.log(`    ${String(v).padStart(3)}× ${k}`);
-    });
-    if (failEntries.length > 8) {
-      console.log(`    ... and ${failEntries.length - 8} more reasons`);
-    }
-  }
-
-  return result;
-}
-
-// ---------- Scenario A: simulate "before patch" ----------
-console.log('\n\n🔬 SCENARIO A — قبل از پچ (minPaScore=3.0 hardcoded، ADX نرم همیشه فعال)');
-const optsA = {
-  ...DEF,
-  mode: 'pattern',
-  minPaScore: 3.0,     // شبیه‌سازی هاردکد قبلی در checkPriceAction
-  adx: false,
-  adxSoft: true,       // شبیه‌سازی ADX نرم که همیشه فعال بود
-  adxSoftMin: 18,
-};
-const resA = runScenario('قبل از پچ (v44)', optsA);
-
-// ---------- Scenario B: only minPaScore fix ----------
-console.log('\n\n🔬 SCENARIO B — فقط رفع باگ minPaScore (ADX نرم هنوز فعال)');
-const optsB = {
-  ...DEF,
-  mode: 'pattern',
-  minPaScore: 2.2,
-  adx: false,
-  adxSoft: true,
-  adxSoftMin: 18,
-};
-const resB = runScenario('minPaScore=2.2 فقط', optsB);
-
-// ---------- Scenario C: full v45 patch ----------
-console.log('\n\n🔬 SCENARIO C — پچ کامل v45 (minPaScore=2.2 + ADX نرم خاموش)');
-const optsC = {
-  ...DEF,
-  mode: 'pattern',
-  minPaScore: 2.2,
-  adx: false,
-  adxSoft: false,
-};
-const resC = runScenario('پچ کامل (v45)', optsC);
-
-// ---------- Scenario D: range mode ----------
-console.log('\n\n🔬 SCENARIO D — حالت رنج (range mode)');
-const optsD = {
-  ...DEF,
-  mode: 'range',
-  adxSoft: false,
-};
-const resD = runScenario('رنج', optsD);
-
-// ---------- Comparison summary ----------
-console.log('\n\n' + '═'.repeat(72));
-console.log('📊 COMPARISON SUMMARY');
-console.log('═'.repeat(72));
-console.log(`  ${'Scenario'.padEnd(48)} | Signals`);
-console.log(`  ${'─'.repeat(48)} | ───────`);
-console.log(`  ${'A) قبل از پچ (minPaScore=3.0, ADX نرم)'.padEnd(48)} | ${resA.signals.length}`);
-console.log(`  ${'B) فقط minPaScore=2.2'.padEnd(48)} | ${resB.signals.length}`);
-console.log(`  ${'C) پچ کامل v45 (minPaScore=2.2 + ADX off)'.padEnd(48)} | ${resC.signals.length}`);
-console.log(`  ${'D) حالت رنج'.padEnd(48)} | ${resD.signals.length}`);
-console.log('═'.repeat(72));
-
-// ---------- Recommendation ----------
-console.log('\n💡 RECOMMENDATION:');
-const diff = resC.signals.length - resA.signals.length;
-if (resC.signals.length >= 3) {
-  console.log(`  ✅ پچ v45 مؤثر بود: ${resA.signals.length} → ${resC.signals.length} سیگنال (+${diff})`);
-  console.log(`  ➡️  مرحله‌ی ۱ تمام. کیفیت را در ۴۸ ساعت آینده مانیتور کن.`);
-} else if (diff > 0) {
-  console.log(`  ⚠️  پچ v45 کمی کمک کرد: ${resA.signals.length} → ${resC.signals.length} سیگنال (+${diff})`);
-  console.log(`  ➡️  اگر < ۳ سیگنال است، مرحله‌ی ۲ (نرم‌کردن nc و edge) را در نظر بگیر.`);
-} else {
-  console.log(`  ❌ پچ v45 کمکی نکرد: ${resA.signals.length} → ${resC.signals.length}`);
-  console.log(`  ➡️  بازار واقعاً سیگنال ندارد، یا فیلتر دیگری مقصر است.`);
-  console.log(`  ➡️  مرحله‌ی ۲ (nc + edge) را اعمال کن.`);
-}
-console.log(`  🟢 ADX soft:  ${diff > 0 ? 'مقصر بود' : 'مقصر نبود'} (${resA.signals.length} → ${resB.signals.length} با minPaScore fix به‌تنهایی)`);
-const diff2 = resB.signals.length - resA.signals.length;
-if (diff2 > 0) {
-  console.log(`  🟡 minPaScore bug: مقصر بود (${resA.signals.length} → ${resB.signals.length} یعنی +${diff2} با ADX هنوز روشن)`);
-} else {
-  console.log(`  🟡 minPaScore bug: تأثیر کمی داشت`);
-}
-
-// ---------- History analysis ----------
-try {
-  const histRaw = fs.readFileSync(path.join(__dirname, 'history.json'), 'utf8');
-  const hist = JSON.parse(histRaw);
-  const items = Array.isArray(hist) ? hist : (hist.history || []);
-  if (items.length) {
-    console.log('\n\n' + '═'.repeat(72));
-    console.log('📜 HISTORY ANALYSIS (quality metrics)');
-    console.log('═'.repeat(72));
-    console.log(`  Total historical signals: ${items.length}`);
-
-    const closed = items.filter(h => h.result);
-    const wins = closed.filter(h => h.result === 'win').length;
-    const losses = closed.filter(h => h.result === 'loss').length;
-    const timeouts = closed.filter(h => h.result === 'time' || h.why === 'FADE' || h.why === 'TIME').length;
-    const open = items.length - closed.length;
-
-    console.log(`    Wins:     ${wins}`);
-    console.log(`    Losses:   ${losses}`);
-    console.log(`    Timeouts: ${timeouts}`);
-    console.log(`    Open:     ${open}`);
-
-    if (closed.length) {
-      const wr = (wins / closed.length * 100).toFixed(1);
-      const totalR = closed.reduce((s, h) => s + (h.R || 0), 0);
-      console.log(`    Win rate: ${wr}%`);
-      console.log(`    Total R:  ${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R`);
-
-      const byMode = {};
-      closed.forEach(h => {
-        const m = h.mode || 'pattern';
-        if (!byMode[m]) byMode[m] = { wins: 0, losses: 0, timeouts: 0, R: 0 };
-        if (h.result === 'win') byMode[m].wins++;
-        else if (h.result === 'loss') byMode[m].losses++;
-        else byMode[m].timeouts++;
-        byMode[m].R += (h.R || 0);
-      });
-      console.log('\n  By mode:');
-      Object.entries(byMode).forEach(([m, s]) => {
-        const n = s.wins + s.losses + s.timeouts;
-        const wr2 = n > 0 ? (s.wins / n * 100).toFixed(0) : '0';
-        console.log(`    ${m.padEnd(8)}: ${s.wins}W/${s.losses}L/${s.timeouts}T   WR=${wr2}%   R=${s.R >= 0 ? '+' : ''}${s.R.toFixed(2)}`);
-      });
+        return { total, wins, losses, winRate: +winRate.toFixed(1), netR: +netR.toFixed(2), pf: +pf.toFixed(2), maxDD: +maxDD.toFixed(2) };
     }
 
-    const last10 = items.slice(-10).reverse();
-    console.log('\n  Last 10 signals (newest first):');
-    last10.forEach(h => {
-      const date = new Date((h.time || 0) * 1000).toISOString().slice(0, 16).replace('T', ' ');
-      const r = h.R != null ? (h.R >= 0 ? '+' : '') + Number(h.R).toFixed(2) : '  -  ';
-      const why = h.why ? ` (${h.why})` : '';
-      console.log(`    ${date}  ${String(h.id).padEnd(12)} ${String(h.side).padEnd(5)} ${String(h.result || 'open').padEnd(6)} R=${r}${why}`);
-    });
-  }
-} catch (e) {
-  if (e.code === 'ENOENT') {
-    console.log('\n\n⚠️  history.json not found — skipping quality analysis (this is OK)');
-  } else {
-    console.log('\n\n⚠️  history.json invalid — skipping:', e.message);
-  }
-}
-
-console.log('\n✨ Done.\n');
+    return {
+        runBacktestOnSymbol,
+        calculateStats
+    };
+}));
