@@ -7,7 +7,7 @@ on:
     - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
   workflow_dispatch:
 
-# 👈 این بخش جادویی است: از اجرای همزمان دو اسکنر جلوگیری می‌کند و سیگنال تکراری را ریشه‌کن می‌کند
+# 👈 جلوگیری از اجرای همزمان چند اسکنر (حل مشکل سیگنال تکراری و تداخل)
 concurrency:
   group: "scanner-group"
   cancel-in-progress: false
@@ -44,6 +44,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # برای جلوگیری از خطاهای git در عملیات rebase
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -60,7 +62,24 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # اضافه کردن فایل‌های تولید شده توسط اسکنر
           git add data.json history.json latest_signal.txt
-          git commit -m "Update scanner data [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main
+          
+          # اگر هیچ تغییری در داده‌ها وجود نداشت، متوقف شو
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "Update scanner data [skip ci]"
+          
+          # 👈 حل خودکار تداخل (Conflict):
+          # اگر گیت نتوانست rebase کند، به زور از نسخه محلی (دیتای جدید اسکنر) استفاده می‌کند
+          git pull --rebase -X ours origin main || {
+            echo "Rebase conflicted. Resolving by keeping local changes..."
+            git rebase --abort || true
+            git merge -X ours origin main --no-edit
+          }
+          
           git push origin main
