@@ -22,6 +22,11 @@
     "@capacitor/local-notifications": "^6.1.3",
     "sharp": "^0.35.5"
   },
+  "overrides": {
+    "@capacitor/assets": {
+      "sharp": "$sharp"
+    }
+  },
   "config": {
     "sharp_binary_host": "https://npmmirror.com/mirrors/sharp",
     "sharp_libvips_binary_host": "https://npmmirror.com/mirrors/sharp-libvips"
