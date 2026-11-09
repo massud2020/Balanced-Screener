@@ -644,28 +644,16 @@ function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() /
 
   return {
     side: totalPass === totalGauge ? side : null,
-    mode, h1Trend, entry: lastClose, sl: lastClose - (lastAtr*1.5), tp: lastClose + (lastAtr*3), rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
+    mode, h1Trend, entry: lastClose, sl: lastClose - (lastAtr*1.5), tp: lastClose + (lastAtr*1.5), rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
   };
 }
 // =================================================================
 
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-        try {
-            await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 });
-            return { success: true, engine: 'Native TTS' };
-        } catch (e) { return { success: false, error: e.message || "خطای نامشخص" }; }
+        try { await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 }); return { success: true, engine: 'Native TTS' }; } catch (e) { return { success: false, error: e.message || "خطای نامشخص" }; }
     } else if ('speechSynthesis' in window) {
-        return new Promise((resolve) => {
-            try {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.lang = lang; u.rate = rate;
-                u.onend = () => resolve({ success: true, engine: 'Web Speech API' });
-                u.onerror = (e) => resolve({ success: false, error: e.error || "Web Speech Error" });
-                window.speechSynthesis.speak(u);
-            } catch(e) { resolve({ success: false, error: e.message }); }
-        });
+        return new Promise((resolve) => { try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang; u.rate = rate; u.onend = () => resolve({ success: true, engine: 'Web Speech API' }); u.onerror = (e) => resolve({ success: false, error: e.error || "Web Speech Error" }); window.speechSynthesis.speak(u); } catch(e) { resolve({ success: false, error: e.message }); } });
     }
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
 }
@@ -673,32 +661,18 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
 async function speakSignal(symbol, side) {
     if (!$("ttsSymbol")?.checked) return;
     const sideEn = side === 'LONG' ? 'Long' : 'Short';
-    const text = `New signal. ${sideEn} on ${symbol}`;
-    await speakNative(text, 'en-US', 1.0);
+    await speakNative(`New signal. ${sideEn} on ${symbol}`, 'en-US', 1.0);
 }
 
 window.testVoice = async function() {
     const errEl = $("voiceEngineStatus");
     if(errEl) { errEl.innerHTML = "⏳ در حال تست..."; errEl.style.background = 'var(--card2)'; errEl.style.color = 'var(--tx2)'; }
-    const rateVal = (+$("ttsRate")?.value || 50) / 50;
-    const res = await speakNative("تست صدای هوش مصنوعی.", 'fa-IR', rateVal);
-    if (res.success) {
-        if(errEl) { errEl.innerHTML = `✅ موتور صدا (${res.engine}) آماده است.`; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; }
-    } else {
-        if(errEl) { errEl.innerHTML = `❌ خطا:<br>${res.error}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; }
-    }
+    const res = await speakNative("تست صدای هوش مصنوعی.", 'fa-IR', (+$("ttsRate")?.value || 50) / 50);
+    if (res.success) { if(errEl) { errEl.innerHTML = `✅ موتور صدا (${res.engine}) آماده است.`; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; } } else { if(errEl) { errEl.innerHTML = `❌ خطا:<br>${res.error}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; } }
 };
 
-window.toggleSettings = function() {
-    const p = $("settingsPanel"); p.classList.toggle("on");
-    $("appBody").style.display = p.classList.contains("on") ? "none" : "block";
-};
-
-window.openHistory = function() {
-    $("histModal").style.display = "block"; $("unreadBadge").classList.remove("on"); 
-    if(openHistData && openHistData.length > 0) LS("bs_last_seen_signals_keys", openHistData.map(d => d.k).join(','));
-    renderHistory();
-};
+window.toggleSettings = function() { const p = $("settingsPanel"); p.classList.toggle("on"); $("appBody").style.display = p.classList.contains("on") ? "none" : "block"; };
+window.openHistory = function() { $("histModal").style.display = "block"; $("unreadBadge").classList.remove("on"); if(openHistData && openHistData.length > 0) LS("bs_last_seen_signals_keys", openHistData.map(d => d.k).join(',')); renderHistory(); };
 window.closeHistory = function() { $("histModal").style.display = "none"; };
 window.setHistFilter = function(f, btn) { histFilter = f; document.querySelectorAll(".hist-filters button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
@@ -706,17 +680,12 @@ window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
-    let filteredClosed = closedHistData.filter(d => {
-        if (histFilter === 'today') return (now - (d.time || 0)) < 86400;
-        if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400;
-        return true;
-    });
+    let filteredClosed = closedHistData.filter(d => { if (histFilter === 'today') return (now - (d.time || 0)) < 86400; if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400; return true; });
     let sortedClosed = [...filteredClosed].sort((a,b) => (a.time || 0) - (b.time || 0));
 
     let wins = 0, losses = 0, timeouts = 0, grossProfit = 0, grossLoss = 0, peakR = 0, maxDrawdown = 0, currentTotalR = 0;
     sortedClosed.forEach(d => {
-        let r = Number(d.R || 0); currentTotalR += r;
-        if (r > 0) grossProfit += r; else grossLoss += Math.abs(r);
+        let r = Number(d.R || 0); currentTotalR += r; if (r > 0) grossProfit += r; else grossLoss += Math.abs(r);
         if (d.result === 'win') wins++; else if (d.result === 'loss') losses++; else timeouts++;
         if (currentTotalR > peakR) peakR = currentTotalR;
         let dd = peakR - currentTotalR; if (dd > maxDrawdown) maxDrawdown = dd;
@@ -726,8 +695,7 @@ function renderHistory() {
     let winRate = decisiveTrades > 0 ? Math.round((wins / decisiveTrades) * 100) : 0;
     let profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
 
-    $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R";
-    $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
+    $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R"; $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
     $("histWinRate").innerText = winRate + "%"; $("histWinRate").style.color = winRate >= 50 ? "var(--gb)" : (winRate >= 40 ? "#eab308" : "var(--rb)");
     $("histWinLoss").innerText = `${wins}W / ${losses}L (${timeouts}T)`;
     $("histPF").innerText = profitFactor; $("histPF").style.color = profitFactor > 1.2 ? "var(--gb)" : (profitFactor > 1 ? "#eab308" : "var(--rb)");
@@ -851,7 +819,7 @@ window.scan = async function(isAuto = false) {
 
         let rows = json.rows;
 
-        // 🛠 تزریق سیگنال‌های فعال همراه با وضعیت داینامیک
+        // تزریق سیگنال‌های فعال همراه با وضعیت داینامیک
         if (json.state && json.state.active) {
             Object.keys(json.state.active).forEach(activeId => {
                 const activeTrade = json.state.active[activeId];
@@ -861,8 +829,9 @@ window.scan = async function(isAuto = false) {
                     rows[rowIndex].side = activeTrade.side; 
                     rows[rowIndex].entry = activeTrade.entry; 
                     rows[rowIndex].sl = activeTrade.currentSl || activeTrade.sl; 
-                    rows[rowIndex].originalSl = activeTrade.sl; // ذخیره SL اولیه برای تشخیص تریلینگ
-                    rows[rowIndex].currentR = activeTrade.currentR !== undefined ? activeTrade.currentR : 0; // سود شناور
+                    rows[rowIndex].originalSl = activeTrade.sl; 
+                    rows[rowIndex].currentR = activeTrade.currentR !== undefined ? activeTrade.currentR : 0; 
+                    rows[rowIndex].tp1Hit = activeTrade.tp1Hit || false;
                     rows[rowIndex].tp = activeTrade.tp; 
                     rows[rowIndex].isActive = true; 
                     rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
@@ -872,6 +841,7 @@ window.scan = async function(isAuto = false) {
                         sl: activeTrade.currentSl || activeTrade.sl, 
                         originalSl: activeTrade.sl,
                         currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0,
+                        tp1Hit: activeTrade.tp1Hit || false,
                         tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', 
                         isActive: true, mkt: mkt 
                     });
@@ -888,12 +858,7 @@ window.scan = async function(isAuto = false) {
             openHistData = Object.keys(json.state.active).map(id => {
                 const s = json.state.active[id];
                 return {
-                    id: id,
-                    side: s.side || 'LONG',
-                    entry: s.entry,
-                    sl: s.sl,
-                    result: 'open',
-                    time: s.time || (Date.now()/1000),
+                    id: id, side: s.side || 'LONG', entry: s.entry, sl: s.sl, result: 'open', time: s.time || (Date.now()/1000),
                     dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'نامشخص',
                     k: id + '|' + s.side + '|' + s.time
                 };
@@ -974,18 +939,18 @@ function renderList(rows) {
             
             // 🛠 منطق نمایش وضعیت داینامیک
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
-            const currentRStr = r.currentR !== undefined ? `${r.currentR > 0 ? '+' : ''}${r.currentR}R` : (r.tp ? r.tp.toFixed(5) : 'RSI');
-            const currentRColor = (r.currentR || 0) >= 0 ? 'var(--gb)' : 'var(--rb)';
-            const targetLabel = r.isActive ? 'سود شناور' : 'هدف';
-            const targetValue = r.isActive ? currentRStr : (r.tp ? r.tp.toFixed(5) : 'RSI');
-            const targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
+            
+            let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
+            let targetValue = r.isActive ? `${(r.currentR || 0) > 0 ? '+' : ''}${r.currentR || 0}R` : (r.tp ? r.tp.toFixed(5) : 'RSI');
+            let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
+            let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
 
             return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
-                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
+                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
                     <div><i>ورود</i><b>${r.entry ? r.entry.toFixed(5) : '-'}</b></div>
                     <div><i>${trailIcon}SL</i><b class="neg">${r.sl ? r.sl.toFixed(5) : '-'}</b></div>
-                    <div><i>${targetLabel}</i><b class="${targetClass}" style="${r.isActive ? 'color:'+currentRColor : ''}">${targetValue}</b></div>
+                    <div><i>${targetLabel}</i><b class="${targetClass}">${targetValue}</b></div>
                 </div>
                 <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">PA</bdi></span></div>
             </article>`;
@@ -1020,87 +985,48 @@ function getTvSymbol(id, mkt) {
     return `BINANCE:${id}`;
 }
 
-// 🛠 مودال جزئیات نماد بدون سیگنال (شبیه سازی دقیق عکس)
 window.showNsDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
     if (!r) return;
 
     const isL = true;
-    const direction = isL ? "LONG" : "SHORT";
-
     $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><span>${r.id}</span> <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> <div class="ns-modal-live">LIVE</div></div>`;
     
-    // 1. TradingView Chart
     const tvSym = getTvSymbol(r.id, r.mkt || 'crypto');
     $("tvContainer").innerHTML = `<div id="tradingview_chart" style="width:100%;height:100%;"></div>`;
-    const script = document.createElement('script');
-    script.src = "https://s3.tradingview.com/tv.js";
-    script.async = true;
-    script.onload = () => {
-        new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart", "studies": ["MAExp@tv-basicstudies", "RSI@tv-basicstudies"] });
-    };
+    const script = document.createElement('script'); script.src = "https://s3.tradingview.com/tv.js"; script.async = true;
+    script.onload = () => { new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart", "studies": ["MAExp@tv-basicstudies", "RSI@tv-basicstudies"] }); };
     document.head.appendChild(script);
 
-    // 2. Gauge Circle (با خط‌چین‌های داینامیک)
-    const pass = r.pass || 0;
-    const total = r.total || 7;
+    const pass = r.pass || 0; const total = r.total || 7;
     let segs = '';
-    for (let i = 0; i < total; i++) {
-        const angle = (360 / total) * i;
-        const isOn = i < pass;
-        segs += `<div class="gauge-segment ${isOn ? 'on' : ''}" style="transform: rotate(${angle}deg);"></div>`;
-    }
+    for (let i = 0; i < total; i++) { const angle = (360 / total) * i; const isOn = i < pass; segs += `<div class="gauge-segment ${isOn ? 'on' : ''}" style="transform: rotate(${angle}deg);"></div>`; }
     $("nsGauge").innerHTML = `${segs}<div class="gauge-inner" id="nsGaugeText">${pass}/${total}</div>`;
-    $("nsGaugeDesc").innerText = `بررسی برای ${direction === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · ${r.mode === 'range' ? 'رنج' : 'الگوی ۳+۱'}`;
+    $("nsGaugeDesc").innerText = `بررسی برای ${isL ? 'لانگ ▲' : 'شورت ▼'} · ${r.mode === 'range' ? 'رنج' : 'الگوی ۳+۱'}`;
 
-    // 3. Checks List
     let activeChecks = r.checks || [];
-    
     let checksHtml = activeChecks.map(c => {
-        const statusClass = c.ok ? 'ok' : 'fail';
-        const icon = c.ok ? '✓' : '✕';
-        let visualHtml = '';
-        let valStr = c.v || (c.ok ? 'تایید' : 'رد');
-
-        if (c.l.includes('الگوی') || c.l.includes('۳+۱')) {
-            const c1 = 'green', c2 = 'green', c3 = 'green', c4 = 'red';
-            visualHtml = `<div class="candle-pattern"><div class="candle ${c1}" style="height:8px;"><div class="wick top"></div></div><div class="candle ${c2}" style="height:16px;"><div class="wick top"></div><div class="wick bottom"></div></div><div class="candle ${c3}" style="height:4px;"><div class="wick top" style="height:6px;"></div><div class="wick bottom" style="height:6px;"></div></div><div class="candle ${c4}" style="height:10px;"><div class="wick top" style="height:8px;"></div><div class="wick bottom"></div></div></div>`;
-        } else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) {
-            visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi}%"></div></div>`;
-        } else if (c.l.includes('بدون تقاطع')) {
-            visualHtml = `<div style="flex:1;"></div>`;
-        } else {
-            visualHtml = `<div class="bar-bg"><div class="bar-fill ${c.ok ? 'ok' : 'fail'}" style="width: ${c.ok ? '100%' : '50%'}"></div></div>`;
-        }
-
-        return `<div class="check-item">
-            <div class="check-header">
-                <div class="check-title">${c.l}</div>
-                <div class="check-icon ${statusClass}">${icon}</div>
-            </div>
-            <div class="check-body">
-                <div class="check-val">${valStr}</div>
-                ${visualHtml}
-            </div>
-        </div>`;
+        const statusClass = c.ok ? 'ok' : 'fail'; const icon = c.ok ? '✓' : '✕'; let visualHtml = ''; let valStr = c.v || (c.ok ? 'تایید' : 'رد');
+        if (c.l.includes('الگوی') || c.l.includes('۳+۱')) { visualHtml = `<div class="candle-pattern"><div class="candle green" style="height:8px;"><div class="wick top"></div></div><div class="candle green" style="height:16px;"><div class="wick top"></div><div class="wick bottom"></div></div><div class="candle green" style="height:4px;"><div class="wick top" style="height:6px;"></div><div class="wick bottom" style="height:6px;"></div></div><div class="candle red" style="height:10px;"><div class="wick top" style="height:8px;"></div><div class="wick bottom"></div></div></div>`; } 
+        else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) { visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi}%"></div></div>`; } 
+        else if (c.l.includes('بدون تقاطع')) { visualHtml = `<div style="flex:1;"></div>`; } 
+        else { visualHtml = `<div class="bar-bg"><div class="bar-fill ${c.ok ? 'ok' : 'fail'}" style="width: ${c.ok ? '100%' : '50%'}"></div></div>`; }
+        return `<div class="check-item"><div class="check-header"><div class="check-title">${c.l}</div><div class="check-icon ${statusClass}">${icon}</div></div><div class="check-body"><div class="check-val">${valStr}</div>${visualHtml}</div></div>`;
     }).join("");
     $("nsChecksContainer").innerHTML = checksHtml;
 
-    // 4. Bottom Summary
     const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
     const lastClose = cl.length ? cl[cl.length-1].close : 0;
     $("nsPrice").innerText = lastClose.toFixed(5);
     $("nsRsi").innerText = r.rsi ? r.rsi.toFixed(1) : '-';
     $("nsSignalCount").innerText = '0';
-
     $("nsModal").style.display = "block";
 };
 
 window.closeNsModal = function() { $("nsModal").style.display = "none"; $("tvContainer").innerHTML = ""; };
 
 renderCondChips(); renderChips(); scan(true);
-
 setInterval(() => { if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true); }, 3 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('ai-splash').style.display === 'none' && $("autoScanChk")?.checked && !isScanning) scan(true); });
 setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000);
