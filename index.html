@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
+<!-- 🛠 بارگذاری موتور مرکزی -->
+<script src="engine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -567,68 +569,8 @@ let openHistData = [];
 let histFilter = 'all';
 let histTab = 'closed';
 
-// =================================================================
-// 🛠 موتور استراتژی (کپی شده از engine.js برای اجرای سمت کلاینت)
-// =================================================================
-function ema(data, period) { if (!data || data.length < period) return new Array(data ? data.length : 0).fill(null); const k = 2 / (period + 1); const out = new Array(data.length).fill(null); let sum = 0; for (let i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (let i = period; i < data.length; i++) { out[i] = data[i] * k + out[i - 1] * (1 - k); } return out; }
-function rsi(data, period = 14) { if (!data || data.length <= period) return new Array(data ? data.length : 0).fill(null); const out = new Array(data.length).fill(null); let gains = 0, losses = 0; for (let i = 1; i <= period; i++) { const diff = data[i] - data[i - 1]; if (diff >= 0) gains += diff; else losses += Math.abs(diff); } let avgGain = gains / period; let avgLoss = losses / period; out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)); for (let i = period + 1; i < data.length; i++) { const diff = data[i] - data[i - 1]; const g = diff >= 0 ? diff : 0; const l = diff < 0 ? Math.abs(diff) : 0; avgGain = (avgGain * (period - 1) + g) / period; avgLoss = (avgLoss * (period - 1) + l) / period; out[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss)); } return out; }
-function atr(candles, period = 14) { if (!candles || candles.length <= period) return new Array(candles ? candles.length : 0).fill(null); const tr = [candles[0].high - candles[0].low]; for (let i = 1; i < candles.length; i++) { const c = candles[i], p = candles[i - 1]; tr.push(Math.max(c.high - c.low, Math.abs(c.high - p.close), Math.abs(c.low - p.close))); } const out = new Array(candles.length).fill(null); let sum = 0; for (let i = 0; i < period; i++) sum += tr[i]; out[period - 1] = sum / period; for (let i = period; i < candles.length; i++) { out[i] = (out[i - 1] * (period - 1) + tr[i]) / period; } return out; }
-function adx(candles, period = 14) { if (!candles || candles.length < period * 2) return new Array(candles ? candles.length : 0).fill(null); const tr = [], plusDM = [], minusDM = []; for (let i = 0; i < candles.length; i++) { if (i === 0) { tr.push(candles[i].high - candles[i].low); plusDM.push(0); minusDM.push(0); continue; } const cur = candles[i], prev = candles[i - 1]; const h_l = cur.high - cur.low; const h_pc = Math.abs(cur.high - prev.close); const l_pc = Math.abs(cur.low - prev.close); tr.push(Math.max(h_l, h_pc, l_pc)); const upMove = cur.high - prev.high; const downMove = prev.low - cur.low; plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0); minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0); } function smoothed(arr, p) { const res = new Array(arr.length).fill(null); let sum = 0; for (let i = 0; i < arr.length; i++) { if (i < p) { sum += arr[i]; if (i === p - 1) res[i] = sum; } else { res[i] = res[i - 1] - (res[i - 1] / p) + arr[i]; } } return res; } const atrArr = smoothed(tr, period); const pDMSmoothed = smoothed(plusDM, period); const mDMSmoothed = smoothed(minusDM, period); const dxArr = new Array(candles.length).fill(null); for (let i = 0; i < candles.length; i++) { if (!atrArr[i] || atrArr[i] === 0) continue; const pDI = (pDMSmoothed[i] / atrArr[i]) * 100; const mDI = (mDMSmoothed[i] / atrArr[i]) * 100; const sumDI = pDI + mDI; dxArr[i] = sumDI === 0 ? 0 : (Math.abs(pDI - mDI) / sumDI) * 100; } return smoothed(dxArr, period); }
-function bollingerBands(data, period = 20, mult = 2) { if (!data || data.length < period) return { upper: [], middle: [], lower: [] }; const upper = [], middle = [], lower = []; for (let i = 0; i < data.length; i++) { if (i < period - 1) { upper.push(null); middle.push(null); lower.push(null); continue; } const slice = data.slice(i - period + 1, i + 1); const sum = slice.reduce((a, b) => a + b, 0); const sma = sum / period; const variance = slice.reduce((a, b) => a + Math.pow(b - sma, 2), 0) / period; const stdDev = Math.sqrt(variance); upper.push(sma + mult * stdDev); middle.push(sma); lower.push(sma - mult * stdDev); } return { upper, middle, lower }; }
-function checkPriceActionConfirmation(candles, side) { if (!candles || candles.length < 2) return false; const last = candles[candles.length - 1]; const prev = candles[candles.length - 2]; const body = Math.abs(last.close - last.open); const totalRange = last.high - last.low; if (totalRange === 0) return false; const upperShadow = last.high - Math.max(last.open, last.close); const lowerShadow = Math.min(last.open, last.close) - last.low; const isBullish = last.close > last.open; const isBearish = last.close < last.open; const prevBullish = prev.close > prev.open; const prevBearish = prev.close < prev.open; if (side === "LONG") { const pinBar = lowerShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBullish; const engulfing = isBullish && prevBearish && last.close >= prev.open && last.open <= prev.close; return pinBar || engulfing; } else { const pinBar = upperShadow >= totalRange * 0.6 && body <= totalRange * 0.3 && isBearish; const engulfing = isBearish && prevBullish && last.close <= prev.open && last.open >= prev.close; return pinBar || engulfing; } }
-function findSwingLevels(candles, lookback = 20) { if (!candles || candles.length < lookback) return { swingHigh: null, swingLow: null }; let swingHigh = -Infinity; let swingLow = Infinity; const recent = candles.slice(-lookback); for (const c of recent) { if (c.high > swingHigh) swingHigh = c.high; if (c.low < swingLow) swingLow = c.low; } return { swingHigh, swingLow }; }
-function dropForming(candles, intervalSec = 300, nowSec = Date.now() / 1000) { if (!candles || !candles.length) return []; const last = candles[candles.length - 1]; if (nowSec - last.time < intervalSec) return candles.slice(0, -1); return candles; }
-
-function evaluate(symbol, candlesM5, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
-  const cl = dropForming(candlesM5, 300, nowSec);
-  if (!cl || cl.length < 50) return { side: null, fail: "کمبود کندل M5", checks: [] };
-
-  const closes = cl.map(c => c.close);
-  const ema9 = ema(closes, 9), ema21 = ema(closes, 21), ema50 = ema(closes, 50), ema200 = ema(closes, 200);
-  const rsiArr = rsi(closes, 14), atrArr = atr(cl, 14), adxArr = adx(cl, 14);
-  const idx = cl.length - 1;
-  const lastClose = closes[idx], lastRsi = rsiArr[idx], lastAtr = atrArr[idx] || 1;
-  const lastAdx = adxArr[idx] || 20;
-
-  let h1Trend = 'NEUTRAL';
-  if (candlesH1 && candlesH1.length >= 50) {
-    const h1Closes = candlesH1.map(c => c.close);
-    const h1Ema50 = ema(h1Closes, 50), h1Ema200 = ema(h1Closes, 200);
-    const lastH1Ema50 = h1Ema50[h1Ema50.length - 1], lastH1Ema200 = h1Ema200[h1Ema200.length - 1] || lastH1Ema50;
-    if (lastH1Ema50 > lastH1Ema200) h1Trend = 'UP'; else if (lastH1Ema50 < lastH1Ema200) h1Trend = 'DOWN';
-  }
-
-  const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
-  const checks = [];
-  let side = null;
-
-  const trendUpM5 = ema50[idx] > ema200[idx];
-  const isLongDir = trendUpM5;
-  side = isLongDir ? 'LONG' : 'SHORT';
-
-  if (opts.trend) { const isOk = isLongDir ? lastClose > ema200[idx] : lastClose < ema200[idx]; checks.push({ l: 'قیمت و شیب EMA200', ok: isOk, v: ((Math.abs(lastClose - ema200[idx])) / lastAtr).toFixed(1) + 'xATR' }); }
-  if (opts.emax) { const isOk = isLongDir ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx]; checks.push({ l: 'EMA21 بالای EMA50', ok: isOk, v: ((Math.abs(ema21[idx] - ema50[idx])) / lastAtr).toFixed(2) + 'xATR' }); }
-  if (opts.nc) { const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open); checks.push({ l: 'هم‌جهتی دو کندل اخیر (بدون تقاطع)', ok: isOk, v: 'بله' }); }
-  if (opts.pat) { const c = cl.slice(-4); let g = 0, r = 0; c.forEach(x => { if (x.close > x.open) g += (x.close - x.open); else r += (x.open - x.close); }); const ratio = r > 0 ? (g / r) : 0; const isOk = ratio >= 0.5; checks.push({ l: 'الگوی ۳+۱', ok: isOk, v: ratio.toFixed(2) + ' از 0.5' }); }
-  if (opts.m15) { checks.push({ l: 'M15: EMA21 بالای EMA50', ok: true, v: '+2.29xATR' }); }
-  if (opts.h1) { const isOk = isLongDir ? h1Trend === 'UP' : h1Trend === 'DOWN'; checks.push({ l: 'H1: قیمت بالای EMA200', ok: isOk, v: 'بله' }); }
-  if (opts.rsi) { const isOk = isLongDir ? lastRsi < 70 : lastRsi > 30; checks.push({ l: 'فیلتر RSI', ok: isOk, v: lastRsi.toFixed(1) }); }
-  checks.push({ l: 'فاصله‌ی SL تخمینی', ok: true, v: '0.36% · 2.1xATR', isGauge: false });
-
-  const totalPass = checks.filter(c => c.ok && c.isGauge !== false).length;
-  const totalGauge = checks.filter(c => c.isGauge !== false).length;
-
-  // 🛠 محاسبه صحیح SL و TP بر اساس جهت معامله (رفع باگ)
-  const riskDist = lastAtr * 1.5;
-  const sl = side === "LONG" ? lastClose - riskDist : lastClose + riskDist;
-  const tp = side === "LONG" ? lastClose + riskDist : lastClose - riskDist;
-
-  return {
-    side: totalPass === totalGauge ? side : null,
-    mode, h1Trend, entry: lastClose, sl: sl, tp: tp, rsi: lastRsi, adx: lastAdx, pass: totalPass, total: totalGauge, checks
-  };
-}
-// =================================================================
+// 🛠 تبدیل آرایه به آبجکت برای موتور
+const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
 
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
@@ -800,7 +742,6 @@ window.scan = async function(isAuto = false) {
 
         let rows = json.rows;
 
-        // تزریق سیگنال‌های فعال همراه با وضعیت داینامیک
         if (json.state && json.state.active) {
             Object.keys(json.state.active).forEach(activeId => {
                 const activeTrade = json.state.active[activeId];
@@ -883,12 +824,27 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => r.isActive || activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     let reEvaluatedRows = filteredByMkt.map(r => {
-        if (r.isActive) return r;
-        const m5 = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
-        const h1 = (r.h || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
-        const opts = { m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), rsi: activeConditions.includes('RSI'), trend: activeConditions.includes('EMA200'), emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), pat: activeConditions.includes('۳+۱'), mode: currentMode, adx: false };
+        if (r.isActive) return r; // سیگنال‌های زنده تلگرام را دست نزن
+        
+        // 🛠 استفاده از موتور مرکزی (Engine)
+        const m5 = toObjs(r.a);
+        const m15 = toObjs(r.m15);
+        const h1 = toObjs(r.h);
+        
+        const opts = { 
+            m15: activeConditions.includes('M15'), 
+            h1: activeConditions.includes('H1'), 
+            rsi: activeConditions.includes('RSI'), 
+            trend: activeConditions.includes('EMA200'), 
+            emax: activeConditions.includes('EMA21/50'), 
+            nc: activeConditions.includes('بدون تقاطع'), 
+            pat: activeConditions.includes('۳+۱'), 
+            mode: currentMode, 
+            adx: false 
+        };
+        
         try {
-            const res = evaluate(r.id, m5, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
+            const res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
             return { ...r, ...res };
         } catch(e) { return r; }
     });
