@@ -70,15 +70,9 @@ async function yh(sy, iv, rg) {
 async function tf(u, which) {
   const m = which === "5m";
   let a = [], src = null;
-  if (u[4] && TOK) {
-    try { a = await oanda(u[4], m ? "M5" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {}
-  }
-  if (u[1]) {
-    try { a = await okx(u[1], m ? "5m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {}
-  }
-  if (u[2]) {
-    try { const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {}
-  }
+  if (u[4] && TOK) { try { a = await oanda(u[4], m ? "M5" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {} }
+  if (u[1]) { try { a = await okx(u[1], m ? "5m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {} }
+  if (u[2]) { try { const y = await yh(u[2], m ? "5m" : "1h", m ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {} }
   return a;
 }
 
@@ -159,8 +153,8 @@ function isOpen(id) {
 function openSig(id, side, entry, mode, now, extra) {
   const e = extra || {};
   const risk = (e.sl != null && entry != null) ? Math.abs(entry - e.sl) : null;
-  const tp = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 2 * risk : entry - 2 * risk) : null);
-  STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp, d: e.d, bt: e.bt, currentSl: e.sl, currentR: 0 };
+  const tp1 = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 1.5 * risk : entry - 1.5 * risk) : null);
+  STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp: tp1, d: e.d, bt: e.bt, currentSl: e.sl, currentR: 0, tp1Hit: false };
 }
 function calcR(side, entry, sl, exitPx) {
   const risk = Math.abs(entry - sl);
@@ -169,7 +163,7 @@ function calcR(side, entry, sl, exitPx) {
   return (L ? (exitPx - entry) : (entry - exitPx)) / risk;
 }
 
-// 🛠 تابع جدید: محاسبه وضعیت لحظه‌ای (Trailing SL و سود فعلی)
+// 🛠 تابع محاسبه وضعیت داینامیک (Trailing & Partial)
 function updateTrailingState(a, bars) {
   if (!bars || !bars.length) return;
   const risk = Math.abs(a.entry - a.sl);
@@ -179,7 +173,10 @@ function updateTrailingState(a, bars) {
   let trailSl = a.sl;
   let peakFav = 0;
   const trailAfterR = 1.0;
-  
+  let tp1Hit = a.tp1Hit || false;
+
+  if (tp1Hit) trailSl = Math.max(trailSl, a.entry); // اگر TP1 خورد، SL به نقطه ورود می‌رود
+
   const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
   const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
   const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
@@ -187,16 +184,29 @@ function updateTrailingState(a, bars) {
   for (const b of bars) {
     if (b.time < start) continue;
     if (a.side === "LONG") {
+      // Check TP1
+      const tp1 = a.side === "LONG" ? a.entry + 1.5 * risk : a.entry - 1.5 * risk;
+      if (!tp1Hit && b.high >= tp1) {
+          tp1Hit = true;
+          trailSl = Math.max(trailSl, a.entry);
+      }
+
       const fav = (b.high - a.entry) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR) {
+      if (fav >= trailAfterR && tp1Hit) { // فقط بعد از TP1 تریلینگ میکنیم
         const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
         if (newSl > trailSl) trailSl = newSl;
       }
     } else {
+      const tp1 = a.entry - 1.5 * risk;
+      if (!tp1Hit && b.low <= tp1) {
+          tp1Hit = true;
+          trailSl = Math.min(trailSl, a.entry);
+      }
+      
       const fav = (a.entry - b.low) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR) {
+      if (fav >= trailAfterR && tp1Hit) {
         const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
         if (newSl < trailSl) trailSl = newSl;
       }
@@ -204,23 +214,27 @@ function updateTrailingState(a, bars) {
   }
   
   a.currentSl = trailSl;
-  a.peakFav = peakFav;
+  a.tp1Hit = tp1Hit;
   
   const last = bars[bars.length - 1];
   if (last) {
-    a.currentR = +calcR(a.side, a.entry, a.sl, last.close).toFixed(2);
+    const liveR = calcR(a.side, a.entry, a.sl, last.close);
+    // اگر TP1 خورده باشد، ۵۰٪ با 1.5R بسته شده و ۵۰٪ دیگر با R لحظه‌ای محاسبه می‌شود
+    a.currentR = tp1Hit ? +((0.5 * 1.5) + (0.5 * liveR)).toFixed(2) : +liveR.toFixed(2);
   }
 }
 
+// 🛠 منطق خروج پله‌ای (Partial TP)
 function resolveFromBars(a, bars, now) {
   if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
   const risk = Math.abs(a.entry - a.sl);
   if (!risk || !isFinite(risk)) return null;
   
-  const tp = (a.tp != null) ? a.tp : (a.side === "LONG" ? a.entry + 3 * risk : a.entry - 3 * risk);
+  const tp1 = (a.side === "LONG" ? a.entry + 1.5 * risk : a.entry - 1.5 * risk);
+  const finalTp = (a.side === "LONG" ? a.entry + 4.0 * risk : a.entry - 4.0 * risk);
   const start = a.bt || a.time;
   
-  let trailSl = a.sl, armed = false, peakFav = 0;
+  let trailSl = a.sl, peakFav = 0, tp1Hit = a.tp1Hit || false;
   const trailAfterR = 1.0;
   
   const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
@@ -229,32 +243,75 @@ function resolveFromBars(a, bars, now) {
 
   for (const b of bars) {
     if (b.time < start) continue;
+    
     if (a.side === "LONG") {
+      // 1. بررسی TP1
+      if (!tp1Hit && b.high >= tp1) {
+          tp1Hit = true;
+          trailSl = Math.max(trailSl, a.entry); // SL -> BE
+      }
+      
+      // 2. بررسی Target نهایی (R4)
+      if (b.high >= finalTp) {
+          const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0; 
+          return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
+      }
+
+      // 3. بررسی Trailing Stop / SL
       const fav = (b.high - a.entry) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR) { armed = true; const newSl = Math.max(trailSl, b.high - trailDist, a.entry); if (newSl > trailSl) trailSl = newSl; }
-      if (b.low <= trailSl) {
-        const why = armed && trailSl >= a.entry ? (trailSl > a.entry ? "TRAIL" : "BE") : "SL";
-        const exit = trailSl;
-        return { result: calcR(a.side, a.entry, a.sl, exit) >= 0 ? (why === "SL" ? "loss" : "win") : "loss", exit, why, R: calcR(a.side, a.entry, a.sl, exit), closeTime: b.time };
+      if (fav >= trailAfterR && tp1Hit) { 
+        const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
+        if (newSl > trailSl) trailSl = newSl;
       }
-      if (b.high >= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
+      
+      if (b.low <= trailSl) {
+        if (tp1Hit) {
+            const trailR = calcR(a.side, a.entry, a.sl, trailSl);
+            const combinedR = (0.5 * 1.5) + (0.5 * trailR);
+            return { result: combinedR >= 0 ? "win" : "loss", exit: trailSl, why: "TP1+TRAIL", R: combinedR, closeTime: b.time, tp1Hit: true };
+        } else {
+            return { result: "loss", exit: trailSl, why: "SL", R: -1, closeTime: b.time, tp1Hit: false };
+        }
+      }
     } else {
+      // منطق SHORT (دقیقا مانند لانگ اما برعکس)
+      if (!tp1Hit && b.low <= tp1) {
+          tp1Hit = true;
+          trailSl = Math.min(trailSl, a.entry);
+      }
+      if (b.low <= finalTp) {
+          const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0;
+          return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
+      }
       const fav = (a.entry - b.low) / risk;
       if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR) { armed = true; const newSl = Math.min(trailSl, b.low + trailDist, a.entry); if (newSl < trailSl) trailSl = newSl; }
-      if (b.high >= trailSl) {
-        const why = armed && trailSl <= a.entry ? (trailSl < a.entry ? "TRAIL" : "BE") : "SL";
-        const exit = trailSl;
-        return { result: calcR(a.side, a.entry, a.sl, exit) >= 0 ? (why === "SL" ? "loss" : "win") : "loss", exit, why, R: calcR(a.side, a.entry, a.sl, exit), closeTime: b.time };
+      if (fav >= trailAfterR && tp1Hit) {
+        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
+        if (newSl < trailSl) trailSl = newSl;
       }
-      if (b.low <= tp) return { result: "win", exit: tp, why: "TP", R: calcR(a.side, a.entry, a.sl, tp), closeTime: b.time };
+      if (b.high >= trailSl) {
+        if (tp1Hit) {
+            const trailR = calcR(a.side, a.entry, a.sl, trailSl);
+            const combinedR = (0.5 * 1.5) + (0.5 * trailR);
+            return { result: combinedR >= 0 ? "win" : "loss", exit: trailSl, why: "TP1+TRAIL", R: combinedR, closeTime: b.time, tp1Hit: true };
+        } else {
+            return { result: "loss", exit: trailSl, why: "SL", R: -1, closeTime: b.time, tp1Hit: false };
+        }
+      }
     }
   }
+  
   const last = bars[bars.length - 1];
   const holdLimit = peakFav >= 1.0 ? (18 * 3600) : MAX_HOLD_SEC;
   if (last && now - a.time >= holdLimit) {
-    return { result: "time", exit: last.close, why: peakFav >= 1.0 ? "TIME_STRONG" : "TIME", R: calcR(a.side, a.entry, a.sl, last.close), closeTime: last.time };
+    let R = calcR(a.side, a.entry, a.sl, last.close);
+    let why = "TIME";
+    if (tp1Hit) {
+        R = (0.5 * 1.5) + (0.5 * R);
+        why = "TIME_PARTIAL";
+    }
+    return { result: R >= 0 ? "win" : "loss", exit: last.close, why: why, R: R, closeTime: last.time, tp1Hit: tp1Hit };
   }
   return null;
 }
@@ -263,11 +320,11 @@ function applyOutcomeToHistory(history, id, side, day, outcome, now) {
   for (let i = history.length - 1; i >= 0; i--) {
     const h = history[i];
     if (h.id === id && h.side === side && !h.result) {
-      h.result = outcome.result; h.exit = outcome.exit; h.why = outcome.why; h.R = +Number(outcome.R).toFixed(2); h.closeTime = outcome.closeTime || now;
+      h.result = outcome.result; h.exit = outcome.exit; h.why = outcome.why; h.R = +Number(outcome.R).toFixed(2); h.closeTime = outcome.closeTime || now; h.tp1Hit = outcome.tp1Hit;
       return;
     }
   }
-  history.push({ id, side, entry: null, result: outcome.result, exit: outcome.exit, why: outcome.why, R: +Number(outcome.R).toFixed(2), time: now, closeTime: outcome.closeTime || now, k: id + "|" + side + "|out|" + day });
+  history.push({ id, side, entry: null, result: outcome.result, exit: outcome.exit, why: outcome.why, R: +Number(outcome.R).toFixed(2), time: now, closeTime: outcome.closeTime || now, k: id + "|" + side + "|out|" + day, tp1Hit: outcome.tp1Hit });
 }
 
 function touchActives(now, barMap, history) {
@@ -282,7 +339,6 @@ function touchActives(now, barMap, history) {
       delete STATE.sent[id + "|" + a.side];
       delete STATE.active[id];
     } else {
-      // 🛠 اگر بسته نشد، وضعیت تریلینگ را آپدیت کن
       updateTrailingState(a, bars);
     }
   }
@@ -417,14 +473,14 @@ async function once(now) {
     if (typeof filterCorrelated === "function") {
       const active = allRows.filter(r => r && r.side);
       const kept = new Set(filterCorrelated(active).map(r => r.id + "|" + r.side));
-      allRows.forEach(r => { if (r.side && !kept.has(r.id + "|" + r.side)) { r.side = null; r.fail = r.fail || "حذف به‌خاطر همبستگی با سیگنال قوی‌تر"; } });
+      allRows.forEach(r => { if (r.side && !kept.has(r.id + "|" + r.side)) { r.side = null; r.fail = r.fail || "حذف به‌خاطر همبستگی"; } });
     }
   } catch (e) {}
 
   const MAX_NEW_PER_SCAN = 6;
   const pending = allRows.filter(r => r && r.side && r._pendingNotify)
     .sort((a, b) => ((b.pass || 0) / Math.max(1, b.total || 1)) - ((a.pass || 0) / Math.max(1, a.total || 1)));
-  pending.forEach((r, i) => { if (i >= MAX_NEW_PER_SCAN) { r.side = null; r._pendingNotify = false; r.fail = "سقف سیگنال در این اسکن"; } });
+  pending.forEach((r, i) => { if (i >= MAX_NEW_PER_SCAN) { r.side = null; r._pendingNotify = false; r.fail = "سقف سیگنال"; } });
 
   for (const row of allRows) {
     if (!row || !row.side || !row._pendingNotify) continue;
@@ -432,8 +488,7 @@ async function once(now) {
     const histKey = row._histKey || (row.id + "|" + row.side + "|" + dayKey(now));
     if (STATE.sent[lockKey] || STATE.sent[histKey] || isOpen(row.id)) { row._pendingNotify = false; continue; }
     
-    STATE.sent[lockKey] = now;
-    STATE.sent[histKey] = now;
+    STATE.sent[lockKey] = now; STATE.sent[histKey] = now;
     openSig(row.id, row.side, row.entry, row.mode, now, { sl: row.sl, tp: row.tp, d: row.d, bt: row.bt });
     
     const checksData = row._checks || [];
@@ -449,7 +504,7 @@ async function once(now) {
     const sent = await tg(
       "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
       "\nEntry " + fd(row.entry, row.d) + " | SL " + fd(row.sl, row.d) +
-      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش بسته شد\nخروج: " + (row.mode === "range" ? "حد سود 1.5R یا SL" : "تریلینگ استاپ / SL"),
+      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش\nخروج: " + (row.mode === "range" ? "حد سود 1.5R یا SL" : "50% در 1.5R + مابقی در 4R (تریلینگ)"),
       TH_SIG
     );
     
@@ -458,7 +513,7 @@ async function once(now) {
     } else {
       try {
         const riskDist = Math.abs(row.entry - row.sl);
-        const tpVal = row.tp != null ? row.tp : (L ? row.entry + 2 * riskDist : row.entry - 2 * riskDist);
+        const tpVal = row.tp != null ? row.tp : (L ? row.entry + 1.5 * riskDist : row.entry - 1.5 * riskDist);
         fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + "," + fd(tpVal, row.d) + "," + now);
       } catch (e) {}
     }
@@ -487,7 +542,7 @@ async function once(now) {
 if (require.main === module) (async () => {
   const t0 = Date.now();
   for (;;) {
-    try { await once(Date.now() / 1000); } catch (e) {}
+    try { await once(Date.now() / 1000); } catch (e) { console.error("scan failed", e.message); }
     if (!LOOP) break; 
     const elapsed = Date.now() - t0;
     if (elapsed >= LOOP * 1000) break;
