@@ -4,10 +4,10 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: '*/15 * * * *' # اجرای خودکار هر ۱۵ دقیقه
+    - cron: '*/5 * * * *' # 👈 اجرای خودکار گیت‌هاب هر ۵ دقیقه
   workflow_dispatch:
 
-# 👈 جلوگیری از اجرای همزمان چند اسکنر (حل مشکل سیگنال تکراری و تداخل)
+# 👈 جلوگیری از اجرای همزمان (برای جلوگیری از سیگنال تکراری)
 concurrency:
   group: "scanner-group"
   cancel-in-progress: false
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 15 # فرصت کافی برای اجرای ۵ دقیقه‌ای
     permissions:
       contents: write
 
@@ -25,7 +25,12 @@ jobs:
       npm_config_sharp_libvips_binary_host: "https://npmmirror.com/mirrors/sharp-libvips"
       SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
       
-      # توکن‌ها و تنظیمات (مطمئن شوید این مقادیر در Secrets گیت‌هاب تنظیم شده‌اند)
+      # 👈 تنظیمات حیاتی برای لوپ داخلی:
+      # 300 ثانیه (5 دقیقه) زنده بمان و در این مدت هر 60 ثانیه (1 دقیقه) اسکن کن
+      LOOP_SECONDS: "300"
+      INTERVAL: "60"
+      
+      # توکن‌ها و تنظیمات (مطمئن شوید در Secrets گیت‌هاب تنظیم شده‌اند)
       OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
       OANDA_ENV: ${{ secrets.OANDA_ENV }}
       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -45,7 +50,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # برای جلوگیری از خطاهای git در عملیات rebase
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,10 +68,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # اضافه کردن فایل‌های تولید شده توسط اسکنر
           git add data.json history.json latest_signal.txt
           
-          # اگر هیچ تغییری در داده‌ها وجود نداشت، متوقف شو
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
@@ -74,8 +77,6 @@ jobs:
           
           git commit -m "Update scanner data [skip ci]"
           
-          # 👈 حل خودکار تداخل (Conflict):
-          # اگر گیت نتوانست rebase کند، به زور از نسخه محلی (دیتای جدید اسکنر) استفاده می‌کند
           git pull --rebase -X ours origin main || {
             echo "Rebase conflicted. Resolving by keeping local changes..."
             git rebase --abort || true
