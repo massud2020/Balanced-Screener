@@ -288,7 +288,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v87</span>
+    <span class="brand-sub">v88</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -325,7 +325,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v87</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v88</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -586,7 +586,7 @@ let histTab = 'closed';
 let currentSignalInModal = null;
 
 /* =========================================================
-   🛠 مدیریت صحیح دکمه Back اندروید (Capacitor / Cordova / Web)
+   🛠 مدیریت صحیح دکمه Back (تله تاریخچه + پشتیبانی از Capacitor)
    ========================================================= */
 let activeModal = null;
 let lastBackPress = 0;
@@ -614,68 +614,82 @@ function closeActiveModal() {
     return false;
 }
 
-function handleBack() {
-    if (closeActiveModal()) return;
-    
-    const now = Date.now();
-    if (now - lastBackPress < 2000) {
-        // خروج از اپلیکیشن
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.exitApp();
-        } else if (navigator.app) {
-            navigator.app.exitApp();
-        }
-    } else {
-        // اولین بار زدن دکمه
-        lastBackPress = now;
-        showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-    }
+function isNativeApp() {
+    return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) || window.cordova;
 }
 
-// 1. هندل کردن در Capacitor
+// تله تاریخچه: دو وضعیت پایه می‌سازیم تا WebView هرگز فکر نکند به ابتدای تاریخچه رسیده است
+history.replaceState({ page: 'main' }, '');
+history.pushState({ page: 'main' }, '');
+
+window.addEventListener('popstate', function (event) {
+    if (activeModal) {
+        // مودال بسته می‌شود
+        closeActiveModal();
+        if (!isNativeApp()) {
+            // در حالت وب، دوباره تله می‌گذاریم تا از اپ خارج نشود
+            history.pushState({ page: 'main' }, '');
+        }
+    } else {
+        // در صفحه اصلی هستیم (فقط برای وب‌ویو معمولی)
+        if (!isNativeApp()) {
+            const now = Date.now();
+            if (now - lastBackPress < 2000) {
+                // اجازه خروج با بار دوم
+                window.history.go(-window.history.length);
+            } else {
+                // بار اول: تله مجدد و نمایش پیام
+                lastBackPress = now;
+                history.pushState({ page: 'main' }, '');
+                showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
+            }
+        }
+    }
+});
+
+// در محیط Capacitor از لیسنر اختصاصی خودش استفاده می‌کنیم
 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-    window.Capacitor.Plugins.App.addListener('backButton', handleBack);
-} 
-// 2. هندل کردن در Cordova
-else if (window.cordova) {
-    document.addEventListener('backbutton', handleBack, false);
-} 
-// 3. هندل کردن در مرورگر یا WebView ساده
-else {
-    history.replaceState({ page: 'main' }, '', '#main');
-    window.addEventListener('popstate', function (event) {
-        if (closeActiveModal()) {
-            history.pushState({ page: 'main' }, '', '#main');
+    window.Capacitor.Plugins.App.addListener('backButton', (data) => {
+        if (activeModal) {
+            history.back(); // باعث فعال شدن popstate شده و مودال را می‌بندد
         } else {
             const now = Date.now();
             if (now - lastBackPress < 2000) {
-                // اجازه خروج
+                window.Capacitor.Plugins.App.exitApp();
             } else {
                 lastBackPress = now;
-                history.pushState({ page: 'main' }, '', '#main');
                 showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
             }
         }
     });
+} 
+// در محیط Cordova
+else if (window.cordova) {
+    document.addEventListener('backbutton', (e) => {
+        if (activeModal) {
+            history.back();
+        } else {
+            const now = Date.now();
+            if (now - lastBackPress < 2000) {
+                navigator.app.exitApp();
+            } else {
+                lastBackPress = now;
+                showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
+            }
+        }
+    }, false);
 }
 
 function openModal(id) {
     if (activeModal) return; 
     activeModal = id;
     document.getElementById(id).style.display = "block";
-    
-    if (!window.Capacitor && !window.cordova) {
-        history.pushState({ modal: id }, '', '#' + id);
-    }
+    history.pushState({ modal: id }, '');
 }
 
 function closeModal(id) {
     if (activeModal === id) {
-        if (!window.Capacitor && !window.cordova) {
-            history.back(); 
-        } else {
-            closeActiveModal();
-        }
+        history.back(); 
     }
 }
 /* ========================================================= */
