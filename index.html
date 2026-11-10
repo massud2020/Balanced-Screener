@@ -282,7 +282,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v82</span>
+    <span class="brand-sub">v83</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -319,7 +319,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v82</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v83</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -584,12 +584,13 @@ let histFilter = 'all';
 let histTab = 'closed';
 let currentSignalInModal = null;
 
-// 🛠 مدیریت دکمه Back اندروید
+// 🛠 مدیریت تاریخچه و دکمه Back اندروید (رفع مشکل خروج از اپ)
 let activeModal = null;
 window.addEventListener('popstate', (e) => {
     if (activeModal) {
-        document.getElementById(activeModal).style.display = "none";
-        if (activeModal === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
+        const id = activeModal;
+        document.getElementById(id).style.display = "none";
+        if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
         activeModal = null;
     }
 });
@@ -603,8 +604,7 @@ function openModal(id) {
 
 function closeModal(id) {
     if (activeModal === id) {
-        document.getElementById(id).style.display = "none";
-        activeModal = null;
+        // به جای مخفی کردن دستی، فقط به عقب برمی‌گردیم تا رویداد popstate مدیریت را انجام دهد
         history.back(); 
     }
 }
@@ -766,13 +766,19 @@ function renderLwcChart(r) {
     destroyLwc();
     const box = $("tvContainer");
     if (!box) return;
+    
     if (typeof LightweightCharts === 'undefined') {
         box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--rb);">کتابخانه چارت بارگذاری نشد</div>';
         return;
     }
-    box.innerHTML = '<div id="lwcMain" style="width:100%;height:66%;"></div><div id="lwcRsi" style="width:100%;height:34%;"></div>';
+    
     const candles = toObjs((r.m15 && r.m15.length) ? r.m15 : (r.a || []));
-    if (!candles.length) { box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--mu);">داده‌ای برای نمایش نیست</div>'; return; }
+    if (!candles.length) { 
+        box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:13px;">داده‌ای برای نمایش نیست (معامله فعال یا تاریخچه ناکافی)</div>'; 
+        return; 
+    }
+
+    box.innerHTML = '<div id="lwcMain" style="width:100%;height:66%;"></div><div id="lwcRsi" style="width:100%;height:34%;"></div>';
 
     const base = {
         layout: { background: { color: '#0b0d11' }, textColor: '#a7aebb', fontSize: 10 },
@@ -799,14 +805,14 @@ function renderLwcChart(r) {
     addEma(50, '#ec4899');   // EMA50 صورتی
     addEma(200, '#ff5c5c');  // EMA200 قرمز
 
-    // ⬇️ خطوط ورود / حد ضرر / حد سود روی خود نمودار
+    // خطوط ورود / حد ضرر / حد سود
     if (r.side) {
         if (r.entry) cs.createPriceLine({ price: +r.entry, color: '#e6e9ee', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid,  axisLabelVisible: true, title: 'Entry' });
         if (r.sl)    cs.createPriceLine({ price: +r.sl,    color: '#ff5c5c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' });
         if (r.tp)    cs.createPriceLine({ price: +r.tp,    color: '#46c58c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' });
     }
 
-    // RSI در پنل پایین
+    // RSI
     const rsiChart = LightweightCharts.createChart(document.getElementById('lwcRsi'), {
         ...base,
         rightPriceScale: { borderColor: '#2d3442', scaleMargins: { top: 0.15, bottom: 0.15 } }
@@ -817,7 +823,7 @@ function renderLwcChart(r) {
     rs.createPriceLine({ price: 70, color: 'rgba(255,92,92,0.4)',  lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
     rs.createPriceLine({ price: 30, color: 'rgba(70,197,140,0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
 
-    // اسکرول هم‌زمان بین دو چارت
+    // اسکرول هم‌زمان
     main.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { rsiChart.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
     rsiChart.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { main.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
 
@@ -900,7 +906,6 @@ window.scan = async function(isAuto = false) {
                 let mkt = activeId.endsWith('USDT') ? 'crypto' : (['XAUUSD', 'XAGUSD'].includes(activeId) ? 'metal' : 'forex');
                 const rowIndex = rows.findIndex(r => r.id === activeId);
                 
-                // 🛠 اختصاص مقادیر پیش‌فرض برای جلوگیری از کرش در toFixed
                 if (rowIndex !== -1) {
                     rows[rowIndex].side = activeTrade.side; 
                     rows[rowIndex].entry = activeTrade.entry; 
@@ -1004,7 +1009,6 @@ function renderList(rows) {
             const res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
             return { ...r, ...res };
         } catch(e) { 
-            // 🛠 جلوگیری از کرش اگر موتور تحلیل خطا داد
             return { ...r, score: 0, maxScore: 0, scorePercent: 0, checks: [], fail: "خطا در تحلیل", checkedSide: 'LONG' }; 
         }
     });
@@ -1042,7 +1046,6 @@ function renderList(rows) {
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
             
             let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
-            // 🛠 اصلاح باگ toFixed
             let targetValue = r.isActive ? `${(r.currentR || 0) > 0 ? '+' : ''}${r.currentR || 0}R` : ((r.tp !== undefined && r.tp !== null) ? safeFixed(r.tp, 5) : 'RSI');
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
@@ -1092,15 +1095,7 @@ function renderList(rows) {
     $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
-function getTvSymbol(id, mkt) {
-    if (mkt === 'crypto' || id.endsWith('USDT')) return `BINANCE:${id}`;
-    if (mkt === 'forex') return `FX:${id}`;
-    if (mkt === 'stock') return `NASDAQ:${id}`; 
-    if (mkt === 'index') return `FOREXCOM:${id}`;
-    return `BINANCE:${id}`;
-}
-
-// 🛠 نمایش جزئیات نماد (سیگنال یا بدون سیگنال) با چارت دارای خطوط Entry/SL/TP
+// 🛠 نمایش جزئیات نماد (رفع مشکل خالی بودن نمودار با تغییر ترتیب اجرا)
 window.showSignalDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
@@ -1112,26 +1107,31 @@ window.showSignalDetails = function(symId) {
     const scorePercent = r.scorePercent || 0;
     const numChecks = (r.checks || []).length || 9;
 
-    // عنوان مودال
+    // 1. تنظیم عنوان مودال
     $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
         <span>${r.id}</span> 
         <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> 
         ${isSignal ? '<div class="ns-modal-live">LIVE</div>' : ''}
     </div>`;
     
-    // دکمه پخش صدا فقط برای سیگنال‌ها
+    // دکمه پخش صدا
     $("nsSpeakBtn").style.display = isSignal ? "inline-block" : "none";
 
-    // ✅ چارت رسم می‌شود با خطوط Entry / SL / TP
-    renderLwcChart(r);
+    // 2. باز کردن مودال (مهم‌ترین بخش برای رفع مشکل صفحه سیاه)
+    openModal("nsModal");
 
-    // دایره امتیاز
+    // 3. رسم نمودار با یک تاخیر کوتاه تا DOM حتما ابعاد لازم را گرفته باشد
+    setTimeout(() => {
+        renderLwcChart(r);
+    }, 50);
+
+    // 4. تنظیم دایره امتیاز
     const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
     $("nsGauge").style.background = bgGradient;
     $("nsGaugeText").innerHTML = `${safeFixed(r.score || 0, 1)}<small>/${safeFixed(r.maxScore || 0, 1)}</small>`;
     $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · امتیاز ${scorePercent.toFixed(0)}٪`;
 
-    // باکس‌های Entry, SL, TP
+    // 5. باکس‌های Entry, SL, TP
     if (isSignal) {
         $("nsLevels").style.display = "grid";
         $("nsEntry").innerText = (r.entry !== undefined && r.entry !== null) ? safeFixed(r.entry, 5) : '-';
@@ -1141,7 +1141,7 @@ window.showSignalDetails = function(symId) {
         $("nsLevels").style.display = "none";
     }
 
-    // لیست شروط
+    // 6. لیست شروط
     let activeChecks = r.checks || [];
     let checksHtml = activeChecks.map(c => {
         const isOk = (c.ok === true || c.ok === 1 || c.o === 1);
@@ -1173,23 +1173,23 @@ window.showSignalDetails = function(symId) {
             </div>
         </div>`;
     }).join("");
+    
+    // اگر معامله فعال بود و دیتای چک نداشت پیام مناسب نمایش بده
+    if (activeChecks.length === 0 && isSignal) {
+        checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">این یک معامله فعال است. شروط در زمان ورود ثبت شده‌اند.</div>`;
+    }
     $("nsChecksContainer").innerHTML = checksHtml;
 
-    // خلاصه پایین
+    // 7. خلاصه پایین
     const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
     const lastClose = cl.length ? cl[cl.length-1].close : 0;
-    $("nsPrice").innerText = safeFixed(lastClose || 0, 5);
+    $("nsPrice").innerText = (lastClose > 0) ? safeFixed(lastClose, 5) : '-';
     $("nsRsi").innerText = (r.rsi !== undefined && r.rsi !== null) ? safeFixed(r.rsi, 1) : '-';
     $("nsSignalCount").innerText = isSignal ? '1' : '0';
-
-    openModal("nsModal");
 };
 
 window.closeNsModal = function() { 
     closeModal("nsModal");
-    destroyLwc();
-    $("tvContainer").innerHTML = "";
-    currentSignalInModal = null;
 };
 
 renderCondChips(); renderChips(); scan(true);
