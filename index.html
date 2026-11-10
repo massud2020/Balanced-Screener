@@ -288,7 +288,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v86</span>
+    <span class="brand-sub">v87</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -325,7 +325,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v86</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v87</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -614,44 +614,45 @@ function closeActiveModal() {
     return false;
 }
 
-function handleNativeBack() {
+function handleBack() {
     if (closeActiveModal()) return;
     
     const now = Date.now();
     if (now - lastBackPress < 2000) {
-        // خروج از اپلیکیشن در بستر نیتیو
+        // خروج از اپلیکیشن
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
             window.Capacitor.Plugins.App.exitApp();
         } else if (navigator.app) {
             navigator.app.exitApp();
         }
     } else {
+        // اولین بار زدن دکمه
         lastBackPress = now;
         showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
     }
 }
 
-// 1. هندل کردن در Capacitor (اپلیکیشن‌های مدرن)
+// 1. هندل کردن در Capacitor
 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-    window.Capacitor.Plugins.App.addListener('backButton', handleNativeBack);
+    window.Capacitor.Plugins.App.addListener('backButton', handleBack);
 } 
 // 2. هندل کردن در Cordova
 else if (window.cordova) {
-    document.addEventListener('backbutton', handleNativeBack, false);
+    document.addEventListener('backbutton', handleBack, false);
 } 
 // 3. هندل کردن در مرورگر یا WebView ساده
 else {
-    history.replaceState({ page: 'main' }, '');
-    window.addEventListener('popstate', (e) => {
+    history.replaceState({ page: 'main' }, '', '#main');
+    window.addEventListener('popstate', function (event) {
         if (closeActiveModal()) {
-            history.pushState({ page: 'main' }, '');
+            history.pushState({ page: 'main' }, '', '#main');
         } else {
             const now = Date.now();
             if (now - lastBackPress < 2000) {
-                // اجازه میدهد مرورگر به عقب برگردد (بستن WebView)
+                // اجازه خروج
             } else {
                 lastBackPress = now;
-                history.pushState({ page: 'main' }, '');
+                history.pushState({ page: 'main' }, '', '#main');
                 showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
             }
         }
@@ -663,19 +664,17 @@ function openModal(id) {
     activeModal = id;
     document.getElementById(id).style.display = "block";
     
-    if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) && !window.cordova) {
-        history.pushState({ modal: id }, '');
+    if (!window.Capacitor && !window.cordova) {
+        history.pushState({ modal: id }, '', '#' + id);
     }
 }
 
 function closeModal(id) {
     if (activeModal === id) {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            closeActiveModal();
-        } else if (window.cordova) {
-            closeActiveModal();
-        } else {
+        if (!window.Capacitor && !window.cordova) {
             history.back(); 
+        } else {
+            closeActiveModal();
         }
     }
 }
@@ -1138,7 +1137,6 @@ function renderList(rows) {
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
 
-            // 🛠 اگر سیگنال LIVE بود و امتیاز صفر داشت، عبارت LIVE نمایش داده شود
             let scoreDisplay = `${safeFixed(r.score || 0, 1)}/${safeFixed(r.maxScore || 0, 1)}`;
             if (r.isActive && (!r.score || r.score === 0)) {
                 scoreDisplay = '<span style="color:var(--gb); font-weight:800;">LIVE</span>';
@@ -1221,7 +1219,6 @@ window.showSignalDetails = function(symId) {
 
     // 4. تنظیم دایره امتیاز
     if (isSignal && r.isActive && (!r.score || r.score === 0)) {
-        // برای معاملات فعال که امتیاز صفر دارند (چون قیمت حرکت کرده) عبارت LIVE نمایش می‌دهیم
         $("nsGauge").style.background = 'conic-gradient(#46c58c 0deg 360deg)';
         $("nsGaugeText").innerHTML = `<span style="font-size:16px; font-weight:800; color:#0b0d11;">LIVE</span>`;
         $("nsGaugeDesc").innerText = `معامله فعال · در حال پیگیری`;
