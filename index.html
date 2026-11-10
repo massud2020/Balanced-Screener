@@ -10,6 +10,7 @@
 
 <script src="engine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
 <style>
 :root {
@@ -149,7 +150,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
 
-/* استایل نمادهای بدون سیگنال (با دایره داینامیک) */
+/* استایل نمادهای بدون سیگنال */
 .no-sig-card {
     background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px;
     display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
@@ -166,7 +167,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-inner-circle {
     width: 32px; height: 32px; background: var(--card); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 800; color: var(--tx); direction: ltr;
+    font-size: 10px; font-weight: 800; color: var(--tx); direction: ltr;
     box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
 }
 
@@ -176,10 +177,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
 .hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; display:flex; align-items:center; gap:8px;}
 .hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+
 .hist-stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px; }
 .hist-stat-box { background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); text-align:center; }
 .hist-stat-box .lbl { font-size:11px; color:var(--mu); }
 .hist-stat-box .val { font-size:16px; font-weight:800; margin-top:4px; }
+
 .hist-filters { display:flex; gap:6px; margin-bottom:15px; }
 .hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; }
 .hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
@@ -196,25 +199,36 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
 .ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
-.tv-container { width: 100%; height: 350px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; }
+
+.tv-container { width: 100%; height: 460px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; padding: 4px; }
+
+/* 🛠 دایره امتیاز بزرگ (Gauge) با گرادیان داینامیک */
 .gauge-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; }
-.gauge-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
-.gauge-inner { width: 60px; height: 60px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: var(--tx); z-index: 2; }
+.gauge-circle { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
+.gauge-inner { width: 70px; height: 70px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--tx); z-index: 2; flex-direction: column;}
+.gauge-inner small { font-size: 10px; color: var(--mu); font-weight: 600; }
 .gauge-text { font-size: 12px; color: var(--tx2); margin-bottom: 4px; }
+.gauge-sub { font-size: 11px; color: var(--mu); }
+
+/* لیست شرط ها */
 .check-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
 .check-item { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd2); }
 .check-item:last-child { border-bottom: none; }
 .check-header { display: flex; justify-content: space-between; align-items: center; }
-.check-title { font-size: 13px; font-weight: 700; color: var(--tx); }
-.check-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+.check-title { font-size: 13px; font-weight: 700; color: var(--tx); display: flex; align-items: center;}
+.check-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink:0;}
 .check-icon.ok { background: var(--gd); color: var(--gb); }
 .check-icon.fail { background: var(--rd); color: var(--rb); }
 .check-body { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .check-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap; min-width: 45px; text-align: left;}
+
+/* نوار پیشرفت (پروگرس بار) */
 .bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; flex: 1; overflow: hidden; direction: ltr;}
 .bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; }
 .bar-fill.ok { background: var(--gb); }
 .bar-fill.fail { background: var(--rb); }
+
+/* نمایش گرافیکی الگوی ۳+۱ */
 .candle-pattern { display: flex; align-items: center; gap: 4px; height: 20px; }
 .candle { width: 8px; border-radius: 2px; position: relative; }
 .candle.green { background: var(--gb); }
@@ -222,12 +236,17 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .candle .wick { position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: inherit; }
 .candle .wick.top { top: -4px; height: 4px; }
 .candle .wick.bottom { bottom: -4px; height: 4px; }
+
+/* نوار RSI */
 .rsi-bar { flex: 1; height: 6px; border-radius: 4px; background: linear-gradient(to right, var(--gb) 0%, var(--gb) 30%, var(--bd2) 30%, var(--bd2) 70%, var(--rb) 70%, var(--rb) 100%); position: relative; direction: ltr; }
 .rsi-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+/* باکس های خلاصه پایین */
 .bottom-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--bd2); margin-bottom: 15px; }
 .sum-box { display: flex; flex-direction: column; gap: 4px; text-align: center; }
 .sum-box .lbl { font-size: 10.5px; color: var(--mu); }
 .sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
+
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
@@ -263,7 +282,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v80</span>
+    <span class="brand-sub">v81</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -300,7 +319,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v80</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v81</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -418,30 +437,48 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     </div>
 </div>
 
-<!-- 🛠 مودال جزئیات نماد بدون سیگنال -->
+<!-- 🛠 مودال جزئیات نماد (برای سیگنال و بدون سیگنال) -->
 <div id="nsModal">
     <div class="hist-content">
         <div class="ns-modal-header">
             <div class="ns-modal-title" id="nsTitle">نماد</div>
-            <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button id="nsSpeakBtn" class="set-btn green" style="padding:6px 10px; display:none;" onclick="speakCurrentSignal()">🔊 پخش صدا</button>
+                <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
+            </div>
         </div>
         
-        <!-- TradingView Chart Container -->
+        <!-- Chart Container (Lightweight Charts: 3 line for Entry/SL/TP) -->
         <div class="tv-container" id="tvContainer"></div>
 
         <!-- Gauge Section -->
         <div class="gauge-wrapper">
             <div class="gauge-circle" id="nsGauge">
-                <!-- Gradient will be injected here -->
-                <div class="gauge-inner" id="nsGaugeText">0/7</div>
+                <div class="gauge-inner" id="nsGaugeText">0/0</div>
             </div>
             <div class="gauge-text" id="nsGaugeDesc">بررسی برای لانگ ▲ الگوی ۳+۱</div>
+        </div>
+
+        <!-- Entry / SL / TP (برای سیگنال‌ها) -->
+        <div class="bottom-summary" id="nsLevels" style="display:none;">
+            <div class="sum-box">
+                <div class="lbl" style="color:var(--rb);">حد ضرر (SL)</div>
+                <div class="val" id="nsSl" style="color:var(--rb);">-</div>
+            </div>
+            <div class="sum-box">
+                <div class="lbl" style="color:var(--tx);">نقطه ورود (Entry)</div>
+                <div class="val" id="nsEntry" style="color:var(--tx);">-</div>
+            </div>
+            <div class="sum-box">
+                <div class="lbl" style="color:var(--gb);">حد سود (TP)</div>
+                <div class="val" id="nsTp" style="color:var(--gb);">-</div>
+            </div>
         </div>
 
         <!-- Checks List -->
         <div class="check-list" id="nsChecksContainer"></div>
 
-        <!-- Bottom Summary -->
+        <!-- Bottom Summary (برای همه) -->
         <div class="bottom-summary">
             <div class="sum-box">
                 <div class="lbl">قیمت</div>
@@ -544,24 +581,49 @@ let openHistData = [];
 
 let histFilter = 'all';
 let histTab = 'closed';
+let currentSignalInModal = null;
+
+// 🛠 مدیریت دکمه Back اندروید
+let activeModal = null;
+window.addEventListener('popstate', (e) => {
+    if (activeModal) {
+        document.getElementById(activeModal).style.display = "none";
+        if (activeModal === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
+        activeModal = null;
+    }
+});
+
+function openModal(id) {
+    if (activeModal) return; 
+    activeModal = id;
+    document.getElementById(id).style.display = "block";
+    history.pushState({ modal: id }, '');
+}
+
+function closeModal(id) {
+    if (activeModal === id) {
+        document.getElementById(id).style.display = "none";
+        activeModal = null;
+        history.back(); 
+    }
+}
 
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
 
-function getGaugeGradient(pass, total, side) {
-    if (total === 0) return 'conic-gradient(#2d3442 0deg 360deg)';
-    let color = '';
-    if (side === 'LONG') {
-        let hue = Math.round((pass / total) * 120); 
-        color = `hsl(${hue}, 70%, 50%)`;
-    } else {
-        let hue = Math.round((1 - pass / total) * 120); 
-        color = `hsl(${hue}, 70%, 50%)`;
-    }
-    let angle = 360 / total;
+function getGaugeGradient(scorePercent, side, numSegments) {
+    let hue = side === 'LONG' ? Math.round(scorePercent * 1.2) : Math.round((100 - scorePercent) * 1.2);
+    const color = `hsl(${hue}, 70%, 50%)`;
+    const segs = Math.max(3, Math.round(numSegments || 9));
+    const anglePerSeg = 360 / segs;
+    const segsToFill = Math.round((scorePercent / 100) * segs);
+    
     let stops = [];
-    for(let i=0; i<total; i++) {
-        let c = i < pass ? color : '#2d3442'; 
-        stops.push(`${c} ${i*angle}deg ${(i+1)*angle - 6}deg, transparent ${(i+1)*angle - 6}deg ${(i+1)*angle}deg`);
+    for (let i = 0; i < segs; i++) {
+        const startDeg = i * anglePerSeg;
+        const endDeg = (i + 1) * anglePerSeg;
+        const gapDeg = 6;
+        const c = i < segsToFill ? color : '#2d3442';
+        stops.push(`${c} ${startDeg}deg ${endDeg - gapDeg}deg, transparent ${endDeg - gapDeg}deg ${endDeg}deg`);
     }
     return `conic-gradient(${stops.join(', ')})`;
 }
@@ -573,6 +635,12 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
         return new Promise((resolve) => { try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang; u.rate = rate; u.onend = () => resolve({ success: true, engine: 'Web Speech API' }); u.onerror = (e) => resolve({ success: false, error: e.error || "Web Speech Error" }); window.speechSynthesis.speak(u); } catch(e) { resolve({ success: false, error: e.message }); } });
     }
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
+}
+
+window.speakCurrentSignal = async function() {
+    if (currentSignalInModal) {
+        await speakSignal(currentSignalInModal.id, currentSignalInModal.side);
+    }
 }
 
 async function speakSignal(symbol, side) {
@@ -589,8 +657,8 @@ window.testVoice = async function() {
 };
 
 window.toggleSettings = function() { const p = $("settingsPanel"); p.classList.toggle("on"); $("appBody").style.display = p.classList.contains("on") ? "none" : "block"; };
-window.openHistory = function() { $("histModal").style.display = "block"; $("unreadBadge").classList.remove("on"); if(openHistData && openHistData.length > 0) LS("bs_last_seen_signals_keys", openHistData.map(d => d.k).join(',')); renderHistory(); };
-window.closeHistory = function() { $("histModal").style.display = "none"; };
+window.openHistory = function() { openModal("histModal"); $("unreadBadge").classList.remove("on"); if(openHistData && openHistData.length > 0) LS("bs_last_seen_signals_keys", openHistData.map(d => d.k).join(',')); renderHistory(); };
+window.closeHistory = function() { closeModal("histModal"); };
 window.setHistFilter = function(f, btn) { histFilter = f; document.querySelectorAll(".hist-filters button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 
@@ -666,6 +734,95 @@ window.setMode = function(mode) {
     $("stratTitle").textContent = mode === "range" ? "استراتژی رنج" : "الگوی ۳+۱";
     renderCondChips(); if(LAST) renderList(LAST.rows);
 };
+
+/* =========================================================
+   🛠 Lightweight Charts: رسم چارت با خطوط Entry/SL/TP
+   ========================================================= */
+let lwcMain = null, lwcRsi = null;
+function destroyLwc() {
+    try { if (lwcMain) { lwcMain.remove(); lwcMain = null; } } catch(e){}
+    try { if (lwcRsi)  { lwcRsi.remove();  lwcRsi  = null; } } catch(e){}
+}
+function calcEma(data, len) {
+    const k = 2 / (len + 1); let prev = null; const out = [];
+    for (let i = 0; i < data.length; i++) {
+        prev = (i === 0) ? data[i].close : data[i].close * k + prev * (1 - k);
+        out.push({ time: data[i].time, value: prev });
+    }
+    return out;
+}
+function calcRsi(data, len = 14) {
+    const out = []; let g = 0, l = 0;
+    for (let i = 1; i < data.length; i++) {
+        const diff = data[i].close - data[i-1].close;
+        const up = Math.max(diff, 0), dn = Math.max(-diff, 0);
+        if (i <= len) { g += up; l += dn; if (i === len) { g /= len; l /= len; out.push({ time: data[i].time, value: l === 0 ? 100 : 100 - 100/(1 + g/l) }); } }
+        else { g = (g*(len-1)+up)/len; l = (l*(len-1)+dn)/len; out.push({ time: data[i].time, value: l === 0 ? 100 : 100 - 100/(1 + g/l) }); }
+    }
+    return out;
+}
+function renderLwcChart(r) {
+    destroyLwc();
+    const box = $("tvContainer");
+    if (!box) return;
+    if (typeof LightweightCharts === 'undefined') {
+        box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--rb);">کتابخانه چارت بارگذاری نشد</div>';
+        return;
+    }
+    box.innerHTML = '<div id="lwcMain" style="width:100%;height:66%;"></div><div id="lwcRsi" style="width:100%;height:34%;"></div>';
+    const candles = toObjs((r.m15 && r.m15.length) ? r.m15 : (r.a || []));
+    if (!candles.length) { box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--mu);">داده‌ای برای نمایش نیست</div>'; return; }
+
+    const base = {
+        layout: { background: { color: '#0b0d11' }, textColor: '#a7aebb', fontSize: 10 },
+        grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
+        rightPriceScale: { borderColor: '#2d3442' },
+        timeScale: { borderColor: '#2d3442', timeVisible: true, secondsVisible: false, rightOffset: 3 },
+        crosshair: { mode: 0 }
+    };
+
+    const main = LightweightCharts.createChart(document.getElementById('lwcMain'), base);
+    lwcMain = main;
+    const cs = main.addCandlestickSeries({
+        upColor: '#46c58c', downColor: '#ff5c5c',
+        borderUpColor: '#46c58c', borderDownColor: '#ff5c5c',
+        wickUpColor: '#46c58c', wickDownColor: '#ff5c5c'
+    });
+    cs.setData(candles);
+
+    const addEma = (len, color) => {
+        const s = main.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+        s.setData(calcEma(candles, len));
+    };
+    addEma(21, '#46c58c');   // EMA21 سبز
+    addEma(50, '#ec4899');   // EMA50 صورتی
+    addEma(200, '#ff5c5c');  // EMA200 قرمز
+
+    // ⬇️ خطوط ورود / حد ضرر / حد سود روی خود نمودار
+    if (r.side) {
+        if (r.entry) cs.createPriceLine({ price: +r.entry, color: '#e6e9ee', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid,  axisLabelVisible: true, title: 'Entry' });
+        if (r.sl)    cs.createPriceLine({ price: +r.sl,    color: '#ff5c5c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' });
+        if (r.tp)    cs.createPriceLine({ price: +r.tp,    color: '#46c58c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' });
+    }
+
+    // RSI در پنل پایین
+    const rsiChart = LightweightCharts.createChart(document.getElementById('lwcRsi'), {
+        ...base,
+        rightPriceScale: { borderColor: '#2d3442', scaleMargins: { top: 0.15, bottom: 0.15 } }
+    });
+    lwcRsi = rsiChart;
+    const rs = rsiChart.addLineSeries({ color: '#3b82f6', lineWidth: 2, priceLineVisible: false });
+    rs.setData(calcRsi(candles, 14));
+    rs.createPriceLine({ price: 70, color: 'rgba(255,92,92,0.4)',  lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
+    rs.createPriceLine({ price: 30, color: 'rgba(70,197,140,0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
+
+    // اسکرول هم‌زمان بین دو چارت
+    main.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { rsiChart.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
+    rsiChart.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { main.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
+
+    main.timeScale().fitContent();
+    rsiChart.timeScale().fitContent();
+}
 
 function renderCondChips() {
     let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱", m15: "M15", h1: "H1", rsi: "RSI" };
@@ -867,6 +1024,11 @@ function renderList(rows) {
             const L = r.side === "LONG";
             const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
             
+            let tierTag = '';
+            if (r.tier === 'PREMIUM') tierTag = `<span class="tag" style="background:#46c58c20; color:#46c58c; border-color:#46c58c; font-weight:800;">⭐ عالی</span>`;
+            else if (r.tier === 'STRONG') tierTag = `<span class="tag" style="background:#46c58c15; color:#46c58c; border-color:#46c58c80;">✔ قوی</span>`;
+            else if (r.tier === 'STANDARD') tierTag = `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308; font-weight:800;">⚠ استاندارد</span>`;
+            
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
             
             let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
@@ -874,14 +1036,14 @@ function renderList(rows) {
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
 
-            return `<article class="row sig ${r.side}" onclick="speakSignal('${r.id}', '${r.side}')">
-                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
+            return `<article class="row sig ${r.side}" onclick="showSignalDetails('${r.id}')">
+                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
                     <div><i>ورود</i><b>${r.entry ? r.entry.toFixed(5) : '-'}</b></div>
                     <div><i>${trailIcon}SL</i><b class="neg">${r.sl ? r.sl.toFixed(5) : '-'}</b></div>
                     <div><i>${targetLabel}</i><b class="${targetClass}">${targetValue}</b></div>
                 </div>
-                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">PA</bdi></span></div>
+                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">${r.score.toFixed(1)}/${r.maxScore.toFixed(1)}</bdi></span></div>
             </article>`;
         }).join("");
     }
@@ -894,21 +1056,21 @@ function renderList(rows) {
     let noHtml = '';
     if (noSignals.length > 0) {
         let itemsHtml = noSignals.map(r => {
-            const pass = r.pass || 0; 
-            const total = r.total || 7;
+            const scorePercent = r.scorePercent || 0;
+            const numChecks = (r.checks || []).length || 9;
             const checkedSide = r.checkedSide || 'LONG';
             let mainReason = r.fail || "شرایط کافی نبود";
             
-            const bgGradient = getGaugeGradient(pass, total, checkedSide);
+            const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
 
-            return `<div class="no-sig-card" onclick="showNsDetails('${r.id}')">
+            return `<div class="no-sig-card" onclick="showSignalDetails('${r.id}')">
                 <div class="ns-right">
                     <div class="ns-sym">${r.id}</div>
                     <div class="ns-reason">${mainReason}</div>
                 </div>
                 <div class="ns-left">
                     <div class="ns-circle" style="background: ${bgGradient};">
-                        <div class="ns-inner-circle">${pass}/${total}</div>
+                        <div class="ns-inner-circle">${(r.score || 0).toFixed(1)}</div>
                     </div>
                 </div>
             </div>`;
@@ -927,36 +1089,56 @@ function getTvSymbol(id, mkt) {
     return `BINANCE:${id}`;
 }
 
-window.showNsDetails = function(symId) {
+// 🛠 نمایش جزئیات نماد (سیگنال یا بدون سیگنال) با چارت دارای خطوط Entry/SL/TP
+window.showSignalDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
     if (!r) return;
 
-    const checkedSide = r.checkedSide || 'LONG';
-    const pass = r.pass || 0;
-    const total = r.total || 7;
+    currentSignalInModal = r;
+    const isSignal = !!r.side;
+    const checkedSide = r.checkedSide || r.side || 'LONG';
+    const scorePercent = r.scorePercent || 0;
+    const numChecks = (r.checks || []).length || 9;
 
-    $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><span>${r.id}</span> <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> <div class="ns-modal-live">LIVE</div></div>`;
+    // عنوان مودال
+    $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+        <span>${r.id}</span> 
+        <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> 
+        ${isSignal ? '<div class="ns-modal-live">LIVE</div>' : ''}
+    </div>`;
     
-    const tvSym = getTvSymbol(r.id, r.mkt || 'crypto');
-    $("tvContainer").innerHTML = `<div id="tradingview_chart" style="width:100%;height:100%;"></div>`;
-    const script = document.createElement('script'); script.src = "https://s3.tradingview.com/tv.js"; script.async = true;
-    script.onload = () => { new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart", "studies": ["MAExp@tv-basicstudies", "RSI@tv-basicstudies"] }); };
-    document.head.appendChild(script);
+    // دکمه پخش صدا فقط برای سیگنال‌ها
+    $("nsSpeakBtn").style.display = isSignal ? "inline-block" : "none";
 
-    const bgGradient = getGaugeGradient(pass, total, checkedSide);
+    // ✅ چارت رسم می‌شود با خطوط Entry / SL / TP
+    renderLwcChart(r);
+
+    // دایره امتیاز
+    const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
     $("nsGauge").style.background = bgGradient;
-    $("nsGaugeText").innerText = `${pass}/${total}`;
-    $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · ${r.mode === 'range' ? 'رنج' : 'الگوی ۳+۱'}`;
+    $("nsGaugeText").innerHTML = `${(r.score||0).toFixed(1)}<small>/${(r.maxScore||0).toFixed(1)}</small>`;
+    $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · امتیاز ${scorePercent.toFixed(0)}٪`;
 
+    // باکس‌های Entry, SL, TP
+    if (isSignal) {
+        $("nsLevels").style.display = "grid";
+        $("nsEntry").innerText = r.entry ? r.entry.toFixed(5) : '-';
+        $("nsSl").innerText = r.sl ? r.sl.toFixed(5) : '-';
+        $("nsTp").innerText = r.tp ? r.tp.toFixed(5) : '-';
+    } else {
+        $("nsLevels").style.display = "none";
+    }
+
+    // لیست شروط
     let activeChecks = r.checks || [];
-    
     let checksHtml = activeChecks.map(c => {
         const isOk = (c.ok === true || c.ok === 1 || c.o === 1);
         const statusClass = isOk ? 'ok' : 'fail';
         const icon = isOk ? '✓' : '✕';
         let visualHtml = '';
-        let valStr = c.v || (isOk ? 'تایید' : 'رد');
+        const w = c.w || 1;
+        const weightBadge = `<span style="font-size:10px; background:${isOk?'var(--gd)':'var(--rd)'}; color:${isOk?'var(--gb)':'var(--rb)'}; padding:2px 6px; border-radius:4px; margin-inline-start:4px;">⚖️ ${w}</span>`;
 
         if (c.l.includes('الگوی') || c.l.includes('۳+۱')) {
             const c1 = checkedSide === 'LONG' ? 'green' : 'red', c2 = checkedSide === 'LONG' ? 'green' : 'red', c3 = checkedSide === 'LONG' ? 'green' : 'red', c4 = checkedSide === 'LONG' ? 'red' : 'green';
@@ -971,26 +1153,33 @@ window.showNsDetails = function(symId) {
 
         return `<div class="check-item">
             <div class="check-header">
-                <div class="check-title">${c.l}</div>
+                <div class="check-title">${c.l} ${weightBadge}</div>
                 <div class="check-icon ${statusClass}">${icon}</div>
             </div>
             <div class="check-body">
-                <div class="check-val">${valStr}</div>
+                <div class="check-val">${c.v || (isOk ? 'تایید' : 'رد')}</div>
                 ${visualHtml}
             </div>
         </div>`;
     }).join("");
     $("nsChecksContainer").innerHTML = checksHtml;
 
+    // خلاصه پایین
     const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
     const lastClose = cl.length ? cl[cl.length-1].close : 0;
     $("nsPrice").innerText = lastClose.toFixed(5);
     $("nsRsi").innerText = r.rsi ? r.rsi.toFixed(1) : '-';
-    $("nsSignalCount").innerText = '0';
-    $("nsModal").style.display = "block";
+    $("nsSignalCount").innerText = isSignal ? '1' : '0';
+
+    openModal("nsModal");
 };
 
-window.closeNsModal = function() { $("nsModal").style.display = "none"; $("tvContainer").innerHTML = ""; };
+window.closeNsModal = function() { 
+    closeModal("nsModal");
+    destroyLwc();
+    $("tvContainer").innerHTML = "";
+    currentSignalInModal = null;
+};
 
 renderCondChips(); renderChips(); scan(true);
 setInterval(() => { if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true); }, 3 * 60 * 1000);
