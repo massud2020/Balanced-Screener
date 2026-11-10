@@ -1,12 +1,8 @@
-// engine.js — Balanced Screener Core Engine (V3 - Full Checks & Directional Gauge)
+// engine.js — Balanced Screener Core Engine (V3 - Final Fix)
 (function (root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define([], factory);
-    } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
-    } else {
-        root.Engine = factory();
-    }
+    if (typeof define === 'function' && define.amd) { define([], factory); }
+    else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
+    else { root.Engine = factory(); }
 }(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
@@ -33,8 +29,7 @@
         out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
         for (let i = period + 1; i < data.length; i++) {
             const diff = data[i] - data[i - 1];
-            const g = diff >= 0 ? diff : 0;
-            const l = diff < 0 ? Math.abs(diff) : 0;
+            const g = diff >= 0 ? diff : 0, l = diff < 0 ? Math.abs(diff) : 0;
             avgGain = (avgGain * (period - 1) + g) / period;
             avgLoss = (avgLoss * (period - 1) + l) / period;
             out[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
@@ -153,21 +148,24 @@
         }
     }
 
-    // 🛠 تغییرات اصلی: ارزیابی کامل تمام شروط بدون توقف
+    // 🛠 اصلاحات بحرانی اعمال شده در این نسخه
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
         const cl = dropForming(candlesM5, 300, nowSec);
-        
         if (!cl || cl.length < 200) {
             return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 7, checks: [] };
         }
 
         const closes = cl.map(c => c.close);
-        const ema50 = ema(closes, 50), ema200 = ema(closes, 200);
+        const ema21 = ema(closes, 21), ema50 = ema(closes, 50), ema200 = ema(closes, 200);
         const rsiArr = rsi(closes, 14), atrArr = atr(cl, 14), adxArr = adx(cl, 14);
         const bb = bollingerBands(closes, 20, 2);
 
         const idx = cl.length - 1;
-        const lastClose = closes[idx], lastRsi = rsiArr[idx], lastAtr = atrArr[idx] || 1, lastAdx = adxArr[idx] || 20;
+        const lastClose = closes[idx], lastRsi = rsiArr[idx];
+        
+        // اصلاح Fallback: استفاده از Number.isFinite
+        const lastAtr = (Number.isFinite(atrArr[idx]) && atrArr[idx] > 0) ? atrArr[idx] : (cl[idx].high - cl[idx].low);
+        const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
 
         let h1Trend = 'NEUTRAL';
@@ -185,15 +183,30 @@
         }
 
         const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
-        
-        // تعیین جهت مورد بررسی (بر اساس روند M5)
-        const trendUpM5 = ema50[idx] > ema200[idx];
-        const checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
-
         const checks = [];
         let side = null;
+        let checkedSide = 'LONG';
+
+        // 🛠 ۱. تعیین صحیح جهت برای Range و Trend
+        if (mode === "range") {
+            const rsiBuy = lastRsi <= (opts.rsiL || 38);
+            const rsiSell = lastRsi >= (opts.rsiS || 62);
+            const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
+            const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
+
+            if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
+            else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
+            else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; } // برای نمایش جهت بررسی در صورت رد شدن
+        } else {
+            const trendUpM5 = ema50[idx] > ema200[idx];
+            checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
+            if (trendUpM5) side = "LONG";
+            else if (ema50[idx] < ema200[idx]) side = "SHORT";
+        }
+
         let failReason = null;
 
+        // 🛠 ۲. بررسی شروط بر اساس دکمه‌های فعال (UI)
         if (mode === "range") {
             const isLowTrend = lastAdx < 25;
             checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد' });
@@ -201,53 +214,57 @@
 
             const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
             checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد' });
-            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده است";
+            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده";
 
-            const rsiBuy = lastRsi <= (opts.rsiL || 38);
-            const rsiSell = lastRsi >= (opts.rsiS || 62);
-            const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
-            const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
-
-            if (rsiBuy && bbBuy) side = "LONG";
-            else if (rsiSell && bbSell) side = "SHORT";
-
-            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: !!side, v: `RSI ${lastRsi.toFixed(1)}` });
-            if (!side && !failReason) failReason = "شرایط رنج برقرار نیست";
+            const isRangeOk = !!side;
+            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}` });
+            if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
             const isTrending = lastAdx >= 20;
             checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد' });
             if (!isTrending && !failReason) failReason = "ADX ضعیف";
 
-            if (trendUpM5) side = "LONG";
-            else if (ema50[idx] < ema200[idx]) side = "SHORT";
-
-            checks.push({ l: "همسویی روند M5 (EMA50/200)", ok: !!side, v: side ? checkedSide : 'رد' });
-            if (!side && !failReason) failReason = "عدم هم‌راستایی روند M5";
+            // 🛠 اعمال دکمه‌های EMA200 و EMA21/50
+            if (opts.trend !== false) {
+                const isOk = checkedSide === 'LONG' ? lastClose > ema200[idx] : lastClose < ema200[idx];
+                checks.push({ l: "قیمت نسبت به EMA200", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                if (!isOk && !failReason) failReason = "مخالف EMA200";
+            }
+            if (opts.emax !== false) {
+                const isOk = checkedSide === 'LONG' ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx];
+                checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                if (!isOk && !failReason) failReason = "مخالف EMA21/50";
+            }
+            if (opts.nc !== false) {
+                const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open);
+                checks.push({ l: "بدون تقاطع (هم‌جهتی کندل‌ها)", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                if (!isOk && !failReason) failReason = "تقاطع کندل‌ها";
+            }
         }
 
         if (opts.h1 !== false) {
             const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
-            checks.push({ l: "همسو با روند H1 (MTF)", ok: isOk, v: isOk ? 'تایید' : 'رد' });
-            if (!isOk && !failReason) failReason = "مخالف روند H1";
+            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            if (!isOk && !failReason) failReason = "مخالف H1";
         }
 
         if (opts.m15 !== false) {
             const isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN');
             checks.push({ l: "همسو با روند M15", ok: isOk, v: isOk ? 'تایید' : 'رد' });
-            if (!isOk && !failReason) failReason = "مخالف روند M15";
+            if (!isOk && !failReason) failReason = "مخالف M15";
         }
 
         if (opts.pat !== false && mode === "pattern") {
             const pattern = checkPattern3to1(cl);
             const isOk = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
             checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk, v: isOk ? 'تایید' : 'رد' });
-            if (!isOk && !failReason) failReason = "الگوی ۳+۱ معتبر نیست";
+            if (!isOk && !failReason) failReason = "الگوی ۳+۱ ندارد";
         }
 
         if (opts.pa !== false) {
             const paOk = checkPriceActionConfirmation(cl, checkedSide);
             checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد' });
-            if (!paOk && !failReason) failReason = "عدم تایید PA";
+            if (!paOk && !failReason) failReason = "پرایس اکشن ندارد";
         }
 
         const swings = findSwingLevels(cl, 50);
@@ -255,8 +272,7 @@
         let structOk = true;
         if (checkedSide === "LONG" && swings.swingHigh && (swings.swingHigh - lastClose) < riskDist) structOk = false;
         if (checkedSide === "SHORT" && swings.swingLow && (lastClose - swings.swingLow) < riskDist) structOk = false;
-        
-        checks.push({ l: "ساختار بازار (فاصله از سوئینگ)", ok: structOk, v: structOk ? 'تایید' : 'رد' });
+        checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد' });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
         const entry = lastClose;
@@ -266,18 +282,13 @@
 
         const totalPass = checks.filter(c => c.ok).length;
         const total = checks.length;
-        const allPassed = (totalPass === total);
+        const allPassed = (totalPass === total) && !!side; // side باید حتما برقرار باشد
 
         return {
-            side: allPassed ? checkedSide : null,
-            checkedSide: checkedSide, // جهت مورد بررسی
-            mode,
-            entry, sl, tp: tp1, tp2,
-            rsi: lastRsi, adx: lastAdx,
-            pass: totalPass,
-            total: total,
-            checks,
-            fail: allPassed ? null : (failReason || "شرایط کافی نیست")
+            side: allPassed ? side : null,
+            checkedSide: checkedSide,
+            mode, entry, sl, tp: tp1, tp2, rsi: lastRsi, adx: lastAdx,
+            pass: totalPass, total: total, checks, fail: allPassed ? null : (failReason || "شرایط کامل نیست")
         };
     }
 
