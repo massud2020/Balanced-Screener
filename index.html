@@ -159,9 +159,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; }
 .ns-reason { font-size: 12px; color: var(--mu); font-weight: 500; }
 .ns-left { display: flex; align-items: center; gap: 12px; }
-.ns-score { font-size: 13px; color: var(--tx2); font-weight: 600; direction: ltr; }
-
-/* دایره کوچک با گرادیان داینامیک */
 .ns-circle {
     width: 44px; height: 44px; border-radius: 50%; 
     display: flex; align-items: center; justify-content: center; position: relative;
@@ -179,12 +176,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
 .hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; display:flex; align-items:center; gap:8px;}
 .hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-
 .hist-stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px; }
 .hist-stat-box { background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); text-align:center; }
 .hist-stat-box .lbl { font-size:11px; color:var(--mu); }
 .hist-stat-box .val { font-size:16px; font-weight:800; margin-top:4px; }
-
 .hist-filters { display:flex; gap:6px; margin-bottom:15px; }
 .hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; }
 .hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
@@ -201,17 +196,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
 .ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
-
 .tv-container { width: 100%; height: 350px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; }
-
-/* 🛠 دایره امتیاز بزرگ (Gauge) با گرادیان داینامیک */
 .gauge-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; }
 .gauge-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
 .gauge-inner { width: 60px; height: 60px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: var(--tx); z-index: 2; }
 .gauge-text { font-size: 12px; color: var(--tx2); margin-bottom: 4px; }
-.gauge-sub { font-size: 11px; color: var(--mu); }
-
-/* لیست شرط ها */
 .check-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
 .check-item { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd2); }
 .check-item:last-child { border-bottom: none; }
@@ -222,14 +211,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .check-icon.fail { background: var(--rd); color: var(--rb); }
 .check-body { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .check-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap; min-width: 45px; text-align: left;}
-
-/* نوار پیشرفت (پروگرس بار) */
 .bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; flex: 1; overflow: hidden; direction: ltr;}
 .bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; }
 .bar-fill.ok { background: var(--gb); }
 .bar-fill.fail { background: var(--rb); }
-
-/* نمایش گرافیکی الگوی ۳+۱ */
 .candle-pattern { display: flex; align-items: center; gap: 4px; height: 20px; }
 .candle { width: 8px; border-radius: 2px; position: relative; }
 .candle.green { background: var(--gb); }
@@ -237,17 +222,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .candle .wick { position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: inherit; }
 .candle .wick.top { top: -4px; height: 4px; }
 .candle .wick.bottom { bottom: -4px; height: 4px; }
-
-/* نوار RSI */
 .rsi-bar { flex: 1; height: 6px; border-radius: 4px; background: linear-gradient(to right, var(--gb) 0%, var(--gb) 30%, var(--bd2) 30%, var(--bd2) 70%, var(--rb) 70%, var(--rb) 100%); position: relative; direction: ltr; }
 .rsi-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
-/* باکس های خلاصه پایین */
 .bottom-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--bd2); margin-bottom: 15px; }
 .sum-box { display: flex; flex-direction: column; gap: 4px; text-align: center; }
 .sum-box .lbl { font-size: 10.5px; color: var(--mu); }
 .sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
-
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
@@ -565,25 +545,22 @@ let openHistData = [];
 let histFilter = 'all';
 let histTab = 'closed';
 
-// 🛠 تبدیل آرایه به آبجکت برای موتور
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
 
-// 🛠 تولید گرادیان داینامیک برای دایره کوچک
 function getGaugeGradient(pass, total, side) {
     if (total === 0) return 'conic-gradient(#2d3442 0deg 360deg)';
     let color = '';
     if (side === 'LONG') {
-        let hue = Math.round((pass / total) * 120); // 0=Red -> 120=Green
+        let hue = Math.round((pass / total) * 120); 
         color = `hsl(${hue}, 70%, 50%)`;
     } else {
-        let hue = Math.round((1 - pass / total) * 120); // 120=Green -> 0=Red
+        let hue = Math.round((1 - pass / total) * 120); 
         color = `hsl(${hue}, 70%, 50%)`;
     }
-    
     let angle = 360 / total;
     let stops = [];
     for(let i=0; i<total; i++) {
-        let c = i < pass ? color : '#2d3442'; // Color for passed, gray for failed
+        let c = i < pass ? color : '#2d3442'; 
         stops.push(`${c} ${i*angle}deg ${(i+1)*angle - 6}deg, transparent ${(i+1)*angle - 6}deg ${(i+1)*angle}deg`);
     }
     return `conic-gradient(${stops.join(', ')})`;
@@ -841,7 +818,7 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => r.isActive || activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     let reEvaluatedRows = filteredByMkt.map(r => {
-        if (r.isActive) return r; // سیگنال‌های زنده تلگرام را دست نزن
+        if (r.isActive) return r;
         
         const m5 = toObjs(r.a);
         const m15 = toObjs(r.m15);
@@ -914,7 +891,6 @@ function renderList(rows) {
         dupHtml = `<details style="margin-top:16px;"><summary style="cursor:pointer; padding:12px; background:var(--card); border:1px solid var(--bd2); border-radius:12px; color:var(--tx2); font-weight:600; text-align:center;">🔍 سایر سیگنال‌های هم‌دسته (${fmtNum(duplicateSignals.length)} مورد)</summary><div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">${duplicateSignals.map(r => `<div class="set-row" style="background:var(--bg); padding:12px; border-radius:8px; border:1px solid var(--bd2); margin:0; direction:ltr; display:flex; justify-content:space-between; align-items:center;"><div style="display:flex; align-items:center; gap:10px;"><span class="b ${r.side}" style="font-size:10px; padding:2px 6px;">${r.side === 'LONG' ? 'LONG' : 'SHORT'}</span><span style="font-weight:800; color:var(--tx); font-size:14px;">${r.id}</span></div><span style="color:var(--mu); font-size:11px;">${MKT_LABEL[r.mkt || 'crypto']}</span></div>`).join("")}</div></details>`;
     }
 
-    // 🛠 رندر کردن کارت‌های بدون سیگنال با دایره‌های گرادیانی
     let noHtml = '';
     if (noSignals.length > 0) {
         let itemsHtml = noSignals.map(r => {
@@ -923,7 +899,6 @@ function renderList(rows) {
             const checkedSide = r.checkedSide || 'LONG';
             let mainReason = r.fail || "شرایط کافی نبود";
             
-            // تولید پس‌زمینه دایره
             const bgGradient = getGaugeGradient(pass, total, checkedSide);
 
             return `<div class="no-sig-card" onclick="showNsDetails('${r.id}')">
@@ -952,7 +927,6 @@ function getTvSymbol(id, mkt) {
     return `BINANCE:${id}`;
 }
 
-// 🛠 مودال جزئیات با دایره گرادیانی بزرگ و نمایش تمام شروط
 window.showNsDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
@@ -970,13 +944,11 @@ window.showNsDetails = function(symId) {
     script.onload = () => { new TradingView.widget({ "width": "100%", "height": "100%", "symbol": tvSym, "interval": "15", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "fa_IR", "enable_publishing": false, "hide_side_toolbar": true, "allow_symbol_change": true, "container_id": "tradingview_chart", "studies": ["MAExp@tv-basicstudies", "RSI@tv-basicstudies"] }); };
     document.head.appendChild(script);
 
-    // دایره بزرگ گرادیانی
     const bgGradient = getGaugeGradient(pass, total, checkedSide);
     $("nsGauge").style.background = bgGradient;
     $("nsGaugeText").innerText = `${pass}/${total}`;
     $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · ${r.mode === 'range' ? 'رنج' : 'الگوی ۳+۱'}`;
 
-    // لیست تمام شروط
     let activeChecks = r.checks || [];
     
     let checksHtml = activeChecks.map(c => {
