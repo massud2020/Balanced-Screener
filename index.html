@@ -8,23 +8,96 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
-<!-- 🛠 تله تاریخچه (History Trap) - باید در Head باشد تا زودتر از WebView اجرا شود -->
+<!-- 🛠 نسخه ۹۴: سیستم تله هش و ضربان قلب برای جلوگیری از خروج ناخواسته -->
 <script>
-    // 1. ایجاد تاریخچه مصنوعی قبل از لود کامل صفحه
-    history.pushState({ page: 'trap1' }, '', location.href);
-    history.pushState({ page: 'trap2' }, '', location.href);
+    window.allowExit = false;
+    window.activeModalId = null;
+    let backPressTime = 0;
+    
+    function pushTrap() {
+        if (window.allowExit) return;
+        try {
+            history.pushState({ trap: Date.now() }, '', '#trap_' + Date.now());
+        } catch(e) {}
+    }
 
-    // 2. گوش دادن به دکمه بک
+    // ضربان قلب تاریخچه
+    setInterval(() => {
+        if (!window.allowExit) {
+            if (!history.state || !history.state.trap) {
+                pushTrap();
+            }
+        }
+    }, 500);
+
     window.addEventListener('popstate', function (e) {
-        // جلوگیری از خروج ناخواسته
-        if (window.allowNativeExit === true) return;
+        if (window.allowExit) return;
+        pushTrap();
 
-        // اگر تاریخچه خالی شد، دوباره پر می‌کنیم
-        history.pushState({ page: 'trap1' }, '', location.href);
+        if (window.activeModalId) {
+            const modalId = window.activeModalId;
+            document.getElementById(modalId).style.display = "none";
+            if (modalId === "nsModal" && typeof window.destroyLwc === 'function') {
+                window.destroyLwc();
+                document.getElementById("tvContainer").innerHTML = "";
+                window.currentSignalInModal = null;
+            }
+            window.activeModalId = null;
+            return;
+        }
 
-        // اگر در مودال هستیم، ببندیم
-        if (typeof window.handleAppBack === 'function') {
-            window.handleAppBack();
+        const now = Date.now();
+        if (now - backPressTime < 2000) {
+            window.allowExit = true;
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                window.Capacitor.Plugins.App.exitApp();
+            } else if (navigator.app) {
+                navigator.app.exitApp();
+            } else {
+                window.history.go(-5);
+            }
+        } else {
+            backPressTime = now;
+            if (typeof window.showExitToast === 'function') {
+                window.showExitToast();
+            } else {
+                const t = document.getElementById("toast");
+                if (t) {
+                    t.innerText = "برای خروج، مجدداً دکمه بازگشت را بزنید";
+                    t.style.display = "block";
+                    t.style.opacity = "1";
+                    setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.style.display = "none", 300); }, 2000);
+                }
+            }
+        }
+    });
+
+    window.addEventListener('load', () => {
+        pushTrap();
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.addListener('backButton', () => {
+                if (window.allowExit) return;
+                if (window.activeModalId) {
+                    const modalId = window.activeModalId;
+                    document.getElementById(modalId).style.display = "none";
+                    if (modalId === "nsModal" && typeof window.destroyLwc === 'function') {
+                        window.destroyLwc();
+                        document.getElementById("tvContainer").innerHTML = "";
+                        window.currentSignalInModal = null;
+                    }
+                    window.activeModalId = null;
+                    return;
+                }
+                
+                const now = Date.now();
+                if (now - backPressTime < 2000) {
+                    window.allowExit = true;
+                    window.Capacitor.Plugins.App.exitApp();
+                } else {
+                    backPressTime = now;
+                    if (typeof window.showExitToast === 'function') window.showExitToast();
+                }
+            });
         }
     });
 </script>
@@ -309,7 +382,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v92</span>
+    <span class="brand-sub">v94</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -346,7 +419,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v92</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v94</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -606,80 +679,31 @@ let histFilter = 'all';
 let histTab = 'closed';
 let currentSignalInModal = null;
 
-/* =========================================================
-   🛠 مدیریت دکمه Back (متصل به اسکریپت بالای Head)
-   ========================================================= */
-let activeModal = null;
-let lastBackPress = 0;
-
-window.handleAppBack = function() {
-    if (activeModal) {
-        // اگر مودال باز باشد، بسته می‌شود
-        const id = activeModal;
-        document.getElementById(id).style.display = "none";
-        if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
-        activeModal = null;
-        return;
-    }
-
-    // اگر در صفحه اصلی هستیم
-    const now = Date.now();
-    if (now - lastBackPress < 2000) {
-        // خروج از اپ
-        window.allowNativeExit = true;
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.exitApp();
-        } else if (navigator.app) {
-            navigator.app.exitApp();
-        } else {
-            window.history.go(-2); // -2 به خاطر تله‌های هدر
-        }
-    } else {
-        // هشدار
-        lastBackPress = now;
-        showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-    }
-};
-
-function showToast(msg) {
+// 🛠 توابع مودال
+window.showExitToast = function() {
     const t = $("toast");
     if (!t) return;
-    t.innerText = msg;
+    t.innerText = "برای خروج، مجدداً دکمه بازگشت را بزنید";
     t.style.display = "block";
     setTimeout(() => t.style.opacity = "1", 10);
     setTimeout(() => {
         t.style.opacity = "0";
         setTimeout(() => t.style.display = "none", 300);
     }, 2000);
-}
-
-// اتصال دکمه بک در Capacitor و Cordova
-if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-    window.Capacitor.Plugins.App.addListener('backButton', (data) => {
-        if (window.allowNativeExit) return;
-        window.handleAppBack();
-    });
-} else if (window.cordova) {
-    document.addEventListener('backbutton', (e) => {
-        if (window.allowNativeExit) return;
-        e.preventDefault();
-        window.handleAppBack();
-    }, false);
-}
+};
 
 function openModal(id) {
-    if (activeModal) return; 
-    activeModal = id;
+    if (window.activeModalId) return; 
+    window.activeModalId = id;
     document.getElementById(id).style.display = "block";
-    history.pushState({ modal: id }, '', location.href);
+    history.pushState({ modal: id }, '', '#modal_' + id + '_' + Date.now());
 }
 
 function closeModal(id) {
-    if (activeModal === id) {
-        history.back(); // باعث می‌شود popstate در هدر فعال شود
+    if (window.activeModalId === id) {
+        history.back();
     }
 }
-/* ========================================================= */
 
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
 
@@ -735,57 +759,153 @@ window.closeHistory = function() { closeModal("histModal"); };
 window.setHistFilter = function(f, btn) { histFilter = f; document.querySelectorAll(".hist-filters button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 
+/* =========================================================
+   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v94)
+   ========================================================= */
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
-    let filteredClosed = closedHistData.filter(d => { if (histFilter === 'today') return (now - (d.time || 0)) < 86400; if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400; return true; });
+    
+    // 1. فیلتر کردن معاملات باز (که فیلد result ندارند)
+    let validClosed = closedHistData.filter(d => d.result !== undefined && d.R !== undefined);
+    
+    // 2. فیلتر زمانی
+    let filteredClosed = validClosed.filter(d => { 
+        if (histFilter === 'today') return (now - (d.time || 0)) < 86400; 
+        if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400; 
+        return true; 
+    });
     let sortedClosed = [...filteredClosed].sort((a,b) => (a.time || 0) - (b.time || 0));
 
-    let wins = 0, losses = 0, timeouts = 0, grossProfit = 0, grossLoss = 0, peakR = 0, maxDrawdown = 0, currentTotalR = 0;
+    // 3. محاسبه آمار بر اساس مقدار R (نه رشته result)
+    let wins = 0, losses = 0, breakevens = 0, grossProfit = 0, grossLoss = 0, peakR = 0, maxDrawdown = 0, currentTotalR = 0;
+    
     sortedClosed.forEach(d => {
-        let r = Number(d.R || 0); currentTotalR += r; if (r > 0) grossProfit += r; else grossLoss += Math.abs(r);
-        if (d.result === 'win') wins++; else if (d.result === 'loss') losses++; else timeouts++;
+        let r = Number(d.R || 0); 
+        currentTotalR += r; 
+        
+        if (r > 0) { 
+            wins++; 
+            grossProfit += r; 
+        } else if (r < 0) { 
+            losses++; 
+            grossLoss += Math.abs(r); 
+        } else { 
+            breakevens++; 
+        }
+        
         if (currentTotalR > peakR) peakR = currentTotalR;
-        let dd = peakR - currentTotalR; if (dd > maxDrawdown) maxDrawdown = dd;
+        let dd = peakR - currentTotalR; 
+        if (dd > maxDrawdown) maxDrawdown = dd;
     });
 
     let decisiveTrades = wins + losses;
     let winRate = decisiveTrades > 0 ? Math.round((wins / decisiveTrades) * 100) : 0;
     let profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
 
-    $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R"; $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
-    $("histWinRate").innerText = winRate + "%"; $("histWinRate").style.color = winRate >= 50 ? "var(--gb)" : (winRate >= 40 ? "#eab308" : "var(--rb)");
-    $("histWinLoss").innerText = `${wins}W / ${losses}L (${timeouts}T)`;
-    $("histPF").innerText = profitFactor; $("histPF").style.color = profitFactor > 1.2 ? "var(--gb)" : (profitFactor > 1 ? "#eab308" : "var(--rb)");
+    $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R"; 
+    $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
+    
+    $("histWinRate").innerText = winRate + "%"; 
+    $("histWinRate").style.color = winRate >= 50 ? "var(--gb)" : (winRate >= 40 ? "#eab308" : "var(--rb)");
+    
+    $("histWinLoss").innerText = `${wins}W / ${losses}L (${breakevens}B)`;
+    $("histPF").innerText = profitFactor; 
+    $("histPF").style.color = profitFactor > 1.2 ? "var(--gb)" : (profitFactor > 1 ? "#eab308" : "var(--rb)");
+    
     $("histMaxDD").innerText = "-" + maxDrawdown.toFixed(2) + " R";
 
+    // 4. نمایش لیست سیگنال‌ها
     let items = histTab === 'open' ? openHistData : filteredClosed;
-    if(items.length === 0) { $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`; } 
-    else {
+    if(items.length === 0) { 
+        $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`; 
+    } else {
         let displayItems = [...items].sort((a, b) => (b.time || 0) - (a.time || 0));
         $("signalsContainer").innerHTML = displayItems.map(d => {
-            const isL = d.side === 'LONG', isWin = d.result === 'win', isLoss = d.result === 'loss', isOpen = d.result === 'open';
+            const isL = d.side === 'LONG';
+            const isOpen = d.result === 'open';
             let statusCol = 'var(--mu)', statusTxt = 'در حال پایش', rTxt = '-';
+            
             if (!isOpen) {
-                if (isWin) { statusCol = 'var(--gb)'; statusTxt = 'سود (TP)'; } else if (isLoss) { statusCol = 'var(--rb)'; statusTxt = 'ضرر (SL)'; } else { statusCol = '#eab308'; statusTxt = 'تایم‌اوت'; }
+                // رنگ و متن بر اساس مقدار R
+                if (d.R > 0) { 
+                    statusCol = 'var(--gb)'; 
+                    statusTxt = (d.why === 'TP2' || d.why === 'TP1+TRAIL') ? 'سود (TP)' : 'سود (FADE)'; 
+                } else if (d.R < 0) { 
+                    statusCol = 'var(--rb)'; 
+                    statusTxt = 'ضرر (SL)'; 
+                } else { 
+                    statusCol = '#a7aebb'; 
+                    statusTxt = 'سر به سر (BE)'; 
+                }
                 if (d.R !== undefined) rTxt = (d.R > 0 ? '+' : '') + Number(d.R).toFixed(2) + 'R';
             }
+            
             let whyTag = d.why ? `<span style="font-size:10px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--tx2); margin-inline-start:6px;">${d.why}</span>` : '';
-            return `<div class="hist-item"><div><div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'}; display:flex; align-items:center;">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu); margin-inline-start:6px;">${d.side}</span>${whyTag}</div><div style="font-size:11.5px; color:var(--mu); margin-top:4px; direction:rtl;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div><div style="font-size:10px; color:var(--mu); margin-top:4px; direction:rtl;">${d.dateStr || ''}</div></div><div style="text-align:right;"><div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div><div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div></div></div>`;
+            return `<div class="hist-item">
+                <div>
+                    <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'}; display:flex; align-items:center;">
+                        ${d.id} 
+                        <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu); margin-inline-start:6px;">${d.side}</span>
+                        ${whyTag}
+                    </div>
+                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px; direction:rtl;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div>
+                    <div style="font-size:10px; color:var(--mu); margin-top:4px; direction:rtl;">${d.dateStr || ''}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
+                    <div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div>
+                </div>
+            </div>`;
         }).join('');
     }
 
+    // 5. رسم نمودار Equity Curve
     const canvas = $('strategyPerformanceChart');
     if (canvas && window.Chart) {
         if (histChartInstance) histChartInstance.destroy();
         let labels = [''], patternData = [0], rangeData = [0], currentPattern = 0, currentRange = 0;
-        sortedClosed.forEach((d, i) => { if (d.mode === 'range') currentRange += Number(d.R || 0); else currentPattern += Number(d.R || 0); patternData.push(currentPattern); rangeData.push(currentRange); labels.push(i + 1); });
+        
+        sortedClosed.forEach((d, i) => { 
+            if (d.mode === 'range') currentRange += Number(d.R || 0); 
+            else currentPattern += Number(d.R || 0); 
+            patternData.push(currentPattern); 
+            rangeData.push(currentRange); 
+            labels.push(i + 1); 
+        });
+        
         histChartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'line', data: { labels: labels, datasets: [{ label: 'روند (3+1)', data: patternData, borderColor: '#46c58c', backgroundColor: 'rgba(70,197,140,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }, { label: 'استراتژی رنج', data: rangeData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }] },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, labels: { color: '#a7aebb' } }, tooltip: { backgroundColor: 'rgba(20,24,32,0.9)', titleColor: '#e6e9ee', bodyColor: '#e6e9ee', borderColor: '#2d3442', borderWidth: 1, callbacks: { label: function(context) { return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + ' R'; } } } }, scales: { y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { display: false } } }
+            type: 'line', 
+            data: { 
+                labels: labels, 
+                datasets: [
+                    { label: 'روند (3+1)', data: patternData, borderColor: '#46c58c', backgroundColor: 'rgba(70,197,140,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }, 
+                    { label: 'استراتژی رنج', data: rangeData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }
+                ] 
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                interaction: { mode: 'index', intersect: false }, 
+                plugins: { 
+                    legend: { display: true, labels: { color: '#a7aebb' } }, 
+                    tooltip: { 
+                        backgroundColor: 'rgba(20,24,32,0.9)', titleColor: '#e6e9ee', bodyColor: '#e6e9ee', borderColor: '#2d3442', borderWidth: 1, 
+                        callbacks: { 
+                            label: function(context) { 
+                                return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + ' R'; 
+                            } 
+                        } 
+                    } 
+                }, 
+                scales: { 
+                    y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } }, 
+                    x: { display: false } 
+                } 
+            }
         });
     }
 }
+/* ========================================================= */
 
 window.reqNotif = function() { if (!("Notification" in window)) return alert("پشتیبانی نمی‌شود"); Notification.requestPermission().then(p => p === "granted" ? alert("✅ فعال شد") : alert("❌ رد شد")); };
 window.changeLanguage = function(lang) { currentLang = lang; LS("bs_lang", lang); document.body.dir = lang === 'fa' ? 'rtl' : 'ltr'; if(lang==='fa'){ $('splashLangFa').classList.add('active'); $('splashLangEn').classList.remove('active'); setText("splashSubtitle", "برای ورود ضربه بزنید"); $("start-ai-btn").textContent = "ورود به اسکرینر"; $("skip-ai-btn").textContent = "رد کردن"; setText("muteText", "بدون صدا"); $("langToggle").innerText = "EN"; } else { $('splashLangEn').classList.add('active'); $('splashLangFa').classList.remove('active'); setText("splashSubtitle", "Tap to enter"); $("start-ai-btn").textContent = "Enter Screener"; $("skip-ai-btn").textContent = "Skip"; setText("muteText", "Mute"); $("langToggle").innerText = "FA"; } };
@@ -816,6 +936,8 @@ function destroyLwc() {
     try { if (lwcMain) { lwcMain.remove(); lwcMain = null; } } catch(e){}
     try { if (lwcRsi)  { lwcRsi.remove();  lwcRsi  = null; } } catch(e){}
 }
+window.destroyLwc = destroyLwc;
+
 function calcEma(data, len) {
     const k = 2 / (len + 1); let prev = null; const out = [];
     for (let i = 0; i < data.length; i++) {
@@ -1194,7 +1316,7 @@ window.showSignalDetails = function(symId) {
     const r = LAST.rows.find(x => x.id === symId);
     if (!r) return;
 
-    currentSignalInModal = r;
+    window.currentSignalInModal = r;
     const isSignal = !!r.side;
     const checkedSide = r.checkedSide || r.side || 'LONG';
     const scorePercent = r.scorePercent || 0;
