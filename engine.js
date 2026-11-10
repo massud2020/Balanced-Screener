@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V3 - Final Fix)
+// engine.js — Balanced Screener Core Engine (V4 - Weighted Scoring)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -148,11 +148,10 @@
         }
     }
 
-    // 🛠 اصلاحات بحرانی اعمال شده در این نسخه
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
         const cl = dropForming(candlesM5, 300, nowSec);
         if (!cl || cl.length < 200) {
-            return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 7, checks: [] };
+            return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
 
         const closes = cl.map(c => c.close);
@@ -163,7 +162,6 @@
         const idx = cl.length - 1;
         const lastClose = closes[idx], lastRsi = rsiArr[idx];
         
-        // اصلاح Fallback: استفاده از Number.isFinite
         const lastAtr = (Number.isFinite(atrArr[idx]) && atrArr[idx] > 0) ? atrArr[idx] : (cl[idx].high - cl[idx].low);
         const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
@@ -187,16 +185,14 @@
         let side = null;
         let checkedSide = 'LONG';
 
-        // 🛠 ۱. تعیین صحیح جهت برای Range و Trend
         if (mode === "range") {
             const rsiBuy = lastRsi <= (opts.rsiL || 38);
             const rsiSell = lastRsi >= (opts.rsiS || 62);
             const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
             const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
-
             if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
             else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
-            else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; } // برای نمایش جهت بررسی در صورت رد شدن
+            else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
         } else {
             const trendUpM5 = ema50[idx] > ema200[idx];
             checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
@@ -206,64 +202,65 @@
 
         let failReason = null;
 
-        // 🛠 ۲. بررسی شروط بر اساس دکمه‌های فعال (UI)
+        // 🛠 اعمال وزن‌ها در هر شرط
         if (mode === "range") {
             const isLowTrend = lastAdx < 25;
-            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد' });
+            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
             if (!isLowTrend && !failReason) failReason = "ADX قوی است";
 
             const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
-            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد' });
+            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد', w: 1.0 });
             if (!isNotSqueeze && !failReason) failReason = "بازار فشرده";
 
             const isRangeOk = !!side;
-            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}` });
+            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
             if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
             const isTrending = lastAdx >= 20;
-            checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد' });
+            checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
             if (!isTrending && !failReason) failReason = "ADX ضعیف";
 
-            // 🛠 اعمال دکمه‌های EMA200 و EMA21/50
             if (opts.trend !== false) {
                 const isOk = checkedSide === 'LONG' ? lastClose > ema200[idx] : lastClose < ema200[idx];
-                checks.push({ l: "قیمت نسبت به EMA200", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                checks.push({ l: "قیمت نسبت به EMA200", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.5 });
                 if (!isOk && !failReason) failReason = "مخالف EMA200";
             }
             if (opts.emax !== false) {
                 const isOk = checkedSide === 'LONG' ? ema21[idx] > ema50[idx] : ema21[idx] < ema50[idx];
-                checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
                 if (!isOk && !failReason) failReason = "مخالف EMA21/50";
             }
             if (opts.nc !== false) {
                 const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open);
-                checks.push({ l: "بدون تقاطع (هم‌جهتی کندل‌ها)", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+                checks.push({ l: "بدون تقاطع (هم‌جهتی کندل‌ها)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 0.5 });
                 if (!isOk && !failReason) failReason = "تقاطع کندل‌ها";
             }
         }
 
         if (opts.h1 !== false) {
             const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
-            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
             if (!isOk && !failReason) failReason = "مخالف H1";
         }
 
         if (opts.m15 !== false) {
-            const isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN');
-            checks.push({ l: "همسو با روند M15", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            let isOk = true, valStr = 'تایید';
+            if (m15Trend === 'NEUTRAL') { isOk = true; valStr = 'بدون دیتا'; }
+            else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
+            checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
             if (!isOk && !failReason) failReason = "مخالف M15";
         }
 
         if (opts.pat !== false && mode === "pattern") {
             const pattern = checkPattern3to1(cl);
             const isOk = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
-            checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk, v: isOk ? 'تایید' : 'رد' });
+            checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.5 });
             if (!isOk && !failReason) failReason = "الگوی ۳+۱ ندارد";
         }
 
         if (opts.pa !== false) {
             const paOk = checkPriceActionConfirmation(cl, checkedSide);
-            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد' });
+            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد', w: 2.0 });
             if (!paOk && !failReason) failReason = "پرایس اکشن ندارد";
         }
 
@@ -272,7 +269,7 @@
         let structOk = true;
         if (checkedSide === "LONG" && swings.swingHigh && (swings.swingHigh - lastClose) < riskDist) structOk = false;
         if (checkedSide === "SHORT" && swings.swingLow && (lastClose - swings.swingLow) < riskDist) structOk = false;
-        checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد' });
+        checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
         const entry = lastClose;
@@ -280,15 +277,37 @@
         const tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
         const tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
-        const totalPass = checks.filter(c => c.ok).length;
-        const total = checks.length;
-        const allPassed = (totalPass === total) && !!side; // side باید حتما برقرار باشد
+        // 🛠 محاسبه امتیاز وزنی نهایی
+        let score = 0, maxScore = 0;
+        checks.forEach(c => {
+            const w = c.w || 1;
+            maxScore += w;
+            if (c.ok) score += w;
+        });
+        const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
+        
+        // 🛠 آستانه پذیرش ۷۰ درصد
+        const MIN_SCORE_PERCENT = 70;
+        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side;
+
+        let tier = null;
+        if (allPassed) {
+            if (scorePercent >= 95) tier = "PREMIUM";
+            else if (scorePercent >= 80) tier = "STRONG";
+            else tier = "STANDARD";
+        }
 
         return {
             side: allPassed ? side : null,
             checkedSide: checkedSide,
+            tier: tier,
+            score: +score.toFixed(1),
+            maxScore: +maxScore.toFixed(1),
+            scorePercent: +scorePercent.toFixed(1),
+            pass: +score.toFixed(1),
+            total: +maxScore.toFixed(1),
             mode, entry, sl, tp: tp1, tp2, rsi: lastRsi, adx: lastAdx,
-            pass: totalPass, total: total, checks, fail: allPassed ? null : (failReason || "شرایط کامل نیست")
+            checks, fail: allPassed ? null : (failReason || "امتیاز کافی نیست")
         };
     }
 
