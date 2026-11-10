@@ -8,36 +8,45 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
-<!-- 🛠 نسخه ۹۴: سیستم تله هش و ضربان قلب برای جلوگیری از خروج ناخواسته -->
+<!-- 🛠 نسخه ۹۵: تله هش قوی برای دکمه بک در APK -->
 <script>
     window.allowExit = false;
     window.activeModalId = null;
     let backPressTime = 0;
+    let trapCounter = 0;
     
+    // تابع تله هش (Hash Trap)
     function pushTrap() {
         if (window.allowExit) return;
+        trapCounter++;
         try {
-            history.pushState({ trap: Date.now() }, '', '#trap_' + Date.now());
-        } catch(e) {}
+            // تغییر هش باعث می‌شود WebView حتما متوجه شود یک مرحله جدید در تاریخچه ایجاد شده
+            history.pushState({ trap: trapCounter }, '', '#trap_' + trapCounter);
+        } catch(e) {
+            window.location.hash = '#trap_' + trapCounter;
+        }
     }
 
-    // ضربان قلب تاریخچه
-    setInterval(() => {
-        if (!window.allowExit) {
-            if (!history.state || !history.state.trap) {
-                pushTrap();
-            }
-        }
-    }, 500);
+    // ایجاد تله‌های اولیه به محض لود
+    window.addEventListener('load', () => {
+        pushTrap();
+        pushTrap();
+        setTimeout(pushTrap, 500);
+        setTimeout(pushTrap, 1500);
+    });
 
+    // مدیریت دکمه بک در مرورگر و WebView
     window.addEventListener('popstate', function (e) {
         if (window.allowExit) return;
-        pushTrap();
+        
+        // بلافاصله یک تله جدید می‌گذاریم تا دکمه بک بعدی هم گیر کند
+        pushTrap(); 
 
+        // اگر مودالی باز باشد، فقط آن را می‌بندیم
         if (window.activeModalId) {
-            const modalId = window.activeModalId;
-            document.getElementById(modalId).style.display = "none";
-            if (modalId === "nsModal" && typeof window.destroyLwc === 'function') {
+            const id = window.activeModalId;
+            document.getElementById(id).style.display = "none";
+            if (id === "nsModal" && typeof window.destroyLwc === 'function') {
                 window.destroyLwc();
                 document.getElementById("tvContainer").innerHTML = "";
                 window.currentSignalInModal = null;
@@ -46,17 +55,20 @@
             return;
         }
 
+        // اگر در صفحه اصلی هستیم
         const now = Date.now();
         if (now - backPressTime < 2000) {
+            // دو بار زدن = خروج
             window.allowExit = true;
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
                 window.Capacitor.Plugins.App.exitApp();
             } else if (navigator.app) {
                 navigator.app.exitApp();
             } else {
-                window.history.go(-5);
+                window.history.go(-5); 
             }
         } else {
+            // یک بار زدن = نمایش پیام
             backPressTime = now;
             if (typeof window.showExitToast === 'function') {
                 window.showExitToast();
@@ -72,15 +84,15 @@
         }
     });
 
+    // مدیریت اختصاصی Capacitor
     window.addEventListener('load', () => {
-        pushTrap();
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
             window.Capacitor.Plugins.App.addListener('backButton', () => {
                 if (window.allowExit) return;
                 if (window.activeModalId) {
-                    const modalId = window.activeModalId;
-                    document.getElementById(modalId).style.display = "none";
-                    if (modalId === "nsModal" && typeof window.destroyLwc === 'function') {
+                    const id = window.activeModalId;
+                    document.getElementById(id).style.display = "none";
+                    if (id === "nsModal" && typeof window.destroyLwc === 'function') {
                         window.destroyLwc();
                         document.getElementById("tvContainer").innerHTML = "";
                         window.currentSignalInModal = null;
@@ -382,7 +394,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v94</span>
+    <span class="brand-sub">v95</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -419,7 +431,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v94</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v95</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -671,6 +683,10 @@ let LAST = null;
 
 let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
+if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { 
+    activeMarkets = ["crypto", "forex", "metal", "commodity", "index", "stock"]; 
+    LS("bs_active_mkts", JSON.stringify(activeMarkets)); 
+}
 
 let closedHistData = [];
 let openHistData = [];
@@ -760,7 +776,7 @@ window.setHistFilter = function(f, btn) { histFilter = f; document.querySelector
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 
 /* =========================================================
-   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v94)
+   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v95)
    ========================================================= */
 let histChartInstance = null;
 function renderHistory() {
@@ -827,7 +843,6 @@ function renderHistory() {
             let statusCol = 'var(--mu)', statusTxt = 'در حال پایش', rTxt = '-';
             
             if (!isOpen) {
-                // رنگ و متن بر اساس مقدار R
                 if (d.R > 0) { 
                     statusCol = 'var(--gb)'; 
                     statusTxt = (d.why === 'TP2' || d.why === 'TP1+TRAIL') ? 'سود (TP)' : 'سود (FADE)'; 
@@ -1194,33 +1209,33 @@ function renderList(rows) {
             adx: false 
         };
         
+        let res = {};
         try {
-            const res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
-            
-            if (r.isActive) {
-                const orig = LAST.rows.find(x => x.id === r.id);
-                if (orig) {
-                    orig.score = res.score || 0;
-                    orig.maxScore = res.maxScore || 0;
-                    orig.scorePercent = res.scorePercent || 0;
-                    orig.checks = res.checks || [];
-                    orig.checkedSide = res.checkedSide || r.side;
-                    orig.rsi = res.rsi;
-                }
-                return { 
-                    ...r, 
-                    score: res.score || 0, 
-                    maxScore: res.maxScore || 0, 
-                    scorePercent: res.scorePercent || 0, 
-                    checks: res.checks || [], 
-                    checkedSide: res.checkedSide || r.side, 
-                    rsi: res.rsi 
-                };
+            res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
+        } catch(e) { }
+        
+        if (r.isActive) {
+            const orig = LAST.rows.find(x => x.id === r.id);
+            if (orig) {
+                orig.score = res.score || 0;
+                orig.maxScore = res.maxScore || 0;
+                orig.scorePercent = res.scorePercent || 0;
+                orig.checks = res.checks || [];
+                orig.checkedSide = res.checkedSide || r.side;
+                orig.rsi = res.rsi;
             }
-            return { ...r, ...res };
-        } catch(e) { 
-            return { ...r, score: 0, maxScore: 0, scorePercent: 0, checks: [], fail: "خطا در تحلیل", checkedSide: 'LONG' }; 
+            return { 
+                ...r, 
+                side: r.side, // 🛠 فیکس شد: حفظ جهت معامله در صورت خطای موتور
+                score: res.score || 0, 
+                maxScore: res.maxScore || 0, 
+                scorePercent: res.scorePercent || 0, 
+                checks: res.checks || [], 
+                checkedSide: res.checkedSide || r.side, 
+                rsi: res.rsi 
+            };
         }
+        return { ...r, ...res };
     });
 
     let allSignals = reEvaluatedRows.filter(r => r.side);
