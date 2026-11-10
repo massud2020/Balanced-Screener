@@ -5,19 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#0b0d11">
 <title>بک‌تست سیستم - Balanced Screener</title>
-
-<!-- 🛠 بارگذاری موتور مرکزی و بک‌تست -->
 <script src="engine.js"></script>
 <script src="btengine.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-:root {
-  --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
-  --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c; --rb: #ff5c5c;
-}
+:root { --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442; --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c; --rb: #ff5c5c; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, sans-serif; padding: 15px; }
+body { background: var(--bg); color: var(--tx); font-family: system-ui, sans-serif; padding: 15px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .btn { background: var(--gb); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px;}
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -41,8 +34,7 @@ th { color: var(--mu); font-weight: normal; }
 
 <div class="card">
     <p style="font-size: 13px; color: var(--tx2); line-height: 1.6;">
-        این بخش از دیتای واقعی موجود در <code style="color:var(--gb);">data.json</code> استفاده می‌کند (فقط برای نمادهایی که دیتای کافی دارند). 
-        منطق ارزیابی دقیقاً با اسکنر زنده یکسان است (موتور مرکزی).
+        این بک‌تست از دیتای واقعی `data.json` استفاده می‌کند (شامل M5، M15 و H1). منطق ارزیابی دقیقاً مطابق اسکنر زنده است (بدون نشت اطلاعات آینده).
     </p>
     <div class="stats-grid" id="statsGrid" style="display: none;">
         <div class="stat-box"><div class="lbl">کل معاملات</div><div class="val" id="stTotal">0</div></div>
@@ -56,16 +48,7 @@ th { color: var(--mu); font-weight: normal; }
 <div class="card" id="resultsCard" style="display: none; max-height: 400px; overflow-y: auto;">
     <h3 style="font-size: 14px; margin-bottom: 10px;">تاریخچه معاملات</h3>
     <table>
-        <thead>
-            <tr>
-                <th>نماد</th>
-                <th>جهت</th>
-                <th>ورود</th>
-                <th>خروج</th>
-                <th>نتیجه</th>
-                <th>R</th>
-            </tr>
-        </thead>
+        <thead><tr><th>نماد</th><th>جهت</th><th>ورود</th><th>خروج</th><th>نتیجه</th><th>R</th></tr></thead>
         <tbody id="tradesBody"></tbody>
     </table>
 </div>
@@ -87,7 +70,6 @@ async function startBacktest() {
         if (!data.rows) throw new Error("دیتا یافت نشد");
         
         let allTrades = [];
-        let processedCount = 0;
 
         for (const row of data.rows) {
             // تبدیل آرایه‌ها به آبجکت
@@ -95,22 +77,21 @@ async function startBacktest() {
             const m15 = row.m15 ? row.m15.map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]})) : [];
             const h1 = row.h ? row.h.map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]})) : [];
             
-            if (m5.length < 250) continue; // نیاز به دیتای کافی
+            // 🛠 اصلاح: حداقل دیتا ۲۰۰ کندل (هماهنگ با موتور)
+            if (m5.length < 200) continue;
             
-            // اجرای بک‌تست روی این نماد
+            // فراخوانی با تنظیمات پیش‌فرض
             const trades = Backtest.runBacktestOnSymbol(row.id, m5, m15, h1, { mode: 'pattern' });
             allTrades = allTrades.concat(trades);
-            processedCount++;
         }
         
         if (allTrades.length === 0) {
-            alert("معامله‌ای برای بک‌تست یافت نشد (دیتای کافی نیست).");
+            alert("معامله‌ای برای بک‌تست یافت نشد (دیتای کافی نیست یا شرط‌ها سخت‌گیرانه است).");
             return;
         }
 
         const stats = Backtest.calculateStats(allTrades);
         
-        // نمایش آمار
         document.getElementById('statsGrid').style.display = 'grid';
         document.getElementById('stTotal').textContent = stats.total;
         document.getElementById('stNetR').textContent = (stats.netR > 0 ? "+" : "") + stats.netR;
@@ -119,7 +100,9 @@ async function startBacktest() {
         document.getElementById('stPF').textContent = stats.pf;
         document.getElementById('stDD').textContent = "-" + stats.maxDD;
 
-        // نمایش لیست
+        // مرتب‌سازی بر اساس زمان برای نمایش
+        allTrades.sort((a,b) => b.closeTime - a.closeTime);
+        
         document.getElementById('resultsCard').style.display = 'block';
         document.getElementById('tradesBody').innerHTML = allTrades.map(t => `
             <tr>
