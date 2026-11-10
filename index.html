@@ -282,7 +282,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v83</span>
+    <span class="brand-sub">v85</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -319,7 +319,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v83</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v85</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -584,14 +584,45 @@ let histFilter = 'all';
 let histTab = 'closed';
 let currentSignalInModal = null;
 
-// 🛠 مدیریت تاریخچه و دکمه Back اندروید (رفع مشکل خروج از اپ)
+/* =========================================================
+   🛠 مدیریت صحیح دکمه Back اندروید و History API
+   ========================================================= */
 let activeModal = null;
+let lastBackPress = 0;
+
+// ایجاد یک وضعیت پایه تا اپ با اولین بک بسته نشود
+history.pushState({ page: 'main' }, '');
+
 window.addEventListener('popstate', (e) => {
     if (activeModal) {
+        // اگر مودالی باز باشد، بسته می‌شود
         const id = activeModal;
         document.getElementById(id).style.display = "none";
         if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
         activeModal = null;
+        history.pushState({ page: 'main' }, ''); // بازگرداندن وضعیت پایه
+    } else {
+        // اگر در صفحه اصلی هستیم
+        const now = Date.now();
+        if (now - lastBackPress < 2000) {
+            // دو بار پشت سر هم زده شد -> خروج از اپ
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                window.Capacitor.Plugins.App.exitApp();
+            } else {
+                window.history.back();
+            }
+        } else {
+            // بار اول -> فقط پیام و جلوگیری از خروج
+            lastBackPress = now;
+            history.pushState({ page: 'main' }, '');
+            // نمایش توست (اختیاری)
+            const st = $("st");
+            if (st) {
+                const oldText = st.innerHTML;
+                st.innerHTML = `<span style="color:var(--rb);">برای خروج، مجدداً دکمه بازگشت را بزنید</span>`;
+                setTimeout(() => { st.innerHTML = oldText; }, 2000);
+            }
+        }
     }
 });
 
@@ -604,10 +635,10 @@ function openModal(id) {
 
 function closeModal(id) {
     if (activeModal === id) {
-        // به جای مخفی کردن دستی، فقط به عقب برمی‌گردیم تا رویداد popstate مدیریت را انجام دهد
         history.back(); 
     }
 }
+/* ========================================================= */
 
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
 
@@ -774,7 +805,7 @@ function renderLwcChart(r) {
     
     const candles = toObjs((r.m15 && r.m15.length) ? r.m15 : (r.a || []));
     if (!candles.length) { 
-        box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:13px;">داده‌ای برای نمایش نیست (معامله فعال یا تاریخچه ناکافی)</div>'; 
+        box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:13px;">داده‌ای برای نمایش نیست</div>'; 
         return; 
     }
 
@@ -805,11 +836,11 @@ function renderLwcChart(r) {
     addEma(50, '#ec4899');   // EMA50 صورتی
     addEma(200, '#ff5c5c');  // EMA200 قرمز
 
-    // خطوط ورود / حد ضرر / حد سود
+    // جلوگیری از خطوط روی هم افتاده
     if (r.side) {
         if (r.entry) cs.createPriceLine({ price: +r.entry, color: '#e6e9ee', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid,  axisLabelVisible: true, title: 'Entry' });
-        if (r.sl)    cs.createPriceLine({ price: +r.sl,    color: '#ff5c5c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' });
-        if (r.tp)    cs.createPriceLine({ price: +r.tp,    color: '#46c58c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' });
+        if (r.sl && +r.sl !== +r.entry) cs.createPriceLine({ price: +r.sl, color: '#ff5c5c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' });
+        if (r.tp && +r.tp !== +r.entry) cs.createPriceLine({ price: +r.tp, color: '#46c58c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' });
     }
 
     // RSI
@@ -916,9 +947,6 @@ window.scan = async function(isAuto = false) {
                     rows[rowIndex].tp = activeTrade.tp; 
                     rows[rowIndex].isActive = true; 
                     rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
-                    rows[rowIndex].score = rows[rowIndex].score || 0;
-                    rows[rowIndex].maxScore = rows[rowIndex].maxScore || 0;
-                    rows[rowIndex].scorePercent = rows[rowIndex].scorePercent || 0;
                 } else {
                     rows.push({ 
                         id: activeId, side: activeTrade.side, entry: activeTrade.entry, 
@@ -927,8 +955,7 @@ window.scan = async function(isAuto = false) {
                         currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0,
                         tp1Hit: activeTrade.tp1Hit || false,
                         tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', 
-                        isActive: true, mkt: mkt,
-                        score: 0, maxScore: 0, scorePercent: 0, checks: [], checkedSide: activeTrade.side
+                        isActive: true, mkt: mkt 
                     });
                 }
             });
@@ -986,9 +1013,8 @@ window.scan = async function(isAuto = false) {
 
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => r.isActive || activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
+    
     let reEvaluatedRows = filteredByMkt.map(r => {
-        if (r.isActive) return r;
-        
         const m5 = toObjs(r.a);
         const m15 = toObjs(r.m15);
         const h1 = toObjs(r.h);
@@ -1007,6 +1033,27 @@ function renderList(rows) {
         
         try {
             const res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
+            
+            if (r.isActive) {
+                const orig = LAST.rows.find(x => x.id === r.id);
+                if (orig) {
+                    orig.score = res.score || 0;
+                    orig.maxScore = res.maxScore || 0;
+                    orig.scorePercent = res.scorePercent || 0;
+                    orig.checks = res.checks || [];
+                    orig.checkedSide = res.checkedSide || r.side;
+                    orig.rsi = res.rsi;
+                }
+                return { 
+                    ...r, 
+                    score: res.score || 0, 
+                    maxScore: res.maxScore || 0, 
+                    scorePercent: res.scorePercent || 0, 
+                    checks: res.checks || [], 
+                    checkedSide: res.checkedSide || r.side, 
+                    rsi: res.rsi 
+                };
+            }
             return { ...r, ...res };
         } catch(e) { 
             return { ...r, score: 0, maxScore: 0, scorePercent: 0, checks: [], fail: "خطا در تحلیل", checkedSide: 'LONG' }; 
@@ -1050,6 +1097,12 @@ function renderList(rows) {
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
 
+            // 🛠 اگر سیگنال LIVE بود و امتیاز صفر داشت، عبارت LIVE نمایش داده شود
+            let scoreDisplay = `${safeFixed(r.score || 0, 1)}/${safeFixed(r.maxScore || 0, 1)}`;
+            if (r.isActive && (!r.score || r.score === 0)) {
+                scoreDisplay = '<span style="color:var(--gb); font-weight:800;">LIVE</span>';
+            }
+
             return `<article class="row sig ${r.side}" onclick="showSignalDetails('${r.id}')">
                 <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
@@ -1057,7 +1110,7 @@ function renderList(rows) {
                     <div><i>${trailIcon}SL</i><b class="neg">${(r.sl !== undefined && r.sl !== null) ? safeFixed(r.sl, 5) : '-'}</b></div>
                     <div><i>${targetLabel}</i><b class="${targetClass}">${targetValue}</b></div>
                 </div>
-                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">${safeFixed(r.score || 0, 1)}/${safeFixed(r.maxScore || 0, 1)}</bdi></span></div>
+                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">${scoreDisplay}</bdi></span></div>
             </article>`;
         }).join("");
     }
@@ -1095,7 +1148,7 @@ function renderList(rows) {
     $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
-// 🛠 نمایش جزئیات نماد (رفع مشکل خالی بودن نمودار با تغییر ترتیب اجرا)
+// 🛠 نمایش جزئیات نماد
 window.showSignalDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
@@ -1117,19 +1170,30 @@ window.showSignalDetails = function(symId) {
     // دکمه پخش صدا
     $("nsSpeakBtn").style.display = isSignal ? "inline-block" : "none";
 
-    // 2. باز کردن مودال (مهم‌ترین بخش برای رفع مشکل صفحه سیاه)
+    // 2. باز کردن مودال
     openModal("nsModal");
 
-    // 3. رسم نمودار با یک تاخیر کوتاه تا DOM حتما ابعاد لازم را گرفته باشد
+    // 3. رسم نمودار
     setTimeout(() => {
         renderLwcChart(r);
     }, 50);
 
     // 4. تنظیم دایره امتیاز
-    const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
-    $("nsGauge").style.background = bgGradient;
-    $("nsGaugeText").innerHTML = `${safeFixed(r.score || 0, 1)}<small>/${safeFixed(r.maxScore || 0, 1)}</small>`;
-    $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · امتیاز ${scorePercent.toFixed(0)}٪`;
+    if (isSignal && r.isActive && (!r.score || r.score === 0)) {
+        // برای معاملات فعال که امتیاز صفر دارند (چون قیمت حرکت کرده) عبارت LIVE نمایش می‌دهیم
+        $("nsGauge").style.background = 'conic-gradient(#46c58c 0deg 360deg)';
+        $("nsGaugeText").innerHTML = `<span style="font-size:16px; font-weight:800; color:#0b0d11;">LIVE</span>`;
+        $("nsGaugeDesc").innerText = `معامله فعال · در حال پیگیری`;
+    } else if (r.score !== undefined && r.maxScore !== undefined) {
+        const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
+        $("nsGauge").style.background = bgGradient;
+        $("nsGaugeText").innerHTML = `${safeFixed(r.score || 0, 1)}<small>/${safeFixed(r.maxScore || 0, 1)}</small>`;
+        $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · امتیاز ${scorePercent.toFixed(0)}٪`;
+    } else {
+        $("nsGauge").style.background = '#2d3442';
+        $("nsGaugeText").innerHTML = `<span style="font-size:16px; font-weight:800; color:var(--mu);">-</span>`;
+        $("nsGaugeDesc").innerText = `اطلاعات امتیاز در دسترس نیست`;
+    }
 
     // 5. باکس‌های Entry, SL, TP
     if (isSignal) {
@@ -1174,9 +1238,8 @@ window.showSignalDetails = function(symId) {
         </div>`;
     }).join("");
     
-    // اگر معامله فعال بود و دیتای چک نداشت پیام مناسب نمایش بده
-    if (activeChecks.length === 0 && isSignal) {
-        checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">این یک معامله فعال است. شروط در زمان ورود ثبت شده‌اند.</div>`;
+    if (activeChecks.length === 0) {
+        checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">اطلاعات شروط برای این مورد در دسترس نیست.</div>`;
     }
     $("nsChecksContainer").innerHTML = checksHtml;
 
