@@ -282,7 +282,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v81</span>
+    <span class="brand-sub">v82</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -319,7 +319,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v81</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v82</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -566,6 +566,7 @@ const $ = i => document.getElementById(i);
 const LS = (k, v) => { try { if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch(e){ return null; } };
 const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
 const fmtNum = n => Number(n).toLocaleString('fa-IR');
+const safeFixed = (val, digits) => { const num = Number(val); return isNaN(num) ? '-' : num.toFixed(digits); };
 
 let currentMode = LS("bs_mode") || "pattern";
 let currentLang = LS("bs_lang") || 'fa';
@@ -898,6 +899,8 @@ window.scan = async function(isAuto = false) {
                 const activeTrade = json.state.active[activeId];
                 let mkt = activeId.endsWith('USDT') ? 'crypto' : (['XAUUSD', 'XAGUSD'].includes(activeId) ? 'metal' : 'forex');
                 const rowIndex = rows.findIndex(r => r.id === activeId);
+                
+                // 🛠 اختصاص مقادیر پیش‌فرض برای جلوگیری از کرش در toFixed
                 if (rowIndex !== -1) {
                     rows[rowIndex].side = activeTrade.side; 
                     rows[rowIndex].entry = activeTrade.entry; 
@@ -908,6 +911,9 @@ window.scan = async function(isAuto = false) {
                     rows[rowIndex].tp = activeTrade.tp; 
                     rows[rowIndex].isActive = true; 
                     rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
+                    rows[rowIndex].score = rows[rowIndex].score || 0;
+                    rows[rowIndex].maxScore = rows[rowIndex].maxScore || 0;
+                    rows[rowIndex].scorePercent = rows[rowIndex].scorePercent || 0;
                 } else {
                     rows.push({ 
                         id: activeId, side: activeTrade.side, entry: activeTrade.entry, 
@@ -916,7 +922,8 @@ window.scan = async function(isAuto = false) {
                         currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0,
                         tp1Hit: activeTrade.tp1Hit || false,
                         tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', 
-                        isActive: true, mkt: mkt 
+                        isActive: true, mkt: mkt,
+                        score: 0, maxScore: 0, scorePercent: 0, checks: [], checkedSide: activeTrade.side
                     });
                 }
             });
@@ -996,7 +1003,10 @@ function renderList(rows) {
         try {
             const res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
             return { ...r, ...res };
-        } catch(e) { return r; }
+        } catch(e) { 
+            // 🛠 جلوگیری از کرش اگر موتور تحلیل خطا داد
+            return { ...r, score: 0, maxScore: 0, scorePercent: 0, checks: [], fail: "خطا در تحلیل", checkedSide: 'LONG' }; 
+        }
     });
 
     let allSignals = reEvaluatedRows.filter(r => r.side);
@@ -1032,18 +1042,19 @@ function renderList(rows) {
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
             
             let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
-            let targetValue = r.isActive ? `${(r.currentR || 0) > 0 ? '+' : ''}${r.currentR || 0}R` : (r.tp ? r.tp.toFixed(5) : 'RSI');
+            // 🛠 اصلاح باگ toFixed
+            let targetValue = r.isActive ? `${(r.currentR || 0) > 0 ? '+' : ''}${r.currentR || 0}R` : ((r.tp !== undefined && r.tp !== null) ? safeFixed(r.tp, 5) : 'RSI');
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
 
             return `<article class="row sig ${r.side}" onclick="showSignalDetails('${r.id}')">
                 <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
-                    <div><i>ورود</i><b>${r.entry ? r.entry.toFixed(5) : '-'}</b></div>
-                    <div><i>${trailIcon}SL</i><b class="neg">${r.sl ? r.sl.toFixed(5) : '-'}</b></div>
+                    <div><i>ورود</i><b>${(r.entry !== undefined && r.entry !== null) ? safeFixed(r.entry, 5) : '-'}</b></div>
+                    <div><i>${trailIcon}SL</i><b class="neg">${(r.sl !== undefined && r.sl !== null) ? safeFixed(r.sl, 5) : '-'}</b></div>
                     <div><i>${targetLabel}</i><b class="${targetClass}">${targetValue}</b></div>
                 </div>
-                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">${r.score.toFixed(1)}/${r.maxScore.toFixed(1)}</bdi></span></div>
+                <div class="r-foot"><span>تایم فریم: <bdi>M15</bdi></span><span><bdi dir="ltr">${safeFixed(r.score || 0, 1)}/${safeFixed(r.maxScore || 0, 1)}</bdi></span></div>
             </article>`;
         }).join("");
     }
@@ -1070,7 +1081,7 @@ function renderList(rows) {
                 </div>
                 <div class="ns-left">
                     <div class="ns-circle" style="background: ${bgGradient};">
-                        <div class="ns-inner-circle">${(r.score || 0).toFixed(1)}</div>
+                        <div class="ns-inner-circle">${safeFixed(r.score || 0, 1)}</div>
                     </div>
                 </div>
             </div>`;
@@ -1117,15 +1128,15 @@ window.showSignalDetails = function(symId) {
     // دایره امتیاز
     const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
     $("nsGauge").style.background = bgGradient;
-    $("nsGaugeText").innerHTML = `${(r.score||0).toFixed(1)}<small>/${(r.maxScore||0).toFixed(1)}</small>`;
+    $("nsGaugeText").innerHTML = `${safeFixed(r.score || 0, 1)}<small>/${safeFixed(r.maxScore || 0, 1)}</small>`;
     $("nsGaugeDesc").innerText = `بررسی برای ${checkedSide === 'LONG' ? 'لانگ ▲' : 'شورت ▼'} · امتیاز ${scorePercent.toFixed(0)}٪`;
 
     // باکس‌های Entry, SL, TP
     if (isSignal) {
         $("nsLevels").style.display = "grid";
-        $("nsEntry").innerText = r.entry ? r.entry.toFixed(5) : '-';
-        $("nsSl").innerText = r.sl ? r.sl.toFixed(5) : '-';
-        $("nsTp").innerText = r.tp ? r.tp.toFixed(5) : '-';
+        $("nsEntry").innerText = (r.entry !== undefined && r.entry !== null) ? safeFixed(r.entry, 5) : '-';
+        $("nsSl").innerText = (r.sl !== undefined && r.sl !== null) ? safeFixed(r.sl, 5) : '-';
+        $("nsTp").innerText = (r.tp !== undefined && r.tp !== null) ? safeFixed(r.tp, 5) : '-';
     } else {
         $("nsLevels").style.display = "none";
     }
@@ -1144,7 +1155,7 @@ window.showSignalDetails = function(symId) {
             const c1 = checkedSide === 'LONG' ? 'green' : 'red', c2 = checkedSide === 'LONG' ? 'green' : 'red', c3 = checkedSide === 'LONG' ? 'green' : 'red', c4 = checkedSide === 'LONG' ? 'red' : 'green';
             visualHtml = `<div class="candle-pattern"><div class="candle ${c1}" style="height:8px;"><div class="wick top"></div></div><div class="candle ${c2}" style="height:16px;"><div class="wick top"></div><div class="wick bottom"></div></div><div class="candle ${c3}" style="height:4px;"><div class="wick top" style="height:6px;"></div><div class="wick bottom" style="height:6px;"></div></div><div class="candle ${c4}" style="height:10px;"><div class="wick top" style="height:8px;"></div><div class="wick bottom"></div></div></div>`;
         } else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) {
-            visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi}%"></div></div>`;
+            visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi || 50}%"></div></div>`;
         } else if (c.l.includes('بدون تقاطع')) {
             visualHtml = `<div style="flex:1;"></div>`;
         } else {
@@ -1167,8 +1178,8 @@ window.showSignalDetails = function(symId) {
     // خلاصه پایین
     const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
     const lastClose = cl.length ? cl[cl.length-1].close : 0;
-    $("nsPrice").innerText = lastClose.toFixed(5);
-    $("nsRsi").innerText = r.rsi ? r.rsi.toFixed(1) : '-';
+    $("nsPrice").innerText = safeFixed(lastClose || 0, 5);
+    $("nsRsi").innerText = (r.rsi !== undefined && r.rsi !== null) ? safeFixed(r.rsi, 1) : '-';
     $("nsSignalCount").innerText = isSignal ? '1' : '0';
 
     openModal("nsModal");
