@@ -8,6 +8,27 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
+<!-- 🛠 تله تاریخچه (History Trap) - باید در Head باشد تا زودتر از WebView اجرا شود -->
+<script>
+    // 1. ایجاد تاریخچه مصنوعی قبل از لود کامل صفحه
+    history.pushState({ page: 'trap1' }, '', location.href);
+    history.pushState({ page: 'trap2' }, '', location.href);
+
+    // 2. گوش دادن به دکمه بک
+    window.addEventListener('popstate', function (e) {
+        // جلوگیری از خروج ناخواسته
+        if (window.allowNativeExit === true) return;
+
+        // اگر تاریخچه خالی شد، دوباره پر می‌کنیم
+        history.pushState({ page: 'trap1' }, '', location.href);
+
+        // اگر در مودال هستیم، ببندیم
+        if (typeof window.handleAppBack === 'function') {
+            window.handleAppBack();
+        }
+    });
+</script>
+
 <script src="engine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
@@ -288,7 +309,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v90</span>
+    <span class="brand-sub">v92</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -325,7 +346,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v90</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v92</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -586,11 +607,39 @@ let histTab = 'closed';
 let currentSignalInModal = null;
 
 /* =========================================================
-   🛠 مدیریت دکمه Back با تله تاریخچه قفل‌شده
+   🛠 مدیریت دکمه Back (متصل به اسکریپت بالای Head)
    ========================================================= */
 let activeModal = null;
 let lastBackPress = 0;
-let isExiting = false;
+
+window.handleAppBack = function() {
+    if (activeModal) {
+        // اگر مودال باز باشد، بسته می‌شود
+        const id = activeModal;
+        document.getElementById(id).style.display = "none";
+        if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
+        activeModal = null;
+        return;
+    }
+
+    // اگر در صفحه اصلی هستیم
+    const now = Date.now();
+    if (now - lastBackPress < 2000) {
+        // خروج از اپ
+        window.allowNativeExit = true;
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.exitApp();
+        } else if (navigator.app) {
+            navigator.app.exitApp();
+        } else {
+            window.history.go(-2); // -2 به خاطر تله‌های هدر
+        }
+    } else {
+        // هشدار
+        lastBackPress = now;
+        showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
+    }
+};
 
 function showToast(msg) {
     const t = $("toast");
@@ -604,89 +653,30 @@ function showToast(msg) {
     }, 2000);
 }
 
-function handleBackLogic() {
-    if (isExiting) return;
-
-    if (activeModal) {
-        // بستن مودال
-        const id = activeModal;
-        document.getElementById(id).style.display = "none";
-        if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
-        activeModal = null;
-        return;
-    }
-
-    // اگر در صفحه اصلی هستیم
-    const now = Date.now();
-    if (now - lastBackPress < 2000) {
-        // خروج
-        isExiting = true;
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.exitApp();
-        } else if (window.cordova) {
-            navigator.app.exitApp();
-        } else {
-            // در مرورگر، اجازه میدهیم یک بار به عقب برود تا از اپ خارج شود
-            window.history.go(-2); // -2 چون یک استپ اضافه برای تله گذاشتیم
-        }
-    } else {
-        // هشدار
-        lastBackPress = now;
-        showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-    }
-}
-
-// 1. تله تاریخچه اولیه برای WebView
-history.pushState({ page: 'main' }, '', '');
-
-// 2. هندل کردن در Capacitor
+// اتصال دکمه بک در Capacitor و Cordova
 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     window.Capacitor.Plugins.App.addListener('backButton', (data) => {
-        handleBackLogic();
+        if (window.allowNativeExit) return;
+        window.handleAppBack();
     });
-} 
-// 3. هندل کردن در Cordova
-else if (window.cordova) {
+} else if (window.cordova) {
     document.addEventListener('backbutton', (e) => {
+        if (window.allowNativeExit) return;
         e.preventDefault();
-        handleBackLogic();
+        window.handleAppBack();
     }, false);
-} 
-// 4. هندل کردن در WebView (مرورگر ساده)
-else {
-    window.addEventListener('popstate', (e) => {
-        if (isExiting) return;
-        
-        // تله مجدد
-        history.pushState({ page: 'main' }, '', '');
-        
-        handleBackLogic();
-    });
 }
 
 function openModal(id) {
     if (activeModal) return; 
     activeModal = id;
     document.getElementById(id).style.display = "block";
-    
-    // در وب/WebView، استیت جدید پوش میکنیم
-    if (!window.Capacitor && !window.cordova) {
-        history.pushState({ modal: id }, '', '');
-    }
+    history.pushState({ modal: id }, '', location.href);
 }
 
 function closeModal(id) {
     if (activeModal === id) {
-        if (!window.Capacitor && !window.cordova) {
-            // در وب، یک قدم به عقب برمیگردیم (popstate خودش مودال رو میبنده)
-            history.back(); 
-        } else {
-            // در نیتیو، دستی میبندیم
-            const m = activeModal;
-            document.getElementById(m).style.display = "none";
-            if (m === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
-            activeModal = null;
-        }
+        history.back(); // باعث می‌شود popstate در هدر فعال شود
     }
 }
 /* ========================================================= */
