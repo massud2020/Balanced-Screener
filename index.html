@@ -288,7 +288,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v88</span>
+    <span class="brand-sub">v90</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -325,7 +325,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v88</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v90</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -586,10 +586,11 @@ let histTab = 'closed';
 let currentSignalInModal = null;
 
 /* =========================================================
-   🛠 مدیریت صحیح دکمه Back (تله تاریخچه + پشتیبانی از Capacitor)
+   🛠 مدیریت دکمه Back با تله تاریخچه قفل‌شده
    ========================================================= */
 let activeModal = null;
 let lastBackPress = 0;
+let isExiting = false;
 
 function showToast(msg) {
     const t = $("toast");
@@ -603,93 +604,89 @@ function showToast(msg) {
     }, 2000);
 }
 
-function closeActiveModal() {
+function handleBackLogic() {
+    if (isExiting) return;
+
     if (activeModal) {
+        // بستن مودال
         const id = activeModal;
         document.getElementById(id).style.display = "none";
         if (id === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
         activeModal = null;
-        return true;
+        return;
     }
-    return false;
-}
 
-function isNativeApp() {
-    return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) || window.cordova;
-}
-
-// تله تاریخچه: دو وضعیت پایه می‌سازیم تا WebView هرگز فکر نکند به ابتدای تاریخچه رسیده است
-history.replaceState({ page: 'main' }, '');
-history.pushState({ page: 'main' }, '');
-
-window.addEventListener('popstate', function (event) {
-    if (activeModal) {
-        // مودال بسته می‌شود
-        closeActiveModal();
-        if (!isNativeApp()) {
-            // در حالت وب، دوباره تله می‌گذاریم تا از اپ خارج نشود
-            history.pushState({ page: 'main' }, '');
+    // اگر در صفحه اصلی هستیم
+    const now = Date.now();
+    if (now - lastBackPress < 2000) {
+        // خروج
+        isExiting = true;
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.exitApp();
+        } else if (window.cordova) {
+            navigator.app.exitApp();
+        } else {
+            // در مرورگر، اجازه میدهیم یک بار به عقب برود تا از اپ خارج شود
+            window.history.go(-2); // -2 چون یک استپ اضافه برای تله گذاشتیم
         }
     } else {
-        // در صفحه اصلی هستیم (فقط برای وب‌ویو معمولی)
-        if (!isNativeApp()) {
-            const now = Date.now();
-            if (now - lastBackPress < 2000) {
-                // اجازه خروج با بار دوم
-                window.history.go(-window.history.length);
-            } else {
-                // بار اول: تله مجدد و نمایش پیام
-                lastBackPress = now;
-                history.pushState({ page: 'main' }, '');
-                showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-            }
-        }
+        // هشدار
+        lastBackPress = now;
+        showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
     }
-});
+}
 
-// در محیط Capacitor از لیسنر اختصاصی خودش استفاده می‌کنیم
+// 1. تله تاریخچه اولیه برای WebView
+history.pushState({ page: 'main' }, '', '');
+
+// 2. هندل کردن در Capacitor
 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     window.Capacitor.Plugins.App.addListener('backButton', (data) => {
-        if (activeModal) {
-            history.back(); // باعث فعال شدن popstate شده و مودال را می‌بندد
-        } else {
-            const now = Date.now();
-            if (now - lastBackPress < 2000) {
-                window.Capacitor.Plugins.App.exitApp();
-            } else {
-                lastBackPress = now;
-                showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-            }
-        }
+        handleBackLogic();
     });
 } 
-// در محیط Cordova
+// 3. هندل کردن در Cordova
 else if (window.cordova) {
     document.addEventListener('backbutton', (e) => {
-        if (activeModal) {
-            history.back();
-        } else {
-            const now = Date.now();
-            if (now - lastBackPress < 2000) {
-                navigator.app.exitApp();
-            } else {
-                lastBackPress = now;
-                showToast("برای خروج، مجدداً دکمه بازگشت را بزنید");
-            }
-        }
+        e.preventDefault();
+        handleBackLogic();
     }, false);
+} 
+// 4. هندل کردن در WebView (مرورگر ساده)
+else {
+    window.addEventListener('popstate', (e) => {
+        if (isExiting) return;
+        
+        // تله مجدد
+        history.pushState({ page: 'main' }, '', '');
+        
+        handleBackLogic();
+    });
 }
 
 function openModal(id) {
     if (activeModal) return; 
     activeModal = id;
     document.getElementById(id).style.display = "block";
-    history.pushState({ modal: id }, '');
+    
+    // در وب/WebView، استیت جدید پوش میکنیم
+    if (!window.Capacitor && !window.cordova) {
+        history.pushState({ modal: id }, '', '');
+    }
 }
 
 function closeModal(id) {
     if (activeModal === id) {
-        history.back(); 
+        if (!window.Capacitor && !window.cordova) {
+            // در وب، یک قدم به عقب برمیگردیم (popstate خودش مودال رو میبنده)
+            history.back(); 
+        } else {
+            // در نیتیو، دستی میبندیم
+            const m = activeModal;
+            document.getElementById(m).style.display = "none";
+            if (m === "nsModal") { destroyLwc(); $("tvContainer").innerHTML = ""; currentSignalInModal = null; }
+            activeModal = null;
+        }
     }
 }
 /* ========================================================= */
