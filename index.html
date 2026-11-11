@@ -10,7 +10,6 @@
 
 <!-- 🛠 Unlock TTS + ثبت Service Worker + تله هش برای دکمه بک -->
 <script>
-    // 1. Unlock TTS با اولین کلیک/لمس
     let ttsUnlocked = false;
     function unlockTTS() {
         if (ttsUnlocked) return;
@@ -28,7 +27,6 @@
     document.addEventListener('click', unlockTTS, { once: false });
     document.addEventListener('touchstart', unlockTTS, { once: false });
 
-    // 2. ثبت Service Worker برای اعلان‌های پس‌زمینه
     let swRegistration = null;
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -39,7 +37,6 @@
         });
     }
 
-    // 3. تله هش برای دکمه بک
     window.allowExit = false;
     window.activeModalId = null;
     let backPressTime = 0;
@@ -114,6 +111,7 @@
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
 <style>
+/* ... تمام استایل‌های قبلی بدون تغییر ... */
 :root {
   --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
   --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c;
@@ -121,11 +119,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, sans-serif; padding-bottom: 30px; overflow-x: hidden; }
-
-/* Toast */
 #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--rb); color: white; padding: 10px 20px; border-radius: 20px; font-weight: 800; font-size: 13px; z-index: 99999; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: opacity 0.3s; opacity: 0; white-space: nowrap; }
-
-/* Splash */
 #ai-splash { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; transition: 0.3s; }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .splash-lang-bar { position: absolute; top: calc(env(safe-area-inset-top) + 20px); inset-inline-end: 20px; display: flex; background: var(--card); border: 1px solid var(--bd); border-radius: 99px; padding: 4px; z-index: 10001; }
@@ -139,8 +133,6 @@ body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-s
 #start-ai-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 #skip-ai-btn { margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px; font-size: 14px; cursor: pointer; text-decoration: underline; }
 .mute-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mu); margin-top: 30px; cursor: pointer; }
-
-/* Header */
 header.bar { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100; }
 .acts-right { display: flex; align-items: center; flex-shrink: 0; gap: 8px;}
 .brand-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
@@ -154,8 +146,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; animation: pulse 1.5s infinite; }
 .badge.on { display: block; }
 .ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
-
-/* تنظیمات */
 .set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
 .set.on { display: block; }
 .set-section { font-size: 12px; font-weight: 700; color: var(--mu); text-align: right; margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid var(--bd2); }
@@ -174,8 +164,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .toggle:checked::after { left: 23px; background: #fff; }
 input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; background: var(--bd2); border-radius: 5px; outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
-
-/* بدنه اصلی */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
 .mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; transition: 0.2s;}
@@ -194,8 +182,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
-
-/* اسکنر رادار */
 #scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -210,8 +196,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 @keyframes radarSpin { to { transform: rotate(360deg); } }
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
-
-/* کنترول اسکن */
 .scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
@@ -231,8 +215,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
-
-/* لیست سیگنال */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; cursor: pointer; transition: 0.2s; }
 .row.sig:active { transform: scale(0.98); border-color: var(--gb); }
@@ -255,12 +237,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid b { color: var(--tx); font-size: 14px; direction: ltr; display: block; text-align: left;}
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
-
-/* استایل نمادهای بدون سیگنال */
-.no-sig-card {
-    background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px;
-    display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
-}
+.no-sig-card { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px; }
 .no-sig-card:active { transform: scale(0.98); background: var(--card2); }
 .ns-right { display: flex; flex-direction: column; gap: 6px; }
 .ns-sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; }
@@ -268,8 +245,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-left { display: flex; align-items: center; gap: 12px; }
 .ns-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
 .ns-inner-circle { width: 32px; height: 32px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: var(--tx); direction: ltr; box-shadow: inset 0 0 4px rgba(0,0,0,0.5); }
-
-/* تاریخچه */
 #histModal, #nsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px 10px; overflow-y: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
@@ -288,26 +263,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
 .chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px; height: 250px;}
 .chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
-
-/* 🛠 مودال جزئیات نماد */
 #nsModal .hist-content { padding: 15px; }
 .ns-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
 .ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
 .ns-modal-error { color: var(--rb); font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight:800; }
-
 .tv-container { width: 100%; height: 460px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; padding: 4px; }
-
-/* 🛠 دایره امتیاز بزرگ (Gauge) با گرادیان داینامیک */
 .gauge-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; }
 .gauge-circle { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
 .gauge-inner { width: 70px; height: 70px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--tx); z-index: 2; flex-direction: column;}
 .gauge-inner small { font-size: 10px; color: var(--mu); font-weight: 600; }
 .gauge-text { font-size: 12px; color: var(--tx2); margin-bottom: 4px; }
-.gauge-sub { font-size: 11px; color: var(--mu); }
-
-/* لیست شرط ها */
 .check-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
 .check-item { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd2); }
 .check-item:last-child { border-bottom: none; }
@@ -318,14 +285,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .check-icon.fail { background: var(--rd); color: var(--rb); }
 .check-body { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .check-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap; min-width: 45px; text-align: left;}
-
-/* نوار پیشرفت (پروگرس بار) */
 .bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; flex: 1; overflow: hidden; direction: ltr;}
 .bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; }
 .bar-fill.ok { background: var(--gb); }
 .bar-fill.fail { background: var(--rb); }
-
-/* نمایش گرافیکی الگوی ۳+۱ */
 .candle-pattern { display: flex; align-items: center; gap: 4px; height: 20px; }
 .candle { width: 8px; border-radius: 2px; position: relative; }
 .candle.green { background: var(--gb); }
@@ -333,56 +296,40 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .candle .wick { position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: inherit; }
 .candle .wick.top { top: -4px; height: 4px; }
 .candle .wick.bottom { bottom: -4px; height: 4px; }
-
-/* نوار RSI */
 .rsi-bar { flex: 1; height: 6px; border-radius: 4px; background: linear-gradient(to right, var(--gb) 0%, var(--gb) 30%, var(--bd2) 30%, var(--bd2) 70%, var(--rb) 70%, var(--rb) 100%); position: relative; direction: ltr; }
 .rsi-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
-/* باکس های خلاصه پایین */
 .bottom-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--bd2); margin-bottom: 15px; }
 .sum-box { display: flex; flex-direction: column; gap: 4px; text-align: center; }
 .sum-box .lbl { font-size: 10.5px; color: var(--mu); }
 .sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
-
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
 
-<!-- Toast -->
 <div id="toast">برای خروج، مجدداً دکمه بازگشت را بزنید</div>
 
-<!-- اسپلش -->
 <div id="ai-splash">
     <div class="splash-lang-bar">
         <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="changeLanguage('fa')">FA</button>
         <button type="button" id="splashLangEn" class="splash-lang-btn" onclick="changeLanguage('en')">EN</button>
     </div>
-
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
     <div class="splash-title" id="splashTitle">Balanced Screener</div>
     <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
-    
     <button id="start-ai-btn" type="button" onclick="doEnter()">ورود به اسکرینر</button>
     <button id="skip-ai-btn" type="button" onclick="doSkip()">رد کردن</button>
-    
     <label class="mute-label">
         <input type="checkbox" id="splashMute" class="toggle" style="width:34px; height:20px;"> 
         <span id="muteText">بدون صدا</span>
     </label>
 </div>
 
-<!-- هدر -->
 <header class="bar">
-  <div class="acts-right">
-    <button class="ic-lang" id="langToggle" onclick="changeLanguage(currentLang==='fa'?'en':'fa')">EN</button>
-  </div>
+  <div class="acts-right"><button class="ic-lang" id="langToggle" onclick="changeLanguage(currentLang==='fa'?'en':'fa')">EN</button></div>
   <div class="brand-center">
-    <div class="brand-title">
-      <span>Balanced Screener</span>
-      <div class="logo-icon">◈</div>
-    </div>
-    <span class="brand-sub">v101</span>
+    <div class="brand-title"><span>Balanced Screener</span><div class="logo-icon">◈</div></div>
+    <span class="brand-sub">v102</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -395,221 +342,69 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </header>
 
-<!-- پنل تنظیمات -->
 <div class="set" id="settingsPanel">
+  <!-- ... تنظیمات دقیقا مثل v101 ... -->
   <div class="set-section">منبع داده</div>
-  <div class="set-row">
-    <label>OANDA توکن</label>
-    <div style="display:flex; gap:6px; width:65%;">
-      <input type="password" id="tok" class="set-input" placeholder="API token" style="width:100%;">
-      <button class="set-btn" onclick="alert('توکن ذخیره شد')">ذخیره</button>
-    </div>
-  </div>
-  <div class="set-row">
-    <label>OANDA حساب نوع</label>
-    <select id="env" class="set-input" style="width:65%;">
-      <option value="practice">Practice</option>
-      <option value="live">Live</option>
-    </select>
-  </div>
-  <div class="set-row">
-    <label>سهام اضافه <span class="desc">تیکرها با کاما</span></label>
-    <input type="text" id="ex" class="set-input" placeholder="مثلاً SHOP, UBER">
-  </div>
-
+  <div class="set-row"><label>OANDA توکن</label><div style="display:flex; gap:6px; width:65%;"><input type="password" id="tok" class="set-input" placeholder="API token" style="width:100%;"><button class="set-btn" onclick="alert('توکن ذخیره شد')">ذخیره</button></div></div>
+  <div class="set-row"><label>OANDA حساب نوع</label><select id="env" class="set-input" style="width:65%;"><option value="practice">Practice</option><option value="live">Live</option></select></div>
+  <div class="set-row"><label>سهام اضافه <span class="desc">تیکرها با کاما</span></label><input type="text" id="ex" class="set-input" placeholder="مثلاً SHOP, UBER"></div>
   <div class="set-section">فیلترهای هوشمند</div>
-  <div class="set-row">
-    <label>فیلتر سشن معاملاتی <span class="desc">لندن + نیویورک (7-21 UTC)</span></label>
-    <input type="checkbox" class="toggle" id="sessionFilterChk">
-  </div>
-  <div class="set-row">
-    <label>فیلتر اخبار خودکار <span class="desc">از news.json هر ۶ ساعت آپدیت می‌شود</span></label>
-    <input type="checkbox" class="toggle" id="autoNewsChk">
-  </div>
-  <div class="set-row">
-    <label>ساعت‌های ممنوعه دستی <span class="desc">مثال: 13,19 (UTC)</span></label>
-    <input type="text" id="newsHoursInput" class="set-input" placeholder="13,19" style="width:65%;">
-  </div>
-  <div class="set-row">
-    <label>مدیریت همبستگی نمادها <span class="desc">فقط قوی‌ترین سیگنال هر گروه</span></label>
-    <input type="checkbox" class="toggle" id="corrFilterChk" checked>
-  </div>
-
+  <div class="set-row"><label>فیلتر سشن معاملاتی <span class="desc">لندن + نیویورک (7-21 UTC)</span></label><input type="checkbox" class="toggle" id="sessionFilterChk"></div>
+  <div class="set-row"><label>فیلتر اخبار خودکار <span class="desc">از news.json هر ۶ ساعت آپدیت می‌شود</span></label><input type="checkbox" class="toggle" id="autoNewsChk"></div>
+  <div class="set-row"><label>ساعت‌های ممنوعه دستی <span class="desc">مثال: 13,19 (UTC)</span></label><input type="text" id="newsHoursInput" class="set-input" placeholder="13,19" style="width:65%;"></div>
+  <div class="set-row"><label>مدیریت همبستگی نمادها <span class="desc">فقط قوی‌ترین سیگنال هر گروه</span></label><input type="checkbox" class="toggle" id="corrFilterChk" checked></div>
   <div class="set-section">برنامه</div>
-  <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v101</span></label>
-    <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
-  </div>
-
+  <div class="set-row"><label>نسخه‌ی اپ <span class="desc">v102</span></label><button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button></div>
   <div class="set-section">اعلان‌ها</div>
-  <div class="set-row">
-    <label>اعلان سیستمی و صدا</label>
-    <button class="set-btn green" onclick="reqNotif()">فعال‌سازی</button>
-  </div>
-  <div class="set-row">
-    <label>تست صدای هوش مصنوعی (فارسی)</label>
-    <button class="set-btn green" onclick="testVoice()">تست صدا</button>
-  </div>
-  <div class="set-row">
-    <label>تست اعلان سیگنال (انگلیسی)</label>
-    <button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG')">تست (English TTS)</button>
-  </div>
-  <div class="set-row">
-    <label>سرعت صدا: <b id="ttsRateVal">50</b></label>
-    <input type="range" id="ttsRate" min="10" max="100" value="50" oninput="document.getElementById('ttsRateVal').innerText = this.value">
-  </div>
-  
-  <div class="set-row" style="flex-direction:column; align-items:stretch;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <label>موتور صدای استفاده‌شده در آخرین تست</label>
-      <button class="set-btn" onclick="testVoice()">تست مجدد</button>
-    </div>
-    <div class="err-box" id="voiceEngineStatus">در انتظار تست...</div>
-  </div>
-
-  <div class="set-row">
-    <label>اعلام صوتی نام نماد</label>
-    <input type="checkbox" class="toggle" id="ttsSymbol" checked>
-  </div>
-  
-  <div class="set-row" style="flex-direction:column; align-items:stretch; background: var(--bg); border-radius: 10px; padding: 12px; margin-top:5px; border:none;">
-    <label style="text-align:center; font-weight:700; margin-bottom:8px;">وضعیت اسکن پس‌زمینه</label>
-    <div style="font-size:12px; color:var(--mu); line-height:1.8; text-align:center;">
-      سرویس: <span style="color:var(--gb);">روشن ✅</span> · اعلان‌ها: <span style="color:var(--gb);">مجاز ✅</span><br>
-      آخرین اسکن: لحظه‌ای<br>
-      ردیف‌ها: زنده · دارای سیگنال: زنده<br>
-      سن data.json: <span style="color:var(--gb);">به‌روز</span>
-    </div>
-    <button class="set-btn" style="margin-top:10px;" onclick="alert('سیستم پس‌زمینه سالم است')">بررسی</button>
-  </div>
-
-  <div class="set-row">
-    <label>اسکن خودکار <span class="desc">هر ۳ دقیقه</span></label>
-    <input type="checkbox" class="toggle" id="autoScanChk" checked>
-  </div>
-
+  <div class="set-row"><label>اعلان سیستمی و صدا</label><button class="set-btn green" onclick="reqNotif()">فعال‌سازی</button></div>
+  <div class="set-row"><label>تست صدای هوش مصنوعی (فارسی)</label><button class="set-btn green" onclick="testVoice()">تست صدا</button></div>
+  <div class="set-row"><label>تست اعلان سیگنال (انگلیسی)</label><button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG')">تست (English TTS)</button></div>
+  <div class="set-row"><label>سرعت صدا: <b id="ttsRateVal">50</b></label><input type="range" id="ttsRate" min="10" max="100" value="50" oninput="document.getElementById('ttsRateVal').innerText = this.value"></div>
+  <div class="set-row" style="flex-direction:column; align-items:stretch;"><div style="display:flex; justify-content:space-between; align-items:center;"><label>موتور صدای استفاده‌شده در آخرین تست</label><button class="set-btn" onclick="testVoice()">تست مجدد</button></div><div class="err-box" id="voiceEngineStatus">در انتظار تست...</div></div>
+  <div class="set-row"><label>اعلام صوتی نام نماد</label><input type="checkbox" class="toggle" id="ttsSymbol" checked></div>
+  <div class="set-row" style="flex-direction:column; align-items:stretch; background: var(--bg); border-radius: 10px; padding: 12px; margin-top:5px; border:none;"><label style="text-align:center; font-weight:700; margin-bottom:8px;">وضعیت اسکن پس‌زمینه</label><div style="font-size:12px; color:var(--mu); line-height:1.8; text-align:center;">سرویس: <span style="color:var(--gb);">روشن ✅</span> · اعلان‌ها: <span style="color:var(--gb);">مجاز ✅</span><br>آخرین اسکن: لحظه‌ای<br>ردیف‌ها: زنده · دارای سیگنال: زنده<br>سن data.json: <span style="color:var(--gb);">به‌روز</span></div><button class="set-btn" style="margin-top:10px;" onclick="alert('سیستم پس‌زمینه سالم است')">بررسی</button></div>
+  <div class="set-row"><label>اسکن خودکار <span class="desc">هر ۳ دقیقه</span></label><input type="checkbox" class="toggle" id="autoScanChk" checked></div>
   <div class="set-section">اعلان‌های تلگرام · وقتی اپ بسته است</div>
-  <div class="set-row">
-    <label>اعلان الگوی ۳+۱ <span class="desc">خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</span></label>
-    <input type="checkbox" class="toggle" id="nN" checked>
-  </div>
-  <div class="set-row">
-    <label>ریپازیتوری GitHub <span class="desc">به شکل نام‌کاربری/نام‌ریپو</span></label>
-    <input type="text" class="set-input" id="ghr" value="massud2020/Balanced-Screener">
-  </div>
-  <div class="set-row">
-    <label>GitHub token <span class="desc">اختیاری · برای ذخیره‌ی خودکار</span></label>
-    <input type="password" class="set-input" id="ght" placeholder="github_pat_...">
-  </div>
-  
-  <div class="set-row" style="margin-top:10px; gap: 8px;">
-    <label style="font-size: 11.5px; line-height: 1.5; margin: 0; flex: 1;">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label>
-    <button class="set-btn green" style="white-space: nowrap;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button>
-  </div>
+  <div class="set-row"><label>اعلان الگوی ۳+۱ <span class="desc">خاموش = هیچ اعلان پس‌زمینه‌ای نمی‌آید</span></label><input type="checkbox" class="toggle" id="nN" checked></div>
+  <div class="set-row"><label>ریپازیتوری GitHub <span class="desc">به شکل نام‌کاربری/نام‌ریپو</span></label><input type="text" class="set-input" id="ghr" value="massud2020/Balanced-Screener"></div>
+  <div class="set-row"><label>GitHub token <span class="desc">اختیاری · برای ذخیره‌ی خودکار</span></label><input type="password" class="set-input" id="ght" placeholder="github_pat_..."></div>
+  <div class="set-row" style="margin-top:10px; gap: 8px;"><label style="font-size: 11.5px; line-height: 1.5; margin: 0; flex: 1;">تغییر کلیدها فقط بعد از ذخیره اعمال می‌شه</label><button class="set-btn green" style="white-space: nowrap;" onclick="alert('تنظیمات با موفقیت روی سرور ذخیره شد')">ذخیره روی سرور</button></div>
 </div>
 
-<!-- مودال تاریخچه -->
 <div id="histModal">
     <div class="hist-content">
-        <div class="hist-header">
-            <h3>📊 تاریخچه سیگنال‌ها</h3>
-            <button class="hist-close" onclick="closeHistory()">✕ بستن</button>
-        </div>
-        
+        <div class="hist-header"><h3>📊 تاریخچه سیگنال‌ها</h3><button class="hist-close" onclick="closeHistory()">✕ بستن</button></div>
         <div class="hist-stats">
-            <div class="hist-stat-box">
-                <div class="lbl">سود کل (Net R)</div>
-                <div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">وین‌ریت (Win Rate)</div>
-                <div class="val" id="histWinRate">0%</div>
-                <div style="font-size:10px; color:var(--mu); margin-top:2px;" id="histWinLoss">0W / 0L</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">ضریب سود (PF)</div>
-                <div class="val" id="histPF" style="color:#3b82f6;">0.0</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">حداکثر افت (DD)</div>
-                <div class="val" style="color:var(--rb);" id="histMaxDD">0.0 R</div>
-            </div>
+            <div class="hist-stat-box"><div class="lbl">سود کل (Net R)</div><div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div></div>
+            <div class="hist-stat-box"><div class="lbl">وین‌ریت (Win Rate)</div><div class="val" id="histWinRate">0%</div><div style="font-size:10px; color:var(--mu); margin-top:2px;" id="histWinLoss">0W / 0L</div></div>
+            <div class="hist-stat-box"><div class="lbl">ضریب سود (PF)</div><div class="val" id="histPF" style="color:#3b82f6;">0.0</div></div>
+            <div class="hist-stat-box"><div class="lbl">حداکثر افت (DD)</div><div class="val" style="color:var(--rb);" id="histMaxDD">0.0 R</div></div>
         </div>
-
-        <div class="hist-filters">
-            <button class="on" onclick="setHistFilter('all', this)">کل زمان‌ها</button>
-            <button onclick="setHistFilter('today', this)">امروز</button>
-            <button onclick="setHistFilter('week', this)">۷ روز اخیر</button>
-        </div>
-        <div class="hist-tabs">
-            <button id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
-            <button class="on" id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
-        </div>
-
-        <div class="chart-section">
-            <h3>📈 نمودار رشد سرمایه (Equity Curve)</h3>
-            <canvas id="strategyPerformanceChart"></canvas>
-        </div>
-
+        <div class="hist-filters"><button class="on" onclick="setHistFilter('all', this)">کل زمان‌ها</button><button onclick="setHistFilter('today', this)">امروز</button><button onclick="setHistFilter('week', this)">۷ روز اخیر</button></div>
+        <div class="hist-tabs"><button id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button><button class="on" id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button></div>
+        <div class="chart-section"><h3>📈 نمودار رشد سرمایه (Equity Curve)</h3><canvas id="strategyPerformanceChart"></canvas></div>
         <div id="signalsContainer"></div>
     </div>
 </div>
 
-<!-- 🛠 مودال جزئیات نماد -->
 <div id="nsModal">
     <div class="hist-content">
         <div class="ns-modal-header">
             <div class="ns-modal-title" id="nsTitle">نماد</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <button id="nsSpeakBtn" class="set-btn green" style="padding:6px 10px; display:none;" onclick="speakCurrentSignal()">🔊 پخش صدا</button>
-                <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
-            </div>
+            <div style="display:flex; gap:8px; align-items:center;"><button id="nsSpeakBtn" class="set-btn green" style="padding:6px 10px; display:none;" onclick="speakCurrentSignal()">🔊 پخش صدا</button><button class="hist-close" onclick="closeNsModal()">✕ بستن</button></div>
         </div>
-        
         <div class="tv-container" id="tvContainer"></div>
-
-        <div class="gauge-wrapper">
-            <div class="gauge-circle" id="nsGauge">
-                <div class="gauge-inner" id="nsGaugeText">0/0</div>
-            </div>
-            <div class="gauge-text" id="nsGaugeDesc">بررسی برای لانگ ▲ الگوی ۳+۱</div>
-        </div>
-
+        <div class="gauge-wrapper"><div class="gauge-circle" id="nsGauge"><div class="gauge-inner" id="nsGaugeText">0/0</div></div><div class="gauge-text" id="nsGaugeDesc">بررسی برای لانگ ▲ الگوی ۳+۱</div></div>
         <div class="bottom-summary" id="nsLevels" style="display:none;">
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--rb);">حد ضرر (SL)</div>
-                <div class="val" id="nsSl" style="color:var(--rb);">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--tx);">نقطه ورود (Entry)</div>
-                <div class="val" id="nsEntry" style="color:var(--tx);">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--gb);">حد سود (TP)</div>
-                <div class="val" id="nsTp" style="color:var(--gb);">-</div>
-            </div>
+            <div class="sum-box"><div class="lbl" style="color:var(--rb);">حد ضرر (SL)</div><div class="val" id="nsSl" style="color:var(--rb);">-</div></div>
+            <div class="sum-box"><div class="lbl" style="color:var(--tx);">نقطه ورود (Entry)</div><div class="val" id="nsEntry" style="color:var(--tx);">-</div></div>
+            <div class="sum-box"><div class="lbl" style="color:var(--gb);">حد سود (TP)</div><div class="val" id="nsTp" style="color:var(--gb);">-</div></div>
         </div>
-
         <div class="check-list" id="nsChecksContainer"></div>
-
-        <div class="bottom-summary">
-            <div class="sum-box">
-                <div class="lbl">قیمت</div>
-                <div class="val" id="nsPrice">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl">RSI</div>
-                <div class="val" id="nsRsi">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl">سیگنال</div>
-                <div class="val" id="nsSignalCount">0</div>
-            </div>
-        </div>
+        <div class="bottom-summary"><div class="sum-box"><div class="lbl">قیمت</div><div class="val" id="nsPrice">-</div></div><div class="sum-box"><div class="lbl">RSI</div><div class="val" id="nsRsi">-</div></div><div class="sum-box"><div class="lbl">سیگنال</div><div class="val" id="nsSignalCount">0</div></div></div>
     </div>
 </div>
 
-<!-- بدنه اصلی -->
 <div id="appBody">
   <section class="ctl">
     <div class="mode-switch">
@@ -617,56 +412,24 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <button id="modeRange" onclick="setMode('range')">استراتژی رنج</button>
     </div>
     <div class="strategy-box">
-      <div class="strategy-title">
-        <span id="stratTitle">الگوی ۳+۱</span>
-        <span class="od"></span>
-      </div>
+      <div class="strategy-title"><span id="stratTitle">الگوی ۳+۱</span><span class="od"></span></div>
       <div class="cond-chips" id="condChips"></div>
     </div>
-    <div class="nav">
-      <a href="backtest.html"><span>📊</span><span>بک‌تست</span></a>
-      <a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a>
-    </div>
+    <div class="nav"><a href="backtest.html"><span>📊</span><span>بک‌تست</span></a><a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a></div>
     <div class="chips" id="mkts"></div>
-
     <div id="scanStatusCard">
-      <div class="ss-top">
-        <div class="ss-info">
-          <div class="ss-counter"><span id="scanCurrent">0</span> / <span id="scanTotal">0</span></div>
-          <div class="ss-symbol" id="scanSymbol">-</div>
-        </div>
-        <div class="ss-radar"><div class="ss-sweep"></div></div>
-      </div>
-      <div class="ss-progress-track">
-        <div class="ss-progress-fill" id="scanProgressFill"></div>
-      </div>
+      <div class="ss-top"><div class="ss-info"><div class="ss-counter"><span id="scanCurrent">0</span> / <span id="scanTotal">0</span></div><div class="ss-symbol" id="scanSymbol">-</div></div><div class="ss-radar"><div class="ss-sweep"></div></div></div>
+      <div class="ss-progress-track"><div class="ss-progress-fill" id="scanProgressFill"></div></div>
     </div>
   </section>
-
   <div class="scan-section">
     <div class="sum-row">
-      <div class="cn" id="sumCounts">
-        <span class="l">▲ ۰ لانگ</span>
-        <span class="s">▼ ۰ شورت</span>
-      </div>
-      <div class="seg" id="sumFilters">
-        <button data-v="all" class="on" onclick="setFilter('all')">همه</button>
-        <button data-v="LONG" onclick="setFilter('LONG')">لانگ</button>
-        <button data-v="SHORT" onclick="setFilter('SHORT')">شورت</button>
-      </div>
+      <div class="cn" id="sumCounts"><span class="l">▲ ۰ لانگ</span><span class="s">▼ ۰ شورت</span></div>
+      <div class="seg" id="sumFilters"><button data-v="all" class="on" onclick="setFilter('all')">همه</button><button data-v="LONG" onclick="setFilter('LONG')">لانگ</button><button data-v="SHORT" onclick="setFilter('SHORT')">شورت</button></div>
     </div>
-
-    <button class="big-scan-btn" id="go" onclick="scan(false)">
-      <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
-      <span id="goT">اسکن</span>
-      <span class="count-pill" id="goC">۰</span>
-    </button>
-
-    <div class="status-text" id="st">
-      <span>آماده</span>
-    </div>
+    <button class="big-scan-btn" id="go" onclick="scan(false)"><span class="scan-loader" id="loaderIcon" style="display:none;"></span><span id="goT">اسکن</span><span class="count-pill" id="goC">۰</span></button>
+    <div class="status-text" id="st"><span>آماده</span></div>
   </div>
-
   <main id="list">
     <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
     <div style="height:110px; background:var(--card); border-radius:14px; margin-bottom:10px; animation: pulse 1.5s infinite;"></div>
@@ -686,7 +449,8 @@ let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
 let isScanning = false;
 let LAST = null;
-let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
+// 🛠 "BB" به لیست پیش‌فرض اضافه شد تا همیشه روشن باشد
+let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI", "BB"]');
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { activeMarkets = ["crypto", "forex", "metal", "commodity", "index", "stock"]; LS("bs_active_mkts", JSON.stringify(activeMarkets)); }
 
@@ -698,8 +462,6 @@ let currentSignalInModal = null;
 let lastAnnounceTime = 0;
 let autoNewsHours = [];
 let autoNewsEvents = [];
-
-// 🛠 قفل صوتی برای جلوگیری از تداخل پیام خوش‌آمدگویی
 let isWelcomePlaying = false;
 
 window.showExitToast = function() {
@@ -741,7 +503,6 @@ function getGaugeGradient(scorePercent, side, numSegments) {
     return `conic-gradient(${stops.join(', ')})`;
 }
 
-// 🛠 تابع بهبود یافته TTS
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try { await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 }); return { success: true, engine: 'Native TTS' }; } 
@@ -761,7 +522,7 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
                 const finish = (r) => { if (!resolved) { resolved = true; resolve(r); } };
                 u.onend = () => finish({ success: true, engine: 'Web Speech API' }); 
                 u.onerror = (e) => finish({ success: false, error: e.error || "Web Speech Error" }); 
-                setTimeout(() => finish({ success: false, error: "TTS timeout" }), 20000); // افزایش تایم‌اوت برای ۵ جمله
+                setTimeout(() => finish({ success: false, error: "TTS timeout" }), 20000);
                 window.speechSynthesis.speak(u); 
             } catch(e) { resolve({ success: false, error: e.message }); } 
         });
@@ -769,12 +530,8 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
 }
 
-// 🛠 اعلام سیگنال جدید (با در نظر گرفتن قفل صوتی)
 async function announceNewSignals(newCount, rows) {
-    if (isWelcomePlaying) {
-        console.log('Welcome is playing, skipping signal announce');
-        return; // اگر خوش‌آمدگویی در حال پخش است، سیگنال را اعلام نکن
-    }
+    if (isWelcomePlaying) return;
     if (!$("ttsSymbol")?.checked) return;
     const now = Date.now();
     if (now - lastAnnounceTime < 5000) return;
@@ -790,7 +547,6 @@ async function announceNewSignals(newCount, rows) {
         await speakNative(`${newCount} new signals. First is ${side} on ${firstSig.id}`, 'en-US', 1.0); 
     }
     
-    // 🛠 ارسال اعلان از طریق Service Worker
     if ("Notification" in window && Notification.permission === "granted") {
         try { 
             const firstSig = newSigs[0]; 
@@ -799,14 +555,12 @@ async function announceNewSignals(newCount, rows) {
             const body = `${firstSig.id} - ${side}`;
 
             if (swRegistration) {
-                // اگر Service Worker در دسترس باشد، از آن استفاده می‌کنیم
                 swRegistration.active.postMessage({
                     type: 'SHOW_NOTIFICATION',
                     title: title,
                     body: body
                 });
             } else {
-                // اگر SW نبود، از روش قدیمی استفاده می‌کنیم
                 new Notification(title, { body: body, tag: 'signal-' + Date.now() }); 
             }
         } catch(e) { console.warn('Notification error', e); }
@@ -945,17 +699,14 @@ function renderHistory() {
 
 window.changeLanguage = function(lang) { currentLang = lang; LS("bs_lang", lang); document.body.dir = lang === 'fa' ? 'rtl' : 'ltr'; if(lang==='fa'){ $('splashLangFa').classList.add('active'); $('splashLangEn').classList.remove('active'); setText("splashSubtitle", "برای ورود ضربه بزنید"); $("start-ai-btn").textContent = "ورود به اسکرینر"; $("skip-ai-btn").textContent = "رد کردن"; setText("muteText", "بدون صدا"); $("langToggle").innerText = "EN"; } else { $('splashLangEn').classList.add('active'); $('splashLangFa').classList.remove('active'); setText("splashSubtitle", "Tap to enter"); $("start-ai-btn").textContent = "Enter Screener"; $("skip-ai-btn").textContent = "Skip"; setText("muteText", "Mute"); $("langToggle").innerText = "FA"; } };
 
-// 🛠 تابع doEnter اصلاح شده برای پخش ۵ جمله بدون تداخل
 window.doEnter = async function() {
     unlockTTS();
     const btn = $('start-ai-btn'); btn.disabled = true; btn.textContent = "در حال آماده‌سازی..."; setText("splashSubtitle", "در حال پخش پیام صوتی...");
     if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
     
     if(!$("splashMute").checked) {
-        // 🛠 قفل کردن صدا برای جلوگیری از تداخل
         isWelcomePlaying = true;
         
-        // 🛠 پیام دقیقا ۵ جمله‌ای
         const welcomeText = 
             "خوش آمدید به اسکرینر حرفه‌ای بالانس. " + 
             "سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. " + 
@@ -965,7 +716,6 @@ window.doEnter = async function() {
         
         await speakNative(welcomeText, 'fa-IR', 1.0);
         
-        // 🛠 باز کردن قفل بعد از پایان پیام
         isWelcomePlaying = false;
     }
     
@@ -977,7 +727,7 @@ window.doEnter = async function() {
 window.doSkip = function() { 
     unlockTTS();
     if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
-    isWelcomePlaying = false; // مطمئن شویم قفل در حالت اسکیپ باز است
+    isWelcomePlaying = false;
     $('ai-splash').classList.add('hidden'); 
     setTimeout(() => $('ai-splash').style.display = 'none', 300); 
     setTimeout(() => { scan(true); }, 300); 
@@ -1159,7 +909,6 @@ window.scan = async function(isAuto = false) {
             if (newSignalsCount > 0) {
                 $("unreadBadge").innerText = newSignalsCount;
                 $("unreadBadge").classList.add("on");
-                // 🛠 announceNewSignals خودش چک می‌کند که پیام خوش‌آمدگویی در حال پخش نباشد
                 try { await announceNewSignals(newSignalsCount, rows); } catch(e) { console.warn('Announce error:', e); }
             } else { $("unreadBadge").classList.remove("on"); }
         }
@@ -1205,7 +954,9 @@ function renderList(rows) {
         const m5 = toObjs(r.a); const m15 = toObjs(r.m15); const h1 = toObjs(r.h);
         const opts = { 
             m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), 
-            rsi: activeConditions.includes('RSI'), trend: activeConditions.includes('EMA200'), 
+            rsi: activeConditions.includes('RSI'), 
+            bb: activeConditions.includes('BB'), // 🛠 ارسال وضعیت BB به موتور
+            trend: activeConditions.includes('EMA200'), 
             emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), 
             pat: activeConditions.includes('۳+۱'), mode: currentMode, adx: false,
             sessionFilter: sessionFilter, newsHours: finalNewsHours
@@ -1366,7 +1117,6 @@ window.showSignalDetails = function(symId) {
 
 window.closeNsModal = function() { closeModal("nsModal"); };
 
-// 🛠 اتصال چک‌باکس‌های فیلتر به LocalStorage
 if ($("sessionFilterChk")) {
     $("sessionFilterChk").checked = LS("bs_sessionFilter") === "true";
     $("sessionFilterChk").onchange = function() { LS("bs_sessionFilter", this.checked ? "true" : "false"); if (LAST) renderList(LAST.rows); };
