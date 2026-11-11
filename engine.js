@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V8 - Range BB Fixed)
+// engine.js — Balanced Screener Core Engine (V9 - ADX Fixed & Range Relaxed)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -97,15 +97,23 @@
             plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0);
             minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
         }
+        
+        // 🛠 باگ ریاضی ADX در این تابع اصلاح شد
         function smoothed(arr, p) {
             const res = new Array(arr.length).fill(null);
             let sum = 0;
             for (let i = 0; i < arr.length; i++) {
-                if (i < p) { sum += arr[i]; if (i === p - 1) res[i] = sum / p; }
-                else { res[i] = res[i - 1] - (res[i - 1] / p) + arr[i]; }
+                if (i < p) { 
+                    sum += arr[i]; 
+                    if (i === p - 1) res[i] = sum / p; 
+                } else { 
+                    // فرمول صحیح وایلدر (تقسیم بر p برای مقدار جدید)
+                    res[i] = ((res[i - 1] * (p - 1)) + arr[i]) / p; 
+                }
             }
             return res;
         }
+        
         const atrArr = smoothed(tr, period), pDMSmoothed = smoothed(plusDM, period), mDMSmoothed = smoothed(minusDM, period);
         const dxArr = new Array(candles.length).fill(null);
         for (let i = 0; i < candles.length; i++) {
@@ -220,14 +228,17 @@
             if (m15Ema21 > m15Ema50) m15Trend = 'UP'; else if (m15Ema21 < m15Ema50) m15Trend = 'DOWN';
         }
 
-        const mode = opts.mode || (lastAdx >= 22 ? "pattern" : "range");
+        // 🛠 استفاده از پارامترهای پویا برای ADX (پشتیبانی از presets)
+        const adxRangeThreshold = opts.adxRangeThreshold || 25; 
+        const adxTrendThreshold = opts.adxTrendThreshold || 20;
+
+        const mode = opts.mode || (lastAdx >= adxRangeThreshold ? "pattern" : "range");
         const checks = [];
         let side = null;
         let checkedSide = 'LONG';
 
-        // 🛠 منطق اصلاح شده برای تشخیص رنج و تعیین سمت معامله با در نظر گرفتن opts
         if (mode === "range") {
-            const isLowTrend = lastAdx < 25;
+            const isLowTrend = lastAdx < adxRangeThreshold;
             const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
             
             const useRsi = opts.rsi !== false;
@@ -238,9 +249,13 @@
             const bbBuy = useBb ? (lastLower && lastClose <= lastLower + (lastAtr * 0.6)) : false;
             const bbSell = useBb ? (lastUpper && lastClose >= lastUpper - (lastAtr * 0.6)) : false;
             
+            // 🛠 شرط OR به جای AND: اگر یکی از اندیکاتورهای فعال، سیگنال را تایید کند کافی است
+            const rangeBuy = (useRsi && rsiBuy) || (useBb && bbBuy);
+            const rangeSell = (useRsi && rsiSell) || (useBb && bbSell);
+            
             if (isLowTrend && isNotSqueeze) {
-                if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
-                else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
+                if (rangeBuy) { side = "LONG"; checkedSide = "LONG"; }
+                else if (rangeSell) { side = "SHORT"; checkedSide = "SHORT"; }
                 else { 
                     side = null; 
                     checkedSide = lastRsi < 50 ? "LONG" : "SHORT"; 
@@ -259,7 +274,7 @@
         let failReason = null;
 
         if (mode === "range") {
-            const isLowTrend = lastAdx < 25;
+            const isLowTrend = lastAdx < adxRangeThreshold;
             checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 2.0 });
             if (!isLowTrend && !failReason) failReason = "ADX قوی است (روند)";
 
@@ -267,25 +282,28 @@
             checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد', w: 1.5 });
             if (!isNotSqueeze && !failReason) failReason = "بازار فشرده است";
 
-            // 🛠 چک‌لیست RSI
             const useRsi = opts.rsi !== false;
-            const rsiBuy = useRsi ? (lastRsi <= 42) : false;
-            const rsiSell = useRsi ? (lastRsi >= 58) : false;
-            const rsiOk = useRsi ? (rsiBuy || rsiSell) : false;
-            checks.push({ l: `اشباع RSI`, ok: rsiOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
-            
-            // 🛠 چک‌لیست BB
             const useBb = opts.bb !== false;
-            const bbBuy = useBb ? (lastLower && lastClose <= lastLower + (lastAtr * 0.6)) : false;
-            const bbSell = useBb ? (lastUpper && lastClose >= lastUpper - (lastAtr * 0.6)) : false;
-            const bbOk = useBb ? (bbBuy || bbSell) : false;
-            checks.push({ l: `برخورد با باند بولینگر`, ok: bbOk, v: bbOk ? 'تایید' : 'رد', w: 2.0 });
+
+            if (useRsi) {
+                const rsiBuy = lastRsi <= 42;
+                const rsiSell = lastRsi >= 58;
+                const rsiOk = rsiBuy || rsiSell;
+                checks.push({ l: `اشباع RSI`, ok: rsiOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
+            }
+            
+            if (useBb) {
+                const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.6);
+                const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.6);
+                const bbOk = bbBuy || bbSell;
+                checks.push({ l: `برخورد با باند بولینگر`, ok: bbOk, v: bbOk ? 'تایید' : 'رد', w: 2.0 });
+            }
 
             const isRangeOk = !!side;
             checks.push({ l: `هم‌راستایی شروط ورود`, ok: isRangeOk, v: isRangeOk ? 'آماده ورود' : 'منتظر مانده', w: 3.0 });
             if (!isRangeOk && !failReason) failReason = "شروط ورود هم‌راستا نیستند";
         } else {
-            const isTrending = lastAdx >= 20;
+            const isTrending = lastAdx >= adxTrendThreshold;
             checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
             if (!isTrending && !failReason) failReason = "ADX ضعیف";
 
