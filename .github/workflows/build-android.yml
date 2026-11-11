@@ -1,45 +1,45 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # اجرای دستی
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. دریافت کدها
+      # 1. دریافت کدها (نسخه سازگار با Node 24)
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 2. تنظیم Node.js
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
-      # 3. تنظیم Java
+      # 3. تنظیم Java (نسخه v5 برای Node 24)
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 4. تنظیم Android SDK
+      # 4. تنظیم Android SDK — نسخه v4 (رفع خطای Node 24)
+      #    اگر خواستید اکشن را کامل حذف کنید، این مرحله را پاک کنید
+      #    (رانر ubuntu-latest از قبل Android SDK دارد)
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
-      # 5. نصب پیش‌نیازهای سیستم (دور زدن سرورهای کند و جلوگیری از تایم‌اوت)
+      # 5. نصب پیش‌نیازهای سیستم (بدون تایم‌اوت طولانی)
       - name: Install System Dependencies
         run: |
-          # کاهش تایم‌اوت به 15 ثانیه
           echo 'Acquire::Retries "1";' | sudo tee /etc/apt/apt.conf.d/99-ci-timeout
           echo 'Acquire::http::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
           echo 'Acquire::https::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
-          
-          # دور زدن سرورهای پیش‌فرض گیت‌هاب (Azure) و استفاده از سرور اصلی اوبونتو
+
+          # دور زدن مسیر پیش‌فرض و استفاده از سرور اصلی اوبونتو
           sudo sed -i -E 's@//azure\.archive\.ubuntu\.com@//archive.ubuntu.com@g' /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
-          
-          # آپدیت و نصب
+
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
@@ -53,7 +53,7 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android
           fi
 
-      # 7. نصب پلاگین‌های TTS
+      # 7. نصب پلاگین TTS
       - name: Install TTS Plugins
         run: |
           npm install @capacitor-community/text-to-speech
@@ -62,10 +62,9 @@ jobs:
       - name: Build www folder
         run: |
           mkdir -p www
-          # کپی کردن فایل‌های استاتیک (در صورت نیاز نام فایل‌ها را تغییر دهید)
           cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
 
-      # 9. استمپ کردن Service Worker
+      # 9. استمپ Service Worker
       - name: Stamp service worker
         run: |
           if [ -f www/sw.js ]; then
@@ -86,7 +85,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      # 12. ساخت آیکون‌ها و اسپلش اسکرین
+      # 12. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
         run: |
           if [ -d "resources" ]; then
@@ -94,16 +93,16 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 13. بیلد نهایی فایل APK
+      # 13. بیلد APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 14. آپلود فایل APK برای دانلود
+      # 14. آپلود خروجی (نسخه v7 سازگار با Node 24)
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Balanced-Screener-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
