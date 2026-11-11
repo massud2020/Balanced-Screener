@@ -8,26 +8,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
-<!-- 🛠 نسخه ۹۵: تله هش قوی برای دکمه بک در APK -->
+<!-- 🛠 سیستم تله هش برای جلوگیری از خروج ناخواسته -->
 <script>
     window.allowExit = false;
     window.activeModalId = null;
     let backPressTime = 0;
     let trapCounter = 0;
     
-    // تابع تله هش (Hash Trap)
     function pushTrap() {
         if (window.allowExit) return;
         trapCounter++;
         try {
-            // تغییر هش باعث می‌شود WebView حتما متوجه شود یک مرحله جدید در تاریخچه ایجاد شده
             history.pushState({ trap: trapCounter }, '', '#trap_' + trapCounter);
         } catch(e) {
             window.location.hash = '#trap_' + trapCounter;
         }
     }
 
-    // ایجاد تله‌های اولیه به محض لود
     window.addEventListener('load', () => {
         pushTrap();
         pushTrap();
@@ -35,14 +32,10 @@
         setTimeout(pushTrap, 1500);
     });
 
-    // مدیریت دکمه بک در مرورگر و WebView
     window.addEventListener('popstate', function (e) {
         if (window.allowExit) return;
-        
-        // بلافاصله یک تله جدید می‌گذاریم تا دکمه بک بعدی هم گیر کند
         pushTrap(); 
 
-        // اگر مودالی باز باشد، فقط آن را می‌بندیم
         if (window.activeModalId) {
             const id = window.activeModalId;
             document.getElementById(id).style.display = "none";
@@ -55,10 +48,8 @@
             return;
         }
 
-        // اگر در صفحه اصلی هستیم
         const now = Date.now();
         if (now - backPressTime < 2000) {
-            // دو بار زدن = خروج
             window.allowExit = true;
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
                 window.Capacitor.Plugins.App.exitApp();
@@ -68,7 +59,6 @@
                 window.history.go(-5); 
             }
         } else {
-            // یک بار زدن = نمایش پیام
             backPressTime = now;
             if (typeof window.showExitToast === 'function') {
                 window.showExitToast();
@@ -84,7 +74,6 @@
         }
     });
 
-    // مدیریت اختصاصی Capacitor
     window.addEventListener('load', () => {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
             window.Capacitor.Plugins.App.addListener('backButton', () => {
@@ -244,6 +233,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .row.sig:active { transform: scale(0.98); border-color: var(--gb); }
 .row.sig.LONG { border-inline-start: 4px solid var(--gb); }
 .row.sig.SHORT { border-inline-start: 4px solid var(--rb); }
+.row.sig.error-logic { border-color: var(--rb); border-inline-start: 4px solid var(--rb); }
 .r-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; direction: ltr; }
 .r-badges { display: flex; align-items: center; }
 .r-tags { display: flex; align-items: center; gap: 6px; margin-left: auto; margin-right: 8px; }
@@ -252,6 +242,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .b.LONG { background: var(--gd); color: var(--gb); }
 .b.SHORT { background: var(--rd); color: var(--rb); }
 .tag { font-size: 10.5px; background: var(--card2); border: 1px solid var(--bd2); color: var(--tx2); padding: 3px 8px; border-radius: 6px; }
+.tag.error { background: rgba(255, 92, 92, 0.2); color: var(--rb); border-color: var(--rb); animation: pulse 1.5s infinite; }
+.tag.be { background: rgba(234, 179, 8, 0.2); color: #eab308; border-color: #eab308; font-weight: 800; }
 .r-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; direction: ltr; }
 .r-grid div { background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; padding: 10px; }
 .r-grid i { color: var(--mu); display: block; font-style: normal; font-size: 10.5px; margin-bottom: 4px; text-align: right;}
@@ -308,6 +300,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
 .ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+.ns-modal-error { color: var(--rb); font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight:800; }
 
 .tv-container { width: 100%; height: 460px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; padding: 4px; }
 
@@ -394,7 +387,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v95</span>
+    <span class="brand-sub">v98</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -431,7 +424,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v95</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v98</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -776,7 +769,7 @@ window.setHistFilter = function(f, btn) { histFilter = f; document.querySelector
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 
 /* =========================================================
-   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v95)
+   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v98)
    ========================================================= */
 let histChartInstance = null;
 function renderHistory() {
@@ -971,6 +964,25 @@ function calcRsi(data, len = 14) {
     }
     return out;
 }
+
+// 🛠 تابع بررسی منطق
+function checkLogic(r) {
+    if (!r.side || !r.entry || !r.sl || !r.tp) return { valid: true };
+    const isL = r.side === 'LONG';
+    const tpE = Number(r.tp), entryE = Number(r.entry), slE = Number(r.sl);
+    
+    if (isL) {
+        if (slE >= entryE) return { valid: false, msg: 'حد ضرر بالاتر از ورود' };
+        if (tpE < entryE) return { valid: false, msg: 'حد سود پایین‌تر از ورود' };
+        if (Math.abs(tpE - entryE) < 0.0001) return { valid: true, isBE: true };
+    } else {
+        if (slE <= entryE) return { valid: false, msg: 'حد ضرر پایین‌تر از ورود' };
+        if (tpE > entryE) return { valid: false, msg: 'حد سود بالاتر از ورود' };
+        if (Math.abs(tpE - entryE) < 0.0001) return { valid: true, isBE: true };
+    }
+    return { valid: true, isBE: false };
+}
+
 function renderLwcChart(r) {
     destroyLwc();
     const box = $("tvContainer");
@@ -1226,7 +1238,7 @@ function renderList(rows) {
             }
             return { 
                 ...r, 
-                side: r.side, // 🛠 فیکس شد: حفظ جهت معامله در صورت خطای موتور
+                side: r.side, // حفظ جهت معامله در صورت خطای موتور
                 score: res.score || 0, 
                 maxScore: res.maxScore || 0, 
                 scorePercent: res.scorePercent || 0, 
@@ -1263,6 +1275,12 @@ function renderList(rows) {
             const L = r.side === "LONG";
             const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
             
+            // 🛠 اعتبارسنجی منطق
+            const logic = checkLogic(r);
+            const errorTag = !logic.valid ? `<span class="tag error">⚠️ ${logic.msg}</span>` : '';
+            const beTag = (logic.valid && logic.isBE) ? `<span class="tag be">🎯 سود قفل شده</span>` : '';
+            const cardClass = !logic.valid ? 'error-logic' : r.side;
+
             let tierTag = '';
             if (r.tier === 'PREMIUM') tierTag = `<span class="tag" style="background:#46c58c20; color:#46c58c; border-color:#46c58c; font-weight:800;">⭐ عالی</span>`;
             else if (r.tier === 'STRONG') tierTag = `<span class="tag" style="background:#46c58c15; color:#46c58c; border-color:#46c58c80;">✔ قوی</span>`;
@@ -1280,8 +1298,8 @@ function renderList(rows) {
                 scoreDisplay = '<span style="color:var(--gb); font-weight:800;">LIVE</span>';
             }
 
-            return `<article class="row sig ${r.side}" onclick="showSignalDetails('${r.id}')">
-                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
+            return `<article class="row sig ${cardClass}" onclick="showSignalDetails('${r.id}')">
+                <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${errorTag}${beTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
                     <div><i>ورود</i><b>${(r.entry !== undefined && r.entry !== null) ? safeFixed(r.entry, 5) : '-'}</b></div>
                     <div><i>${trailIcon}SL</i><b class="neg">${(r.sl !== undefined && r.sl !== null) ? safeFixed(r.sl, 5) : '-'}</b></div>
@@ -1336,12 +1354,13 @@ window.showSignalDetails = function(symId) {
     const checkedSide = r.checkedSide || r.side || 'LONG';
     const scorePercent = r.scorePercent || 0;
     const numChecks = (r.checks || []).length || 9;
+    const logic = checkLogic(r);
 
     // 1. تنظیم عنوان مودال
     $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
         <span>${r.id}</span> 
         <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> 
-        ${isSignal ? '<div class="ns-modal-live">LIVE</div>' : ''}
+        ${isSignal ? (logic.valid ? (logic.isBE ? '<div class="ns-modal-live" style="color:#eab308;">🎯 BE</div>' : '<div class="ns-modal-live">LIVE</div>') : '<div class="ns-modal-error">⚠️ خطای منطق</div>') : ''}
     </div>`;
     
     // دکمه پخش صدا
