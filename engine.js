@@ -1,10 +1,48 @@
-// engine.js — Balanced Screener Core Engine (V5 - Fixed ADX & M15)
+// engine.js — Balanced Screener Core Engine (V6 - Session/News/Correlation Aware)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
     else { root.Engine = factory(); }
 }(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
+
+    // 🛠 گروه‌های همبستگی (نمادهای این گروه‌ها همبسته‌اند و نباید همزمان سیگنال بدهند)
+    const CORRELATION_GROUPS = [
+        ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD'],
+        ['USDJPY', 'USDCHF', 'USDCAD'],
+        ['EURUSD', 'EURGBP', 'EURJPY', 'EURAUD', 'EURCHF'],
+        ['GBPUSD', 'GBPJPY', 'GBPAUD', 'GBPCHF', 'GBPNZD'],
+        ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'NZDJPY'],
+        ['XAUUSD', 'XAGUSD'],
+        ['BTCUSDT', 'ETHUSDT'],
+        ['SOLUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'ADAUSDT', 'SUIUSDT', 'DOGEUSDT', 'XRPUSDT', 'LTCUSDT', 'BNBUSDT']
+    ];
+
+    function getCorrelationGroup(symbol) {
+        for (let i = 0; i < CORRELATION_GROUPS.length; i++) {
+            if (CORRELATION_GROUPS[i].includes(symbol)) return i;
+        }
+        return -1;
+    }
+
+    // 🛠 فیلتر سشن (اختیاری - از opts.sessionFilter فعال شود)
+    function isSessionActive(nowSec, opts = {}) {
+        if (!opts.sessionFilter) return true;
+        const d = new Date(nowSec * 1000);
+        const utcHour = d.getUTCHours();
+        const day = d.getUTCDay();
+        if (day === 0 || day === 6) return false;
+        // سشن‌های اصلی: لندن (7-16 UTC) و نیویورک (13-21 UTC)
+        return (utcHour >= 7 && utcHour < 21);
+    }
+
+    // 🛠 فیلتر اخبار (ساعت‌های ممنوعه)
+    function isNewsBlackout(nowSec, opts = {}) {
+        if (!opts.newsHours || !opts.newsHours.length) return false;
+        const d = new Date(nowSec * 1000);
+        const utcHour = d.getUTCHours();
+        return opts.newsHours.includes(utcHour);
+    }
 
     function ema(data, period) {
         if (!data || data.length < period) return new Array(data ? data.length : 0).fill(null);
@@ -63,8 +101,6 @@
             plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0);
             minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
         }
-        
-        // 🛠 اصلاح باگ ADX: تقسیم بر period
         function smoothed(arr, p) {
             const res = new Array(arr.length).fill(null);
             let sum = 0;
@@ -74,7 +110,6 @@
             }
             return res;
         }
-        
         const atrArr = smoothed(tr, period), pDMSmoothed = smoothed(plusDM, period), mDMSmoothed = smoothed(minusDM, period);
         const dxArr = new Array(candles.length).fill(null);
         for (let i = 0; i < candles.length; i++) {
@@ -152,6 +187,15 @@
     }
 
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
+        // 🛠 بررسی سشن (اگر فعال باشد)
+        if (!isSessionActive(nowSec, opts)) {
+            return { side: null, checkedSide: 'LONG', fail: "خارج از سشن معاملاتی", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
+        }
+        // 🛠 بررسی اخبار (اگر ساعت ممنوعه باشد)
+        if (isNewsBlackout(nowSec, opts)) {
+            return { side: null, checkedSide: 'LONG', fail: "ساعت خبر مهم", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
+        }
+
         const cl = dropForming(candlesM5, 300, nowSec);
         if (!cl || cl.length < 200) {
             return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
@@ -164,7 +208,6 @@
 
         const idx = cl.length - 1;
         const lastClose = closes[idx], lastRsi = rsiArr[idx];
-        
         const lastAtr = (Number.isFinite(atrArr[idx]) && atrArr[idx] > 0) ? atrArr[idx] : (cl[idx].high - cl[idx].low);
         const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
@@ -247,8 +290,7 @@
 
         if (opts.m15 !== false) {
             let isOk = true, valStr = 'تایید';
-            // 🛠 اصلاح باگ M15: اگر دیتا نبود، امتیاز ندهد
-            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; } 
+            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
             else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
             checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
             if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
@@ -280,7 +322,6 @@
         let tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
-        // 🛠 اعتبارسنجی نهایی برای جلوگیری از خطای معکوس شدن TP و SL
         if (checkedSide === "LONG") {
             if (sl >= entry) sl = entry - riskDist;
             if (tp1 <= entry) tp1 = entry + riskDist * 1.5;
@@ -298,7 +339,6 @@
             if (c.ok) score += w;
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        
         const MIN_SCORE_PERCENT = 70;
         const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side;
 
@@ -319,9 +359,11 @@
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
             mode, entry, sl, tp: tp1, tp2, rsi: lastRsi, adx: lastAdx,
+            trailingAtrStep: riskDist * 0.5, // 🛠 تریلینگ استاپ برای استفاده در فرانت‌اند
+            correlationGroup: getCorrelationGroup(symbol), // 🛠 گروه همبستگی
             checks, fail: allPassed ? null : (failReason || "امتیاز کافی نیست")
         };
     }
 
-    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate };
+    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, CORRELATION_GROUPS, isSessionActive, isNewsBlackout };
 }));
