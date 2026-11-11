@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V5 - Fixed ADX & Sanity Check)
+// engine.js — Balanced Screener Core Engine (V5 - Fixed ADX & M15)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -64,7 +64,7 @@
             minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
         }
         
-        // 🛠 اصلاح باگ: تقسیم بر period (میانگین‌گیری اولیه)
+        // 🛠 اصلاح باگ ADX: تقسیم بر period
         function smoothed(arr, p) {
             const res = new Array(arr.length).fill(null);
             let sum = 0;
@@ -166,7 +166,6 @@
         const lastClose = closes[idx], lastRsi = rsiArr[idx];
         
         const lastAtr = (Number.isFinite(atrArr[idx]) && atrArr[idx] > 0) ? atrArr[idx] : (cl[idx].high - cl[idx].low);
-        // باگ ADX رفع شد، حالا مقادیر بین 0 تا 100 هستند
         const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
 
@@ -248,10 +247,11 @@
 
         if (opts.m15 !== false) {
             let isOk = true, valStr = 'تایید';
-            if (m15Trend === 'NEUTRAL') { isOk = true; valStr = 'بدون دیتا'; }
+            // 🛠 اصلاح باگ M15: اگر دیتا نبود، امتیاز ندهد
+            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; } 
             else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
             checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
-            if (!isOk && !failReason) failReason = "مخالف M15";
+            if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
         if (opts.pat !== false && mode === "pattern") {
@@ -275,12 +275,12 @@
         checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
-        // 🛠 اعتبارسنجی نهایی برای جلوگیری از خطای معکوس شدن TP و SL
         const entry = lastClose;
         let sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
         let tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
+        // 🛠 اعتبارسنجی نهایی برای جلوگیری از خطای معکوس شدن TP و SL
         if (checkedSide === "LONG") {
             if (sl >= entry) sl = entry - riskDist;
             if (tp1 <= entry) tp1 = entry + riskDist * 1.5;
