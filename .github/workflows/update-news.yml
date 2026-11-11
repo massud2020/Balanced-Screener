@@ -9,41 +9,55 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Fetch and filter news
         run: |
+          # دریافت داده از ForexFactory (اگر خطا داد، فایل خالی می‌سازد)
           curl -s "https://nfs.faireconomy.media/ff_calendar_thisweek.json" -o raw.json || echo "[]" > raw.json
-          python3 -c "
-import json
-from datetime import datetime, timezone
-try:
-    with open('raw.json') as f:
-        data = json.load(f)
-except:
-    data = []
-now = datetime.now(timezone.utc)
-events = []
-for ev in data:
-    if ev.get('impact') != 'High':
-        continue
-    try:
-        dt = datetime.fromisoformat(ev['date'].replace('Z', '+00:00'))
-        if dt < now:
-            continue
-        events.append({
-            'time': dt.isoformat(),
-            'title': ev.get('title', ''),
-            'impact': 'high',
-            'currency': ev.get('country', '')
-        })
-    except:
-        continue
-events.sort(key=lambda x: x['time'])
-out = {'updated': now.isoformat(), 'events': events[:30]}
-with open('news.json', 'w') as f:
-    json.dump(out, f, indent=2)
-print(f'Wrote {len(events)} events')
-"
+          
+          # ساخت فایل پایتون
+          cat << 'EOF' > fetch_news.py
+          import json
+          from datetime import datetime, timezone
+
+          try:
+              with open('raw.json') as f:
+                  data = json.load(f)
+          except Exception:
+              data = []
+
+          now = datetime.now(timezone.utc)
+          events = []
+
+          for ev in data:
+              if ev.get('impact') != 'High':
+                  continue
+              try:
+                  dt = datetime.fromisoformat(ev['date'].replace('Z', '+00:00'))
+                  if dt < now:
+                      continue
+                  events.append({
+                      'time': dt.isoformat(),
+                      'title': ev.get('title', ''),
+                      'impact': 'high',
+                      'currency': ev.get('country', '')
+                  })
+              except Exception:
+                  continue
+
+          events.sort(key=lambda x: x['time'])
+          out = {'updated': now.isoformat(), 'events': events[:30]}
+
+          with open('news.json', 'w') as f:
+              json.dump(out, f, indent=2)
+          print(f"Wrote {len(events)} events")
+          EOF
+          
+          # اجرای اسکریپت
+          python3 fetch_news.py
+
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
