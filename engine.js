@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V6 - Full Featured)
+// engine.js — Balanced Screener Core Engine (V8 - Range BB Fixed)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -225,14 +225,30 @@
         let side = null;
         let checkedSide = 'LONG';
 
+        // 🛠 منطق اصلاح شده برای تشخیص رنج و تعیین سمت معامله با در نظر گرفتن opts
         if (mode === "range") {
-            const rsiBuy = lastRsi <= (opts.rsiL || 38);
-            const rsiSell = lastRsi >= (opts.rsiS || 62);
-            const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.2);
-            const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.2);
-            if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
-            else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
-            else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
+            const isLowTrend = lastAdx < 25;
+            const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
+            
+            const useRsi = opts.rsi !== false;
+            const useBb = opts.bb !== false;
+            
+            const rsiBuy = useRsi ? (lastRsi <= 42) : false;
+            const rsiSell = useRsi ? (lastRsi >= 58) : false;
+            const bbBuy = useBb ? (lastLower && lastClose <= lastLower + (lastAtr * 0.6)) : false;
+            const bbSell = useBb ? (lastUpper && lastClose >= lastUpper - (lastAtr * 0.6)) : false;
+            
+            if (isLowTrend && isNotSqueeze) {
+                if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
+                else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
+                else { 
+                    side = null; 
+                    checkedSide = lastRsi < 50 ? "LONG" : "SHORT"; 
+                }
+            } else {
+                side = null;
+                checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT";
+            }
         } else {
             const trendUpM5 = ema50[idx] > ema200[idx];
             checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
@@ -244,16 +260,30 @@
 
         if (mode === "range") {
             const isLowTrend = lastAdx < 25;
-            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
-            if (!isLowTrend && !failReason) failReason = "ADX قوی است";
+            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 2.0 });
+            if (!isLowTrend && !failReason) failReason = "ADX قوی است (روند)";
 
             const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
-            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد', w: 1.0 });
-            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده";
+            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد', w: 1.5 });
+            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده است";
+
+            // 🛠 چک‌لیست RSI
+            const useRsi = opts.rsi !== false;
+            const rsiBuy = useRsi ? (lastRsi <= 42) : false;
+            const rsiSell = useRsi ? (lastRsi >= 58) : false;
+            const rsiOk = useRsi ? (rsiBuy || rsiSell) : false;
+            checks.push({ l: `اشباع RSI`, ok: rsiOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
+            
+            // 🛠 چک‌لیست BB
+            const useBb = opts.bb !== false;
+            const bbBuy = useBb ? (lastLower && lastClose <= lastLower + (lastAtr * 0.6)) : false;
+            const bbSell = useBb ? (lastUpper && lastClose >= lastUpper - (lastAtr * 0.6)) : false;
+            const bbOk = useBb ? (bbBuy || bbSell) : false;
+            checks.push({ l: `برخورد با باند بولینگر`, ok: bbOk, v: bbOk ? 'تایید' : 'رد', w: 2.0 });
 
             const isRangeOk = !!side;
-            checks.push({ l: `اشباع RSI + برخورد بولینگر`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
-            if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
+            checks.push({ l: `هم‌راستایی شروط ورود`, ok: isRangeOk, v: isRangeOk ? 'آماده ورود' : 'منتظر مانده', w: 3.0 });
+            if (!isRangeOk && !failReason) failReason = "شروط ورود هم‌راستا نیستند";
         } else {
             const isTrending = lastAdx >= 20;
             checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
@@ -277,17 +307,34 @@
         }
 
         if (opts.h1 !== false) {
-            const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
-            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
-            if (!isOk && !failReason) failReason = "مخالف H1";
+            let isOk = false;
+            let valStr = 'رد';
+            if (mode === "range") {
+                const h1Ema50 = candlesH1 && candlesH1.length >= 50 ? ema(candlesH1.map(c => c.close), 50)[candlesH1.length - 1] : null;
+                const h1Ema200 = candlesH1 && candlesH1.length >= 200 ? ema(candlesH1.map(c => c.close), 200)[candlesH1.length - 1] : null;
+                const dist = (h1Ema50 && h1Ema200) ? Math.abs(h1Ema50 - h1Ema200) / h1Ema200 : 0;
+                if (dist < 0.005) { isOk = true; valStr = 'خنثی'; }
+                else { isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'); valStr = isOk ? 'همسو' : 'مخالف'; }
+            } else {
+                isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
+                valStr = isOk ? 'تایید' : 'رد';
+            }
+            checks.push({ l: `تحلیل روند H1`, ok: isOk, v: valStr, w: mode === 'range' ? 0.5 : 2.0 });
+            if (!isOk && !failReason && mode !== 'range') failReason = "مخالف H1";
         }
 
         if (opts.m15 !== false) {
-            let isOk = true, valStr = 'تایید';
-            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
-            else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
-            checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
-            if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
+            let isOk = false;
+            let valStr = 'رد';
+            if (mode === "range") {
+                isOk = (m15Trend === 'NEUTRAL') || ((checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'));
+                valStr = isOk ? 'خنثی/همسو' : 'مخالف';
+            } else {
+                if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
+                else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
+            }
+            checks.push({ l: `تحلیل روند M15`, ok: isOk, v: valStr, w: mode === 'range' ? 0.5 : 1.5 });
+            if (!isOk && !failReason && mode !== 'range') failReason = "مخالف M15";
         }
 
         if (opts.pat !== false && mode === "pattern") {
@@ -299,7 +346,7 @@
 
         if (opts.pa !== false) {
             const paOk = checkPriceActionConfirmation(cl, checkedSide);
-            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد', w: 2.0 });
+            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد', w: mode === 'range' ? 2.5 : 2.0 });
             if (!paOk && !failReason) failReason = "پرایس اکشن ندارد";
         }
 
