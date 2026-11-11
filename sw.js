@@ -1,4 +1,4 @@
-const C = "bscreener-v87"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
+const C = "bscreener-v102"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
 const F = [
   "./",
   "index.html",
@@ -51,8 +51,48 @@ self.addEventListener("fetch", e => {
       }
       return r;
     }).catch(() => {
-      // اگر اینترنت قطع بود، از کش بخوان (با نادیده گرفتن ?v=78)
+      // اگر اینترنت قطع بود، از کش بخوان
       return caches.match(e.request, { ignoreSearch: true });
     })
   );
+});
+
+/* =========================================================
+   🛠 کدهای اضافه شده برای اعلان‌های پس‌زمینه (Notifications)
+   ========================================================= */
+
+// ۱. دریافت پیام از اپلیکیشن برای نمایش اعلان
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+        const { title, body } = event.data;
+        
+        self.registration.showNotification(title, {
+            body: body,
+            icon: 'https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg',
+            badge: 'https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg',
+            vibrate: [200, 100, 200],
+            tag: 'signal-alert' // با این تگ، اعلان‌های جدید جایگزین قبلی می‌شوند تا صفحه پر نشود
+        });
+    }
+});
+
+// ۲. مدیریت کلیک روی اعلان (وقتی کاربر روی اعلان ضربه می‌زند)
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close(); // بستن اعلان
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window' }).then((clientList) => {
+            // اگر اپ باز باشد، به آن فوکوس می‌کنیم
+            for (let i = 0; i < clientList.length; i++) {
+                const client = clientList[i];
+                if (client.url && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // اگر اپ بسته باشد، یک پنجره جدید باز می‌کنیم
+            if (clients.openWindow) {
+                return clients.openWindow('/');
+            }
+        })
+    );
 });
