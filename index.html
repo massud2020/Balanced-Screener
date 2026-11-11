@@ -8,66 +8,70 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Balanced Screener - پنل تحلیل</title>
 
-<!-- 🛠 سیستم تله هش برای جلوگیری از خروج ناخواسته -->
+<!-- 🛠 Unlock TTS + تله هش برای دکمه بک -->
 <script>
+    // Unlock TTS با اولین کلیک/لمس
+    let ttsUnlocked = false;
+    function unlockTTS() {
+        if (ttsUnlocked) return;
+        ttsUnlocked = true;
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+                const u = new SpeechSynthesisUtterance(' ');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+            } catch(e) {}
+        }
+    }
+    document.addEventListener('click', unlockTTS, { once: false });
+    document.addEventListener('touchstart', unlockTTS, { once: false });
+
+    // تله هش برای دکمه بک
     window.allowExit = false;
     window.activeModalId = null;
     let backPressTime = 0;
     let trapCounter = 0;
-    
+
     function pushTrap() {
         if (window.allowExit) return;
         trapCounter++;
-        try {
-            history.pushState({ trap: trapCounter }, '', '#trap_' + trapCounter);
-        } catch(e) {
-            window.location.hash = '#trap_' + trapCounter;
-        }
+        try { history.pushState({ trap: trapCounter }, '', '#trap_' + trapCounter); }
+        catch(e) { window.location.hash = '#trap_' + trapCounter; }
     }
 
     window.addEventListener('load', () => {
-        pushTrap();
-        pushTrap();
-        setTimeout(pushTrap, 500);
-        setTimeout(pushTrap, 1500);
+        pushTrap(); pushTrap();
+        setTimeout(pushTrap, 500); setTimeout(pushTrap, 1500);
     });
 
     window.addEventListener('popstate', function (e) {
         if (window.allowExit) return;
-        pushTrap(); 
-
+        pushTrap();
         if (window.activeModalId) {
             const id = window.activeModalId;
             document.getElementById(id).style.display = "none";
             if (id === "nsModal" && typeof window.destroyLwc === 'function') {
-                window.destroyLwc();
-                document.getElementById("tvContainer").innerHTML = "";
-                window.currentSignalInModal = null;
+                window.destroyLwc(); document.getElementById("tvContainer").innerHTML = ""; window.currentSignalInModal = null;
             }
             window.activeModalId = null;
             return;
         }
-
         const now = Date.now();
         if (now - backPressTime < 2000) {
             window.allowExit = true;
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-                window.Capacitor.Plugins.App.exitApp();
-            } else if (navigator.app) {
-                navigator.app.exitApp();
-            } else {
-                window.history.go(-5); 
-            }
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.exitApp(); }
+            else if (navigator.app) { navigator.app.exitApp(); }
+            else { window.history.go(-5); }
         } else {
             backPressTime = now;
-            if (typeof window.showExitToast === 'function') {
-                window.showExitToast();
-            } else {
+            if (typeof window.showExitToast === 'function') window.showExitToast();
+            else {
                 const t = document.getElementById("toast");
                 if (t) {
                     t.innerText = "برای خروج، مجدداً دکمه بازگشت را بزنید";
-                    t.style.display = "block";
-                    t.style.opacity = "1";
+                    t.style.display = "block"; t.style.opacity = "1";
                     setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.style.display = "none", 300); }, 2000);
                 }
             }
@@ -82,22 +86,13 @@
                     const id = window.activeModalId;
                     document.getElementById(id).style.display = "none";
                     if (id === "nsModal" && typeof window.destroyLwc === 'function') {
-                        window.destroyLwc();
-                        document.getElementById("tvContainer").innerHTML = "";
-                        window.currentSignalInModal = null;
+                        window.destroyLwc(); document.getElementById("tvContainer").innerHTML = ""; window.currentSignalInModal = null;
                     }
-                    window.activeModalId = null;
-                    return;
+                    window.activeModalId = null; return;
                 }
-                
                 const now = Date.now();
-                if (now - backPressTime < 2000) {
-                    window.allowExit = true;
-                    window.Capacitor.Plugins.App.exitApp();
-                } else {
-                    backPressTime = now;
-                    if (typeof window.showExitToast === 'function') window.showExitToast();
-                }
+                if (now - backPressTime < 2000) { window.allowExit = true; window.Capacitor.Plugins.App.exitApp(); }
+                else { backPressTime = now; if (typeof window.showExitToast === 'function') window.showExitToast(); }
             });
         }
     });
@@ -112,15 +107,10 @@
   --bg: #0b0d11; --card: #141820; --card2: #1b212c; --bd: #232830; --bd2: #2d3442;
   --tx: #e6e9ee; --tx2: #a7aebb; --mu: #7a828e; --gb: #46c58c;
   --gd: rgba(70, 197, 140, 0.12); --rb: #ff5c5c; --rd: rgba(255, 92, 92, 0.12); --rad: 14px;
-  --orange: #f59e0b;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-system, sans-serif; padding-bottom: 30px; overflow-x: hidden; }
-
-/* Toast */
 #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--rb); color: white; padding: 10px 20px; border-radius: 20px; font-weight: 800; font-size: 13px; z-index: 99999; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: opacity 0.3s; opacity: 0; white-space: nowrap; }
-
-/* Splash */
 #ai-splash { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; transition: 0.3s; }
 #ai-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .splash-lang-bar { position: absolute; top: calc(env(safe-area-inset-top) + 20px); inset-inline-end: 20px; display: flex; background: var(--card); border: 1px solid var(--bd); border-radius: 99px; padding: 4px; z-index: 10001; }
@@ -134,8 +124,6 @@ body { background: var(--bg); color: var(--tx); font-family: system-ui, -apple-s
 #start-ai-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 #skip-ai-btn { margin-top: 16px; background: transparent; border: none; color: var(--mu); padding: 8px 16px; font-size: 14px; cursor: pointer; text-decoration: underline; }
 .mute-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mu); margin-top: 30px; cursor: pointer; }
-
-/* Header */
 header.bar { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; background: var(--card); border-bottom: 1px solid var(--bd); position: sticky; top: 0; z-index: 100; }
 .acts-right { display: flex; align-items: center; flex-shrink: 0; gap: 8px;}
 .brand-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
@@ -149,8 +137,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .badge { position: absolute; top: -4px; inset-inline-end: -4px; background: var(--rb); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 99px; display: none; animation: pulse 1.5s infinite; }
 .badge.on { display: block; }
 .ic-lang { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 10px; width: 42px; height: 38px; display: grid; place-items: center; font-weight: 800; cursor: pointer; font-size: 13px; }
-
-/* تنظیمات */
 .set { display: none; background: var(--card); border-top: 1px solid var(--bd); margin-top: 15px; border-radius: var(--rad); padding: 16px; margin-bottom: 30px; animation: fadeIn 0.3s ease; }
 .set.on { display: block; }
 .set-section { font-size: 12px; font-weight: 700; color: var(--mu); text-align: right; margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid var(--bd2); }
@@ -169,8 +155,6 @@ header.bar { display: flex; align-items: center; justify-content: space-between;
 .toggle:checked::after { left: 23px; background: #fff; }
 input[type=range] { -webkit-appearance: none; width: 60%; height: 6px; background: var(--bd2); border-radius: 5px; outline: none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
-
-/* بدنه اصلی */
 .ctl { padding: 12px; }
 .mode-switch { display: flex; gap: 6px; background: var(--card); padding: 4px; border: 1px solid var(--bd); border-radius: 12px; margin-bottom: 10px; }
 .mode-switch button { flex: 1; min-height: 44px; background: transparent; border: none; color: var(--mu); font-weight: 600; border-radius: 9px; cursor: pointer; font-size: 14px; transition: 0.2s;}
@@ -189,8 +173,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .mkt.on { border-color: var(--gb); color: var(--gb); background: var(--gd); }
 .mkt.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 .mkt .cnt { font-size: 10px; opacity: 0.7; direction: ltr; }
-
-/* اسکنر رادار */
 #scanStatusCard { display: none; background: linear-gradient(135deg, rgba(70,197,140,0.08), rgba(20,24,32,1)); border: 1px solid rgba(70,197,140,0.3); border-radius: 14px; padding: 16px; margin-bottom: 12px; position: relative; overflow: hidden; }
 #scanStatusCard.on { display: block; animation: fadeIn 0.3s ease; }
 .ss-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -205,8 +187,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 @keyframes radarSpin { to { transform: rotate(360deg); } }
 .ss-progress-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; width: 100%; margin-top: 8px; direction: ltr; }
 .ss-progress-fill { height: 100%; width: 0%; background: var(--gb); border-radius: 4px; transition: width 0.1s linear; }
-
-/* کنترول اسکن */
 .scan-section { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .sum-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cn { display: flex; gap: 6px; font-size: 13px; font-weight: 600; }
@@ -226,8 +206,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 .status-text { text-align: center; font-size: 12px; color: var(--mu); font-weight: 500; direction: rtl; }
 .status-text span { color: var(--tx2); font-weight: 700; }
-
-/* لیست سیگنال */
 #list { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
 .row.sig { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; cursor: pointer; transition: 0.2s; }
 .row.sig:active { transform: scale(0.98); border-color: var(--gb); }
@@ -250,40 +228,23 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .r-grid b { color: var(--tx); font-size: 14px; direction: ltr; display: block; text-align: left;}
 .r-grid .neg { color: var(--rb); } .r-grid .pos { color: var(--gb); }
 .r-foot { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--mu); direction: rtl; }
-
-/* استایل نمادهای بدون سیگنال */
-.no-sig-card {
-    background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px;
-    display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px;
-}
+.no-sig-card { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; margin-bottom: 8px; }
 .no-sig-card:active { transform: scale(0.98); background: var(--card2); }
 .ns-right { display: flex; flex-direction: column; gap: 6px; }
 .ns-sym { font-weight: 800; font-size: 15px; color: var(--tx); direction: ltr; }
 .ns-reason { font-size: 12px; color: var(--mu); font-weight: 500; }
 .ns-left { display: flex; align-items: center; gap: 12px; }
-.ns-circle {
-    width: 44px; height: 44px; border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center; position: relative;
-}
-.ns-inner-circle {
-    width: 32px; height: 32px; background: var(--card); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800; color: var(--tx); direction: ltr;
-    box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
-}
-
-/* تاریخچه */
+.ns-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+.ns-inner-circle { width: 32px; height: 32px; background: var(--card); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: var(--tx); direction: ltr; box-shadow: inset 0 0 4px rgba(0,0,0,0.5); }
 #histModal, #nsModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; padding: 20px 10px; overflow-y: auto; backdrop-filter: blur(5px); }
 .hist-content { max-width: 650px; margin: 0 auto; background: var(--card); border: 1px solid var(--bd); border-radius: var(--rad); padding: 20px; }
 .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--bd2); padding-bottom: 12px; }
 .hist-header h3 { color: var(--tx); font-size: 16px; margin: 0; display:flex; align-items:center; gap:8px;}
 .hist-close { background: var(--card2); border: 1px solid var(--bd); color: var(--tx); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-
 .hist-stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px; }
 .hist-stat-box { background:var(--bg); padding:12px; border-radius:10px; border:1px solid var(--bd2); text-align:center; }
 .hist-stat-box .lbl { font-size:11px; color:var(--mu); }
 .hist-stat-box .val { font-size:16px; font-weight:800; margin-top:4px; }
-
 .hist-filters { display:flex; gap:6px; margin-bottom:15px; }
 .hist-filters button { flex:1; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--bd); color:var(--mu); font-size:12px; cursor:pointer; }
 .hist-filters button.on { background:var(--gd); border-color:var(--gb); color:var(--gb); font-weight:700; }
@@ -293,26 +254,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border: 1px solid var(--bd2); border-radius: 10px; margin-bottom: 8px; direction: ltr; }
 .chart-section { background: var(--bg); border: 1px solid var(--bd2); border-radius: 12px; padding: 12px; margin-bottom: 15px; height: 250px;}
 .chart-section h3 { font-size: 13px; color: var(--tx2); margin-bottom: 8px; }
-
-/* 🛠 مودال جزئیات نماد */
 #nsModal .hist-content { padding: 15px; }
 .ns-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .ns-modal-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--tx); }
 .ns-modal-live { color: var(--gb); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .ns-modal-live::before { content: ''; width: 6px; height: 6px; background: var(--gb); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
 .ns-modal-error { color: var(--rb); font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight:800; }
-
 .tv-container { width: 100%; height: 460px; background: var(--bg); border-radius: 10px; border: 1px solid var(--bd2); overflow: hidden; margin-bottom: 20px; padding: 4px; }
-
-/* 🛠 دایره امتیاز بزرگ (Gauge) با گرادیان داینامیک */
 .gauge-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; }
 .gauge-circle { width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; margin-bottom: 10px; }
 .gauge-inner { width: 70px; height: 70px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--tx); z-index: 2; flex-direction: column;}
 .gauge-inner small { font-size: 10px; color: var(--mu); font-weight: 600; }
 .gauge-text { font-size: 12px; color: var(--tx2); margin-bottom: 4px; }
-.gauge-sub { font-size: 11px; color: var(--mu); }
-
-/* لیست شرط ها */
 .check-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
 .check-item { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd2); }
 .check-item:last-child { border-bottom: none; }
@@ -323,14 +276,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .check-icon.fail { background: var(--rd); color: var(--rb); }
 .check-body { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
 .check-val { font-size: 12px; color: var(--mu); direction: ltr; font-weight: 600; white-space: nowrap; min-width: 45px; text-align: left;}
-
-/* نوار پیشرفت (پروگرس بار) */
 .bar-bg { height: 6px; background: var(--bd2); border-radius: 4px; position: relative; flex: 1; overflow: hidden; direction: ltr;}
 .bar-fill { height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; }
 .bar-fill.ok { background: var(--gb); }
 .bar-fill.fail { background: var(--rb); }
-
-/* نمایش گرافیکی الگوی ۳+۱ */
 .candle-pattern { display: flex; align-items: center; gap: 4px; height: 20px; }
 .candle { width: 8px; border-radius: 2px; position: relative; }
 .candle.green { background: var(--gb); }
@@ -338,46 +287,35 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .candle .wick { position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: inherit; }
 .candle .wick.top { top: -4px; height: 4px; }
 .candle .wick.bottom { bottom: -4px; height: 4px; }
-
-/* نوار RSI */
 .rsi-bar { flex: 1; height: 6px; border-radius: 4px; background: linear-gradient(to right, var(--gb) 0%, var(--gb) 30%, var(--bd2) 30%, var(--bd2) 70%, var(--rb) 70%, var(--rb) 100%); position: relative; direction: ltr; }
 .rsi-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
-/* باکس های خلاصه پایین */
 .bottom-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--bd2); margin-bottom: 15px; }
 .sum-box { display: flex; flex-direction: column; gap: 4px; text-align: center; }
 .sum-box .lbl { font-size: 10.5px; color: var(--mu); }
 .sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
-
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
 <body>
 
-<!-- Toast -->
 <div id="toast">برای خروج، مجدداً دکمه بازگشت را بزنید</div>
 
-<!-- اسپلش -->
 <div id="ai-splash">
     <div class="splash-lang-bar">
         <button type="button" id="splashLangFa" class="splash-lang-btn active" onclick="changeLanguage('fa')">FA</button>
         <button type="button" id="splashLangEn" class="splash-lang-btn" onclick="changeLanguage('en')">EN</button>
     </div>
-
     <img src="https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/ai-avatar.jpg" class="ai-avatar-img" alt="AI">
     <div class="splash-title" id="splashTitle">Balanced Screener</div>
     <div class="splash-subtitle" id="splashSubtitle">برای ورود ضربه بزنید</div>
-    
     <button id="start-ai-btn" type="button" onclick="doEnter()">ورود به اسکرینر</button>
     <button id="skip-ai-btn" type="button" onclick="doSkip()">رد کردن</button>
-    
     <label class="mute-label">
         <input type="checkbox" id="splashMute" class="toggle" style="width:34px; height:20px;"> 
         <span id="muteText">بدون صدا</span>
     </label>
 </div>
 
-<!-- هدر -->
 <header class="bar">
   <div class="acts-right">
     <button class="ic-lang" id="langToggle" onclick="changeLanguage(currentLang==='fa'?'en':'fa')">EN</button>
@@ -387,7 +325,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v98</span>
+    <span class="brand-sub">v100</span>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -400,7 +338,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </header>
 
-<!-- پنل تنظیمات -->
 <div class="set" id="settingsPanel">
   <div class="set-section">منبع داده</div>
   <div class="set-row">
@@ -422,9 +359,27 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
     <input type="text" id="ex" class="set-input" placeholder="مثلاً SHOP, UBER">
   </div>
 
+  <div class="set-section">فیلترهای هوشمند</div>
+  <div class="set-row">
+    <label>فیلتر سشن معاملاتی <span class="desc">لندن + نیویورک (7-21 UTC)</span></label>
+    <input type="checkbox" class="toggle" id="sessionFilterChk">
+  </div>
+  <div class="set-row">
+    <label>فیلتر اخبار خودکار <span class="desc">از news.json هر ۶ ساعت آپدیت می‌شود</span></label>
+    <input type="checkbox" class="toggle" id="autoNewsChk">
+  </div>
+  <div class="set-row">
+    <label>ساعت‌های ممنوعه دستی <span class="desc">مثال: 13,19 (UTC)</span></label>
+    <input type="text" id="newsHoursInput" class="set-input" placeholder="13,19" style="width:65%;">
+  </div>
+  <div class="set-row">
+    <label>مدیریت همبستگی نمادها <span class="desc">فقط قوی‌ترین سیگنال هر گروه</span></label>
+    <input type="checkbox" class="toggle" id="corrFilterChk" checked>
+  </div>
+
   <div class="set-section">برنامه</div>
   <div class="set-row">
-    <label>نسخه‌ی اپ <span class="desc">v98</span></label>
+    <label>نسخه‌ی اپ <span class="desc">v100</span></label>
     <button class="set-btn" onclick="localStorage.clear(); location.reload();">پاک کردن کش و به‌روزرسانی</button>
   </div>
 
@@ -495,34 +450,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
   </div>
 </div>
 
-<!-- مودال تاریخچه -->
 <div id="histModal">
     <div class="hist-content">
         <div class="hist-header">
             <h3>📊 تاریخچه سیگنال‌ها</h3>
             <button class="hist-close" onclick="closeHistory()">✕ بستن</button>
         </div>
-        
         <div class="hist-stats">
-            <div class="hist-stat-box">
-                <div class="lbl">سود کل (Net R)</div>
-                <div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">وین‌ریت (Win Rate)</div>
-                <div class="val" id="histWinRate">0%</div>
-                <div style="font-size:10px; color:var(--mu); margin-top:2px;" id="histWinLoss">0W / 0L</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">ضریب سود (PF)</div>
-                <div class="val" id="histPF" style="color:#3b82f6;">0.0</div>
-            </div>
-            <div class="hist-stat-box">
-                <div class="lbl">حداکثر افت (DD)</div>
-                <div class="val" style="color:var(--rb);" id="histMaxDD">0.0 R</div>
-            </div>
+            <div class="hist-stat-box"><div class="lbl">سود کل (Net R)</div><div class="val" style="color:var(--gb);" id="histNetR">+0.0 R</div></div>
+            <div class="hist-stat-box"><div class="lbl">وین‌ریت (Win Rate)</div><div class="val" id="histWinRate">0%</div><div style="font-size:10px; color:var(--mu); margin-top:2px;" id="histWinLoss">0W / 0L</div></div>
+            <div class="hist-stat-box"><div class="lbl">ضریب سود (PF)</div><div class="val" id="histPF" style="color:#3b82f6;">0.0</div></div>
+            <div class="hist-stat-box"><div class="lbl">حداکثر افت (DD)</div><div class="val" style="color:var(--rb);" id="histMaxDD">0.0 R</div></div>
         </div>
-
         <div class="hist-filters">
             <button class="on" onclick="setHistFilter('all', this)">کل زمان‌ها</button>
             <button onclick="setHistFilter('today', this)">امروز</button>
@@ -532,17 +471,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
             <button id="tabOpen" onclick="setHistTab('open', this)">سیگنال‌های باز</button>
             <button class="on" id="tabClosed" onclick="setHistTab('closed', this)">سیگنال‌های بسته</button>
         </div>
-
         <div class="chart-section">
             <h3>📈 نمودار رشد سرمایه (Equity Curve)</h3>
             <canvas id="strategyPerformanceChart"></canvas>
         </div>
-
         <div id="signalsContainer"></div>
     </div>
 </div>
 
-<!-- 🛠 مودال جزئیات نماد -->
 <div id="nsModal">
     <div class="hist-content">
         <div class="ns-modal-header">
@@ -552,51 +488,27 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
                 <button class="hist-close" onclick="closeNsModal()">✕ بستن</button>
             </div>
         </div>
-        
         <div class="tv-container" id="tvContainer"></div>
-
         <div class="gauge-wrapper">
             <div class="gauge-circle" id="nsGauge">
                 <div class="gauge-inner" id="nsGaugeText">0/0</div>
             </div>
             <div class="gauge-text" id="nsGaugeDesc">بررسی برای لانگ ▲ الگوی ۳+۱</div>
         </div>
-
         <div class="bottom-summary" id="nsLevels" style="display:none;">
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--rb);">حد ضرر (SL)</div>
-                <div class="val" id="nsSl" style="color:var(--rb);">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--tx);">نقطه ورود (Entry)</div>
-                <div class="val" id="nsEntry" style="color:var(--tx);">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl" style="color:var(--gb);">حد سود (TP)</div>
-                <div class="val" id="nsTp" style="color:var(--gb);">-</div>
-            </div>
+            <div class="sum-box"><div class="lbl" style="color:var(--rb);">حد ضرر (SL)</div><div class="val" id="nsSl" style="color:var(--rb);">-</div></div>
+            <div class="sum-box"><div class="lbl" style="color:var(--tx);">نقطه ورود (Entry)</div><div class="val" id="nsEntry" style="color:var(--tx);">-</div></div>
+            <div class="sum-box"><div class="lbl" style="color:var(--gb);">حد سود (TP)</div><div class="val" id="nsTp" style="color:var(--gb);">-</div></div>
         </div>
-
         <div class="check-list" id="nsChecksContainer"></div>
-
         <div class="bottom-summary">
-            <div class="sum-box">
-                <div class="lbl">قیمت</div>
-                <div class="val" id="nsPrice">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl">RSI</div>
-                <div class="val" id="nsRsi">-</div>
-            </div>
-            <div class="sum-box">
-                <div class="lbl">سیگنال</div>
-                <div class="val" id="nsSignalCount">0</div>
-            </div>
+            <div class="sum-box"><div class="lbl">قیمت</div><div class="val" id="nsPrice">-</div></div>
+            <div class="sum-box"><div class="lbl">RSI</div><div class="val" id="nsRsi">-</div></div>
+            <div class="sum-box"><div class="lbl">سیگنال</div><div class="val" id="nsSignalCount">0</div></div>
         </div>
     </div>
 </div>
 
-<!-- بدنه اصلی -->
 <div id="appBody">
   <section class="ctl">
     <div class="mode-switch">
@@ -615,7 +527,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <a href="alerts.html"><span>🔔</span><span>هشدار قیمت</span></a>
     </div>
     <div class="chips" id="mkts"></div>
-
     <div id="scanStatusCard">
       <div class="ss-top">
         <div class="ss-info">
@@ -642,13 +553,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
         <button data-v="SHORT" onclick="setFilter('SHORT')">شورت</button>
       </div>
     </div>
-
     <button class="big-scan-btn" id="go" onclick="scan(false)">
       <span class="scan-loader" id="loaderIcon" style="display:none;"></span>
       <span id="goT">اسکن</span>
       <span class="count-pill" id="goC">۰</span>
     </button>
-
     <div class="status-text" id="st">
       <span>آماده</span>
     </div>
@@ -683,22 +592,20 @@ if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) {
 
 let closedHistData = [];
 let openHistData = [];
-
 let histFilter = 'all';
 let histTab = 'closed';
 let currentSignalInModal = null;
+let lastAnnounceTime = 0;
+let autoNewsHours = [];
+let autoNewsEvents = [];
 
-// 🛠 توابع مودال
 window.showExitToast = function() {
     const t = $("toast");
     if (!t) return;
     t.innerText = "برای خروج، مجدداً دکمه بازگشت را بزنید";
     t.style.display = "block";
     setTimeout(() => t.style.opacity = "1", 10);
-    setTimeout(() => {
-        t.style.opacity = "0";
-        setTimeout(() => t.style.display = "none", 300);
-    }, 2000);
+    setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.style.display = "none", 300); }, 2000);
 };
 
 function openModal(id) {
@@ -709,9 +616,7 @@ function openModal(id) {
 }
 
 function closeModal(id) {
-    if (window.activeModalId === id) {
-        history.back();
-    }
+    if (window.activeModalId === id) { history.back(); }
 }
 
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
@@ -722,7 +627,6 @@ function getGaugeGradient(scorePercent, side, numSegments) {
     const segs = Math.max(3, Math.round(numSegments || 9));
     const anglePerSeg = 360 / segs;
     const segsToFill = Math.round((scorePercent / 100) * segs);
-    
     let stops = [];
     for (let i = 0; i < segs; i++) {
         const startDeg = i * anglePerSeg;
@@ -734,32 +638,90 @@ function getGaugeGradient(scorePercent, side, numSegments) {
     return `conic-gradient(${stops.join(', ')})`;
 }
 
+// 🛠 TTS با انتخاب صدا و timeout
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
-        try { await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 }); return { success: true, engine: 'Native TTS' }; } catch (e) { return { success: false, error: e.message || "خطای نامشخص" }; }
-    } else if ('speechSynthesis' in window) {
-        return new Promise((resolve) => { try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = lang; u.rate = rate; u.onend = () => resolve({ success: true, engine: 'Web Speech API' }); u.onerror = (e) => resolve({ success: false, error: e.error || "Web Speech Error" }); window.speechSynthesis.speak(u); } catch(e) { resolve({ success: false, error: e.message }); } });
+        try { await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 }); return { success: true, engine: 'Native TTS' }; } 
+        catch (e) {}
+    }
+    if ('speechSynthesis' in window) {
+        return new Promise((resolve) => { 
+            try { 
+                window.speechSynthesis.cancel(); 
+                const u = new SpeechSynthesisUtterance(text); 
+                u.lang = lang; u.rate = rate; u.volume = 1.0; u.pitch = 1.0;
+                const voices = window.speechSynthesis.getVoices();
+                const match = voices.find(v => v.lang.toLowerCase() === lang.toLowerCase()) 
+                          || voices.find(v => v.lang.toLowerCase().startsWith(lang.split('-')[0].toLowerCase()));
+                if (match) u.voice = match;
+                let resolved = false;
+                const finish = (r) => { if (!resolved) { resolved = true; resolve(r); } };
+                u.onend = () => finish({ success: true, engine: 'Web Speech API' }); 
+                u.onerror = (e) => finish({ success: false, error: e.error || "Web Speech Error" }); 
+                setTimeout(() => finish({ success: false, error: "TTS timeout" }), 15000);
+                window.speechSynthesis.speak(u); 
+            } catch(e) { resolve({ success: false, error: e.message }); } 
+        });
     }
     return { success: false, error: 'هیچ موتور TTS در دسترس نیست' };
 }
 
-window.speakCurrentSignal = async function() {
-    if (currentSignalInModal) {
-        await speakSignal(currentSignalInModal.id, currentSignalInModal.side);
+// 🛠 اعلام سیگنال جدید (صدا + نوتیفیکیشن)
+async function announceNewSignals(newCount, rows) {
+    if (!$("ttsSymbol")?.checked) return;
+    const now = Date.now();
+    if (now - lastAnnounceTime < 5000) return;
+    lastAnnounceTime = now;
+    const newSigs = rows.filter(r => r.side).slice(0, 3);
+    if (newSigs.length === 0) return;
+    
+    if (newCount === 1 && newSigs[0]) { 
+        await speakSignal(newSigs[0].id, newSigs[0].side); 
+    } else { 
+        const firstSig = newSigs[0]; 
+        const side = firstSig.side === 'LONG' ? 'Long' : 'Short'; 
+        await speakNative(`${newCount} new signals. First is ${side} on ${firstSig.id}`, 'en-US', 1.0); 
+    }
+    
+    if ("Notification" in window && Notification.permission === "granted") {
+        try { 
+            const firstSig = newSigs[0]; 
+            const side = firstSig.side === 'LONG' ? 'LONG' : 'SHORT'; 
+            new Notification(`🚨 ${newCount} New Signal${newCount > 1 ? 's' : ''}`, { body: `${firstSig.id} - ${side}`, tag: 'signal-' + Date.now() }); 
+        } catch(e) {}
     }
 }
 
-async function speakSignal(symbol, side) {
-    if (!$("ttsSymbol")?.checked) return;
-    const sideEn = side === 'LONG' ? 'Long' : 'Short';
-    await speakNative(`New signal. ${sideEn} on ${symbol}`, 'en-US', 1.0);
+window.speakCurrentSignal = async function() { 
+    if (currentSignalInModal) { 
+        const s = currentSignalInModal.side === 'LONG' ? 'Long' : 'Short'; 
+        await speakNative(`Signal. ${s} on ${currentSignalInModal.id}`, 'en-US', 1.0); 
+    } 
+}
+
+async function speakSignal(symbol, side) { 
+    if (!$("ttsSymbol")?.checked) return; 
+    const sideEn = side === 'LONG' ? 'Long' : 'Short'; 
+    await speakNative(`New signal. ${sideEn} on ${symbol}`, 'en-US', 1.0); 
 }
 
 window.testVoice = async function() {
     const errEl = $("voiceEngineStatus");
     if(errEl) { errEl.innerHTML = "⏳ در حال تست..."; errEl.style.background = 'var(--card2)'; errEl.style.color = 'var(--tx2)'; }
+    unlockTTS();
     const res = await speakNative("تست صدای هوش مصنوعی.", 'fa-IR', (+$("ttsRate")?.value || 50) / 50);
-    if (res.success) { if(errEl) { errEl.innerHTML = `✅ موتور صدا (${res.engine}) آماده است.`; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; } } else { if(errEl) { errEl.innerHTML = `❌ خطا:<br>${res.error}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; } }
+    if (res.success) { if(errEl) { errEl.innerHTML = `✅ موتور صدا (${res.engine}) آماده است.`; errEl.style.background = 'var(--gd)'; errEl.style.color = 'var(--gb)'; } } 
+    else { if(errEl) { errEl.innerHTML = `❌ خطا:<br>${res.error}`; errEl.style.background = 'var(--rd)'; errEl.style.color = 'var(--rb)'; } }
+};
+
+window.reqNotif = function() {
+    if (!("Notification" in window)) return alert("مرورگر پشتیبانی نمی‌کند");
+    Notification.requestPermission().then(p => {
+        if (p === "granted") { 
+            alert("✅ نوتیفیکیشن فعال شد"); 
+            try { new Notification("Balanced Screener", { body: "اعلان‌ها فعال شدند" }); } catch(e) {} 
+        } else { alert("❌ شما اجازه را رد کردید"); }
+    });
 };
 
 window.toggleSettings = function() { const p = $("settingsPanel"); p.classList.toggle("on"); $("appBody").style.display = p.classList.contains("on") ? "none" : "block"; };
@@ -768,63 +730,65 @@ window.closeHistory = function() { closeModal("histModal"); };
 window.setHistFilter = function(f, btn) { histFilter = f; document.querySelectorAll(".hist-filters button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 window.setHistTab = function(t, btn) { histTab = t; document.querySelectorAll(".hist-tabs button").forEach(b => b.classList.remove("on")); btn.classList.add("on"); renderHistory(); };
 
-/* =========================================================
-   🛠 اصلاح شده: محاسبه آمار دقیق بر اساس مقدار R (v98)
-   ========================================================= */
+// 🛠 بارگذاری تقویم اخبار
+async function loadNewsCalendar() {
+    try {
+        const res = await fetch(`https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/news.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !Array.isArray(data.events)) return;
+        const now = Date.now();
+        const upcoming = data.events.filter(ev => { 
+            const t = new Date(ev.time).getTime(); 
+            return t >= now && t <= now + 24 * 60 * 60 * 1000; 
+        });
+        autoNewsEvents = upcoming;
+        const hours = new Set();
+        upcoming.forEach(ev => { 
+            if (ev.impact === 'high' || ev.impact === 'medium') { 
+                hours.add(new Date(ev.time).getUTCHours()); 
+            } 
+        });
+        autoNewsHours = Array.from(hours);
+        console.log('📅 Auto news hours loaded:', autoNewsHours, 'Events:', upcoming.length);
+    } catch(e) { console.warn('News load failed:', e); }
+}
+
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
-    
-    // 1. فیلتر کردن معاملات باز (که فیلد result ندارند)
     let validClosed = closedHistData.filter(d => d.result !== undefined && d.R !== undefined);
-    
-    // 2. فیلتر زمانی
     let filteredClosed = validClosed.filter(d => { 
         if (histFilter === 'today') return (now - (d.time || 0)) < 86400; 
         if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400; 
         return true; 
     });
     let sortedClosed = [...filteredClosed].sort((a,b) => (a.time || 0) - (b.time || 0));
-
-    // 3. محاسبه آمار بر اساس مقدار R (نه رشته result)
-    let wins = 0, losses = 0, breakevens = 0, grossProfit = 0, grossLoss = 0, peakR = 0, maxDrawdown = 0, currentTotalR = 0;
     
+    let wins = 0, losses = 0, breakevens = 0, grossProfit = 0, grossLoss = 0, peakR = 0, maxDrawdown = 0, currentTotalR = 0;
     sortedClosed.forEach(d => {
         let r = Number(d.R || 0); 
         currentTotalR += r; 
-        
-        if (r > 0) { 
-            wins++; 
-            grossProfit += r; 
-        } else if (r < 0) { 
-            losses++; 
-            grossLoss += Math.abs(r); 
-        } else { 
-            breakevens++; 
-        }
-        
+        if (r > 0) { wins++; grossProfit += r; } 
+        else if (r < 0) { losses++; grossLoss += Math.abs(r); } 
+        else { breakevens++; }
         if (currentTotalR > peakR) peakR = currentTotalR;
         let dd = peakR - currentTotalR; 
         if (dd > maxDrawdown) maxDrawdown = dd;
     });
-
+    
     let decisiveTrades = wins + losses;
     let winRate = decisiveTrades > 0 ? Math.round((wins / decisiveTrades) * 100) : 0;
     let profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
-
     $("histNetR").innerText = (currentTotalR >= 0 ? "+" : "") + currentTotalR.toFixed(2) + " R"; 
     $("histNetR").style.color = currentTotalR >= 0 ? "var(--gb)" : "var(--rb)";
-    
     $("histWinRate").innerText = winRate + "%"; 
     $("histWinRate").style.color = winRate >= 50 ? "var(--gb)" : (winRate >= 40 ? "#eab308" : "var(--rb)");
-    
     $("histWinLoss").innerText = `${wins}W / ${losses}L (${breakevens}B)`;
     $("histPF").innerText = profitFactor; 
     $("histPF").style.color = profitFactor > 1.2 ? "var(--gb)" : (profitFactor > 1 ? "#eab308" : "var(--rb)");
-    
     $("histMaxDD").innerText = "-" + maxDrawdown.toFixed(2) + " R";
-
-    // 4. نمایش لیست سیگنال‌ها
+    
     let items = histTab === 'open' ? openHistData : filteredClosed;
     if(items.length === 0) { 
         $("signalsContainer").innerHTML = `<div style="text-align:center; color:var(--mu); padding:20px;">موردی یافت نشد.</div>`; 
@@ -834,92 +798,35 @@ function renderHistory() {
             const isL = d.side === 'LONG';
             const isOpen = d.result === 'open';
             let statusCol = 'var(--mu)', statusTxt = 'در حال پایش', rTxt = '-';
-            
             if (!isOpen) {
-                if (d.R > 0) { 
-                    statusCol = 'var(--gb)'; 
-                    statusTxt = (d.why === 'TP2' || d.why === 'TP1+TRAIL') ? 'سود (TP)' : 'سود (FADE)'; 
-                } else if (d.R < 0) { 
-                    statusCol = 'var(--rb)'; 
-                    statusTxt = 'ضرر (SL)'; 
-                } else { 
-                    statusCol = '#a7aebb'; 
-                    statusTxt = 'سر به سر (BE)'; 
-                }
+                if (d.R > 0) { statusCol = 'var(--gb)'; statusTxt = (d.why === 'TP2' || d.why === 'TP1+TRAIL') ? 'سود (TP)' : 'سود (FADE)'; } 
+                else if (d.R < 0) { statusCol = 'var(--rb)'; statusTxt = 'ضرر (SL)'; } 
+                else { statusCol = '#a7aebb'; statusTxt = 'سر به سر (BE)'; }
                 if (d.R !== undefined) rTxt = (d.R > 0 ? '+' : '') + Number(d.R).toFixed(2) + 'R';
             }
-            
             let whyTag = d.why ? `<span style="font-size:10px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--tx2); margin-inline-start:6px;">${d.why}</span>` : '';
-            return `<div class="hist-item">
-                <div>
-                    <div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'}; display:flex; align-items:center;">
-                        ${d.id} 
-                        <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu); margin-inline-start:6px;">${d.side}</span>
-                        ${whyTag}
-                    </div>
-                    <div style="font-size:11.5px; color:var(--mu); margin-top:4px; direction:rtl;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div>
-                    <div style="font-size:10px; color:var(--mu); margin-top:4px; direction:rtl;">${d.dateStr || ''}</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div>
-                    <div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div>
-                </div>
-            </div>`;
+            return `<div class="hist-item"><div><div style="font-weight:800; font-size:14px; color:${isL?'var(--gb)':'var(--rb)'}; display:flex; align-items:center;">${d.id} <span style="font-size:11px; background:var(--bd2); padding:2px 6px; border-radius:4px; color:var(--mu); margin-inline-start:6px;">${d.side}</span>${whyTag}</div><div style="font-size:11.5px; color:var(--mu); margin-top:4px; direction:rtl;">ورود: ${d.entry || '-'} ${isOpen ? '| SL: '+(d.sl || '-') : '| خروج: '+(d.exit || '-')}</div><div style="font-size:10px; color:var(--mu); margin-top:4px; direction:rtl;">${d.dateStr || ''}</div></div><div style="text-align:right;"><div style="color:${statusCol}; font-weight:700; font-size:12px;">${statusTxt}</div><div style="color:${statusCol}; font-weight:800; font-size:13px; margin-top:4px;">${rTxt}</div></div></div>`;
         }).join('');
     }
-
-    // 5. رسم نمودار Equity Curve
+    
     const canvas = $('strategyPerformanceChart');
     if (canvas && window.Chart) {
         if (histChartInstance) histChartInstance.destroy();
         let labels = [''], patternData = [0], rangeData = [0], currentPattern = 0, currentRange = 0;
-        
-        sortedClosed.forEach((d, i) => { 
-            if (d.mode === 'range') currentRange += Number(d.R || 0); 
-            else currentPattern += Number(d.R || 0); 
-            patternData.push(currentPattern); 
-            rangeData.push(currentRange); 
-            labels.push(i + 1); 
-        });
-        
+        sortedClosed.forEach((d, i) => { if (d.mode === 'range') currentRange += Number(d.R || 0); else currentPattern += Number(d.R || 0); patternData.push(currentPattern); rangeData.push(currentRange); labels.push(i + 1); });
         histChartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'line', 
-            data: { 
-                labels: labels, 
-                datasets: [
-                    { label: 'روند (3+1)', data: patternData, borderColor: '#46c58c', backgroundColor: 'rgba(70,197,140,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }, 
-                    { label: 'استراتژی رنج', data: rangeData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }
-                ] 
-            },
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                interaction: { mode: 'index', intersect: false }, 
-                plugins: { 
-                    legend: { display: true, labels: { color: '#a7aebb' } }, 
-                    tooltip: { 
-                        backgroundColor: 'rgba(20,24,32,0.9)', titleColor: '#e6e9ee', bodyColor: '#e6e9ee', borderColor: '#2d3442', borderWidth: 1, 
-                        callbacks: { 
-                            label: function(context) { 
-                                return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + ' R'; 
-                            } 
-                        } 
-                    } 
-                }, 
-                scales: { 
-                    y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } }, 
-                    x: { display: false } 
-                } 
-            }
+            type: 'line', data: { labels: labels, datasets: [{ label: 'روند (3+1)', data: patternData, borderColor: '#46c58c', backgroundColor: 'rgba(70,197,140,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }, { label: 'استراتژی رنج', data: rangeData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.3 }] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, labels: { color: '#a7aebb' } }, tooltip: { backgroundColor: 'rgba(20,24,32,0.9)', titleColor: '#e6e9ee', bodyColor: '#e6e9ee', borderColor: '#2d3442', borderWidth: 1, callbacks: { label: function(context) { return context.dataset.label + ': ' + (context.parsed.y > 0 ? '+' : '') + context.parsed.y.toFixed(2) + ' R'; } } } }, scales: { y: { ticks: { color: '#78808d' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { display: false } } }
         });
     }
 }
-/* ========================================================= */
 
-window.reqNotif = function() { if (!("Notification" in window)) return alert("پشتیبانی نمی‌شود"); Notification.requestPermission().then(p => p === "granted" ? alert("✅ فعال شد") : alert("❌ رد شد")); };
 window.changeLanguage = function(lang) { currentLang = lang; LS("bs_lang", lang); document.body.dir = lang === 'fa' ? 'rtl' : 'ltr'; if(lang==='fa'){ $('splashLangFa').classList.add('active'); $('splashLangEn').classList.remove('active'); setText("splashSubtitle", "برای ورود ضربه بزنید"); $("start-ai-btn").textContent = "ورود به اسکرینر"; $("skip-ai-btn").textContent = "رد کردن"; setText("muteText", "بدون صدا"); $("langToggle").innerText = "EN"; } else { $('splashLangEn').classList.add('active'); $('splashLangFa').classList.remove('active'); setText("splashSubtitle", "Tap to enter"); $("start-ai-btn").textContent = "Enter Screener"; $("skip-ai-btn").textContent = "Skip"; setText("muteText", "Mute"); $("langToggle").innerText = "FA"; } };
 
 window.doEnter = async function() {
+    unlockTTS();
     const btn = $('start-ai-btn'); btn.disabled = true; btn.textContent = "در حال آماده‌سازی..."; setText("splashSubtitle", "در حال پخش پیام صوتی...");
+    if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
     if(!$("splashMute").checked) {
         let welcomeText = `خوش آمدید به بالانسد اسکرینر. سیستم در حال آماده سازی است. بازارها در حال بررسی هستند. ${currentMode === 'pattern' ? 'بازار روند دار است. استراتژی سه به یک انتخاب شد.' : 'در حال رنج است. استراتژی رنج انتخاب شد.'}`;
         await speakNative(welcomeText, 'fa-IR', 1.0);
@@ -927,7 +834,11 @@ window.doEnter = async function() {
     $('ai-splash').classList.add('hidden'); setTimeout(() => $('ai-splash').style.display = 'none', 300); setTimeout(() => { scan(true); }, 500); 
 };
 
-window.doSkip = function() { $('ai-splash').classList.add('hidden'); setTimeout(() => $('ai-splash').style.display = 'none', 300); setTimeout(() => { scan(true); }, 300); };
+window.doSkip = function() { 
+    unlockTTS();
+    if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
+    $('ai-splash').classList.add('hidden'); setTimeout(() => $('ai-splash').style.display = 'none', 300); setTimeout(() => { scan(true); }, 300); 
+};
 
 window.setMode = function(mode) {
     currentMode = mode; LS("bs_mode", mode);
@@ -936,14 +847,8 @@ window.setMode = function(mode) {
     renderCondChips(); if(LAST) renderList(LAST.rows);
 };
 
-/* =========================================================
-   🛠 Lightweight Charts: رسم چارت با خطوط Entry/SL/TP
-   ========================================================= */
 let lwcMain = null, lwcRsi = null;
-function destroyLwc() {
-    try { if (lwcMain) { lwcMain.remove(); lwcMain = null; } } catch(e){}
-    try { if (lwcRsi)  { lwcRsi.remove();  lwcRsi  = null; } } catch(e){}
-}
+function destroyLwc() { try { if (lwcMain) { lwcMain.remove(); lwcMain = null; } } catch(e){} try { if (lwcRsi) { lwcRsi.remove(); lwcRsi = null; } } catch(e){} }
 window.destroyLwc = destroyLwc;
 
 function calcEma(data, len) {
@@ -965,12 +870,10 @@ function calcRsi(data, len = 14) {
     return out;
 }
 
-// 🛠 تابع بررسی منطق
 function checkLogic(r) {
     if (!r.side || !r.entry || !r.sl || !r.tp) return { valid: true };
     const isL = r.side === 'LONG';
     const tpE = Number(r.tp), entryE = Number(r.entry), slE = Number(r.sl);
-    
     if (isL) {
         if (slE >= entryE) return { valid: false, msg: 'حد ضرر بالاتر از ورود' };
         if (tpE < entryE) return { valid: false, msg: 'حد سود پایین‌تر از ورود' };
@@ -987,69 +890,31 @@ function renderLwcChart(r) {
     destroyLwc();
     const box = $("tvContainer");
     if (!box) return;
-    
-    if (typeof LightweightCharts === 'undefined') {
-        box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--rb);">کتابخانه چارت بارگذاری نشد</div>';
-        return;
-    }
-    
+    if (typeof LightweightCharts === 'undefined') { box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--rb);">کتابخانه چارت بارگذاری نشد</div>'; return; }
     const candles = toObjs((r.m15 && r.m15.length) ? r.m15 : (r.a || []));
-    if (!candles.length) { 
-        box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:13px;">داده‌ای برای نمایش نیست</div>'; 
-        return; 
-    }
-
+    if (!candles.length) { box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--mu);font-size:13px;">داده‌ای برای نمایش نیست</div>'; return; }
     box.innerHTML = '<div id="lwcMain" style="width:100%;height:66%;"></div><div id="lwcRsi" style="width:100%;height:34%;"></div>';
-
-    const base = {
-        layout: { background: { color: '#0b0d11' }, textColor: '#a7aebb', fontSize: 10 },
-        grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
-        rightPriceScale: { borderColor: '#2d3442' },
-        timeScale: { borderColor: '#2d3442', timeVisible: true, secondsVisible: false, rightOffset: 3 },
-        crosshair: { mode: 0 }
-    };
-
+    const base = { layout: { background: { color: '#0b0d11' }, textColor: '#a7aebb', fontSize: 10 }, grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } }, rightPriceScale: { borderColor: '#2d3442' }, timeScale: { borderColor: '#2d3442', timeVisible: true, secondsVisible: false, rightOffset: 3 }, crosshair: { mode: 0 } };
     const main = LightweightCharts.createChart(document.getElementById('lwcMain'), base);
     lwcMain = main;
-    const cs = main.addCandlestickSeries({
-        upColor: '#46c58c', downColor: '#ff5c5c',
-        borderUpColor: '#46c58c', borderDownColor: '#ff5c5c',
-        wickUpColor: '#46c58c', wickDownColor: '#ff5c5c'
-    });
+    const cs = main.addCandlestickSeries({ upColor: '#46c58c', downColor: '#ff5c5c', borderUpColor: '#46c58c', borderDownColor: '#ff5c5c', wickUpColor: '#46c58c', wickDownColor: '#ff5c5c' });
     cs.setData(candles);
-
-    const addEma = (len, color) => {
-        const s = main.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-        s.setData(calcEma(candles, len));
-    };
-    addEma(21, '#46c58c');   // EMA21 سبز
-    addEma(50, '#ec4899');   // EMA50 صورتی
-    addEma(200, '#ff5c5c');  // EMA200 قرمز
-
-    // جلوگیری از خطوط روی هم افتاده
+    const addEma = (len, color) => { const s = main.addLineSeries({ color, lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }); s.setData(calcEma(candles, len)); };
+    addEma(21, '#46c58c'); addEma(50, '#ec4899'); addEma(200, '#ff5c5c');
     if (r.side) {
-        if (r.entry) cs.createPriceLine({ price: +r.entry, color: '#e6e9ee', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid,  axisLabelVisible: true, title: 'Entry' });
+        if (r.entry) cs.createPriceLine({ price: +r.entry, color: '#e6e9ee', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Entry' });
         if (r.sl && +r.sl !== +r.entry) cs.createPriceLine({ price: +r.sl, color: '#ff5c5c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' });
         if (r.tp && +r.tp !== +r.entry) cs.createPriceLine({ price: +r.tp, color: '#46c58c', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' });
     }
-
-    // RSI
-    const rsiChart = LightweightCharts.createChart(document.getElementById('lwcRsi'), {
-        ...base,
-        rightPriceScale: { borderColor: '#2d3442', scaleMargins: { top: 0.15, bottom: 0.15 } }
-    });
+    const rsiChart = LightweightCharts.createChart(document.getElementById('lwcRsi'), { ...base, rightPriceScale: { borderColor: '#2d3442', scaleMargins: { top: 0.15, bottom: 0.15 } } });
     lwcRsi = rsiChart;
     const rs = rsiChart.addLineSeries({ color: '#3b82f6', lineWidth: 2, priceLineVisible: false });
     rs.setData(calcRsi(candles, 14));
-    rs.createPriceLine({ price: 70, color: 'rgba(255,92,92,0.4)',  lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
+    rs.createPriceLine({ price: 70, color: 'rgba(255,92,92,0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
     rs.createPriceLine({ price: 30, color: 'rgba(70,197,140,0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
-
-    // اسکرول هم‌زمان
     main.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { rsiChart.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
     rsiChart.timeScale().subscribeVisibleLogicalRangeChange(rg => { if (rg) try { main.timeScale().setVisibleLogicalRange(rg); } catch(e){} });
-
-    main.timeScale().fitContent();
-    rsiChart.timeScale().fitContent();
+    main.timeScale().fitContent(); rsiChart.timeScale().fitContent();
 }
 
 function renderCondChips() {
@@ -1109,7 +974,6 @@ window.scan = async function(isAuto = false) {
     if (isScanning) return; isScanning = true;
     const btn = $("go"), loader = $("loaderIcon"), statusCard = $("scanStatusCard");
     const counter = $("scanCurrent"), totalEl = $("scanTotal"), symEl = $("scanSymbol"), progressFill = $("scanProgressFill");
-
     if(!isAuto) { btn.classList.add("loading"); $("goT").textContent = "در حال اسکن..."; loader.style.display = "inline-block"; }
     statusCard.classList.add("on");
 
@@ -1118,7 +982,6 @@ window.scan = async function(isAuto = false) {
         const json = await fetchGitJson('data.json');
         if (json.error) throw new Error(`خطای صرافی: ${json.error}`);
         if (!json.rows || !Array.isArray(json.rows)) throw new Error("ساختار داده‌ها نامعتبر است.");
-
         let rows = json.rows;
 
         if (json.state && json.state.active) {
@@ -1126,27 +989,10 @@ window.scan = async function(isAuto = false) {
                 const activeTrade = json.state.active[activeId];
                 let mkt = activeId.endsWith('USDT') ? 'crypto' : (['XAUUSD', 'XAGUSD'].includes(activeId) ? 'metal' : 'forex');
                 const rowIndex = rows.findIndex(r => r.id === activeId);
-                
                 if (rowIndex !== -1) {
-                    rows[rowIndex].side = activeTrade.side; 
-                    rows[rowIndex].entry = activeTrade.entry; 
-                    rows[rowIndex].sl = activeTrade.currentSl || activeTrade.sl; 
-                    rows[rowIndex].originalSl = activeTrade.sl; 
-                    rows[rowIndex].currentR = activeTrade.currentR !== undefined ? activeTrade.currentR : 0; 
-                    rows[rowIndex].tp1Hit = activeTrade.tp1Hit || false;
-                    rows[rowIndex].tp = activeTrade.tp; 
-                    rows[rowIndex].isActive = true; 
-                    rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
+                    rows[rowIndex].side = activeTrade.side; rows[rowIndex].entry = activeTrade.entry; rows[rowIndex].sl = activeTrade.currentSl || activeTrade.sl; rows[rowIndex].originalSl = activeTrade.sl; rows[rowIndex].currentR = activeTrade.currentR !== undefined ? activeTrade.currentR : 0; rows[rowIndex].tp1Hit = activeTrade.tp1Hit || false; rows[rowIndex].tp = activeTrade.tp; rows[rowIndex].isActive = true; rows[rowIndex].mkt = rows[rowIndex].mkt || mkt;
                 } else {
-                    rows.push({ 
-                        id: activeId, side: activeTrade.side, entry: activeTrade.entry, 
-                        sl: activeTrade.currentSl || activeTrade.sl, 
-                        originalSl: activeTrade.sl,
-                        currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0,
-                        tp1Hit: activeTrade.tp1Hit || false,
-                        tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', 
-                        isActive: true, mkt: mkt 
-                    });
+                    rows.push({ id: activeId, side: activeTrade.side, entry: activeTrade.entry, sl: activeTrade.currentSl || activeTrade.sl, originalSl: activeTrade.sl, currentR: activeTrade.currentR !== undefined ? activeTrade.currentR : 0, tp1Hit: activeTrade.tp1Hit || false, tp: activeTrade.tp, mode: activeTrade.mode || 'pattern', isActive: true, mkt: mkt });
                 }
             });
         }
@@ -1159,35 +1005,38 @@ window.scan = async function(isAuto = false) {
         if (json.state && json.state.active) {
             openHistData = Object.keys(json.state.active).map(id => {
                 const s = json.state.active[id];
-                return {
-                    id: id, side: s.side || 'LONG', entry: s.entry, sl: s.sl, result: 'open', time: s.time || (Date.now()/1000),
-                    dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'نامشخص',
-                    k: id + '|' + s.side + '|' + s.time
-                };
+                return { id: id, side: s.side || 'LONG', entry: s.entry, sl: s.sl, result: 'open', time: s.time || (Date.now()/1000), dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'نامشخص', k: id + '|' + s.side + '|' + s.time };
             });
-
             const currentKeys = openHistData.map(d => d.k).join(',');
             const lastSeen = LS("bs_last_seen_signals_keys") || "";
             const currentArr = currentKeys ? currentKeys.split(',') : [];
             const lastSeenArr = lastSeen ? lastSeen.split(',') : [];
             let newSignalsCount = 0;
             currentArr.forEach(k => { if (!lastSeenArr.includes(k)) newSignalsCount++; });
-            
             if (newSignalsCount > 0) {
                 $("unreadBadge").innerText = newSignalsCount;
                 $("unreadBadge").classList.add("on");
-            } else {
-                $("unreadBadge").classList.remove("on");
-            }
+                try { await announceNewSignals(newSignalsCount, rows); } catch(e) { console.warn('Announce error:', e); }
+            } else { $("unreadBadge").classList.remove("on"); }
         }
 
         totalEl.textContent = rows.length;
-        for(let i=0; i<rows.length; i++) {
+        for(let i=0; i<rows.length; i++) { 
             counter.textContent = i + 1; symEl.textContent = rows[i].id; progressFill.style.width = `${((i+1)/rows.length)*100}%`;
-            if(i % 5 === 0) await new Promise(res => setTimeout(res, isAuto ? 20 : 10));
+            if(i % 5 === 0) await new Promise(res => setTimeout(res, isAuto ? 20 : 10)); 
         }
 
         LAST = { rows: rows, time: json.time };
+        
+        // 🛠 مقادیر پیش‌فرض فیلترها
+        if (LS("bs_sessionFilter") === undefined) LS("bs_sessionFilter", "false");
+        if (LS("bs_newsHours") === undefined) LS("bs_newsHours", "");
+        if (LS("bs_autoNews") === undefined) LS("bs_autoNews", "false");
+        if (LS("bs_corrFilter") === undefined) LS("bs_corrFilter", "true");
+        
+        // 🛠 بارگذاری اخبار در پس‌زمینه
+        loadNewsCalendar().catch(e => console.warn(e));
+        
         renderList(rows);
         const dataAgeMinutes = Math.round((Date.now() - new Date(json.time).getTime()) / 60000);
         $("st").innerHTML = dataAgeMinutes > 30 ? `<span style="color:var(--rb); font-weight:800;">⚠️ قیمت‌ها قدیمی هستند (${dataAgeMinutes} دقیقه پیش).</span>` : `آخرین اسکن: <span>${new Date(json.time).toLocaleTimeString('fa-IR')}</span> · <span>${fmtNum(rows.length)}</span> نماد`;
@@ -1204,66 +1053,54 @@ window.scan = async function(isAuto = false) {
 function renderList(rows) {
     let filteredByMkt = rows.filter(r => r.isActive || activeMarkets.includes(r.mkt || 'crypto') || activeMarkets.length === 6);
     
+    // 🛠 تنظیمات فیلترها
+    const sessionFilter = LS("bs_sessionFilter") === "true";
+    const manualNewsHours = (LS("bs_newsHours") || "").split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+    const autoNewsEnabled = LS("bs_autoNews") === "true";
+    const corrFilter = LS("bs_corrFilter") !== "false";
+    const finalNewsHours = autoNewsEnabled ? Array.from(new Set([...manualNewsHours, ...autoNewsHours])) : manualNewsHours;
+    
     let reEvaluatedRows = filteredByMkt.map(r => {
-        const m5 = toObjs(r.a);
-        const m15 = toObjs(r.m15);
-        const h1 = toObjs(r.h);
-        
+        const m5 = toObjs(r.a); const m15 = toObjs(r.m15); const h1 = toObjs(r.h);
         const opts = { 
-            m15: activeConditions.includes('M15'), 
-            h1: activeConditions.includes('H1'), 
-            rsi: activeConditions.includes('RSI'), 
-            trend: activeConditions.includes('EMA200'), 
-            emax: activeConditions.includes('EMA21/50'), 
-            nc: activeConditions.includes('بدون تقاطع'), 
-            pat: activeConditions.includes('۳+۱'), 
-            mode: currentMode, 
-            adx: false 
+            m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), 
+            rsi: activeConditions.includes('RSI'), trend: activeConditions.includes('EMA200'), 
+            emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), 
+            pat: activeConditions.includes('۳+۱'), mode: currentMode, adx: false,
+            sessionFilter: sessionFilter, newsHours: finalNewsHours
         };
-        
         let res = {};
-        try {
-            res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000));
-        } catch(e) { }
+        try { res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000)); } catch(e) { }
         
         if (r.isActive) {
             const orig = LAST.rows.find(x => x.id === r.id);
-            if (orig) {
-                orig.score = res.score || 0;
-                orig.maxScore = res.maxScore || 0;
-                orig.scorePercent = res.scorePercent || 0;
-                orig.checks = res.checks || [];
-                orig.checkedSide = res.checkedSide || r.side;
-                orig.rsi = res.rsi;
+            if (orig) { 
+                orig.score = res.score || 0; orig.maxScore = res.maxScore || 0; orig.scorePercent = res.scorePercent || 0; 
+                orig.checks = res.checks || []; orig.checkedSide = res.checkedSide || r.side; orig.rsi = res.rsi; 
             }
-            return { 
-                ...r, 
-                side: r.side, // حفظ جهت معامله در صورت خطای موتور
-                score: res.score || 0, 
-                maxScore: res.maxScore || 0, 
-                scorePercent: res.scorePercent || 0, 
-                checks: res.checks || [], 
-                checkedSide: res.checkedSide || r.side, 
-                rsi: res.rsi 
-            };
+            return { ...r, side: r.side, score: res.score || 0, maxScore: res.maxScore || 0, scorePercent: res.scorePercent || 0, checks: res.checks || [], checkedSide: res.checkedSide || r.side, rsi: res.rsi, trailingAtrStep: res.trailingAtrStep };
         }
         return { ...r, ...res };
     });
 
     let allSignals = reEvaluatedRows.filter(r => r.side);
     let noSignals = reEvaluatedRows.filter(r => !r.side);
-
-    let uniqueSignals = [];
-    let duplicateSignals = [];
-    let seenCategories = new Set();
+    let uniqueSignals = []; let duplicateSignals = []; let seenCategories = new Set(); let seenCorr = new Set();
 
     allSignals.forEach(r => {
+        // 🛠 مدیریت همبستگی
+        if (corrFilter) {
+            const corrGrp = Engine.getCorrelationGroup(r.id);
+            if (corrGrp !== -1) {
+                if (seenCorr.has(corrGrp)) { duplicateSignals.push(r); return; }
+                seenCorr.add(corrGrp);
+            }
+        }
         const catKey = `${r.mkt || 'crypto'}_${r.side}`;
         if (!seenCategories.has(catKey)) { uniqueSignals.push(r); seenCategories.add(catKey); } else { duplicateSignals.push(r); }
     });
 
     let sg = uniqueSignals.filter(r => vf === "all" || r.side === vf);
-
     const nl = uniqueSignals.filter(r => r.side === "LONG").length;
     const ns = uniqueSignals.filter(r => r.side === "SHORT").length;
     $("sumCounts").innerHTML = `<span class="l">▲ ${fmtNum(nl)} لانگ</span><span class="s">▼ ${fmtNum(ns)} شورت</span>`;
@@ -1274,30 +1111,21 @@ function renderList(rows) {
         signalsHtml = sg.map(r => {
             const L = r.side === "LONG";
             const liveTag = r.isActive ? `<span class="tag" style="background:var(--gd); color:var(--gb); border-color:var(--gb); animation:pulse 2s infinite;">LIVE 🔴</span>` : '';
-            
-            // 🛠 اعتبارسنجی منطق
             const logic = checkLogic(r);
             const errorTag = !logic.valid ? `<span class="tag error">⚠️ ${logic.msg}</span>` : '';
             const beTag = (logic.valid && logic.isBE) ? `<span class="tag be">🎯 سود قفل شده</span>` : '';
             const cardClass = !logic.valid ? 'error-logic' : r.side;
-
             let tierTag = '';
             if (r.tier === 'PREMIUM') tierTag = `<span class="tag" style="background:#46c58c20; color:#46c58c; border-color:#46c58c; font-weight:800;">⭐ عالی</span>`;
             else if (r.tier === 'STRONG') tierTag = `<span class="tag" style="background:#46c58c15; color:#46c58c; border-color:#46c58c80;">✔ قوی</span>`;
             else if (r.tier === 'STANDARD') tierTag = `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308; font-weight:800;">⚠ استاندارد</span>`;
-            
             const trailIcon = (r.isActive && r.originalSl && r.sl !== r.originalSl) ? '🛡️ ' : '';
-            
             let targetLabel = r.isActive ? 'سود شناور' : 'هدف';
             let targetValue = r.isActive ? `${(r.currentR || 0) > 0 ? '+' : ''}${r.currentR || 0}R` : ((r.tp !== undefined && r.tp !== null) ? safeFixed(r.tp, 5) : 'RSI');
             let targetClass = r.isActive ? ((r.currentR || 0) >= 0 ? 'pos' : 'neg') : 'pos';
             let partialTag = (r.isActive && r.tp1Hit) ? `<span class="tag" style="background:#eab30820; color:#eab308; border-color:#eab308;">🎯 TP1 (50%)</span>` : '';
-
             let scoreDisplay = `${safeFixed(r.score || 0, 1)}/${safeFixed(r.maxScore || 0, 1)}`;
-            if (r.isActive && (!r.score || r.score === 0)) {
-                scoreDisplay = '<span style="color:var(--gb); font-weight:800;">LIVE</span>';
-            }
-
+            if (r.isActive && (!r.score || r.score === 0)) { scoreDisplay = '<span style="color:var(--gb); font-weight:800;">LIVE</span>'; }
             return `<article class="row sig ${cardClass}" onclick="showSignalDetails('${r.id}')">
                 <div class="r-head"><div class="r-badges"><span class="b ${r.side}">${L?"▲":"▼"} ${L?"لانگ":"شورت"}</span></div><div class="r-tags">${liveTag}${errorTag}${beTag}${tierTag}${partialTag}<span class="tag">${r.mode === 'range' ? 'رنج' : 'روند'}</span><span class="tag">${MKT_LABEL[r.mkt || 'crypto']}</span></div><div class="sym">${r.id}</div></div>
                 <div class="r-grid">
@@ -1318,23 +1146,11 @@ function renderList(rows) {
     let noHtml = '';
     if (noSignals.length > 0) {
         let itemsHtml = noSignals.map(r => {
-            const scorePercent = r.scorePercent || 0;
-            const numChecks = (r.checks || []).length || 9;
-            const checkedSide = r.checkedSide || 'LONG';
-            let mainReason = r.fail || "شرایط کافی نبود";
-            
+            const scorePercent = r.scorePercent || 0; const numChecks = (r.checks || []).length || 9; const checkedSide = r.checkedSide || 'LONG'; let mainReason = r.fail || "شرایط کافی نبود";
             const bgGradient = getGaugeGradient(scorePercent, checkedSide, numChecks);
-
             return `<div class="no-sig-card" onclick="showSignalDetails('${r.id}')">
-                <div class="ns-right">
-                    <div class="ns-sym">${r.id}</div>
-                    <div class="ns-reason">${mainReason}</div>
-                </div>
-                <div class="ns-left">
-                    <div class="ns-circle" style="background: ${bgGradient};">
-                        <div class="ns-inner-circle">${safeFixed(r.score || 0, 1)}</div>
-                    </div>
-                </div>
+                <div class="ns-right"><div class="ns-sym">${r.id}</div><div class="ns-reason">${mainReason}</div></div>
+                <div class="ns-left"><div class="ns-circle" style="background: ${bgGradient};"><div class="ns-inner-circle">${safeFixed(r.score || 0, 1)}</div></div></div>
             </div>`;
         }).join("");
         noHtml = `<div style="margin-top:16px;"><div style="font-size:12px; color:var(--mu); text-align:right; margin-bottom:10px; font-weight:600;">بدون سیگنال (${fmtNum(noSignals.length)} نماد)</div>${itemsHtml}</div>`;
@@ -1343,12 +1159,10 @@ function renderList(rows) {
     $("list").innerHTML = signalsHtml + dupHtml + noHtml;
 }
 
-// 🛠 نمایش جزئیات نماد
 window.showSignalDetails = function(symId) {
     if (!LAST || !LAST.rows) return;
     const r = LAST.rows.find(x => x.id === symId);
     if (!r) return;
-
     window.currentSignalInModal = r;
     const isSignal = !!r.side;
     const checkedSide = r.checkedSide || r.side || 'LONG';
@@ -1356,25 +1170,15 @@ window.showSignalDetails = function(symId) {
     const numChecks = (r.checks || []).length || 9;
     const logic = checkLogic(r);
 
-    // 1. تنظیم عنوان مودال
     $("nsTitle").innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
         <span>${r.id}</span> 
         <span style="font-size:12px; color:var(--mu);">· ${r.mode === 'range' ? 'استراتژی رنج' : 'الگوی ۳+۱'}</span> 
         ${isSignal ? (logic.valid ? (logic.isBE ? '<div class="ns-modal-live" style="color:#eab308;">🎯 BE</div>' : '<div class="ns-modal-live">LIVE</div>') : '<div class="ns-modal-error">⚠️ خطای منطق</div>') : ''}
     </div>`;
-    
-    // دکمه پخش صدا
     $("nsSpeakBtn").style.display = isSignal ? "inline-block" : "none";
-
-    // 2. باز کردن مودال
     openModal("nsModal");
+    setTimeout(() => { renderLwcChart(r); }, 50);
 
-    // 3. رسم نمودار
-    setTimeout(() => {
-        renderLwcChart(r);
-    }, 50);
-
-    // 4. تنظیم دایره امتیاز
     if (isSignal && r.isActive && (!r.score || r.score === 0)) {
         $("nsGauge").style.background = 'conic-gradient(#46c58c 0deg 360deg)';
         $("nsGaugeText").innerHTML = `<span style="font-size:16px; font-weight:800; color:#0b0d11;">LIVE</span>`;
@@ -1390,55 +1194,29 @@ window.showSignalDetails = function(symId) {
         $("nsGaugeDesc").innerText = `اطلاعات امتیاز در دسترس نیست`;
     }
 
-    // 5. باکس‌های Entry, SL, TP
     if (isSignal) {
         $("nsLevels").style.display = "grid";
         $("nsEntry").innerText = (r.entry !== undefined && r.entry !== null) ? safeFixed(r.entry, 5) : '-';
         $("nsSl").innerText = (r.sl !== undefined && r.sl !== null) ? safeFixed(r.sl, 5) : '-';
         $("nsTp").innerText = (r.tp !== undefined && r.tp !== null) ? safeFixed(r.tp, 5) : '-';
-    } else {
-        $("nsLevels").style.display = "none";
-    }
+    } else { $("nsLevels").style.display = "none"; }
 
-    // 6. لیست شروط
     let activeChecks = r.checks || [];
     let checksHtml = activeChecks.map(c => {
-        const isOk = (c.ok === true || c.ok === 1 || c.o === 1);
-        const statusClass = isOk ? 'ok' : 'fail';
-        const icon = isOk ? '✓' : '✕';
-        let visualHtml = '';
-        const w = c.w || 1;
+        const isOk = (c.ok === true || c.ok === 1 || c.o === 1); const statusClass = isOk ? 'ok' : 'fail'; const icon = isOk ? '✓' : '✕';
+        let visualHtml = ''; const w = c.w || 1;
         const weightBadge = `<span style="font-size:10px; background:${isOk?'var(--gd)':'var(--rd)'}; color:${isOk?'var(--gb)':'var(--rb)'}; padding:2px 6px; border-radius:4px; margin-inline-start:4px;">⚖️ ${w}</span>`;
-
         if (c.l.includes('الگوی') || c.l.includes('۳+۱')) {
             const c1 = checkedSide === 'LONG' ? 'green' : 'red', c2 = checkedSide === 'LONG' ? 'green' : 'red', c3 = checkedSide === 'LONG' ? 'green' : 'red', c4 = checkedSide === 'LONG' ? 'red' : 'green';
             visualHtml = `<div class="candle-pattern"><div class="candle ${c1}" style="height:8px;"><div class="wick top"></div></div><div class="candle ${c2}" style="height:16px;"><div class="wick top"></div><div class="wick bottom"></div></div><div class="candle ${c3}" style="height:4px;"><div class="wick top" style="height:6px;"></div><div class="wick bottom" style="height:6px;"></div></div><div class="candle ${c4}" style="height:10px;"><div class="wick top" style="height:8px;"></div><div class="wick bottom"></div></div></div>`;
-        } else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) {
-            visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi || 50}%"></div></div>`;
-        } else if (c.l.includes('بدون تقاطع')) {
-            visualHtml = `<div style="flex:1;"></div>`;
-        } else {
-            visualHtml = `<div class="bar-bg"><div class="bar-fill ${isOk ? 'ok' : 'fail'}" style="width: ${isOk ? '100%' : '50%'}"></div></div>`;
-        }
-
-        return `<div class="check-item">
-            <div class="check-header">
-                <div class="check-title">${c.l} ${weightBadge}</div>
-                <div class="check-icon ${statusClass}">${icon}</div>
-            </div>
-            <div class="check-body">
-                <div class="check-val">${c.v || (isOk ? 'تایید' : 'رد')}</div>
-                ${visualHtml}
-            </div>
-        </div>`;
+        } else if (c.l.includes('RSI') && !c.l.includes('فیلتر')) { visualHtml = `<div class="rsi-bar"><div class="rsi-thumb" style="left: ${r.rsi || 50}%"></div></div>`; }
+        else if (c.l.includes('بدون تقاطع')) { visualHtml = `<div style="flex:1;"></div>`; }
+        else { visualHtml = `<div class="bar-bg"><div class="bar-fill ${isOk ? 'ok' : 'fail'}" style="width: ${isOk ? '100%' : '50%'}"></div></div>`; }
+        return `<div class="check-item"><div class="check-header"><div class="check-title">${c.l} ${weightBadge}</div><div class="check-icon ${statusClass}">${icon}</div></div><div class="check-body"><div class="check-val">${c.v || (isOk ? 'تایید' : 'رد')}</div>${visualHtml}</div></div>`;
     }).join("");
-    
-    if (activeChecks.length === 0) {
-        checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">اطلاعات شروط برای این مورد در دسترس نیست.</div>`;
-    }
+    if (activeChecks.length === 0) { checksHtml = `<div style="text-align:center; color:var(--mu); padding:20px;">اطلاعات شروط برای این مورد در دسترس نیست.</div>`; }
     $("nsChecksContainer").innerHTML = checksHtml;
 
-    // 7. خلاصه پایین
     const cl = (r.a || []).map(c => ({time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]}));
     const lastClose = cl.length ? cl[cl.length-1].close : 0;
     $("nsPrice").innerText = (lastClose > 0) ? safeFixed(lastClose, 5) : '-';
@@ -1446,12 +1224,30 @@ window.showSignalDetails = function(symId) {
     $("nsSignalCount").innerText = isSignal ? '1' : '0';
 };
 
-window.closeNsModal = function() { 
-    closeModal("nsModal");
-};
+window.closeNsModal = function() { closeModal("nsModal"); };
+
+// 🛠 اتصال چک‌باکس‌های فیلتر به LocalStorage
+if ($("sessionFilterChk")) {
+    $("sessionFilterChk").checked = LS("bs_sessionFilter") === "true";
+    $("sessionFilterChk").onchange = function() { LS("bs_sessionFilter", this.checked ? "true" : "false"); if (LAST) renderList(LAST.rows); };
+}
+if ($("autoNewsChk")) {
+    $("autoNewsChk").checked = LS("bs_autoNews") === "true";
+    $("autoNewsChk").onchange = function() { LS("bs_autoNews", this.checked ? "true" : "false"); if (this.checked) loadNewsCalendar(); if (LAST) renderList(LAST.rows); };
+}
+if ($("newsHoursInput")) {
+    $("newsHoursInput").value = LS("bs_newsHours") || "";
+    $("newsHoursInput").onchange = function() { LS("bs_newsHours", this.value); if (LAST) renderList(LAST.rows); };
+}
+if ($("corrFilterChk")) {
+    $("corrFilterChk").checked = LS("bs_corrFilter") !== "false";
+    $("corrFilterChk").onchange = function() { LS("bs_corrFilter", this.checked ? "true" : "false"); if (LAST) renderList(LAST.rows); };
+}
 
 renderCondChips(); renderChips(); scan(true);
+loadNewsCalendar().catch(e => console.warn(e));
 setInterval(() => { if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true); }, 3 * 60 * 1000);
+setInterval(() => { loadNewsCalendar().catch(e => console.warn(e)); }, 30 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('ai-splash').style.display === 'none' && $("autoScanChk")?.checked && !isScanning) scan(true); });
 setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000);
 </script>
