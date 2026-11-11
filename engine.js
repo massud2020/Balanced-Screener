@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V6 - Session/News/Correlation Aware)
+// engine.js — Balanced Screener Core Engine (V6 - Full Featured)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -6,7 +6,6 @@
 }(typeof self !== 'undefined' ? self : this, function () {
     'use strict';
 
-    // 🛠 گروه‌های همبستگی (نمادهای این گروه‌ها همبسته‌اند و نباید همزمان سیگنال بدهند)
     const CORRELATION_GROUPS = [
         ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD'],
         ['USDJPY', 'USDCHF', 'USDCAD'],
@@ -25,18 +24,15 @@
         return -1;
     }
 
-    // 🛠 فیلتر سشن (اختیاری - از opts.sessionFilter فعال شود)
     function isSessionActive(nowSec, opts = {}) {
         if (!opts.sessionFilter) return true;
         const d = new Date(nowSec * 1000);
         const utcHour = d.getUTCHours();
         const day = d.getUTCDay();
         if (day === 0 || day === 6) return false;
-        // سشن‌های اصلی: لندن (7-16 UTC) و نیویورک (13-21 UTC)
         return (utcHour >= 7 && utcHour < 21);
     }
 
-    // 🛠 فیلتر اخبار (ساعت‌های ممنوعه)
     function isNewsBlackout(nowSec, opts = {}) {
         if (!opts.newsHours || !opts.newsHours.length) return false;
         const d = new Date(nowSec * 1000);
@@ -187,11 +183,9 @@
     }
 
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
-        // 🛠 بررسی سشن (اگر فعال باشد)
         if (!isSessionActive(nowSec, opts)) {
             return { side: null, checkedSide: 'LONG', fail: "خارج از سشن معاملاتی", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
-        // 🛠 بررسی اخبار (اگر ساعت ممنوعه باشد)
         if (isNewsBlackout(nowSec, opts)) {
             return { side: null, checkedSide: 'LONG', fail: "ساعت خبر مهم", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
@@ -359,8 +353,8 @@
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
             mode, entry, sl, tp: tp1, tp2, rsi: lastRsi, adx: lastAdx,
-            trailingAtrStep: riskDist * 0.5, // 🛠 تریلینگ استاپ برای استفاده در فرانت‌اند
-            correlationGroup: getCorrelationGroup(symbol), // 🛠 گروه همبستگی
+            trailingAtrStep: riskDist * 0.5,
+            correlationGroup: getCorrelationGroup(symbol),
             checks, fail: allPassed ? null : (failReason || "امتیاز کافی نیست")
         };
     }
