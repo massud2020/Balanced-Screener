@@ -1,738 +1,109 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-concurrency:
-  group: "android-build-group"
-  cancel-in-progress: true
+  workflow_dispatch: # اجرای دستی
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: write
-    env:
-      npm_config_sharp_binary_host: "https://npmmirror.com/mirrors/sharp"
-      npm_config_sharp_libvips_binary_host: "https://npmmirror.com/mirrors/sharp-libvips"
-      SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
-
     steps:
+      # 1. دریافت کدها
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. تنظیم Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - name: Setup Java 21
+      # 3. تنظیم Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: 'zulu'
+          java-version: '17'
 
-      # 🛠 مرحله حیاتی: نصب ابزارهای کامپایل برای در امان ماندن از خطای gyp
+      # 4. تنظیم Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 5. نصب پیش‌نیازهای سیستم (دور زدن سرورهای کند و جلوگیری از تایم‌اوت)
       - name: Install System Dependencies
         run: |
+          # کاهش تایم‌اوت به 15 ثانیه
+          echo 'Acquire::Retries "1";' | sudo tee /etc/apt/apt.conf.d/99-ci-timeout
+          echo 'Acquire::http::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
+          echo 'Acquire::https::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
+          
+          # دور زدن سرورهای پیش‌فرض گیت‌هاب (Azure) و استفاده از سرور اصلی اوبونتو
+          sudo sed -i -E 's@//azure\.archive\.ubuntu\.com@//archive.ubuntu.com@g' /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+          
+          # آپدیت و نصب
           sudo apt-get update
-          sudo apt-get install -y build-essential libvips-dev python3 pkg-config
+          sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
+      # 6. نصب پکیج‌های Node.js
       - name: Install dependencies
-        run: npm install
-
-      - name: Install TTS Plugins
         run: |
-          npm install @capacitor-community/text-to-speech --legacy-peer-deps
-          npm install capacitor-edge-tts --legacy-peer-deps
-
-      - name: Build www folder
-        run: node build-www.js
-
-      - name: Stamp service worker
-        run: |
-          if [ -f www/sw.js ]; then echo "// build ${{ github.run_number }}" >> www/sw.js; tail -2 www/sw.js; else echo "no www/sw.js"; fi
-
-      - name: Remove Old Android Folder
-        run: rm -rf android
-
-      - name: Add Capacitor Android platform
-        run: npx cap add android
-
-      - name: Generate Android Icons and Splash
-        run: npx @capacitor/assets generate --android --iconBackgroundColor '#0b0d11' --iconBackgroundColorDark '#0b0d11' --splashBackgroundColor '#0b0d11' --splashBackgroundColorDark '#0b0d11'
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Add native background scanner
-        run: |
-          set -e
-          PKG_DIR=android/app/src/main/java/com/massud2020/balancedscreener
-          test -d "$PKG_DIR" || { echo "package dir not found"; find android/app/src/main/java -type d; exit 1; }
-          cat > "$PKG_DIR/ScanService.java" << 'JAVAEOF'
-          package com.massud2020.balancedscreener;
-
-          import android.app.Notification;
-          import android.app.NotificationChannel;
-          import android.app.NotificationManager;
-          import android.app.PendingIntent;
-          import android.app.Service;
-          import android.content.Intent;
-          import android.content.SharedPreferences;
-          import android.content.pm.ServiceInfo;
-          import android.media.AudioAttributes;
-          import android.media.RingtoneManager;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.os.IBinder;
-          import android.os.PowerManager;
-
-          import androidx.core.app.NotificationCompat;
-
-          import org.json.JSONArray;
-          import org.json.JSONObject;
-
-          import java.io.BufferedReader;
-          import java.io.InputStreamReader;
-          import java.net.HttpURLConnection;
-          import java.net.URL;
-          import java.text.SimpleDateFormat;
-          import java.util.ArrayList;
-          import java.util.Date;
-          import java.util.Iterator;
-          import java.util.List;
-          import java.util.Locale;
-
-          public class ScanService extends Service {
-              static final String PREFS = "bg_scanner";
-              static final String CH_ALARM = "sig_alarm_v1";
-              static final String CH_SVC = "sig_service_v1";
-              static final String BASE = "https://raw.githubusercontent.com/massud2020/Balanced-Screener/";
-              static final long INTERVAL_MS = 180000L;
-              static final long FRESH_WINDOW_S = 3600L;
-
-              private volatile boolean running = false;
-              private Thread worker;
-
-              @Override
-              public IBinder onBind(Intent intent) { return null; }
-
-              @Override
-              public int onStartCommand(Intent intent, int flags, int startId) {
-                  createChannels();
-                  PendingIntent pi = PendingIntent.getActivity(this, 0,
-                          new Intent(this, MainActivity.class),
-                          PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                  Notification n = new NotificationCompat.Builder(this, CH_SVC)
-                          .setSmallIcon(android.R.drawable.stat_notify_sync)
-                          .setContentTitle("Balanced Screener")
-                          .setContentText("اسکن پس‌زمینه فعال است · هر ۳ دقیقه")
-                          .setOngoing(true)
-                          .setContentIntent(pi)
-                          .setPriority(NotificationCompat.PRIORITY_LOW)
-                          .build();
-                  if (Build.VERSION.SDK_INT >= 29) {
-                      startForeground(1001, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-                  } else {
-                      startForeground(1001, n);
-                  }
-                  getSharedPreferences(PREFS, 0).edit().putBoolean("enabled", true).apply();
-                  if (intent != null && "SCAN_NOW".equals(intent.getAction())) {
-                      new Thread(new Runnable() {
-                          @Override
-                          public void run() {
-                              try { scanOnce(); } catch (Throwable t) {}
-                          }
-                      }, "bs-scan-now").start();
-                  }
-                  if (!running) {
-                      running = true;
-                      worker = new Thread(new Runnable() {
-                          @Override
-                          public void run() { loop(); }
-                      }, "bs-scanner");
-                      worker.start();
-                  }
-                  return START_STICKY;
-              }
-
-              @Override
-              public void onDestroy() {
-                  running = false;
-                  if (worker != null) worker.interrupt();
-                  super.onDestroy();
-              }
-
-              private void loop() {
-                  while (running) {
-                      PowerManager.WakeLock wl = null;
-                      try {
-                          PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-                          wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "bs:scan");
-                          wl.acquire(60000L);
-                          scanOnce();
-                      } catch (Throwable t) {
-                      } finally {
-                          try { if (wl != null && wl.isHeld()) wl.release(); } catch (Throwable ignore) {}
-                      }
-                      try { Thread.sleep(INTERVAL_MS); } catch (InterruptedException e) { break; }
-                  }
-              }
-
-              private JSONObject fetch() {
-                  String[] branches = {"main", "master"};
-                  for (String b : branches) {
-                      HttpURLConnection c = null;
-                      try {
-                          URL u = new URL(BASE + b + "/data.json?t=" + System.currentTimeMillis());
-                          c = (HttpURLConnection) u.openConnection();
-                          c.setConnectTimeout(10000);
-                          c.setReadTimeout(25000);
-                          c.setUseCaches(false);
-                          c.setRequestProperty("Cache-Control", "no-cache");
-                          if (c.getResponseCode() == 200) {
-                              BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
-                              StringBuilder sb = new StringBuilder();
-                              char[] buf = new char[8192];
-                              int n;
-                              while ((n = r.read(buf)) > 0) sb.append(buf, 0, n);
-                              r.close();
-                              return new JSONObject(sb.toString());
-                          }
-                      } catch (Exception e) {
-                      } finally {
-                          if (c != null) c.disconnect();
-                      }
-                  }
-                  return null;
-              }
-
-              private static String fmt(JSONObject r, String key, int d) {
-                  if (!r.has(key) || r.isNull(key)) return "-";
-                  double v = r.optDouble(key, Double.NaN);
-                  if (Double.isNaN(v)) return "-";
-                  return String.format(Locale.US, "%." + Math.max(0, Math.min(8, d)) + "f", v);
-              }
-
-              private void saveDiag(boolean ok, int rows, int withSide, int fresh, int stale, String dataTime) {
-                  try {
-                      JSONObject d = new JSONObject();
-                      d.put("last_run", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()));
-                      d.put("fetch_ok", ok);
-                      d.put("rows", rows);
-                      d.put("with_side", withSide);
-                      d.put("fresh", fresh);
-                      d.put("stale", stale);
-                      d.put("data_time", dataTime);
-                      getSharedPreferences(PREFS, 0).edit().putString("diag", d.toString()).apply();
-                  } catch (Throwable ignore) {}
-              }
-
-              private synchronized void scanOnce() throws Exception {
-                  JSONObject j = fetch();
-                  if (j == null) {
-                      saveDiag(false, 0, 0, 0, 0, "");
-                      return;
-                  }
-                  JSONArray rows = j.optJSONArray("rows");
-                  if (rows == null) {
-                      saveDiag(true, 0, 0, 0, 0, String.valueOf(j.opt("time")));
-                      return;
-                  }
-                  int withSide = 0, stale = 0;
-                  SharedPreferences sp = getSharedPreferences(PREFS, 0);
-                  JSONObject seen;
-                  try { seen = new JSONObject(sp.getString("seen", "{}")); } catch (Exception e) { seen = new JSONObject(); }
-                  long ns = System.currentTimeMillis() / 1000L;
-                  List<JSONObject> fresh = new ArrayList<JSONObject>();
-                  for (int i = 0; i < rows.length(); i++) {
-                      JSONObject r = rows.optJSONObject(i);
-                      if (r == null || r.isNull("side")) continue;
-                      String side = r.optString("side", "");
-                      if (side.length() == 0 || "null".equals(side)) continue;
-                      boolean hasBt = r.has("bt") && !r.isNull("bt");
-                      long bt = hasBt ? r.optLong("bt", 0L) : 0L;
-                      withSide++;
-                      if (hasBt && ns - (bt + 300L) > FRESH_WINDOW_S) {
-                          stale++;
-                          continue;
-                      }
-                      String k = r.optString("id", "") + "|" + side + "|" + (hasBt ? String.valueOf(bt) : "nobt");
-                      if (seen.has(k)) continue;
-                      seen.put(k, ns);
-                      fresh.add(r);
-                  }
-                  List<String> old = new ArrayList<String>();
-                  Iterator<String> it = seen.keys();
-                  while (it.hasNext()) {
-                      String k = it.next();
-                      if (ns - seen.optLong(k, ns) > 86400L) old.add(k);
-                  }
-                  for (String k : old) seen.remove(k);
-                  sp.edit().putString("seen", seen.toString()).apply();
-                  saveDiag(true, rows.length(), withSide, fresh.size(), stale, String.valueOf(j.opt("time")));
-
-                  if (fresh.isEmpty()) return;
-
-                  NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                  PendingIntent open = PendingIntent.getActivity(this, 0,
-                          new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                          PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-                  SimpleDateFormat tf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
-                  List<String> lines = new ArrayList<String>();
-                  List<JSONObject> histAdd = new ArrayList<JSONObject>();
-                  int shown = 0;
-                  for (JSONObject r : fresh) {
-                      String id = r.optString("id", "?");
-                      String side = r.optString("side", "");
-                      int d = r.optInt("d", 5);
-                      String entry = fmt(r, "entry", d);
-                      String sl = fmt(r, "sl", d);
-                      String mode = r.optString("mode", "");
-                      long bt = r.optLong("bt", 0L);
-                      boolean lg = "LONG".equalsIgnoreCase(side);
-                      boolean hasBt2 = r.has("bt") && !r.isNull("bt");
-
-                      JSONObject h = new JSONObject();
-                      h.put("id", id);
-                      h.put("side", side);
-                      h.put("d", d);
-                      h.put("mode", mode);
-                      double ev = r.optDouble("entry", Double.NaN);
-                      if (!Double.isNaN(ev)) h.put("entry", ev);
-                      double sv = r.optDouble("sl", Double.NaN);
-                      if (!Double.isNaN(sv)) h.put("sl", sv);
-                      h.put("time", hasBt2 ? bt + 300L : ns);
-                      h.put("k", id + "|" + side + "|" + (hasBt2 ? String.valueOf(bt) : "nobt"));
-                      h.put("ts", ns);
-                      histAdd.add(h);
-
-                      lines.add(tf.format(new Date()) + "," + id + "," + side + "," + entry + "," + sl + ","
-                              + mode + "," + (bt > 0 ? tf.format(new Date(bt * 1000L)) : ""));
-
-                      if (shown < 8) {
-                          shown++;
-                          Notification n = new NotificationCompat.Builder(this, CH_ALARM)
-                                  .setSmallIcon(android.R.drawable.stat_sys_warning)
-                                  .setContentTitle((lg ? "🟢 LONG " : "🔴 SHORT ") + id)
-                                  .setContentText("Entry " + entry + " | SL " + sl + (mode.length() > 0 ? " | " + mode : ""))
-                                  .setCategory(NotificationCompat.CATEGORY_ALARM)
-                                  .setPriority(NotificationCompat.PRIORITY_MAX)
-                                  .setAutoCancel(true)
-                                  .setContentIntent(open)
-                                  .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                                  .build();
-                          nm.notify((id + side + bt).hashCode(), n);
-                      }
-                  }
-                  try {
-                      JSONArray hist;
-                      try { hist = new JSONArray(sp.getString("hist", "[]")); } catch (Exception e) { hist = new JSONArray(); }
-                      JSONArray out = new JSONArray();
-                      for (int i = 0; i < hist.length(); i++) {
-                          JSONObject o = hist.optJSONObject(i);
-                          if (o != null && ns - o.optLong("ts", ns) <= 86400L) out.put(o);
-                      }
-                      for (JSONObject h : histAdd) out.put(h);
-                      sp.edit().putString("hist", out.toString()).apply();
-                  } catch (Exception ignore) {}
-                  SignalLog.append(this, lines);
-              }
-
-              private void createChannels() {
-                  if (Build.VERSION.SDK_INT < 26) return;
-                  NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                  NotificationChannel svc = new NotificationChannel(CH_SVC, "اسکن پس‌زمینه", NotificationManager.IMPORTANCE_LOW);
-                  nm.createNotificationChannel(svc);
-
-                  NotificationChannel al = new NotificationChannel(CH_ALARM, "آلارم سیگنال", NotificationManager.IMPORTANCE_HIGH);
-                  Uri snd = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-                  if (snd == null) snd = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                  al.setSound(snd, new AudioAttributes.Builder()
-                          .setUsage(AudioAttributes.USAGE_ALARM)
-                          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                          .build());
-                  al.enableVibration(true);
-                  al.setVibrationPattern(new long[]{0, 400, 200, 400, 200, 800});
-                  al.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-                  nm.createNotificationChannel(al);
-              }
-          }
-          JAVAEOF
-          cat > "$PKG_DIR/SignalLog.java" << 'JAVAEOF'
-          package com.massud2020.balancedscreener;
-
-          import android.content.ContentResolver;
-          import android.content.ContentUris;
-          import android.content.ContentValues;
-          import android.content.Context;
-          import android.database.Cursor;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.provider.MediaStore;
-
-          import java.io.ByteArrayOutputStream;
-          import java.io.File;
-          import java.io.FileOutputStream;
-          import java.io.InputStream;
-          import java.io.OutputStream;
-          import java.text.SimpleDateFormat;
-          import java.util.Date;
-          import java.util.List;
-          import java.util.Locale;
-
-          final class SignalLog {
-              private static final String HEADER = "time,symbol,side,entry,sl,mode,bar_time\n";
-
-              private SignalLog() {}
-
-              static void append(Context ctx, List<String> lines) {
-                  if (lines == null || lines.isEmpty()) return;
-                  String name = "signals_" + new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date()) + ".csv";
-                  StringBuilder add = new StringBuilder();
-                  for (String l : lines) add.append(l).append('\n');
-                  try {
-                      if (Build.VERSION.SDK_INT >= 29) {
-                          viaMediaStore(ctx, name, add.toString());
-                          return;
-                      }
-                  } catch (Throwable t) {}
-                  try { viaAppDir(ctx, name, add.toString()); } catch (Throwable ignore) {}
-              }
-
-              private static String readAll(InputStream in) throws Exception {
-                  ByteArrayOutputStream bo = new ByteArrayOutputStream();
-                  byte[] buf = new byte[4096];
-                  int n;
-                  while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
-                  return bo.toString("UTF-8");
-              }
-
-              private static void viaMediaStore(Context ctx, String name, String add) throws Exception {
-                  ContentResolver cr = ctx.getContentResolver();
-                  Uri coll = MediaStore.Files.getContentUri("external");
-                  String sel = MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?";
-                  String[] args = {name, "Documents/Signals/"};
-                  Uri uri = null;
-                  Cursor c = cr.query(coll, new String[]{MediaStore.MediaColumns._ID}, sel, args, null);
-                  try { if (c != null && c.moveToFirst()) uri = ContentUris.withAppendedId(coll, c.getLong(0)); } finally { if (c != null) c.close(); }
-                  String existing;
-                  if (uri != null) {
-                      InputStream in = cr.openInputStream(uri);
-                      try { existing = readAll(in); } finally { if (in != null) in.close(); }
-                  } else {
-                      ContentValues v = new ContentValues();
-                      v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-                      v.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");
-                      v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/Signals");
-                      uri = cr.insert(coll, v);
-                      if (uri == null) throw new Exception("insert failed");
-                      existing = HEADER;
-                  }
-                  OutputStream os = cr.openOutputStream(uri, "wt");
-                  try { os.write((existing + add).getBytes("UTF-8")); } finally { if (os != null) os.close(); }
-              }
-
-              private static void viaAppDir(Context ctx, String name, String add) throws Exception {
-                  File base = ctx.getExternalFilesDir(null);
-                  if (base == null) base = ctx.getFilesDir();
-                  File dir = new File(base, "Signals");
-                  dir.mkdirs();
-                  File f = new File(dir, name);
-                  boolean isNew = !f.exists();
-                  FileOutputStream fo = new FileOutputStream(f, true);
-                  try {
-                      if (isNew) fo.write(HEADER.getBytes("UTF-8"));
-                      fo.write(add.getBytes("UTF-8"));
-                  } finally { fo.close(); }
-              }
-          }
-          JAVAEOF
-          cat > "$PKG_DIR/BootReceiver.java" << 'JAVAEOF'
-          package com.massud2020.balancedscreener;
-
-          import android.content.BroadcastReceiver;
-          import android.content.Context;
-          import android.content.Intent;
-
-          import androidx.core.content.ContextCompat;
-
-          public class BootReceiver extends BroadcastReceiver {
-              @Override
-              public void onReceive(Context context, Intent intent) {
-                  try {
-                      if (context.getSharedPreferences(ScanService.PREFS, 0).getBoolean("enabled", false)) {
-                          ContextCompat.startForegroundService(context, new Intent(context, ScanService.class));
-                      }
-                  } catch (Throwable ignore) {}
-              }
-          }
-          JAVAEOF
-          cat > "$PKG_DIR/BackgroundScannerPlugin.java" << 'JAVAEOF'
-          package com.massud2020.balancedscreener;
-
-          import android.content.Context;
-          import android.content.Intent;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.os.PowerManager;
-          import android.provider.Settings;
-
-          import androidx.core.content.ContextCompat;
-
-          import com.getcapacitor.JSObject;
-          import com.getcapacitor.Plugin;
-          import com.getcapacitor.PluginCall;
-          import com.getcapacitor.PluginMethod;
-          import com.getcapacitor.annotation.CapacitorPlugin;
-
-          @CapacitorPlugin(name = "BackgroundScanner")
-          public class BackgroundScannerPlugin extends Plugin {
-              @PluginMethod
-              public void start(PluginCall call) {
-                  try {
-                      Context c = getContext();
-                      ContextCompat.startForegroundService(c, new Intent(c, ScanService.class));
-                      call.resolve();
-                  } catch (Exception e) { call.reject("start failed: " + e.getMessage()); }
-              }
-
-              @PluginMethod
-              public void stop(PluginCall call) {
-                  Context c = getContext();
-                  c.getSharedPreferences(ScanService.PREFS, 0).edit().putBoolean("enabled", false).apply();
-                  c.stopService(new Intent(c, ScanService.class));
-                  call.resolve();
-              }
-
-              @PluginMethod
-              public void scanNow(PluginCall call) {
-                  try {
-                      Context c = getContext();
-                      Intent i = new Intent(c, ScanService.class);
-                      i.setAction("SCAN_NOW");
-                      ContextCompat.startForegroundService(c, i);
-                      call.resolve();
-                  } catch (Exception e) { call.reject("scanNow failed: " + e.getMessage()); }
-              }
-
-              @PluginMethod
-              public void getSignals(PluginCall call) {
-                  JSObject r = new JSObject();
-                  r.put("signals", getContext().getSharedPreferences(ScanService.PREFS, 0).getString("hist", "[]"));
-                  call.resolve(r);
-              }
-
-              @PluginMethod
-              public void getStatus(PluginCall call) {
-                  Context c = getContext();
-                  JSObject r = new JSObject();
-                  r.put("enabled", c.getSharedPreferences(ScanService.PREFS, 0).getBoolean("enabled", false));
-                  r.put("diag", c.getSharedPreferences(ScanService.PREFS, 0).getString("diag", ""));
-                  boolean notif = true;
-                  try { notif = androidx.core.app.NotificationManagerCompat.from(c).areNotificationsEnabled(); } catch (Throwable ignore) {}
-                  r.put("notificationsEnabled", notif);
-                  call.resolve(r);
-              }
-
-              @PluginMethod
-              public void requestBatteryExemption(PluginCall call) {
-                  try {
-                      Context c = getContext();
-                      JSObject res = new JSObject();
-                      boolean ignoring = true;
-                      if (Build.VERSION.SDK_INT >= 23) {
-                          PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
-                          ignoring = pm.isIgnoringBatteryOptimizations(c.getPackageName());
-                          if (!ignoring) {
-                              Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + c.getPackageName()));
-                              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                              c.startActivity(i);
-                          }
-                      }
-                      res.put("ignoring", ignoring);
-                      call.resolve(res);
-                  } catch (Exception e) { call.reject("battery request failed: " + e.getMessage()); }
-              }
-          }
-          JAVAEOF
-          cat > "$PKG_DIR/MainActivity.java" << 'JAVAEOF'
-          package com.massud2020.balancedscreener;
-
-          import android.content.SharedPreferences;
-          import android.content.pm.PackageInfo;
-          import android.os.Bundle;
-
-          import androidx.core.content.pm.PackageInfoCompat;
-
-          import com.getcapacitor.BridgeActivity;
-
-          import java.io.File;
-
-          public class MainActivity extends BridgeActivity {
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  clearStaleWebCaches();
-                  registerPlugin(BackgroundScannerPlugin.class);
-                  super.onCreate(savedInstanceState);
-              }
-
-              private void clearStaleWebCaches() {
-                  try {
-                      PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
-                      long vc = PackageInfoCompat.getLongVersionCode(pi);
-                      SharedPreferences sp = getSharedPreferences("bs_boot", 0);
-                      if (sp.getLong("vc", -1L) != vc) {
-                          deleteRec(new File(getApplicationInfo().dataDir, "app_webview/Default/Service Worker"));
-                          deleteRec(new File(getCacheDir(), "WebView"));
-                          sp.edit().putLong("vc", vc).apply();
-                      }
-                  } catch (Throwable ignore) {}
-              }
-
-              private static void deleteRec(File f) {
-                  if (f == null || !f.exists()) return;
-                  if (f.isDirectory()) {
-                      File[] c = f.listFiles();
-                      if (c != null) { for (File x : c) deleteRec(x); }
-                  }
-                  f.delete();
-              }
-          }
-          JAVAEOF
-          cat > /tmp/patch_manifest.py << 'PYEOF'
-          import re
-          p = 'android/app/src/main/AndroidManifest.xml'
-          s = open(p, encoding='utf-8').read()
-          perms = ['INTERNET', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_DATA_SYNC', 'POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'WAKE_LOCK', 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS']
-          add = ''
-          for q in perms:
-              if 'android.permission.%s"' % q not in s:
-                  add += '    <uses-permission android:name="android.permission.%s" />\n' % q
-          s = s.replace('<application', add + '    <application', 1)
-          comp = """
-                  <service android:name=".ScanService" android:exported="false" android:foregroundServiceType="dataSync" />
-                  <receiver android:name=".BootReceiver" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.BOOT_COMPLETED" />
-                          <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                      </intent-filter>
-                  </receiver>
-          """
-          if '.ScanService' not in s:
-              s = s.replace('</application>', comp + '    </application>', 1)
-          open(p, 'w', encoding='utf-8').write(s)
-          PYEOF
-          python3 /tmp/patch_manifest.py
-
-      - name: Force BouncyCastle Version via Init Script
-        run: |
-          mkdir -p ~/.gradle
-          cat << 'EOF' > ~/.gradle/init.gradle
-          gradle.beforeProject { p ->
-              p.buildscript.configurations.classpath.resolutionStrategy.eachDependency { d ->
-                  if (d.requested.group == 'org.bouncycastle' && d.requested.name == 'bcprov-jdk18on') { d.useVersion '1.78.1' }
-              }
-          }
-          allprojects {
-              configurations.all {
-                  resolutionStrategy.eachDependency { d ->
-                      if (d.requested.group == 'org.bouncycastle' && d.requested.name == 'bcprov-jdk18on') { d.useVersion '1.78.1' }
-                  }
-              }
-          }
-          EOF
-
-      - name: Tune gradle.properties
-        run: |
-          cat >> android/gradle.properties << 'EOF'
-          android.enableJetifier=false
-          android.useAndroidX=true
-          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
-          EOF
-
-      - name: Patch capacitor-edge-tts Java source
-        run: |
-          test -d node_modules/capacitor-edge-tts || { echo 'capacitor-edge-tts not installed'; exit 1; }
-          cat > /tmp/patch_edge_tts.py << 'PYEOF'
-          import re, sys, pathlib
-          def block_end(s, i):
-              j = s.index('{', i); d = 0
-              for k in range(j, len(s)):
-                  if s[k] == '{': d += 1
-                  elif s[k] == '}':
-                      d -= 1
-                      if d == 0: return k + 1
-              raise ValueError('unbalanced')
-          def patch(s):
-              s = re.sub(r'catch\s*\(\s*JSONException\s+(\w+)\s*\)', r'catch (Exception \1)', s)
-              while True:
-                  m = re.search(r'catch\s*\(\s*Exception\s+\w+\s*\)', s)
-                  done = True
-                  for m in re.finditer(r'catch\s*\(\s*Exception\s+\w+\s*\)', s):
-                      end = block_end(s, m.end())
-                      n = re.match(r'\s*catch\s*\(\s*Exception\s+\w+\s*\)', s[end:])
-                      if n:
-                          end2 = block_end(s, end + n.end())
-                          s = s[:end] + s[end2:]
-                          done = False
-                          break
-                  if done: return s
-          if __name__ == '__main__':
-              for f in pathlib.Path(sys.argv[1]).rglob('*.java'):
-                  old = f.read_text(encoding='utf-8')
-                  new = patch(old)
-                  if new != old: f.write_text(new, encoding='utf-8')
-          PYEOF
-          python3 /tmp/patch_edge_tts.py node_modules/capacitor-edge-tts
-
-      - name: Persistent signing key
-        env:
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-        run: |
-          mkdir -p ~/.android .ci
-          if [ -z "$KEYSTORE_PASS" ]; then exit 0; fi
-          if [ -f .ci/debug.keystore.enc ]; then
-            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in .ci/debug.keystore.enc -out ~/.android/debug.keystore -pass env:KEYSTORE_PASS
+          if [ -f package.json ]; then
+            npm install
           else
-            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 36500 -dname "CN=Android Debug,O=Android,C=US"
-            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in ~/.android/debug.keystore -out .ci/debug.keystore.enc -pass env:KEYSTORE_PASS
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .ci/debug.keystore.enc
-            git commit -m "ci: store signing key [skip ci]"
-            git pull --rebase origin main || true
-            git push origin HEAD:main || echo "::warning::Could not push the key"
+            npm init -y
+            npm install @capacitor/core @capacitor/cli @capacitor/android
           fi
 
-      - name: Set versionCode
-        working-directory: android
+      # 7. نصب پلاگین‌های TTS
+      - name: Install TTS Plugins
         run: |
-          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" app/build.gradle
+          npm install @capacitor-community/text-to-speech
 
-      - name: Upgrade Gradle Wrapper
-        working-directory: android
+      # 8. آماده‌سازی پوشه www
+      - name: Build www folder
         run: |
-          sed -i 's#distributionUrl=.*#distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip#' gradle/wrapper/gradle-wrapper.properties
+          mkdir -p www
+          # کپی کردن فایل‌های استاتیک (در صورت نیاز نام فایل‌ها را تغییر دهید)
+          cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
 
-      - name: Build APK (Debug)
-        working-directory: android
+      # 9. استمپ کردن Service Worker
+      - name: Stamp service worker
         run: |
+          if [ -f www/sw.js ]; then
+            echo "// Build time: $(date +%s)" >> www/sw.js
+          fi
+
+      # 10. حذف پوشه اندروید قبلی
+      - name: Remove Old Android Folder
+        run: |
+          rm -rf android
+
+      # 11. اضافه کردن پلتفرم اندروید Capacitor
+      - name: Add Capacitor Android platform
+        run: |
+          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+            echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
+          fi
+          npx cap add android
+          npx cap sync android
+
+      # 12. ساخت آیکون‌ها و اسپلش اسکرین
+      - name: Generate Android Icons and Splash
+        run: |
+          if [ -d "resources" ]; then
+            npm install @capacitor/assets
+            npx capacitor-assets generate --android
+          fi
+
+      # 13. بیلد نهایی فایل APK
+      - name: Build APK
+        run: |
+          cd android
           chmod +x gradlew
-          set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log || {
-            grep -n -B2 -A12 "What went wrong" build.log | head -60
-            exit 1
-          }
+          ./gradlew assembleDebug
 
-      - name: Upload APK
+      # 14. آپلود فایل APK برای دانلود
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: balanced-screener-debug
+          name: Balanced-Screener-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
