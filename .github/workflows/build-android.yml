@@ -25,38 +25,35 @@ jobs:
           java-version: '17'
 
       # 4. تنظیم Android SDK — نسخه v4 (رفع خطای Node 24)
-      #    اگر خواستید اکشن را کامل حذف کنید، این مرحله را پاک کنید
-      #    (رانر ubuntu-latest از قبل Android SDK دارد)
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      # 5. نصب پیش‌نیازهای سیستم (بدون تایم‌اوت طولانی)
+      # 5. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
         run: |
           echo 'Acquire::Retries "1";' | sudo tee /etc/apt/apt.conf.d/99-ci-timeout
           echo 'Acquire::http::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
           echo 'Acquire::https::Timeout "15";' | sudo tee -a /etc/apt/apt.conf.d/99-ci-timeout
 
-          # دور زدن مسیر پیش‌فرض و استفاده از سرور اصلی اوبونتو
           sudo sed -i -E 's@//azure\.archive\.ubuntu\.com@//archive.ubuntu.com@g' /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
 
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 6. نصب پکیج‌های Node.js
+      # 6. نصب پکیج‌های Node.js (اصلاح شده با legacy-peer-deps)
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
-            npm install
+            npm install --legacy-peer-deps
           else
             npm init -y
-            npm install @capacitor/core @capacitor/cli @capacitor/android
+            npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 7. نصب پلاگین TTS
+      # 7. نصب پلاگین TTS (اصلاح شده با legacy-peer-deps)
       - name: Install TTS Plugins
         run: |
-          npm install @capacitor-community/text-to-speech
+          npm install @capacitor-community/text-to-speech --legacy-peer-deps
 
       # 8. آماده‌سازی پوشه www
       - name: Build www folder
@@ -89,7 +86,7 @@ jobs:
       - name: Generate Android Icons and Splash
         run: |
           if [ -d "resources" ]; then
-            npm install @capacitor/assets
+            npm install @capacitor/assets --legacy-peer-deps
             npx capacitor-assets generate --android
           fi
 
@@ -100,7 +97,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 14. آپلود خروجی (نسخه v7 سازگار با Node 24)
+      # 14. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
