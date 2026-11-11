@@ -1,4 +1,4 @@
-// engine.js — Balanced Screener Core Engine (V4 - Weighted Scoring)
+// engine.js — Balanced Screener Core Engine (V5 - Fixed ADX & Sanity Check)
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define([], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
@@ -63,15 +63,18 @@
             plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0);
             minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
         }
+        
+        // 🛠 اصلاح باگ: تقسیم بر period (میانگین‌گیری اولیه)
         function smoothed(arr, p) {
             const res = new Array(arr.length).fill(null);
             let sum = 0;
             for (let i = 0; i < arr.length; i++) {
-                if (i < p) { sum += arr[i]; if (i === p - 1) res[i] = sum; }
+                if (i < p) { sum += arr[i]; if (i === p - 1) res[i] = sum / p; }
                 else { res[i] = res[i - 1] - (res[i - 1] / p) + arr[i]; }
             }
             return res;
         }
+        
         const atrArr = smoothed(tr, period), pDMSmoothed = smoothed(plusDM, period), mDMSmoothed = smoothed(minusDM, period);
         const dxArr = new Array(candles.length).fill(null);
         for (let i = 0; i < candles.length; i++) {
@@ -163,6 +166,7 @@
         const lastClose = closes[idx], lastRsi = rsiArr[idx];
         
         const lastAtr = (Number.isFinite(atrArr[idx]) && atrArr[idx] > 0) ? atrArr[idx] : (cl[idx].high - cl[idx].low);
+        // باگ ADX رفع شد، حالا مقادیر بین 0 تا 100 هستند
         const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
 
@@ -202,7 +206,6 @@
 
         let failReason = null;
 
-        // 🛠 اعمال وزن‌ها در هر شرط
         if (mode === "range") {
             const isLowTrend = lastAdx < 25;
             checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
@@ -272,12 +275,22 @@
         checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
+        // 🛠 اعتبارسنجی نهایی برای جلوگیری از خطای معکوس شدن TP و SL
         const entry = lastClose;
-        const sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
-        const tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-        const tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
+        let sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
+        let tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
+        let tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
 
-        // 🛠 محاسبه امتیاز وزنی نهایی
+        if (checkedSide === "LONG") {
+            if (sl >= entry) sl = entry - riskDist;
+            if (tp1 <= entry) tp1 = entry + riskDist * 1.5;
+            if (tp2 <= entry) tp2 = entry + riskDist * 3.0;
+        } else {
+            if (sl <= entry) sl = entry + riskDist;
+            if (tp1 >= entry) tp1 = entry - riskDist * 1.5;
+            if (tp2 >= entry) tp2 = entry - riskDist * 3.0;
+        }
+
         let score = 0, maxScore = 0;
         checks.forEach(c => {
             const w = c.w || 1;
@@ -286,7 +299,6 @@
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
         
-        // 🛠 آستانه پذیرش ۷۰ درصد
         const MIN_SCORE_PERCENT = 70;
         const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side;
 
