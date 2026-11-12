@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 17 (الزامی برای اندروید جدید)
+      # 3. تنظیم Java روی نسخه 17
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -46,7 +46,7 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 6. نصب مجدد پلاگین TTS با legacy-peer-deps
+      # 6. نصب پلاگین TTS (با legacy-peer-deps)
       - name: Install TTS Plugins
         run: |
           npm install @capacitor-community/text-to-speech --legacy-peer-deps
@@ -69,7 +69,7 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم قطعی گرادل 8.5
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.5
       - name: Add Capacitor Android platform and set Gradle 8.5
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
@@ -78,7 +78,6 @@ jobs:
           npx cap add android
           npx cap sync android
           
-          # تنظیم مستقیم نسخه گرادل به 8.5 برای هماهنگی کامل با Java 17
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
@@ -91,12 +90,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با اتصال دقیق به Java 17
-      - name: Build APK
+      # 12. بیلد نهایی با دستور clean برای حذف فایل‌های کش معیوب
+      - name: Build APK (Clean Build)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
+          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --refresh-dependencies
 
       # 13. آپلود خروجی
       - name: Upload Artifact
