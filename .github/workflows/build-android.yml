@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و تزریق صحیح قانون BouncyCastle
-      - name: Add Capacitor Android platform and Fix BouncyCastle
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.7
+      - name: Add Capacitor Android platform and set Gradle 8.7
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -78,26 +78,8 @@ jobs:
           npx cap add android
           npx cap sync android
           
-          # تنظیم نسخه گرادل به 8.7
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          fi
-
-          # تزریق اصولی قانون اجبار نسخه 1.76 به ابتدای فایل build.gradle
-          if [ -f android/build.gradle ]; then
-            TEMP_FILE=$(mktemp)
-            echo "allprojects {
-                configurations.all {
-                    resolutionStrategy.eachDependency { details ->
-                        if (details.requested.group == 'org.bouncycastle' && details.requested.name == 'bcprov-jdk18on') {
-                            details.useVersion '1.76'
-                            details.because 'Fix bytecode incompatibility with Java 21'
-                        }
-                    }
-                }
-            }" > "$TEMP_FILE"
-            cat android/build.gradle >> "$TEMP_FILE"
-            mv "$TEMP_FILE" android/build.gradle
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -108,13 +90,13 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. پاکسازی کش‌های گرادل
-      - name: Clean Gradle Caches
+      # 12. حذف اجباری فایل jar مشکل‌ساز مستقیماً از سیستم فایل پیش از بیلد
+      - name: Force Delete BouncyCastle 1.79 Jar From System
         run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf ~/.gradle/wrapper/
+          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar" -exec rm -f {} \; || true
+          find . -name "*bcprov-jdk18on-1.79.jar" -exec rm -f {} \; || true
 
-      # 13. بیلد نهایی APK
+      # 13. بیلد نهایی APK بدون استفاده از دیمن و با بارگذاری مجدد
       - name: Build APK
         run: |
           cd android
