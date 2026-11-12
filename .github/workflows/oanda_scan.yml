@@ -26,11 +26,10 @@ jobs:
       SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
       
       # 👈 تنظیمات حیاتی برای لوپ داخلی:
-      # 300 ثانیه (5 دقیقه) زنده بمان و در این مدت هر 60 ثانیه (1 دقیقه) اسکن کن
       LOOP_SECONDS: "300"
       INTERVAL: "60"
       
-      # توکن‌ها و تنظیمات (مطمئن شوید در Secrets گیت‌هاب تنظیم شده‌اند)
+      # توکن‌ها و تنظیمات
       OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
       OANDA_ENV: ${{ secrets.OANDA_ENV }}
       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -58,7 +57,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-save
 
       - name: Run Scanner
         run: node scan.js
@@ -68,7 +67,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # افزودن فایل‌های خروجی اسکنر
           git add data.json history.json latest_signal.txt
+          
+          # پاکسازی سایر تغییرات ناخواسته (مثل package-lock.json) برای جلوگیری از خطای rebase
+          git checkout -- .
+          git clean -fd
           
           if git diff --staged --quiet; then
             echo "No changes to commit"
