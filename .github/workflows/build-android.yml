@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و تزریق قانون اجبار نسخه 1.76
-      - name: Add Capacitor Android platform and configure Gradle
+      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و تزریق صحیح قانون BouncyCastle
+      - name: Add Capacitor Android platform and Fix BouncyCastle
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -83,17 +83,21 @@ jobs:
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
-          # تزریق قانون محکم resolutionStrategy به فایل build.gradle
+          # تزریق اصولی قانون اجبار نسخه 1.76 به ابتدای فایل build.gradle
           if [ -f android/build.gradle ]; then
-            echo "
-            allprojects {
+            TEMP_FILE=$(mktemp)
+            echo "allprojects {
                 configurations.all {
-                    resolutionStrategy {
-                        force 'org.bouncycastle:bcprov-jdk18on:1.76'
+                    resolutionStrategy.eachDependency { details ->
+                        if (details.requested.group == 'org.bouncycastle' && details.requested.name == 'bcprov-jdk18on') {
+                            details.useVersion '1.76'
+                            details.because 'Fix bytecode incompatibility with Java 21'
+                        }
                     }
                 }
-            }
-            " >> android/build.gradle
+            }" > "$TEMP_FILE"
+            cat android/build.gradle >> "$TEMP_FILE"
+            mv "$TEMP_FILE" android/build.gradle
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -104,13 +108,13 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. شکار و نابودی فایل‌های نسخه 1.79 از تمام بخش‌های کش
-      - name: Purge Bad BouncyCastle 1.79 Jar
+      # 12. پاکسازی کش‌های گرادل
+      - name: Clean Gradle Caches
         run: |
-          find ~/.gradle -name "*bcprov-jdk18on-1.79*" -delete || true
-          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar*" -delete || true
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
 
-      # 13. بیلد نهایی APK بدون دیمن و با تازه‌سازی اجباری
+      # 13. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
