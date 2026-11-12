@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 17
+      # 3. تنظیم دقیق Java روی نسخه 17 (هماهنگ با نسخه ۵.۵.۱ کاپاسیتور)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -36,7 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js و قفل کردن نسخه اندروید کاپاسیتور روی نسخه پایدار 5.5.1
+      # 5. نصب پکیج‌های Node.js و قفل کردن روی نسخه ۵.۵.۱
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -86,7 +86,7 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با نسخه پایدار ۵.۵.۱ (بدون داشتن کتابخانه ناسازگار ۱.۷۹)
+      # 12. بیلد نهایی APK با جاوا ۱۷ و سازگاری کامل
       - name: Build APK
         run: |
           cd android
