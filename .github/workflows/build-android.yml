@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم دقیق Java روی نسخه 21 (مورد نیاز پلاگین TTS و کامپایلر جدید)
+      # 3. تنظیم دقیق Java روی نسخه 21 (مورد نیاز کاپاسیتور 8 و پلاگین‌ها)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -36,40 +36,30 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js و استفاده از نسخه پایدار 6 برای سازگاری با جاوا 21
+      # 5. نصب دقیق پکیج‌های تعریف‌شده در package.json پروژه
       - name: Install dependencies
         run: |
-          if [ -f package.json ]; then
-            npm install --legacy-peer-deps
-          else
-            npm init -y
-          fi
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
+          npm install --legacy-peer-deps
 
-      # 6. نصب پلاگین TTS
-      - name: Install TTS Plugins
-        run: |
-          npm install @capacitor-community/text-to-speech --legacy-peer-deps
-
-      # 7. آماده‌سازی پوشه www
+      # 6. آماده‌سازی پوشه www
       - name: Build www folder
         run: |
           mkdir -p www
           cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
 
-      # 8. استمپ Service Worker
+      # 7. استمپ Service Worker
       - name: Stamp service worker
         run: |
           if [ -f www/sw.js ]; then
             echo "// Build time: $(date +%s)" >> www/sw.js
           fi
 
-      # 9. حذف پوشه اندروید قبلی
+      # 8. حذف پوشه اندروید قبلی
       - name: Remove Old Android Folder
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل به نسخه 8.7
+      # 9. اضافه کردن پلتفرم اندروید و تنظیم گرادل به نسخه 8.7
       - name: Add Capacitor Android platform and set Gradle 8.7
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
@@ -82,7 +72,7 @@ jobs:
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
-      # 11. ساخت آیکون‌ها و اسپلش
+      # 10. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
         run: |
           if [ -d "resources" ]; then
@@ -90,14 +80,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با هماهنگی کامل جاوا ۲۱ و گرادل ۸.۷
+      # 11. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
-      # 13. آپلود خروجی
+      # 12. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
