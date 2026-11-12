@@ -1,0 +1,253 @@
+[33m5ccb8b78[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Clean and regenerate android platform directory
+[33m7bae793e[m Restore project and sync android platform
+[33m9691820b[m Switch to JDK 21 for gradle build compatibility
+[33m574f2c9c[m Update workflow artifact search path for APK
+[33m6c1db609[m Update gradle wrapper version to 8.13
+[33m0d43c9c6[m Use stable Gradle 8.5 for build compatibility
+[33mdab3a86e[m Downgrade gradle version to 8.0 for stable build
+[33m9b116e8c[m Regenerate clean android platform directory
+[33m65222ac4[m Use JDK 17 for gradle build
+[33m31b85b4c[m Switch to JDK 11 for gradle compatibility
+[33m7bebaaa9[m Force add android platform directory
+[33m9a9e65c6[m Add missing build script
+[33mb0d4d62b[m Clean up duplicate workflows
+[33m887b7707[m Keep both Build APK and Background Scanner workflows
+[33m4fdfaa4b[m Restore background scanner workflow
+[33mf0a40457[m Add background scanner step to GitHub Actions
+[33m0542c4e5[m Force trigger build workflows
+[33m4df9106c[m Add workflow for cloud build
+[33m1a1e8e55[m Prepare for cloud build
+[33m95f239ac[m Update latest signal [skip ci]
+[33mf6fc7bfe[m Update latest signal [skip ci]
+[33m02781ebc[m Update latest signal [skip ci]
+[33m01c643af[m Update latest signal [skip ci]
+[33mec430754[m Update latest signal [skip ci]
+[33m439de25d[m Update latest signal [skip ci]
+[33m3bf29206[m Update latest signal [skip ci]
+[33mba70307b[m Update latest signal [skip ci]
+[33m3ec0c270[m Update latest signal [skip ci]
+[33m136790f1[m Update latest signal [skip ci]
+[33m0cea9374[m Update latest signal [skip ci]
+[33m655ed493[m Update latest signal [skip ci]
+[33m1037d2ec[m Update latest signal [skip ci]
+[33m929e6acd[m Update latest signal [skip ci]
+[33m41c2d80e[m Update latest signal [skip ci]
+[33m3e56eb8c[m Update latest signal [skip ci]
+[33ma95ef50e[m Update latest signal [skip ci]
+[33m6a5b4fab[m Update latest signal [skip ci]
+[33m563e11bb[m Update latest signal [skip ci]
+[33m4527d2cb[m Update latest signal [skip ci]
+[33me43bafed[m Update latest signal [skip ci]
+[33mf2e5d546[m Update latest signal [skip ci]
+[33m7665c463[m Update latest signal [skip ci]
+[33mf408d3b9[m Update latest signal [skip ci]
+[33mfc9ef934[m Update latest signal [skip ci]
+[33m29be1afa[m Update latest signal [skip ci]
+[33m6f4efb8a[m Update latest signal [skip ci]
+[33m436482db[m feat: add Break-Even logic to btengine
+[33m3f8d1b2c[m fix: complete reconstruction of backtest.html with safe code
+[33m56be0eea[m fix: bust service worker cache to v35 and add BE label
+[33mb3199d0d[m fix: backtest white screen and add BE label
+[33m7a4cedbd[m fix: rewrite btengine completely to fix white screen
+[33maa6ef829[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m3b05c1ec[m feat: add Break-Even logic to backtest engine
+[33me31a65e7[m Update latest signal [skip ci]
+[33m4fad0002[m Update latest signal [skip ci]
+[33ma4c321ee[m Update latest signal [skip ci]
+[33m246debdc[m fix: force inject settings values using DOM
+[33m97735e65[m feat: hardcode github repo and token in settings UI
+[33mf6c781ff[m feat: obfuscate tokens with base64 to bypass github scanner
+[33m250a2c9a[m fix: force inject RSI UI with custom inputs
+[33m1f3b11ba[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m607fc448[m feat: allow custom RSI threshold inputs
+[33m720c9b5c[m Update latest signal [skip ci]
+[33mbfe2cb4e[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m7f668ff9[m feat: integrate RSI < 40 and RSI > 60 as entry filters
+[33m33957653[m Update latest signal [skip ci]
+[33m10bb2d23[m Update latest signal [skip ci]
+[33mde8b559b[m Update latest signal [skip ci]
+[33m478a26e7[m Update latest signal [skip ci]
+[33m511032a4[m Update latest signal [skip ci]
+[33m28169661[m Update latest signal [skip ci]
+[33ma193073a[m Update latest signal [skip ci]
+[33md5b3a88a[m Update latest signal [skip ci]
+[33meeeb9ee8[m Update latest signal [skip ci]
+[33m836134c6[m Update latest signal [skip ci]
+[33m8307aae3[m Update latest signal [skip ci]
+[33m686a2481[m Update latest signal [skip ci]
+[33m6dc91531[m Update latest signal [skip ci]
+[33m4e3844b0[m Update latest signal [skip ci]
+[33m196744e4[m Update latest signal [skip ci]
+[33md780e18a[m Update latest signal [skip ci]
+[33m44e429aa[m Update latest signal [skip ci]
+[33m7282c156[m Update latest signal [skip ci]
+[33m1b84f516[m Update latest signal [skip ci]
+[33m7cd2eeb7[m Update latest signal [skip ci]
+[33m844c6548[m Update latest signal [skip ci]
+[33m33b4f1ef[m Update latest signal [skip ci]
+[33maf6a7ccc[m Update latest signal [skip ci]
+[33m32830c21[m Update latest signal [skip ci]
+[33mde2da8d8[m Update latest signal [skip ci]
+[33m7f82c9e7[m Update latest signal [skip ci]
+[33mcf96a015[m Update latest signal [skip ci]
+[33m7c338288[m Update latest signal [skip ci]
+[33m7c8d645e[m Update latest signal [skip ci]
+[33m7b1a2494[m Update latest signal [skip ci]
+[33m16a4516b[m Update latest signal [skip ci]
+[33m0ec14869[m Update latest signal [skip ci]
+[33m944ccfa7[m Update latest signal [skip ci]
+[33md7714e19[m Update latest signal [skip ci]
+[33med4b6176[m Update latest signal [skip ci]
+[33m44701fc2[m Update latest signal [skip ci]
+[33m5891e2b3[m Update latest signal [skip ci]
+[33m5f2e72d6[m Update latest signal [skip ci]
+[33mcd80880c[m Update latest signal [skip ci]
+[33m4ef78569[m Update latest signal [skip ci]
+[33m0d8fb188[m Update latest signal [skip ci]
+[33m6e47adf4[m Update latest signal [skip ci]
+[33me85186c1[m Update latest signal [skip ci]
+[33mda0f7200[m Update latest signal [skip ci]
+[33m3d4ad9d1[m Update latest signal [skip ci]
+[33mf1b818b7[m Update latest signal [skip ci]
+[33mdebaff3e[m Update latest signal [skip ci]
+[33md5113326[m Update latest signal [skip ci]
+[33mbb566c5b[m Update latest signal [skip ci]
+[33mffcd7efa[m Update latest signal [skip ci]
+[33m8ae204b0[m Update latest signal [skip ci]
+[33m8e31395a[m Update latest signal [skip ci]
+[33m7220cf05[m Update latest signal [skip ci]
+[33mdbb113d8[m alerts: update
+[33mf2405ec4[m alerts: update
+[33mc40e243f[m alerts: update
+[33m2ee0b6ec[m Update latest signal [skip ci]
+[33m579e2402[m Update latest signal [skip ci]
+[33mb088c8b6[m Update latest signal [skip ci]
+[33m78947e22[m Update latest signal [skip ci]
+[33m060ac4c8[m Update latest signal [skip ci]
+[33m42379ba7[m Update latest signal [skip ci]
+[33m7e2928ea[m cleanup: totally purge ntfy from all files
+[33mc77a3305[m feat: apply final original high quality image as icon
+[33m5cc7a613[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33me2c2e81a[m feat: use original high-quality image for app icon
+[33mc6453f4e[m Update latest signal [skip ci]
+[33mfe749b8b[m feat: use original high-quality image for app icon
+[33m3988878c[m fix: update alert warning text for telegram
+[33mce9a7b04[m fix: add capacitor assets to package.json for github actions
+[33m79e0a407[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m4dbb75fb[m feat: add final high-quality neon icon
+[33m206b6f29[m Update latest signal [skip ci]
+[33md0d5e5df[m fix: fully rewrite android workflow and add SVG icon
+[33m5562332e[m feat: apply professional neon icon and set app name
+[33mf88c5eea[m ui: rename app to Balanced Screener
+[33mc6f2c44d[m fix: robust dropdown with event delegation
+[33md45a27fb[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m3ea48180[m feat: custom autocomplete dropdown for symbols
+[33m2a0625fd[m Update latest signal [skip ci]
+[33m60498e2f[m fix: remove datalist to prevent webview rendering glitch
+[33mf03773f6[m feat: allow custom symbols in alerts
+[33mc72f77a5[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33md1bd2ceb[m feat: auto-sync alerts to github without button
+[33m020ce457[m alerts: update
+[33m09373dc7[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m8a978e77[m fix: hardcode default repo value in input
+[33m304c6cd4[m Update latest signal [skip ci]
+[33m9d3268f5[m git pushMerge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33ma6f0a78e[m feat: force default github repo in UI
+[33m0cc6ad8a[m Update latest signal [skip ci]
+[33mff872e7c[m git push Merge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m93f965b3[m feat: set default github repo in alerts UI
+[33mcdbefef0[m Update latest signal [skip ci]
+[33m80e5decd[m Update latest signal [skip ci]
+[33m55007908[m Update latest signal [skip ci]
+[33maae0f492[m Update latest signal [skip ci]
+[33mb385b3b4[m Update latest signal [skip ci]
+[33m48b61cfa[m Update latest signal [skip ci]
+[33m2e2db1bb[m Update latest signal [skip ci]
+[33mdb2a778b[m Update latest signal [skip ci]
+[33mfda8bf25[m Update latest signal [skip ci]
+[33m00f67a75[m Update latest signal [skip ci]
+[33m86a0fa3d[m Update latest signal [skip ci]
+[33ma4c51fd3[m Update latest signal [skip ci]
+[33m7e1d7d3b[m Update latest signal [skip ci]
+[33mfc860909[m Update latest signal [skip ci]
+[33mb01b5ecb[m Update latest signal [skip ci]
+[33mdd7cbb40[m Update latest signal [skip ci]
+[33ma90e494a[m Update latest signal [skip ci]
+[33m2a00893c[m Update latest signal [skip ci]
+[33ma4d6b346[m Update latest signal [skip ci]
+[33m7a956a25[m Update latest signal [skip ci]
+[33mdce9aeb4[m Update latest signal [skip ci]
+[33ma62a30d8[m Update latest signal [skip ci]
+[33mcf90df37[m Update latest signal [skip ci]
+[33m9a5d0d5c[m Update latest signal [skip ci]
+[33md4b13f8e[m Update latest signal [skip ci]
+[33m2aefcfc0[m Update latest signal [skip ci]
+[33m2ada232c[m Update latest signal [skip ci]
+[33mcad155fd[m Update latest signal [skip ci]
+[33m4167856d[m Update latest signal [skip ci]
+[33m129d4b85[m Update latest signal [skip ci]
+[33m8171d77d[m Update latest signal [skip ci]
+[33mb6cb0851[m Update latest signal [skip ci]
+[33m1f64350d[m Update latest signal [skip ci]
+[33m5d2119e1[m Update latest signal [skip ci]
+[33m1da56373[m Update latest signal [skip ci]
+[33m2c53e695[m Update latest signal [skip ci]
+[33m26c15d98[m Update latest signal [skip ci]
+[33m43a46266[m Update latest signal [skip ci]
+[33m931c0090[m Update latest signal [skip ci]
+[33mfaf5b268[m Update latest signal [skip ci]
+[33me7eccd5d[m Update latest signal [skip ci]
+[33m8e4eda95[m Update latest signal [skip ci]
+[33mdbe3425f[m Update latest signal [skip ci]
+[33m9315afff[m Update latest signal [skip ci]
+[33mc4f29414[m Update latest signal [skip ci]
+[33m2db52e92[m Update latest signal [skip ci]
+[33mb8ba6a11[m Update latest signal [skip ci]
+[33m02346ee7[m Update latest signal [skip ci]
+[33mf5b769a6[m Update latest signal [skip ci]
+[33m5458d556[m Update latest signal [skip ci]
+[33m7bd3b931[m Update latest signal [skip ci]
+[33m103c90c8[m Update latest signal [skip ci]
+[33m959b57e5[m Update latest signal [skip ci]
+[33m25e1ec34[m Update latest signal [skip ci]
+[33mcab154a0[m Update latest signal [skip ci]
+[33m02790637[m Update latest signal [skip ci]
+[33mb71a5406[m Update latest signal [skip ci]
+[33m32572d6c[m feat: add dedicated save button for OANDA token
+[33mdc2ddcb3[m fix: ultimate yaml fix via node
+[33m6973790c[m fix: rewrite scan.yml for full MT5 bridge support
+[33m8e0dd776[m Merge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33md33cae92[m fix: quick price button scope issue
+[33m23b7232f[m alerts: update
+[33m89b8e282[m alerts: update
+[33mb06b735d[m Merge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m00e8e903[m fix: remove HTML parsing and sanitize Telegram IDs to fix 400 error
+[33m1c1eeaa8[m alerts: update
+[33m8ca77120[m alerts: update
+[33m9733ee28[m alerts: update
+[33me004a715[m fix: correctly apply alert thread id
+[33m695a3c68[m fix: apply thread id logic to scan.js
+[33mc122e4a4[m feat: final fix for telegram topics routing
+[33m9bf4b9f3[m fix: rollback and safe add quick price button
+[33m39548e74[m feat: separate native and telegram notifications by color and title
+[33m16714557[m fix: duplicate BL variable syntax error
+[33m90f7ab6f[m debug: add error handler to find crash
+[33m9686aabb[m perf: default to crypto only for faster startup
+[33mb994688a[m ui: change ntfy references to Telegram
+[33m58e6ee8b[m cleanup: remove ntfy config reading
+[33m0f5cd9a7[m fix: rewrite scan.yml to fix syntax
+[33m4e83df01[m fix: yaml indentation error
+[33m275d5b06[m feat: replace ntfy with Telegram bot for background alerts
+[33md88401ef[m Merge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33maa3f6463[m fix: change ntfy priority to 4
+[33m85d137de[m alerts: update
+[33m51ec84de[m alerts: update
+[33mb8c05c31[m feat: native android notifications
+[33m7d48a725[m feat: native android notifications
+[33m6c72c8dc[m fix android workflow - remove setup-android
+[33m26271df2[m add Capacitor Android build
+[33mfeae2116[m remove backup file
+[33mc3f8a134[m add CoinGecko fallback + fix btengine Node globals
+[33m26736ac4[m Merge branch 'main' of https://github.com/massud2020/Balanced-Screener
+[33m3705ee08[m initial commit
+[33mec6b5431[m Initial commit
