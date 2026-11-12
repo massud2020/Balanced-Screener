@@ -90,14 +90,19 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با اتصال دقیق به مسیر جاوا بدون درگیر کردن gradle.properties
+      # 12. حذف هدفمند و مستقیم فایل jar معیوب پیش از شروع کامپایل
+      - name: Purge Problematic BouncyCastle Jar
+        run: |
+          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar" -delete || true
+
+      # 13. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --refresh-dependencies
 
-      # 13. آپلود خروجی
+      # 14. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
