@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 17 (پایدارترین نسخه برای سازگاری با ابزارهای اندروید)
+      # 3. تنظیم Java روی نسخه 17
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -46,10 +46,10 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 6. نصب پلاگین TTS
+      # 6. نصب پلاگین TTS با نسخه پایدار
       - name: Install TTS Plugins
         run: |
-          npm install @capacitor-community/text-to-speech --legacy-peer-deps
+          npm install @capacitor-community/text-to-speech@latest --legacy-peer-deps
 
       # 7. آماده‌سازی پوشه www
       - name: Build www folder
@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.7
-      - name: Add Capacitor Android platform and set Gradle 8.7
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.5
+      - name: Add Capacitor Android platform and set Gradle 8.5
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -79,7 +79,7 @@ jobs:
           npx cap sync android
           
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
-            sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+            sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -90,7 +90,7 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با Java 17 و بدون دستورهای اضافی مزاحم
+      # 12. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
