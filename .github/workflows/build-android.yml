@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم دقیق Java روی نسخه 17 (هماهنگ با نسخه ۵.۵.۱ کاپاسیتور)
+      # 3. تنظیم دقیق Java روی نسخه 21 (برای سازگاری با پلاگین TTS و کامپایلر جدید)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -86,7 +86,7 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با جاوا ۱۷ و سازگاری کامل
+      # 12. بیلد نهایی APK با جاوا ۲۱ و سازگاری کامل با پلاگین‌ها
       - name: Build APK
         run: |
           cd android
