@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 11 (پایدارترین نسخه برای جلوگیری از خطای بایت‌کد BouncyCastle)
+      # 3. تنظیم Java روی نسخه 17
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '17'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -36,15 +36,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js و تثبیت نسخه اندروید کاپاسیتور
+      # 5. نصب پکیج‌های Node.js
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
             npm install --legacy-peer-deps
           else
             npm init -y
+            npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
-          npm install @capacitor/core @capacitor/cli @capacitor/android@5.7.4 --legacy-peer-deps
 
       # 6. نصب پلاگین TTS
       - name: Install TTS Plugins
@@ -69,14 +69,18 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید
-      - name: Add Capacitor Android platform
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.5
+      - name: Add Capacitor Android platform and set Gradle 8.5
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
           fi
           npx cap add android
           npx cap sync android
+          
+          if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
+            sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
 
       # 11. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
@@ -86,12 +90,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با جاوا ۱۱ (بدون تداخل BouncyCastle)
+      # 12. بیلد نهایی APK با اتصال دقیق به مسیر جاوا بدون درگیر کردن gradle.properties
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon
 
       # 13. آپلود خروجی
       - name: Upload Artifact
