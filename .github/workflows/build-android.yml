@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 11 (سازگار با گرادل)
+      # 3. تنظیم Java روی نسخه 11 (نسخه پایدار و سازگار با گرادل)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -86,12 +86,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد APK
+      # 12. بیلد APK (با اتصال دقیق به مسیر جاوا)
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
       # 13. آپلود خروجی
       - name: Upload Artifact
