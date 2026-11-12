@@ -36,15 +36,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js
+      # 5. نصب پکیج‌های Node.js و قفل کردن نسخه اندروید کاپاسیتور روی نسخه پایدار 5.5.1
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
             npm install --legacy-peer-deps
           else
             npm init -y
-            npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
+          npm install @capacitor/core@5.5.1 @capacitor/cli@5.5.1 @capacitor/android@5.5.1 --legacy-peer-deps
 
       # 6. نصب پلاگین TTS
       - name: Install TTS Plugins
@@ -69,18 +69,14 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.5
-      - name: Add Capacitor Android platform and set Gradle 8.5
+      # 10. اضافه کردن پلتفرم اندروید
+      - name: Add Capacitor Android platform
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
           fi
           npx cap add android
           npx cap sync android
-          
-          if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
-            sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          fi
 
       # 11. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
@@ -90,19 +86,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. حذف هدفمند و مستقیم فایل jar معیوب پیش از شروع کامپایل
-      - name: Purge Problematic BouncyCastle Jar
-        run: |
-          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar" -delete || true
-
-      # 13. بیلد نهایی APK
+      # 12. بیلد نهایی APK با نسخه پایدار ۵.۵.۱ (بدون داشتن کتابخانه ناسازگار ۱.۷۹)
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --refresh-dependencies
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
-      # 14. آپلود خروجی
+      # 13. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
