@@ -17,18 +17,14 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 11 (نسخه پایدار و سازگار با گرادل پروژه)
+      # 3. تنظیم Java روی نسخه 11 (سازگار با گرادل)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '11'
 
-      # 4. تنظیم Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-
-      # 5. نصب پیش‌نیازهای سیستم
+      # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
         run: |
           echo 'Acquire::Retries "1";' | sudo tee /etc/apt/apt.conf.d/99-ci-timeout
@@ -40,7 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 6. نصب پکیج‌های Node.js (با legacy-peer-deps)
+      # 5. نصب پکیج‌های Node.js (با legacy-peer-deps)
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -50,30 +46,30 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 7. نصب پلاگین TTS (با legacy-peer-deps)
+      # 6. نصب پلاگین TTS (با legacy-peer-deps)
       - name: Install TTS Plugins
         run: |
           npm install @capacitor-community/text-to-speech --legacy-peer-deps
 
-      # 8. آماده‌سازی پوشه www
+      # 7. آماده‌سازی پوشه www
       - name: Build www folder
         run: |
           mkdir -p www
           cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
 
-      # 9. استمپ Service Worker
+      # 8. استمپ Service Worker
       - name: Stamp service worker
         run: |
           if [ -f www/sw.js ]; then
             echo "// Build time: $(date +%s)" >> www/sw.js
           fi
 
-      # 10. حذف پوشه اندروید قبلی
+      # 9. حذف پوشه اندروید قبلی
       - name: Remove Old Android Folder
         run: |
           rm -rf android
 
-      # 11. اضافه کردن پلتفرم اندروید Capacitor
+      # 10. اضافه کردن پلتفرم اندروید Capacitor
       - name: Add Capacitor Android platform
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
@@ -82,7 +78,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      # 12. ساخت آیکون‌ها و اسپلش
+      # 11. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
         run: |
           if [ -d "resources" ]; then
@@ -90,14 +86,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 13. بیلد APK (با تنظیمات استاندارد و سازگار با Java 11)
+      # 12. بیلد APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 14. آپلود خروجی
+      # 13. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
