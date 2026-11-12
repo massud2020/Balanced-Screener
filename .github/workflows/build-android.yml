@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و رفع خطای کتابخانه bcprov
-      - name: Add Capacitor Android platform and Fix BouncyCastle
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.7
+      - name: Add Capacitor Android platform and set Gradle 8.7
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -78,22 +78,8 @@ jobs:
           npx cap add android
           npx cap sync android
           
-          # تنظیم نسخه گرادل به 8.7
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          fi
-
-          # تزریق قانون رفع خطای کتابخانه bcprov-jdk18on به گرادل
-          if [ -f android/build.gradle ]; then
-            echo "
-            allprojects {
-                configurations.all {
-                    resolutionStrategy {
-                        force 'org.bouncycastle:bcprov-jdk18on:1.76'
-                    }
-                }
-            }
-            " >> android/build.gradle
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -104,14 +90,20 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK
+      # 12. پاکسازی کش‌های خراب گرادل (بخش حیاتی برای رفع خطای تکراری)
+      - name: Clear Corrupted Gradle Caches
+        run: |
+          rm -rf ~/.gradle/caches/jars-9/
+          rm -rf ~/.gradle/caches/modules-2/files-2.1/org.bouncycastle/
+
+      # 13. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon
+          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --refresh-dependencies
 
-      # 13. آپلود خروجی
+      # 14. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
