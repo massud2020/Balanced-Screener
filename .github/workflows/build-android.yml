@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 21
+      # 3. تنظیم Java روی نسخه 17 (پایدارترین نسخه برای سازگاری با ابزارهای اندروید)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -90,20 +90,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. حذف اجباری فایل jar مشکل‌ساز مستقیماً از سیستم فایل پیش از بیلد
-      - name: Force Delete BouncyCastle 1.79 Jar From System
-        run: |
-          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar" -exec rm -f {} \; || true
-          find . -name "*bcprov-jdk18on-1.79.jar" -exec rm -f {} \; || true
-
-      # 13. بیلد نهایی APK بدون استفاده از دیمن و با بارگذاری مجدد
+      # 12. بیلد نهایی APK با Java 17 و بدون دستورهای اضافی مزاحم
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --refresh-dependencies
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
-      # 14. آپلود خروجی
+      # 13. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
