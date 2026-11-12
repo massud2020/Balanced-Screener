@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. دریافت کدها (نسخه سازگار با Node 24)
+      # 1. دریافت کدها
       - name: Checkout Code
         uses: actions/checkout@v5
 
@@ -17,14 +17,14 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java (نسخه v5 برای Node 24)
+      # 3. تنظیم Java روی نسخه 11 (نسخه پایدار و سازگار با گرادل پروژه)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'
 
-      # 4. تنظیم Android SDK — نسخه v4 (رفع خطای Node 24)
+      # 4. تنظیم Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
@@ -90,12 +90,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 13. بیلد APK (با قابلیت stacktrace برای نمایش جزئیات خطا)
+      # 13. بیلد APK (با تنظیمات استاندارد و سازگار با Java 11)
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       # 14. آپلود خروجی
       - name: Upload Artifact
