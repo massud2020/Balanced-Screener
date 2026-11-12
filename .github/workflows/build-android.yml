@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و اصلاح نسخه BouncyCastle
-      - name: Add Capacitor Android platform and Fix BouncyCastle Version
+      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و تزریق قانون اجبار نسخه 1.76
+      - name: Add Capacitor Android platform and configure Gradle
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -83,7 +83,7 @@ jobs:
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
-          # اضافه کردن قانون اجبار به استفاده از نسخه 1.76 برای حل خطای بایت‌کد
+          # تزریق قانون محکم resolutionStrategy به فایل build.gradle
           if [ -f android/build.gradle ]; then
             echo "
             allprojects {
@@ -104,14 +104,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. پاکسازی کامل کش‌های گرادل و فایل‌های خراب
-      - name: Clean Gradle Caches
+      # 12. شکار و نابودی فایل‌های نسخه 1.79 از تمام بخش‌های کش
+      - name: Purge Bad BouncyCastle 1.79 Jar
         run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf ~/.gradle/wrapper/
+          find ~/.gradle -name "*bcprov-jdk18on-1.79*" -delete || true
+          find ~/.gradle -name "*bcprov-jdk18on-1.79.jar*" -delete || true
 
-      # 13. بیلد نهایی APK با تازه‌سازی کامل وابستگی‌ها
-      - name: Build APK (Final Fix)
+      # 13. بیلد نهایی APK بدون دیمن و با تازه‌سازی اجباری
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
