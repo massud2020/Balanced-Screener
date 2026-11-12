@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و ارتقا به Gradle 8.7 (سازگاری کامل با جاوا ۲۱)
-      - name: Add Capacitor Android platform and set Gradle 8.7
+      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و رفع خطای کتابخانه bcprov
+      - name: Add Capacitor Android platform and Fix BouncyCastle
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -78,8 +78,22 @@ jobs:
           npx cap add android
           npx cap sync android
           
+          # تنظیم نسخه گرادل به 8.7
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
+
+          # تزریق قانون رفع خطای کتابخانه bcprov-jdk18on به گرادل
+          if [ -f android/build.gradle ]; then
+            echo "
+            allprojects {
+                configurations.all {
+                    resolutionStrategy {
+                        force 'org.bouncycastle:bcprov-jdk18on:1.76'
+                    }
+                }
+            }
+            " >> android/build.gradle
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -90,12 +104,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی با پاکسازی کامل کش‌های قبلی
-      - name: Build APK (Clean & Stable)
+      # 12. بیلد نهایی APK
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon
+          ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon
 
       # 13. آپلود خروجی
       - name: Upload Artifact
