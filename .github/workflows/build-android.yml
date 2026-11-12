@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم دقیق Java روی نسخه 21 (برای سازگاری با پلاگین TTS و کامپایلر جدید)
+      # 3. تنظیم جاوا روی نسخه ۱۷ (سازگار با ساختار گرادل و کاپاسیتور ۵)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -69,14 +69,18 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید
-      - name: Add Capacitor Android platform
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل به نسخه ۸.۵
+      - name: Add Capacitor Android platform and set Gradle 8.5
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
           fi
           npx cap add android
           npx cap sync android
+          
+          if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
+            sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
 
       # 11. ساخت آیکون‌ها و اسپلش
       - name: Generate Android Icons and Splash
@@ -86,7 +90,7 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با جاوا ۲۱ و سازگاری کامل با پلاگین‌ها
+      # 12. بیلد نهایی APK با هماهنگی کامل جاوا ۱۷ و گرادل ۸.۵
       - name: Build APK
         run: |
           cd android
