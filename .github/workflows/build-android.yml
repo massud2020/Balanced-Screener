@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم جاوا روی نسخه ۱۷ (سازگار با ساختار گرادل و کاپاسیتور ۵)
+      # 3. تنظیم دقیق Java روی نسخه 21 (مورد نیاز پلاگین TTS و کامپایلر جدید)
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -36,7 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js و قفل کردن روی نسخه ۵.۵.۱
+      # 5. نصب پکیج‌های Node.js و استفاده از نسخه پایدار 6 برای سازگاری با جاوا 21
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -44,7 +44,7 @@ jobs:
           else
             npm init -y
           fi
-          npm install @capacitor/core@5.5.1 @capacitor/cli@5.5.1 @capacitor/android@5.5.1 --legacy-peer-deps
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
 
       # 6. نصب پلاگین TTS
       - name: Install TTS Plugins
@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل به نسخه ۸.۵
-      - name: Add Capacitor Android platform and set Gradle 8.5
+      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل به نسخه 8.7
+      - name: Add Capacitor Android platform and set Gradle 8.7
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -79,7 +79,7 @@ jobs:
           npx cap sync android
           
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
-            sed -i 's/gradle-.*-bin.zip/gradle-8.5-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+            sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -90,7 +90,7 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. بیلد نهایی APK با هماهنگی کامل جاوا ۱۷ و گرادل ۸.۵
+      # 12. بیلد نهایی APK با هماهنگی کامل جاوا ۲۱ و گرادل ۸.۷
       - name: Build APK
         run: |
           cd android
