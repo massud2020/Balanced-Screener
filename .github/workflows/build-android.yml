@@ -40,7 +40,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 6. نصب پکیج‌های Node.js (اصلاح شده با legacy-peer-deps)
+      # 6. نصب پکیج‌های Node.js (با legacy-peer-deps)
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -50,7 +50,7 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 7. نصب پلاگین TTS (اصلاح شده با legacy-peer-deps)
+      # 7. نصب پلاگین TTS (با legacy-peer-deps)
       - name: Install TTS Plugins
         run: |
           npm install @capacitor-community/text-to-speech --legacy-peer-deps
@@ -90,12 +90,12 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 13. بیلد APK
+      # 13. بیلد APK (با قابلیت stacktrace برای نمایش جزئیات خطا)
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       # 14. آپلود خروجی
       - name: Upload Artifact
