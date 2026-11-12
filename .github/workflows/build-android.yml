@@ -69,8 +69,8 @@ jobs:
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید و تنظیم گرادل 8.7
-      - name: Add Capacitor Android platform and set Gradle 8.7
+      # 10. اضافه کردن پلتفرم اندروید، تنظیم گرادل 8.7 و اصلاح نسخه BouncyCastle
+      - name: Add Capacitor Android platform and Fix BouncyCastle Version
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
@@ -78,8 +78,22 @@ jobs:
           npx cap add android
           npx cap sync android
           
+          # تنظیم نسخه گرادل به 8.7
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
             sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
+
+          # اضافه کردن قانون اجبار به استفاده از نسخه 1.76 برای حل خطای بایت‌کد
+          if [ -f android/build.gradle ]; then
+            echo "
+            allprojects {
+                configurations.all {
+                    resolutionStrategy {
+                        force 'org.bouncycastle:bcprov-jdk18on:1.76'
+                    }
+                }
+            }
+            " >> android/build.gradle
           fi
 
       # 11. ساخت آیکون‌ها و اسپلش
@@ -90,14 +104,14 @@ jobs:
             npx capacitor-assets generate --android
           fi
 
-      # 12. پاکسازی کش‌های خراب گرادل (بخش حیاتی برای رفع خطای تکراری)
-      - name: Clear Corrupted Gradle Caches
+      # 12. پاکسازی کامل کش‌های گرادل و فایل‌های خراب
+      - name: Clean Gradle Caches
         run: |
-          rm -rf ~/.gradle/caches/jars-9/
-          rm -rf ~/.gradle/caches/modules-2/files-2.1/org.bouncycastle/
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
 
-      # 13. بیلد نهایی APK
-      - name: Build APK
+      # 13. بیلد نهایی APK با تازه‌سازی کامل وابستگی‌ها
+      - name: Build APK (Final Fix)
         run: |
           cd android
           chmod +x gradlew
