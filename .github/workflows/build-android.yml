@@ -17,12 +17,12 @@ jobs:
         with:
           node-version: '24'
 
-      # 3. تنظیم Java روی نسخه 17 (سازگار با نسخه‌های جدید اندروید)
+      # 3. تنظیم Java روی نسخه 11
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '11'
 
       # 4. نصب پیش‌نیازهای سیستم
       - name: Install System Dependencies
@@ -36,7 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libpulse0 libarchive-tools
 
-      # 5. نصب پکیج‌های Node.js (با legacy-peer-deps)
+      # 5. نصب پکیج‌های Node.js
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
@@ -46,56 +46,41 @@ jobs:
             npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
           fi
 
-      # 6. نصب پلاگین TTS (با legacy-peer-deps)
-      - name: Install TTS Plugins
-        run: |
-          npm install @capacitor-community/text-to-speech --legacy-peer-deps
-
-      # 7. آماده‌سازی پوشه www
+      # 6. آماده‌سازی پوشه www
       - name: Build www folder
         run: |
           mkdir -p www
           cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
 
-      # 8. استمپ Service Worker
+      # 7. استمپ Service Worker
       - name: Stamp service worker
         run: |
           if [ -f www/sw.js ]; then
             echo "// Build time: $(date +%s)" >> www/sw.js
           fi
 
-      # 9. حذف پوشه اندروید قبلی
+      # 8. حذف پوشه اندروید قبلی
       - name: Remove Old Android Folder
         run: |
           rm -rf android
 
-      # 10. اضافه کردن پلتفرم اندروید Capacitor و ارتقای گرادل به نسخه 8.5
-      - name: Add Capacitor Android platform and Upgrade Gradle
+      # 9. اضافه کردن پلتفرم اندروید Capacitor
+      - name: Add Capacitor Android platform
         run: |
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             echo '{"appId":"com.balanced.screener","appName":"Balanced Screener","webDir":"www"}' > capacitor.config.json
           fi
           npx cap add android
           npx cap sync android
-          cd android
-          ./gradlew wrapper --gradle-version 8.5
 
-      # 11. ساخت آیکون‌ها و اسپلش
-      - name: Generate Android Icons and Splash
-        run: |
-          if [ -d "resources" ]; then
-            npm install @capacitor/assets --legacy-peer-deps
-            npx capacitor-assets generate --android
-          fi
-
-      # 12. بیلد نهایی APK
+      # 10. بیلد نهایی APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 13. آپلود خروجی
+      # 11. آپلود خروجی
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
