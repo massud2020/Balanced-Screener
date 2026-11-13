@@ -1,17 +1,4 @@
 {
-  "updated": "2026-11-13T03:58:33.478156+00:00",
-  "events": [
-    {
-      "time": "2026-11-13T08:30:00-05:00",
-      "title": "Core PPI m/m",
-      "impact": "high",
-      "currency": "USD"
-    },
-    {
-      "time": "2026-11-13T08:30:00-05:00",
-      "title": "PPI m/m",
-      "impact": "high",
-      "currency": "USD"
-    }
-  ]
+  "updated": "2026-11-13T13:36:10.879034+00:00",
+  "events": []
 }
