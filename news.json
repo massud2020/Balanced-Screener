@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-15T22:15:48.775482+00:00",
+  "updated": "2026-11-16T03:41:30.967417+00:00",
   "events": [
     {
       "time": "2026-11-16T08:30:00-05:00",
@@ -52,12 +52,6 @@
     {
       "time": "2026-11-18T02:00:00-05:00",
       "title": "CPI y/y",
-      "impact": "high",
-      "currency": "GBP"
-    },
-    {
-      "time": "2026-11-18T02:30:00-05:00",
-      "title": "BOE Gov Bailey Speaks",
       "impact": "high",
       "currency": "GBP"
     },
