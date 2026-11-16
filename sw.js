@@ -1,12 +1,14 @@
-const C = "bscreener-v102"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
+const C = "bscreener-v104"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
 const F = [
   "./",
   "index.html",
+  "presets.js",
   "engine.js",
   "alerts.js",
   "alerts.html",
   "ghsync.js",
   "btengine.js",
+  "trade-policy.js",
   "backtest.html",
   "symbols.js",
   "chart.js",

@@ -44,7 +44,9 @@ void OnStart()
       }
 
       int dg = (int)SymbolInfoInteger(sym, SYMBOL_DIGITS);
-      string fn = sym + "_M5.csv";
+      string tfName = EnumToString(ExportTF);
+      StringReplace(tfName, "PERIOD_", "");
+      string fn = sym + "_" + tfName + ".csv";
       int h = FileOpen(fn, FILE_WRITE | FILE_CSV | FILE_ANSI, '\t');
       if(h == INVALID_HANDLE)
       {

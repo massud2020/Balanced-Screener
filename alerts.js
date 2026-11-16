@@ -35,9 +35,19 @@ if(st.armed[key]===undefined)st.armed[key]=a.ref>0?(up?a.ref<a.price:a.ref>a.pri
 if(!inWindow(a,p)){if(!beyond)st.armed[key]=true;continue}
 const lt=st.last[a.sym],since=lt?Math.max(lt,now-SINCE_MAX):now-1800,rel=bars.filter(b=>b.time+300>since),use=rel.length?rel:[bars[bars.length-1]];
 let hi=-Infinity,lo=Infinity;for(const b of use){if(b.high>hi)hi=b.high;if(b.low<lo)lo=b.low}
-const hit=up?hi>=a.price:lo<=a.price,was=st.fired[key];
-let fire=hit&&st.armed[key]!==false;
-if(fire){if(a.repeat==="cool"){if(was&&now-was<(a.cool>0?a.cool:60)*60)fire=false}else if(was)fire=false}
+const hit = up ? hi >= a.price : lo <= a.price;
+const was = st.fired[key];
+
+// اصلاح کول‌داون: اگر در حالت cool هستیم و زمان گذشته، اجازه شلیک مجدد داده شود حتی اگر re-arm نشده باشد
+let fire = hit && (st.armed[key] !== false || (a.repeat === "cool" && was && (now - was) >= (a.cool > 0 ? a.cool : 60) * 60));
+
+if (fire) {
+    if (a.repeat === "cool") {
+        if (was && now - was < (a.cool > 0 ? a.cool : 60) * 60) fire = false;
+    } else {
+        if (was) fire = false;
+    }
+}
 if(fire){st.fired[key]=now;st.armed[key]=false;
 out.push({a,key,kind:"price",price:cur,title:`🔔 ${a.sym} ${up?"≥":"≤"} ${fmt(a.price,dg)}`,text:`قیمت ${up?"به این سطح رسید یا بالاتر رفت":"به این سطح رسید یا پایین‌تر آمد"}\nقیمت فعلی: ${fmt(cur,dg)} · ${p.hhmm}${a.note?"\n"+a.note:""}`})}
 // مسلح‌شدن مجدد: وقتی قیمت به طرف دیگر سطح برگشت (و کندل شامل لمس قبلی بسته شده)
@@ -68,3 +78,4 @@ if(a.type!=="above"&&a.type!=="below")return"نوع هشدار نامعتبر ا
 function perDay(a){const n=Math.max(1,+a.every||5),f=toMin(a.from),t=toMin(a.to);let w=1440;if(f!=null&&t!=null&&f!==t)w=f<t?t-f:1440-f+t;return Math.floor(w/n)+(w<1440?1:0)}
 return{tzParts,toMin,inWindow,fmt,check,status,validate,resolve,perDay}})();
 if(typeof module!=="undefined")module.exports=AL;
+

@@ -1,5 +1,5 @@
 {
-  "build": 87,
-  "engine": 49,
-  "note": "v49: soften PA/range after zero signals; vol off for forex"
+  "build": 95,
+  "engine": 56,
+  "note": "v56: unified preset/session wiring, corrected closed-bar execution, ATR-based 0.5 trailing, gap-aware shared exits, range SL/TP study and overlap-aware portfolio validation"
 }

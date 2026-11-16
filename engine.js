@@ -1,10 +1,14 @@
-// engine.js — Balanced Screener Core Engine (V9 - ADX Fixed & Range Relaxed)
+// engine.js — Balanced Screener Core Engine (V6 - Full Featured)
 (function (root, factory) {
-    if (typeof define === 'function' && define.amd) { define([], factory); }
-    else if (typeof module === 'object' && module.exports) { module.exports = factory(); }
-    else { root.Engine = factory(); }
-}(typeof self !== 'undefined' ? self : this, function () {
+    if (typeof define === 'function' && define.amd) { define([], function () { return factory(root); }); }
+    else if (typeof module === 'object' && module.exports) { module.exports = factory(root); }
+    else { root.Engine = factory(root); }
+}(typeof self !== 'undefined' ? self : this, function (root) {
     'use strict';
+
+    let PresetAPI = root && root.Presets;
+    if (!PresetAPI && typeof require === 'function') { try { PresetAPI = require('./presets.js'); } catch (e) {} }
+    const getPreset = PresetAPI && PresetAPI.getPreset ? PresetAPI.getPreset : (() => ({}));
 
     const CORRELATION_GROUPS = [
         ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD'],
@@ -17,20 +21,40 @@
         ['SOLUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'ADAUSDT', 'SUIUSDT', 'DOGEUSDT', 'XRPUSDT', 'LTCUSDT', 'BNBUSDT']
     ];
 
+    function getCorrelationGroups(symbol) {
+        const key = PresetAPI && PresetAPI.normalizeSymbol ? PresetAPI.normalizeSymbol(symbol) : String(symbol || '').toUpperCase();
+        const groups = [];
+        for (let i = 0; i < CORRELATION_GROUPS.length; i++) if (CORRELATION_GROUPS[i].includes(key)) groups.push(i);
+        return groups;
+    }
+
     function getCorrelationGroup(symbol) {
-        for (let i = 0; i < CORRELATION_GROUPS.length; i++) {
-            if (CORRELATION_GROUPS[i].includes(symbol)) return i;
+        const groups = getCorrelationGroups(symbol);
+        return groups.length ? groups[0] : -1;
+    }
+
+    function filterCorrelated(rows) {
+        const ordered = [...(rows || [])].sort((a, b) => (Number(b.scorePercent) || Number(b.pass) || 0) - (Number(a.scorePercent) || Number(a.pass) || 0));
+        const kept = [], used = new Set();
+        for (const row of ordered) {
+            const groups = getCorrelationGroups(row.id || row.symbol);
+            if (groups.some(group => used.has(group))) continue;
+            groups.forEach(group => used.add(group));
+            kept.push(row);
         }
-        return -1;
+        return kept;
     }
 
     function isSessionActive(nowSec, opts = {}) {
-        if (!opts.sessionFilter) return true;
+        if (opts.sessionFilter !== true) return true;
+        const session = opts.session || { start: Number.isFinite(Number(opts.sessionStart)) ? Number(opts.sessionStart) : 7, end: Number.isFinite(Number(opts.sessionEnd)) ? Number(opts.sessionEnd) : 21 };
         const d = new Date(nowSec * 1000);
         const utcHour = d.getUTCHours();
         const day = d.getUTCDay();
         if (day === 0 || day === 6) return false;
-        return (utcHour >= 7 && utcHour < 21);
+        const start = Number(session.start), end = Number(session.end);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) return true;
+        return start < end ? (utcHour >= start && utcHour < end) : (utcHour >= start || utcHour < end);
     }
 
     function isNewsBlackout(nowSec, opts = {}) {
@@ -52,21 +76,32 @@
     }
 
     function rsi(data, period = 14) {
-        if (!data || data.length <= period) return new Array(data ? data.length : 0).fill(null);
+        if (!Array.isArray(data) || !Number.isInteger(period) || period < 1 || data.length <= period) {
+            return new Array(Array.isArray(data) ? data.length : 0).fill(null);
+        }
         const out = new Array(data.length).fill(null);
         let gains = 0, losses = 0;
         for (let i = 1; i <= period; i++) {
             const diff = data[i] - data[i - 1];
-            if (diff >= 0) gains += diff; else losses += Math.abs(diff);
+            if (diff > 0) gains += diff;
+            else if (diff < 0) losses += Math.abs(diff);
         }
         let avgGain = gains / period, avgLoss = losses / period;
-        out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+        const value = () => {
+            if (avgGain === 0 && avgLoss === 0) return 50;
+            if (avgLoss === 0) return 100;
+            if (avgGain === 0) return 0;
+            const rs = avgGain / avgLoss;
+            return 100 - (100 / (1 + rs));
+        };
+        out[period] = value();
         for (let i = period + 1; i < data.length; i++) {
             const diff = data[i] - data[i - 1];
-            const g = diff >= 0 ? diff : 0, l = diff < 0 ? Math.abs(diff) : 0;
-            avgGain = (avgGain * (period - 1) + g) / period;
-            avgLoss = (avgLoss * (period - 1) + l) / period;
-            out[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+            const gain = diff > 0 ? diff : 0;
+            const loss = diff < 0 ? -diff : 0;
+            avgGain = ((avgGain * (period - 1)) + gain) / period;
+            avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+            out[i] = value();
         }
         return out;
     }
@@ -87,42 +122,70 @@
     }
 
     function adx(candles, period = 14) {
-        if (!candles || candles.length < period * 2) return new Array(candles ? candles.length : 0).fill(null);
-        const tr = [], plusDM = [], minusDM = [];
-        for (let i = 0; i < candles.length; i++) {
-            if (i === 0) { tr.push(candles[i].high - candles[i].low); plusDM.push(0); minusDM.push(0); continue; }
-            const cur = candles[i], prev = candles[i - 1];
-            tr.push(Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close)));
-            const upMove = cur.high - prev.high, downMove = prev.low - cur.low;
-            plusDM.push((upMove > downMove && upMove > 0) ? upMove : 0);
-            minusDM.push((downMove > upMove && downMove > 0) ? downMove : 0);
+        const length = Array.isArray(candles) ? candles.length : 0;
+        const out = new Array(length).fill(null);
+        if (!Array.isArray(candles) || !Number.isInteger(period) || period < 1 || length < (period * 2)) return out;
+
+        const tr = new Array(length).fill(0);
+        const plusDM = new Array(length).fill(0);
+        const minusDM = new Array(length).fill(0);
+        for (let i = 1; i < length; i++) {
+            const current = candles[i], previous = candles[i - 1];
+            tr[i] = Math.max(
+                current.high - current.low,
+                Math.abs(current.high - previous.close),
+                Math.abs(current.low - previous.close)
+            );
+            const upMove = current.high - previous.high;
+            const downMove = previous.low - current.low;
+            plusDM[i] = (upMove > downMove && upMove > 0) ? upMove : 0;
+            minusDM[i] = (downMove > upMove && downMove > 0) ? downMove : 0;
         }
-        
-        // 🛠 باگ ریاضی ADX در این تابع اصلاح شد
-        function smoothed(arr, p) {
-            const res = new Array(arr.length).fill(null);
-            let sum = 0;
-            for (let i = 0; i < arr.length; i++) {
-                if (i < p) { 
-                    sum += arr[i]; 
-                    if (i === p - 1) res[i] = sum / p; 
-                } else { 
-                    // فرمول صحیح وایلدر (تقسیم بر p برای مقدار جدید)
-                    res[i] = ((res[i - 1] * (p - 1)) + arr[i]) / p; 
-                }
-            }
-            return res;
+
+        // Wilder's smoothed sums: seed with a period sum, then subtract 1/period
+        // of the previous sum before adding the new observation.
+        const trSmooth = new Array(length).fill(null);
+        const plusSmooth = new Array(length).fill(null);
+        const minusSmooth = new Array(length).fill(null);
+        let trSeed = 0, plusSeed = 0, minusSeed = 0;
+        for (let i = 1; i <= period; i++) {
+            trSeed += tr[i];
+            plusSeed += plusDM[i];
+            minusSeed += minusDM[i];
         }
-        
-        const atrArr = smoothed(tr, period), pDMSmoothed = smoothed(plusDM, period), mDMSmoothed = smoothed(minusDM, period);
-        const dxArr = new Array(candles.length).fill(null);
-        for (let i = 0; i < candles.length; i++) {
-            if (!atrArr[i] || atrArr[i] === 0) continue;
-            const pDI = (pDMSmoothed[i] / atrArr[i]) * 100, mDI = (mDMSmoothed[i] / atrArr[i]) * 100;
-            const sumDI = pDI + mDI;
-            dxArr[i] = sumDI === 0 ? 0 : (Math.abs(pDI - mDI) / sumDI) * 100;
+        trSmooth[period] = trSeed;
+        plusSmooth[period] = plusSeed;
+        minusSmooth[period] = minusSeed;
+
+        for (let i = period + 1; i < length; i++) {
+            trSmooth[i] = trSmooth[i - 1] - (trSmooth[i - 1] / period) + tr[i];
+            plusSmooth[i] = plusSmooth[i - 1] - (plusSmooth[i - 1] / period) + plusDM[i];
+            minusSmooth[i] = minusSmooth[i - 1] - (minusSmooth[i - 1] / period) + minusDM[i];
         }
-        return smoothed(dxArr, period);
+
+        const dx = new Array(length).fill(null);
+        for (let i = period; i < length; i++) {
+            const smoothedTR = trSmooth[i];
+            if (!Number.isFinite(smoothedTR) || smoothedTR <= 0) { dx[i] = 0; continue; }
+            const plusDI = (plusSmooth[i] / smoothedTR) * 100;
+            const minusDI = (minusSmooth[i] / smoothedTR) * 100;
+            const diSum = plusDI + minusDI;
+            dx[i] = diSum === 0 ? 0 : (Math.abs(plusDI - minusDI) / diSum) * 100;
+        }
+
+        // The first ADX is the arithmetic mean of the first `period` DX values.
+        const firstAdxIndex = period * 2 - 1;
+        let dxSeed = 0;
+        for (let i = period; i <= firstAdxIndex; i++) {
+            if (!Number.isFinite(dx[i])) return out;
+            dxSeed += dx[i];
+        }
+        out[firstAdxIndex] = dxSeed / period;
+        for (let i = firstAdxIndex + 1; i < length; i++) {
+            if (!Number.isFinite(dx[i])) continue;
+            out[i] = ((out[i - 1] * (period - 1)) + dx[i]) / period;
+        }
+        return out.map(v => v === null ? null : Math.max(0, Math.min(100, v)));
     }
 
     function bollingerBands(data, period = 20, mult = 2) {
@@ -162,13 +225,26 @@
         return { swingHigh, swingLow };
     }
 
-    function checkPattern3to1(candles) {
-        if (!candles || candles.length < 4) return { pattern_buy: false, pattern_sell: false };
-        const c = candles.slice(-4);
-        let greenCount = 0, redCount = 0;
-        c.forEach(x => { if (x.close > x.open) greenCount++; else if (x.close < x.open) redCount++; });
-        const last = c[3], isLastGreen = last.close > last.open, isLastRed = last.close < last.open;
-        return { pattern_buy: (redCount === 3 && greenCount === 1 && isLastGreen), pattern_sell: (greenCount === 3 && redCount === 1 && isLastRed) };
+    function checkPattern3to1(candles, minBodyRatio = 0.5) {
+        if (!Array.isArray(candles) || candles.length < 4) {
+            return { pattern_buy: false, pattern_sell: false, buyRatio: null, sellRatio: null };
+        }
+        const recent = candles.slice(-4);
+        let greenCount = 0, redCount = 0, greenBody = 0, redBody = 0;
+        for (const candle of recent) {
+            const body = Math.abs(candle.close - candle.open);
+            if (candle.close > candle.open) { greenCount++; greenBody += body; }
+            else if (candle.close < candle.open) { redCount++; redBody += body; }
+        }
+        const buyRatio = redBody > 0 && greenCount === 1 ? greenBody / redBody : null;
+        const sellRatio = greenBody > 0 && redCount === 1 ? redBody / greenBody : null;
+        const threshold = Number.isFinite(minBodyRatio) && minBodyRatio >= 0 ? minBodyRatio : 0.5;
+        return {
+            pattern_buy: redCount === 3 && greenCount === 1 && buyRatio !== null && buyRatio >= threshold,
+            pattern_sell: greenCount === 3 && redCount === 1 && sellRatio !== null && sellRatio >= threshold,
+            buyRatio,
+            sellRatio
+        };
     }
 
     function checkPriceActionConfirmation(candles, side) {
@@ -191,6 +267,11 @@
     }
 
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
+        const preset = getPreset(symbol);
+        opts = { ...preset, ...opts };
+        if (opts.enabled === false) {
+            return { side: null, checkedSide: 'LONG', fail: "نماد در تنظیمات غیرفعال است", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
+        }
         if (!isSessionActive(nowSec, opts)) {
             return { side: null, checkedSide: 'LONG', fail: "خارج از سشن معاملاتی", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
@@ -198,9 +279,10 @@
             return { side: null, checkedSide: 'LONG', fail: "ساعت خبر مهم", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
 
-        const cl = dropForming(candlesM5, 300, nowSec);
+        const signalIntervalSec = Number(opts.signalIntervalSec) > 0 ? Number(opts.signalIntervalSec) : 300;
+        const cl = dropForming(candlesM5, signalIntervalSec, nowSec);
         if (!cl || cl.length < 200) {
-            return { side: null, checkedSide: 'LONG', fail: "کمبود کندل M5", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
+            return { side: null, checkedSide: 'LONG', fail: "کمبود کندل تایم‌فریم سیگنال", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
 
         const closes = cl.map(c => c.close);
@@ -214,56 +296,46 @@
         const lastAdx = Number.isFinite(adxArr[idx]) ? adxArr[idx] : 20;
         const lastUpper = bb.upper[idx], lastLower = bb.lower[idx];
 
+        // MTF filters must use the latest fully closed candle, never a forming bar.
+        const closedH1 = dropForming(candlesH1 || [], 3600, nowSec);
+        const closedM15 = dropForming(candlesM15 || [], 900, nowSec);
+
         let h1Trend = 'NEUTRAL';
-        if (candlesH1 && candlesH1.length >= 200) {
-            const h1Ema50 = ema(candlesH1.map(c => c.close), 50)[candlesH1.length - 1];
-            const h1Ema200 = ema(candlesH1.map(c => c.close), 200)[candlesH1.length - 1];
-            if (h1Ema50 > h1Ema200) h1Trend = 'UP'; else if (h1Ema50 < h1Ema200) h1Trend = 'DOWN';
+        if (closedH1.length >= 200) {
+            const h1Closes = closedH1.map(c => c.close);
+            const h1Ema50 = ema(h1Closes, 50)[closedH1.length - 1];
+            const h1Ema200 = ema(h1Closes, 200)[closedH1.length - 1];
+            if (Number.isFinite(h1Ema50) && Number.isFinite(h1Ema200)) {
+                if (h1Ema50 > h1Ema200) h1Trend = 'UP'; else if (h1Ema50 < h1Ema200) h1Trend = 'DOWN';
+            }
         }
 
         let m15Trend = 'NEUTRAL';
-        if (candlesM15 && candlesM15.length >= 50) {
-            const m15Ema21 = ema(candlesM15.map(c => c.close), 21)[candlesM15.length - 1];
-            const m15Ema50 = ema(candlesM15.map(c => c.close), 50)[candlesM15.length - 1];
-            if (m15Ema21 > m15Ema50) m15Trend = 'UP'; else if (m15Ema21 < m15Ema50) m15Trend = 'DOWN';
+        if (closedM15.length >= 50) {
+            const m15Closes = closedM15.map(c => c.close);
+            const m15Ema21 = ema(m15Closes, 21)[closedM15.length - 1];
+            const m15Ema50 = ema(m15Closes, 50)[closedM15.length - 1];
+            if (Number.isFinite(m15Ema21) && Number.isFinite(m15Ema50)) {
+                if (m15Ema21 > m15Ema50) m15Trend = 'UP'; else if (m15Ema21 < m15Ema50) m15Trend = 'DOWN';
+            }
         }
 
-        // 🛠 استفاده از پارامترهای پویا برای ADX (پشتیبانی از presets)
-        const adxRangeThreshold = opts.adxRangeThreshold || 25; 
-        const adxTrendThreshold = opts.adxTrendThreshold || 20;
-
-        const mode = opts.mode || (lastAdx >= adxRangeThreshold ? "pattern" : "range");
+        const mode = opts.mode || (preset.mode) || (lastAdx >= 22 ? "pattern" : "range");
         const checks = [];
         let side = null;
         let checkedSide = 'LONG';
 
         if (mode === "range") {
-            const isLowTrend = lastAdx < adxRangeThreshold;
-            const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
-            
-            const useRsi = opts.rsi !== false;
-            const useBb = opts.bb !== false;
-            
-            const rsiBuy = useRsi ? (lastRsi <= 42) : false;
-            const rsiSell = useRsi ? (lastRsi >= 58) : false;
-            const bbBuy = useBb ? (lastLower && lastClose <= lastLower + (lastAtr * 0.6)) : false;
-            const bbSell = useBb ? (lastUpper && lastClose >= lastUpper - (lastAtr * 0.6)) : false;
-            
-            // 🛠 شرط OR به جای AND: اگر یکی از اندیکاتورهای فعال، سیگنال را تایید کند کافی است
-            const rangeBuy = (useRsi && rsiBuy) || (useBb && bbBuy);
-            const rangeSell = (useRsi && rsiSell) || (useBb && bbSell);
-            
-            if (isLowTrend && isNotSqueeze) {
-                if (rangeBuy) { side = "LONG"; checkedSide = "LONG"; }
-                else if (rangeSell) { side = "SHORT"; checkedSide = "SHORT"; }
-                else { 
-                    side = null; 
-                    checkedSide = lastRsi < 50 ? "LONG" : "SHORT"; 
-                }
-            } else {
-                side = null;
-                checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT";
-            }
+            const useRsiFilter = opts.rsi !== false;
+            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 38;
+            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
+            const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
+            const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
+            const bbBuy = lastLower !== null && lastClose <= lastLower + (lastAtr * 0.2);
+            const bbSell = lastUpper !== null && lastClose >= lastUpper - (lastAtr * 0.2);
+            if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
+            else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
+            else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
         } else {
             const trendUpM5 = ema50[idx] > ema200[idx];
             checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
@@ -272,40 +344,64 @@
         }
 
         let failReason = null;
+        // Trend's defining EMA structure is a hard gate, not a weighted score.
+        // A valid score must never compensate for a broken EMA21/50/200 alignment.
+        let trendEmaGate = true;
+        let trendPatternGate = true;
+        if (mode !== "range") {
+            trendEmaGate = checkedSide === "LONG"
+                ? ema21[idx] > ema50[idx] && ema50[idx] > ema200[idx]
+                : checkedSide === "SHORT"
+                    ? ema21[idx] < ema50[idx] && ema50[idx] < ema200[idx]
+                    : false;
+            checks.push({
+                l: "گیت الزامی چینش EMA21/50/200",
+                ok: trendEmaGate,
+                v: trendEmaGate ? "تایید" : "رد",
+                w: 0
+            });
+            if (!trendEmaGate && !failReason) failReason = "چینش الزامی EMA21/50/200 برقرار نیست";
+        }
 
         if (mode === "range") {
-            const isLowTrend = lastAdx < adxRangeThreshold;
-            checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 2.0 });
-            if (!isLowTrend && !failReason) failReason = "ADX قوی است (روند)";
-
-            const isNotSqueeze = (lastUpper - lastLower) > (lastAtr * 1.5);
-            checks.push({ l: "عرض بولینگر کافی", ok: isNotSqueeze, v: isNotSqueeze ? 'تایید' : 'رد', w: 1.5 });
-            if (!isNotSqueeze && !failReason) failReason = "بازار فشرده است";
-
-            const useRsi = opts.rsi !== false;
-            const useBb = opts.bb !== false;
-
-            if (useRsi) {
-                const rsiBuy = lastRsi <= 42;
-                const rsiSell = lastRsi >= 58;
-                const rsiOk = rsiBuy || rsiSell;
-                checks.push({ l: `اشباع RSI`, ok: rsiOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
+            if (opts.adx !== false) {
+                const rangeAdxMax = Number.isFinite(Number(opts.rangeAdxMax)) ? Number(opts.rangeAdxMax) : 25;
+                const isLowTrend = lastAdx <= rangeAdxMax;
+                checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
+                if (!isLowTrend && !failReason) failReason = "ADX قوی است";
             }
-            
-            if (useBb) {
-                const bbBuy = lastLower && lastClose <= lastLower + (lastAtr * 0.6);
-                const bbSell = lastUpper && lastClose >= lastUpper - (lastAtr * 0.6);
-                const bbOk = bbBuy || bbSell;
-                checks.push({ l: `برخورد با باند بولینگر`, ok: bbOk, v: bbOk ? 'تایید' : 'رد', w: 2.0 });
+
+            const minBandWidthAtr = Number.isFinite(Number(opts.rangeMinATR)) ? Number(opts.rangeMinATR) : 1.5;
+            const bandWidthAtr = (lastUpper - lastLower) / Math.max(lastAtr, Number.EPSILON);
+            const isNotSqueeze = bandWidthAtr >= minBandWidthAtr;
+            checks.push({ l: "عرض بولینگر / ATR", ok: isNotSqueeze, v: `${bandWidthAtr.toFixed(2)} ATR`, w: 1.0 });
+            if (!isNotSqueeze && !failReason) failReason = "عرض باند رنج کمتر از حداقل است";
+
+            const minTouches = Math.max(0, Math.floor(Number(opts.rangeMinTouches) || 0));
+            if (minTouches > 0) {
+                const lookback = Math.max(4, Math.floor(Number(opts.rangeTouchLookback) || 30));
+                const touchPct = Math.max(0, Number(opts.rangeTouchPct) || 0.1);
+                let touches = 0;
+                for (let j = Math.max(0, idx - lookback + 1); j <= idx; j++) {
+                    const a = Number(atrArr[j]);
+                    if (!Number.isFinite(a) || !Number.isFinite(bb.upper[j]) || !Number.isFinite(bb.lower[j])) continue;
+                    const tol = a * touchPct;
+                    if (cl[j].high >= bb.upper[j] - tol || cl[j].low <= bb.lower[j] + tol) touches++;
+                }
+                const enoughTouches = touches >= minTouches;
+                checks.push({ l: `تعداد برخورد باند (${minTouches} حداقل)`, ok: enoughTouches, v: String(touches), w: 1.0 });
+                if (!enoughTouches && !failReason) failReason = "برخورد کافی به باندهای رنج وجود ندارد";
             }
 
             const isRangeOk = !!side;
-            checks.push({ l: `هم‌راستایی شروط ورود`, ok: isRangeOk, v: isRangeOk ? 'آماده ورود' : 'منتظر مانده', w: 3.0 });
-            if (!isRangeOk && !failReason) failReason = "شروط ورود هم‌راستا نیستند";
+            checks.push({ l: opts.rsi !== false ? `اشباع RSI + برخورد بولینگر` : `برخورد بولینگر (بدون فیلتر RSI)`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
+            if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
-            const isTrending = lastAdx >= adxTrendThreshold;
-            checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
-            if (!isTrending && !failReason) failReason = "ADX ضعیف";
+            if (opts.adx !== false) {
+                const isTrending = lastAdx >= (opts.adxMin || 20);
+                checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
+                if (!isTrending && !failReason) failReason = "ADX ضعیف";
+            }
 
             if (opts.trend !== false) {
                 const isOk = checkedSide === 'LONG' ? lastClose > ema200[idx] : lastClose < ema200[idx];
@@ -317,89 +413,91 @@
                 checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
                 if (!isOk && !failReason) failReason = "مخالف EMA21/50";
             }
+            if (Number(opts.maxDistATR) > 0) {
+                const distanceAtr = Math.abs(lastClose - ema21[idx]) / Math.max(lastAtr, Number.EPSILON);
+                const distanceOk = distanceAtr <= Number(opts.maxDistATR);
+                checks.push({ l: "فاصله ورود از EMA21", ok: distanceOk, v: `${distanceAtr.toFixed(2)} ATR`, w: 1.0 });
+                if (!distanceOk && !failReason) failReason = "فاصله قیمت از EMA21 بیش از حد است";
+            }
             if (opts.nc !== false) {
-                const isOk = (cl[idx].close > cl[idx].open) === (cl[idx-1].close > cl[idx-1].open);
-                checks.push({ l: "بدون تقاطع (هم‌جهتی کندل‌ها)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 0.5 });
-                if (!isOk && !failReason) failReason = "تقاطع کندل‌ها";
+                let isOk = true; 
+                if (checkedSide === 'LONG' && ema21[idx] <= ema50[idx]) isOk = false; 
+                if (checkedSide === 'SHORT' && ema21[idx] >= ema50[idx]) isOk = false; 
+                checks.push({ l: "بدون تقاطع EMA21/50 (لحظه سیگنال)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 0.5 });
+                if (!isOk && !failReason) failReason = "تقاطع EMA21/50";
             }
         }
 
         if (opts.h1 !== false) {
-            let isOk = false;
-            let valStr = 'رد';
-            if (mode === "range") {
-                const h1Ema50 = candlesH1 && candlesH1.length >= 50 ? ema(candlesH1.map(c => c.close), 50)[candlesH1.length - 1] : null;
-                const h1Ema200 = candlesH1 && candlesH1.length >= 200 ? ema(candlesH1.map(c => c.close), 200)[candlesH1.length - 1] : null;
-                const dist = (h1Ema50 && h1Ema200) ? Math.abs(h1Ema50 - h1Ema200) / h1Ema200 : 0;
-                if (dist < 0.005) { isOk = true; valStr = 'خنثی'; }
-                else { isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'); valStr = isOk ? 'همسو' : 'مخالف'; }
-            } else {
-                isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
-                valStr = isOk ? 'تایید' : 'رد';
-            }
-            checks.push({ l: `تحلیل روند H1`, ok: isOk, v: valStr, w: mode === 'range' ? 0.5 : 2.0 });
-            if (!isOk && !failReason && mode !== 'range') failReason = "مخالف H1";
+            const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
+            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
+            if (!isOk && !failReason) failReason = "مخالف H1";
         }
 
         if (opts.m15 !== false) {
-            let isOk = false;
-            let valStr = 'رد';
-            if (mode === "range") {
-                isOk = (m15Trend === 'NEUTRAL') || ((checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'));
-                valStr = isOk ? 'خنثی/همسو' : 'مخالف';
-            } else {
-                if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
-                else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
-            }
-            checks.push({ l: `تحلیل روند M15`, ok: isOk, v: valStr, w: mode === 'range' ? 0.5 : 1.5 });
-            if (!isOk && !failReason && mode !== 'range') failReason = "مخالف M15";
+            let isOk = true, valStr = 'تایید';
+            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
+            else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
+            checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
+            if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
-        if (opts.pat !== false && mode === "pattern") {
-            const pattern = checkPattern3to1(cl);
-            const isOk = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
-            checks.push({ l: "الگوی دقیق ۳+۱", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.5 });
-            if (!isOk && !failReason) failReason = "الگوی ۳+۱ ندارد";
+        if (mode !== "range") {
+            // The 3+1 pattern is mandatory for every Trend signal; opts.pat
+            // cannot disable a strategy-defining condition.
+            const patternMinRatio = Math.max(0.5, Number(opts.minRatio) > 0 ? Number(opts.minRatio) : 0.5);
+            const pattern = checkPattern3to1(cl, patternMinRatio);
+            trendPatternGate = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
+            checks.push({ l: "الگوی الزامی دقیق ۳+۱", ok: trendPatternGate, v: trendPatternGate ? 'تایید' : 'رد', w: 1.5 });
+            if (!trendPatternGate && !failReason) failReason = "الگوی الزامی ۳+۱ برقرار نیست";
         }
 
-        if (opts.pa !== false) {
-            const paOk = checkPriceActionConfirmation(cl, checkedSide);
-            checks.push({ l: "تاییدیه پرایس‌اکشن", ok: paOk, v: paOk ? 'تایید' : 'رد', w: mode === 'range' ? 2.5 : 2.0 });
-            if (!paOk && !failReason) failReason = "پرایس اکشن ندارد";
-        }
+        // Price Action confirmation was removed from Trend entry logic in Build 94.
+        // opts.pa is intentionally ignored to prevent legacy callers re-enabling it.
 
-        const swings = findSwingLevels(cl, 50);
-        const riskDist = lastAtr * (opts.slAtr || 1.5);
+        const swingLook = Number(opts.swingLook) > 0 ? Math.floor(Number(opts.swingLook)) : 50;
+        const swings = findSwingLevels(cl, swingLook);
+        const requestedSlAtr = mode === "range"
+            ? (Number(opts.rangeSlAtr) > 0 ? Number(opts.rangeSlAtr) : (Number(opts.slAtr) > 0 ? Number(opts.slAtr) : 2.5))
+            : (Number(opts.slAtr) > 0 ? Number(opts.slAtr) : (Number(opts.atrMultSL) > 0 ? Number(opts.atrMultSL) : 1.5));
+        const maxRiskAtr = mode === "range" && Number(opts.rangeMaxRiskATR) > 0 ? Number(opts.rangeMaxRiskATR) : Infinity;
+        const effectiveSlAtr = Math.min(requestedSlAtr, maxRiskAtr);
+        const riskDist = lastAtr * effectiveSlAtr;
         let structOk = true;
-        if (checkedSide === "LONG" && swings.swingHigh && (swings.swingHigh - lastClose) < riskDist) structOk = false;
-        if (checkedSide === "SHORT" && swings.swingLow && (lastClose - swings.swingLow) < riskDist) structOk = false;
+        if (checkedSide === "LONG" && Number.isFinite(swings.swingHigh) && swings.swingHigh > lastClose && (swings.swingHigh - lastClose) < riskDist) structOk = false;
+        if (checkedSide === "SHORT" && Number.isFinite(swings.swingLow) && swings.swingLow < lastClose && (lastClose - swings.swingLow) < riskDist) structOk = false;
         checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
         const entry = lastClose;
         let sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
-        let tp1 = checkedSide === "LONG" ? entry + riskDist * 1.5 : entry - riskDist * 1.5;
-        let tp2 = checkedSide === "LONG" ? entry + riskDist * 3.0 : entry - riskDist * 3.0;
+        const tp1R = mode === "range"
+            ? (Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : (Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.5))
+            : 1.5;
+        const tp2R = mode === "range" ? tp1R : 4.0;
+        let tp1 = checkedSide === "LONG" ? entry + riskDist * tp1R : entry - riskDist * tp1R;
+        let tp2 = checkedSide === "LONG" ? entry + riskDist * tp2R : entry - riskDist * tp2R;
 
         if (checkedSide === "LONG") {
             if (sl >= entry) sl = entry - riskDist;
-            if (tp1 <= entry) tp1 = entry + riskDist * 1.5;
-            if (tp2 <= entry) tp2 = entry + riskDist * 3.0;
+            if (tp1 <= entry) tp1 = entry + riskDist * tp1R;
+            if (tp2 <= entry) tp2 = entry + riskDist * tp2R;
         } else {
             if (sl <= entry) sl = entry + riskDist;
-            if (tp1 >= entry) tp1 = entry - riskDist * 1.5;
-            if (tp2 >= entry) tp2 = entry - riskDist * 3.0;
+            if (tp1 >= entry) tp1 = entry - riskDist * tp1R;
+            if (tp2 >= entry) tp2 = entry - riskDist * tp2R;
         }
 
         let score = 0, maxScore = 0;
         checks.forEach(c => {
-            const w = c.w || 1;
+            const w = Number.isFinite(c.w) ? c.w : 1;
             maxScore += w;
             if (c.ok) score += w;
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        const MIN_SCORE_PERCENT = 70;
-        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side;
+        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 70;
+        const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate);
+        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed;
 
         let tier = null;
         if (allPassed) {
@@ -417,12 +515,18 @@
             scorePercent: +scorePercent.toFixed(1),
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
-            mode, entry, sl, tp: tp1, tp2, rsi: lastRsi, adx: lastAdx,
-            trailingAtrStep: riskDist * 0.5,
+            mode, entry, sl, tp: mode === "range" ? tp1 : null, tp1: mode === "range" ? tp1 : null, tp2: mode === "range" ? tp2 : null, tp1R, tp2R, rsi: lastRsi, adx: lastAdx,
+            trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5),
+            atr: lastAtr,
+            effectiveSlAtr,
             correlationGroup: getCorrelationGroup(symbol),
+            hardGates: mode === "range" ? [] : [
+                { name: "EMA21/EMA50/EMA200", passed: trendEmaGate },
+                { name: "3+1 pattern", passed: trendPatternGate }
+            ],
             checks, fail: allPassed ? null : (failReason || "امتیاز کافی نیست")
         };
     }
 
-    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, CORRELATION_GROUPS, isSessionActive, isNewsBlackout };
+    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, getCorrelationGroups, filterCorrelated, CORRELATION_GROUPS, isSessionActive, isInTradingSession: isSessionActive, isNewsBlackout };
 }));

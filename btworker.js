@@ -1,5 +1,5 @@
 // btworker.js — offload backtest به Web Worker
-importScripts("engine.js", "btengine.js");
+importScripts("presets.js", "engine.js", "trade-policy.js", "btengine.js");
 
 self.onmessage = function (ev) {
   const { id, payload } = ev.data;

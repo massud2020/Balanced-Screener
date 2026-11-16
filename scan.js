@@ -2,8 +2,10 @@
 // v42: Full MTF (M5, M15, H1) + Partial TP Logic
 const fs = require("fs"),
   { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
+  TradePolicy = require("./trade-policy.js"),
   AL = require("./alerts.js");
 
+const { getPreset } = require("./presets.js");
 const symbolsModule = require("./symbols.js");
 const U = symbolsModule.U || (Array.isArray(symbolsModule) ? symbolsModule : []);
 
@@ -69,16 +71,29 @@ async function yh(sy, iv, rg) {
 
 // 🛠 آپدیت: پشتیبانی از M15
 async function tf(u, which) {
-  let a = [], src = null;
+  let a = []; const why = [];
   if (u[4] && TOK) {
-    try { a = await oanda(u[4], which === "5m" ? "M5" : which === "15m" ? "M15" : "H1"); if (a.length >= 50) { a._src = "oanda"; return a; } } catch (e) {}
-  }
+    try {
+      a = await oanda(u[4], which === "5m" ? "M5" : which === "15m" ? "M15" : "H1");
+      if (a.length >= 50) { a._src = "oanda"; return a; }
+      why.push("oanda:" + a.length + " bars (<50)");
+    } catch (e) { why.push("oanda:" + e.message); }
+  } else if (u[4]) why.push("oanda:no token");
   if (u[1]) {
-    try { a = await okx(u[1], which === "5m" ? "5m" : which === "15m" ? "15m" : "1H"); if (a.length) { a._src = "okx"; return a; } } catch (e) {}
+    try {
+      a = await okx(u[1], which === "5m" ? "5m" : which === "15m" ? "15m" : "1H");
+      if (a.length) { a._src = "okx"; return a; }
+      why.push("okx:empty");
+    } catch (e) { why.push("okx:" + e.message); }
   }
   if (u[2]) {
-    try { const y = await yh(u[2], which === "5m" ? "5m" : which === "15m" ? "15m" : "1h", which === "5m" ? "5d" : "6mo"); if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; } } catch (e) {}
+    try {
+      const y = await yh(u[2], which === "5m" ? "5m" : which === "15m" ? "15m" : "1h", which === "5m" ? "5d" : "6mo");
+      if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; }
+      else why.push("yahoo:not longer");
+    } catch (e) { why.push("yahoo:" + e.message); }
   }
+  if (why.length) console.log("[src]", u[0], which, "->", a._src || "NONE", "|", why.join("; "));
   return a;
 }
 
@@ -156,14 +171,19 @@ function dayKey(ts) { return new Date((ts || Date.now() / 1000) * 1000).toISOStr
 function isOpen(id) {
   const a = STATE.active[id];
   if (!a) return false;
-  if (Date.now() / 1000 - a.time > MAX_HOLD_SEC) return false;
+  const holdLimit = (a.mode !== "range" && Number(a.peakFav || 0) >= 1.0) ? 18 * 3600 : MAX_HOLD_SEC;
+  if (Date.now() / 1000 - a.time > holdLimit) return false;
   return true;
 }
 function openSig(id, side, entry, mode, now, extra) {
   const e = extra || {};
   const risk = (e.sl != null && entry != null) ? Math.abs(entry - e.sl) : null;
-  const tp1 = e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 1.5 * risk : entry - 1.5 * risk) : null);
-  STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp: tp1, d: e.d, bt: e.bt, currentSl: e.sl, currentR: 0, tp1Hit: false };
+  const tp1 = mode === 'range' ? (e.tp != null ? e.tp : (risk != null ? (side === "LONG" ? entry + 1.5 * risk : entry - 1.5 * risk) : null)) : null;
+  STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp: tp1, d: e.d,
+    bt: (e.bt != null ? e.bt + 300 : now), policyVersion: 3,
+    atr: e.atr, signalClose: entry,
+    policyOpts: { ...(e.policyOpts || {}), trailingAtrMult: 0.5 },
+    currentSl: e.sl, currentR: 0, tp1Hit: false };
 }
 function calcR(side, entry, sl, exitPx) {
   const risk = Math.abs(entry - sl);
@@ -172,127 +192,48 @@ function calcR(side, entry, sl, exitPx) {
   return (L ? (exitPx - entry) : (entry - exitPx)) / risk;
 }
 
-function updateTrailingState(a, bars) {
-  if (!bars || !bars.length) return;
-  const risk = Math.abs(a.entry - a.sl);
-  if (!risk) return;
-  const start = a.bt || a.time;
-  
-  let trailSl = a.sl;
-  let peakFav = 0;
-  const trailAfterR = 1.0;
-  let tp1Hit = a.tp1Hit || false;
-
-  if (tp1Hit) trailSl = Math.max(trailSl, a.entry);
-
-  const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
-  const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
-  const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
-
-  for (const b of bars) {
-    if (b.time < start) continue;
-    if (a.side === "LONG") {
-      const tp1 = a.entry + 1.5 * risk;
-      if (!tp1Hit && b.high >= tp1) { tp1Hit = true; trailSl = Math.max(trailSl, a.entry); }
-      const fav = (b.high - a.entry) / risk;
-      if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR && tp1Hit) {
-        const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
-        if (newSl > trailSl) trailSl = newSl;
-      }
-    } else {
-      const tp1 = a.entry - 1.5 * risk;
-      if (!tp1Hit && b.low <= tp1) { tp1Hit = true; trailSl = Math.min(trailSl, a.entry); }
-      const fav = (a.entry - b.low) / risk;
-      if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR && tp1Hit) {
-        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
-        if (newSl < trailSl) trailSl = newSl;
-      }
-    }
+function normalizeActiveTrade(a) {
+  if (!a) return;
+  // Legacy records stored the signal candle's open time; move their policy start
+  // to the next M5 bar exactly once. Build 94/v2 already stored the shifted time.
+  if (!a.policyVersion) {
+    if (a.bt != null) a.bt += 300;
+    a.policyVersion = 3;
+  } else if (a.policyVersion < 3) {
+    const risk = Number.isFinite(a.entry) && Number.isFinite(a.sl) ? Math.abs(a.entry - a.sl) : 0;
+    const inferredTpR = a.mode === 'range' && risk > 0 && Number.isFinite(a.tp) ? Math.abs(a.tp - a.entry) / risk : 1.5;
+    a.policyOpts = { ...(a.policyOpts || {}), rangeTpMult: inferredTpR, trailingAtrMult: 0.5 };
+    a.policyVersion = 3;
   }
-  a.currentSl = trailSl;
-  a.tp1Hit = tp1Hit;
-  const last = bars[bars.length - 1];
-  if (last) {
-    const liveR = calcR(a.side, a.entry, a.sl, last.close);
-    a.currentR = tp1Hit ? +((0.5 * 1.5) + (0.5 * liveR)).toFixed(2) : +liveR.toFixed(2);
+}
+function activeMaxHoldSec(a) {
+  return (a && a.mode !== 'range' && Number(a.peakFav || 0) >= 1.0) ? 18 * 3600 : MAX_HOLD_SEC;
+}
+function updateTrailingState(a, bars) {
+  if (!a || !bars || !bars.length) return;
+  normalizeActiveTrade(a);
+  const state = TradePolicy.resolveTrade({
+    side: a.side, entry: a.entry, sl: a.sl, mode: a.mode,
+    bars, startTime: a.bt || a.time, maxHoldSec: activeMaxHoldSec(a), opts: a.policyOpts || {},
+    now: bars[bars.length - 1].time
+  });
+  if (state.status === "open") {
+    a.currentSl = state.currentSl;
+    a.tp1Hit = state.tp1Hit;
+    a.currentR = +Number(state.currentR || 0).toFixed(2);
+    a.peakFav = Number(state.peakFav || 0);
   }
 }
 
 function resolveFromBars(a, bars, now) {
   if (!a || a.entry == null || a.sl == null || !bars || !bars.length) return null;
-  const risk = Math.abs(a.entry - a.sl);
-  if (!risk || !isFinite(risk)) return null;
-  
-  const tp1 = (a.side === "LONG" ? a.entry + 1.5 * risk : a.entry - 1.5 * risk);
-  const finalTp = (a.side === "LONG" ? a.entry + 4.0 * risk : a.entry - 4.0 * risk);
-  const start = a.bt || a.time;
-  
-  let trailSl = a.sl, peakFav = 0, tp1Hit = a.tp1Hit || false;
-  const trailAfterR = 1.0;
-  
-  const ranges = bars.filter(b => b.time >= start).map(b => b.high - b.low).filter(x => x > 0);
-  const atrEst = ranges.length ? ranges.slice(-14).reduce((s, x) => s + x, 0) / Math.min(14, ranges.length) : risk * 0.5;
-  const trailDist = Math.max(1.2 * atrEst, 0.3 * risk);
-
-  for (const b of bars) {
-    if (b.time < start) continue;
-    
-    if (a.side === "LONG") {
-      if (!tp1Hit && b.high >= tp1) { tp1Hit = true; trailSl = Math.max(trailSl, a.entry); }
-      if (b.high >= finalTp) {
-          const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0; 
-          return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
-      }
-      const fav = (b.high - a.entry) / risk;
-      if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR && tp1Hit) { 
-        const newSl = Math.max(trailSl, b.high - trailDist, a.entry);
-        if (newSl > trailSl) trailSl = newSl;
-      }
-      if (b.low <= trailSl) {
-        if (tp1Hit) {
-            const trailR = calcR(a.side, a.entry, a.sl, trailSl);
-            const combinedR = (0.5 * 1.5) + (0.5 * trailR);
-            return { result: combinedR >= 0 ? "win" : "loss", exit: trailSl, why: "TP1+TRAIL", R: combinedR, closeTime: b.time, tp1Hit: true };
-        } else {
-            return { result: "loss", exit: trailSl, why: "SL", R: -1, closeTime: b.time, tp1Hit: false };
-        }
-      }
-    } else {
-      if (!tp1Hit && b.low <= tp1) { tp1Hit = true; trailSl = Math.min(trailSl, a.entry); }
-      if (b.low <= finalTp) {
-          const finalR = tp1Hit ? (0.5 * 1.5) + (0.5 * 4.0) : 4.0;
-          return { result: "win", exit: finalTp, why: "TP2", R: finalR, closeTime: b.time, tp1Hit: tp1Hit };
-      }
-      const fav = (a.entry - b.low) / risk;
-      if (fav > peakFav) peakFav = fav;
-      if (fav >= trailAfterR && tp1Hit) {
-        const newSl = Math.min(trailSl, b.low + trailDist, a.entry);
-        if (newSl < trailSl) trailSl = newSl;
-      }
-      if (b.high >= trailSl) {
-        if (tp1Hit) {
-            const trailR = calcR(a.side, a.entry, a.sl, trailSl);
-            const combinedR = (0.5 * 1.5) + (0.5 * trailR);
-            return { result: combinedR >= 0 ? "win" : "loss", exit: trailSl, why: "TP1+TRAIL", R: combinedR, closeTime: b.time, tp1Hit: true };
-        } else {
-            return { result: "loss", exit: trailSl, why: "SL", R: -1, closeTime: b.time, tp1Hit: false };
-        }
-      }
-    }
-  }
-  
-  const last = bars[bars.length - 1];
-  const holdLimit = peakFav >= 1.0 ? (18 * 3600) : MAX_HOLD_SEC;
-  if (last && now - a.time >= holdLimit) {
-    let R = calcR(a.side, a.entry, a.sl, last.close);
-    let why = "TIME";
-    if (tp1Hit) { R = (0.5 * 1.5) + (0.5 * R); why = "TIME_PARTIAL"; }
-    return { result: R >= 0 ? "win" : "loss", exit: last.close, why: why, R: R, closeTime: last.time, tp1Hit: tp1Hit };
-  }
-  return null;
+  normalizeActiveTrade(a);
+  const state = TradePolicy.resolveTrade({
+    side: a.side, entry: a.entry, sl: a.sl, mode: a.mode,
+    bars, startTime: a.bt || a.time, maxHoldSec: activeMaxHoldSec(a), opts: a.policyOpts || {}, now
+  });
+  if (state.status !== "closed") return null;
+  return state;
 }
 
 function applyOutcomeToHistory(history, id, side, day, outcome, now) {
@@ -336,7 +277,7 @@ async function alertBars(sym, now) {
   let bars = [];
   try { bars = await tf(u, "5m"); } catch (e) {}
   if (!bars.length) return c && now - c.t < 900 ? c : null;
-  const e = { t: now, dg: u[3], bars: bars.slice(-60).map(b => ({ time: b.time, high: b.high, low: b.low, close: b.close })) };
+  const e = { t: now, dg: u[3], bars: bars.slice(-300).map(b => ({ time: b.time, high: b.high, low: b.low, close: b.close })) };
   AC.set(u[0], e);
   return e;
 }
@@ -379,6 +320,8 @@ async function once(now) {
 
       try {
         const [a, m15, h] = await loadCached(u, now);
+        const preset = getPreset(u[0]);
+        const symbolDisabled = preset.enabled === false;
         const dataSrc = (a && a._src) || (DC.get(u[0]) && DC.get(u[0]).src) || (u[4] && TOK ? "oanda" : (u[1] ? "okx" : "yahoo"));
 
         if (a.length < 200) { // 🛠 آپدیت: نیاز به ۲۰۰ کندل
@@ -390,11 +333,16 @@ async function once(now) {
         const bt = cl.length ? cl[cl.length - 1].time : 0;
         const packCandles = (arr) => arr.slice(-210).map(c => [c.time, c.open, c.high, c.low, c.close]);
 
-        const probe = evaluate(u[0], a, m15, h, { mode: "pattern", adx: false, trend: false, emax: false, nc: false, pat: false, m15: false, h1: false, rsi: false }, now);
+        if (symbolDisabled) {
+          allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "نماد برای سیگنال جدید غیرفعال است", pass: 0, total: 0, mode: modes[0], u, src: dataSrc, bt, a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: [] });
+          continue;
+        }
+
+        const probe = evaluate(u[0], a, m15, h, { ...preset, mode: "pattern", adx: false, trend: false, emax: false, nc: false, m15: false, h1: false, rsi: false, sessionFilter: false, signalIntervalSec: 300 }, now);
         let useMode = pickModeByAdx(probe.adx);
         if (!modes.includes(useMode)) useMode = modes[0];
 
-        const opts = { mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: RSI_L, rsiS: RSI_S, adx: false };
+        const opts = { ...preset, mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: preset.rangeRsiL ?? (process.env.RSI_L ? RSI_L : (preset.rsiL ?? RSI_L)), rsiS: preset.rangeRsiS ?? (process.env.RSI_S ? RSI_S : (preset.rsiS ?? RSI_S)), adx: true, pa: false, sessionFilter: !!preset.session, signalIntervalSec: 300, trailingAtrMult: 0.5 };
         const r = evaluate(u[0], a, m15, h, opts, now);
 
         const blocked = r.side && isOpen(u[0]);
@@ -402,7 +350,7 @@ async function once(now) {
 
         if (r.side) {
           allRows.push({
-            id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, d: u[3], mkt: mktOf(u),
+            id: u[0], side: emitSide, entry: r.entry, sl: r.sl, rsi: r.rsi, atr: r.atr, tp: r.tp, tp1R: r.tp1R, d: u[3], mkt: mktOf(u),
             pass: r.pass || 0, total: r.total || 7, bt: bt, mode: useMode, u: u, src: dataSrc,
             a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: r.checks || [], 
             fail: blocked ? "سیگنال باز قبلی هنوز بسته نشده" : undefined
@@ -467,7 +415,8 @@ async function once(now) {
     if (STATE.sent[lockKey] || STATE.sent[histKey] || isOpen(row.id)) { row._pendingNotify = false; continue; }
     
     STATE.sent[lockKey] = now; STATE.sent[histKey] = now;
-    openSig(row.id, row.side, row.entry, row.mode, now, { sl: row.sl, tp: row.tp, d: row.d, bt: row.bt });
+    const rowPreset = getPreset(row.id);
+    openSig(row.id, row.side, row.entry, row.mode, now, { sl: row.sl, tp: row.tp, d: row.d, bt: row.bt, atr: row.atr, policyOpts: { rangeTpMult: Number(row.tp1R) || Number(rowPreset.rangeTpMult) || 1.5, trailingAtrMult: 0.5 } });
     
     const checksData = row._checks || [];
     if (!history.some(h => h.id === row.id && h.side === row.side && dayKey(h.time) === dayKey(now))) {
@@ -482,7 +431,7 @@ async function once(now) {
     const sent = await tg(
       "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
       "\nEntry " + fd(row.entry, row.d) + " | SL " + fd(row.sl, row.d) +
-      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش\nخروج: " + (row.mode === "range" ? "حد سود 1.5R یا SL" : "50% در 1.5R + مابقی در 4R (تریلینگ)"),
+      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش\nخروج: " + (row.mode === "range" ? `حد سود ${fd(row.tp1R, 1)}R یا SL` : "Trailing 0.5 ATR یا واگرایی RSI"),
       TH_SIG
     );
     
@@ -491,7 +440,7 @@ async function once(now) {
     } else {
       try {
         const riskDist = Math.abs(row.entry - row.sl);
-        const tpVal = row.tp != null ? row.tp : (L ? row.entry + 1.5 * riskDist : row.entry - 1.5 * riskDist);
+        const tpVal = row.mode === 'range' ? (row.tp != null ? row.tp : (L ? row.entry + (Number(row.tp1R) || 1.5) * riskDist : row.entry - (Number(row.tp1R) || 1.5) * riskDist)) : '-';
         fs.writeFileSync("latest_signal.txt", row.id + "," + (L ? "BUY" : "SELL") + "," + fd(row.entry, row.d) + "," + fd(row.sl, row.d) + "," + fd(tpVal, row.d) + "," + now);
       } catch (e) {}
     }
