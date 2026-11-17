@@ -1,24 +1,6 @@
 {
-  "updated": "2026-11-17T01:16:34.179966+00:00",
+  "updated": "2026-11-17T15:06:48.012947+00:00",
   "events": [
-    {
-      "time": "2026-11-16T21:00:00-05:00",
-      "title": "Inflation Expectations q/q",
-      "impact": "high",
-      "currency": "NZD"
-    },
-    {
-      "time": "2026-11-17T08:30:00-05:00",
-      "title": "Core Retail Sales m/m",
-      "impact": "high",
-      "currency": "USD"
-    },
-    {
-      "time": "2026-11-17T08:30:00-05:00",
-      "title": "Retail Sales m/m",
-      "impact": "high",
-      "currency": "USD"
-    },
     {
       "time": "2026-11-18T02:00:00-05:00",
       "title": "CPI y/y",
