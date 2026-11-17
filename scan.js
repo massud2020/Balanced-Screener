@@ -89,7 +89,7 @@ async function tf(u, which) {
   }
   if (u[2]) {
     try {
-      const y = await yh(u[2], which === "5m" ? "5m" : which === "15m" ? "15m" : "1h", which === "5m" ? "5d" : "6mo");
+      const y = await yh(u[2], which === "5m" ? "5m" : which === "15m" ? "15m" : "1h", which === "5m" ? "5d" : which === "15m" ? "60d" : "6mo");
       if (y.length > (a.length || 0)) { a = y; a._src = "yahoo"; }
       else why.push("yahoo:not longer");
     } catch (e) { why.push("yahoo:" + e.message); }
