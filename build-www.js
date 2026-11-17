@@ -53,3 +53,19 @@ console.log(`\n✨ ${copied} فایل کپی شد.`);
 if (missing.length) {
   console.log(`⚠️  ${missing.length} فایل پیدا نشد.`);
 }
+
+// audio files (recursive copy)
+const AUDIO_SRC = path.join(SRC, "audio");
+if (fs.existsSync(AUDIO_SRC)) {
+  let audioCount = 0;
+  (function walk(d) {
+    for (const e of fs.readdirSync(path.join(SRC, d), { withFileTypes: true })) {
+      const rel = path.join(d, e.name);
+      if (e.isDirectory()) { walk(rel); continue; }
+      fs.mkdirSync(path.dirname(path.join(DST, rel)), { recursive: true });
+      fs.copyFileSync(path.join(SRC, rel), path.join(DST, rel));
+      audioCount++;
+    }
+  })("audio");
+  console.log("audio files copied: " + audioCount);
+}

@@ -744,7 +744,38 @@ function getGaugeGradient(scorePercent, side, numSegments) {
 }
 
 // 🛠 تابع بهبود یافته TTS
+// 🔊 پخش آفلاین انگلیسی از فایل‌های صوتی
+async function speakFaClip(text, rate) {
+    try {
+        if (!window.__faMap) window.__faMap = await (await fetch('audio/fa/map.json')).json();
+        const name = window.__faMap[String(text).trim()];
+        if (!name) return false;
+        const a = new Audio('audio/fa/' + name + '.mp3');
+        a.playbackRate = Math.min(2, Math.max(0.5, rate || 1));
+        await new Promise((res, rej) => { a.onended = res; a.onerror = rej; a.play().catch(rej); });
+        return true;
+    } catch (e) { return false; }
+}
+async function speakClips(text) {
+    const names = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    if (!names.length) return false;
+    const clips = names.map(n => { const a = new Audio('audio/en/' + n + '.mp3'); a.preload = 'auto'; return a; });
+    const ok = await Promise.all(clips.map(a => new Promise(r => {
+        a.onloadedmetadata = () => r(true);
+        a.onerror = () => r(false);
+        setTimeout(() => r(false), 4000);
+    })));
+    if (ok.includes(false)) return false;
+    for (const a of clips) await new Promise(r => { a.onended = r; a.onerror = r; a.play().catch(r); });
+    return true;
+}
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
+    if (String(lang).toLowerCase().startsWith('fa')) {
+        if (await speakFaClip(text, rate)) return { success: true, engine: 'Audio files' };
+    }
+    if (String(lang).toLowerCase().startsWith('en')) {
+        try { if (await speakClips(text)) return { success: true, engine: 'Audio files' }; } catch (e) {}
+    }
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
         try { await window.Capacitor.Plugins.TextToSpeech.speak({ text: text, lang: lang, rate: rate, pitch: 1.0, volume: 1.0 }); return { success: true, engine: 'Native TTS' }; } 
         catch (e) {}
