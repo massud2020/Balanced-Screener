@@ -44,8 +44,7 @@ jobs:
       # 6. آماده‌سازی پوشه www
       - name: Build www folder
         run: |
-          mkdir -p www
-          cp index.html engine.js sw.js data.json www/ 2>/dev/null || true
+          npm run build:www
 
       # 7. استمپ Service Worker
       - name: Stamp service worker
