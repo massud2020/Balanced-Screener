@@ -688,8 +688,14 @@ let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
 let isScanning = false;
 let LAST = null;
-let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI", "BB"]');
-if (!LS("bs_bb_init_v1")) { if (!activeConditions.includes("BB")) activeConditions.push("BB"); LS("bs_active_cond", JSON.stringify(activeConditions)); LS("bs_bb_init_v1", "1"); }
+const DEFAULT_TREND_CONDS = ["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"];
+let activeTrendConditions = JSON.parse(LS("bs_active_cond_trend") || LS("bs_active_cond") || JSON.stringify(DEFAULT_TREND_CONDS));
+let activeRangeConditions = JSON.parse(LS("bs_active_cond_range") || '["BB", "RSI", "ADX رنج", "عرض باند", "تایید کندل", "M15", "H1"]');
+function getCurrentConds() { return currentMode === "range" ? activeRangeConditions : activeTrendConditions; }
+function saveCurrentConds() {
+  if (currentMode === "range") LS("bs_active_cond_range", JSON.stringify(activeRangeConditions));
+  else LS("bs_active_cond_trend", JSON.stringify(activeTrendConditions));
+}
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { activeMarkets = ["crypto", "forex", "metal", "commodity", "index", "stock"]; LS("bs_active_mkts", JSON.stringify(activeMarkets)); }
 
@@ -1095,21 +1101,34 @@ function renderLwcChart(r) {
 }
 
 function renderCondChips() {
-    let labels = currentMode === "range" ? { rsi: "RSI", bb: "BB" } : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱ (الزامی)", m15: "M15", h1: "H1", rsi: "RSI" };
+    const conds = getCurrentConds();
+    let labels = currentMode === "range"
+      ? { bb: "BB", rsi: "RSI", adx: "ADX رنج", width: "عرض باند", rev: "تایید کندل", m15: "M15", h1: "H1" }
+      : { trend: "EMA200", emax: "EMA21/50", nc: "بدون تقاطع", pat: "۳+۱ (الزامی)", m15: "M15", h1: "H1", rsi: "RSI" };
     const locked = currentMode === "range" ? [] : ["۳+۱ (الزامی)"];
     $("condChips").innerHTML = Object.keys(labels).map(k => {
         const label = labels[k], isLocked = locked.includes(label);
         const storedLabel = isLocked ? "۳+۱" : label;
-        return `<button class="c-chip ${activeConditions.includes(storedLabel) || isLocked ? 'on' : ''} ${isLocked ? 'locked' : ''}" data-label="${storedLabel}" ${isLocked ? 'aria-disabled="true" title="این شرط برای صدور سیگنال Trend الزامی است"' : ''}>${label}</button>`;
-    }).join("") + (currentMode === "range" ? "" : `<div style="width:100%;font-size:11px;color:var(--mu);padding:2px 3px;">در استراتژی Trend، چینش EMA21 &gt; EMA50 &gt; EMA200 برای LONG و چینش معکوس برای SHORT نیز الزامی است.</div>`);
+        return `<button class="c-chip ${conds.includes(storedLabel) || isLocked ? 'on' : ''} ${isLocked ? 'locked' : ''}" data-label="${storedLabel}" ${isLocked ? 'aria-disabled="true" title="این شرط برای صدور سیگنال Trend الزامی است"' : ''}>${label}</button>`;
+    }).join("") + (currentMode === "range"
+      ? `<div style="width:100%;font-size:11px;color:var(--mu);padding:2px 3px;">تنظیمات استراتژی رنج مستقل از روند ذخیره و اعمال می‌شوند.</div>`
+      : `<div style="width:100%;font-size:11px;color:var(--mu);padding:2px 3px;">در استراتژی Trend، چینش EMA21 &gt; EMA50 &gt; EMA200 برای LONG و چینش معکوس برای SHORT نیز الزامی است.</div>`);
 }
 
 $("condChips").onclick = (e) => {
     const btn = e.target.closest(".c-chip"); if(!btn || btn.classList.contains("locked")) return;
     const label = btn.dataset.label;
-    if(activeConditions.includes(label)) { activeConditions = activeConditions.filter(x => x !== label); btn.classList.remove("on"); } 
-    else { activeConditions.push(label); btn.classList.add("on"); }
-    LS("bs_active_cond", JSON.stringify(activeConditions));
+    let conds = getCurrentConds();
+    if(conds.includes(label)) {
+      conds = conds.filter(x => x !== label);
+      btn.classList.remove("on");
+    } else {
+      conds.push(label);
+      btn.classList.add("on");
+    }
+    if (currentMode === "range") activeRangeConditions = conds;
+    else activeTrendConditions = conds;
+    saveCurrentConds();
     if(LAST) renderList(LAST.rows);
 };
 
@@ -1249,10 +1268,17 @@ function renderList(rows) {
         const m5 = toObjs(r.a); const m15 = toObjs(r.m15); const h1 = toObjs(r.h);
         const symbolPreset = Presets.getPreset(r.id);
         const opts = { 
-            m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), 
-            rsi: activeConditions.includes('RSI'), bb: activeConditions.includes('BB'), trend: activeConditions.includes('EMA200'), 
-            emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), 
-            pat: activeConditions.includes('۳+۱'), mode: currentMode,
+            m15: getCurrentConds().includes('M15'), h1: getCurrentConds().includes('H1'),
+                    rsi: getCurrentConds().includes('RSI'),
+                    bb: activeRangeConditions.includes('BB'),
+                    adx: currentMode === 'range' ? activeRangeConditions.includes('ADX رنج') : true,
+                    rangeWidth: activeRangeConditions.includes('عرض باند'),
+                    rangeReversal: activeRangeConditions.includes('تایید کندل'),
+                    trend: activeTrendConditions.includes('EMA200'),
+                    emax: activeTrendConditions.includes('EMA21/50'),
+                    nc: activeTrendConditions.includes('بدون تقاطع'),
+                    pat: activeTrendConditions.includes('۳+۱'),
+                    mode: currentMode,
             sessionFilter: sessionFilter || !!symbolPreset.session, newsHours: finalNewsHours, adx: true
         };
         let res = {};
