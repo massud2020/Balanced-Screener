@@ -404,6 +404,46 @@ header.bar {
   border-color: rgba(70, 197, 140, 0.45) !important;
   color: #fff !important;
 }
+
+/* === FIX TOGGLE PILL & AUDIO === */
+input[type="checkbox"].toggle {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 46px !important;
+  width: 46px !important;
+  height: 26px !important;
+  border-radius: 99px !important;
+  background: #2a2e37 !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  position: relative !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  transition: background 0.25s ease, border-color 0.25s ease !important;
+}
+input[type="checkbox"].toggle:checked {
+  background: #46c58c !important;
+  border-color: #46c58c !important;
+}
+input[type="checkbox"].toggle::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #e2e8f0 !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35) !important;
+  transition: left 0.25s ease, background 0.25s ease !important;
+}
+input[type="checkbox"].toggle:checked::after {
+  left: 22px !important;
+  background: #ffffff !important;
+}
 </style>
 </head>
 <body>
@@ -511,7 +551,7 @@ header.bar {
   </div>
   <div class="set-row">
     <label>تست اعلان سیگنال (انگلیسی)</label>
-    <button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG')">تست (English TTS)</button>
+    <button class="set-btn green" onclick="speakSignal('EURUSD', 'LONG', true)">تست (English TTS)</button>
   </div>
   <div class="set-row">
     <label>سرعت صدا: <b id="ttsRateVal">50</b></label>
@@ -810,9 +850,31 @@ function getGaugeGradient(scorePercent, side, numSegments) {
 // 🛠 تابع بهبود یافته TTS
 // 🔊 پخش آفلاین انگلیسی از فایل‌های صوتی
 async function speakFaClip(text, rate) {
-    try {
-        if (!window.__faMap) window.__faMap = await (await fetch('audio/fa/map.json')).json();
-        const name = window.__faMap[String(text).trim()];
+  try {
+    const clean = String(text || '').trim();
+    if (clean.startsWith('خوش آمدید')) {
+      try { if (window.__welcomeAudio) { window.__welcomeAudio.pause(); } } catch(e) {}
+      const w = new Audio('audio/fa/welcome.mp3');
+      window.__welcomeAudio = w;
+      w.preload = 'auto';
+      w.volume = 1.0;
+      w.playbackRate = Math.max(0.85, Math.min(1.25, Number(rate) || 1.0));
+      await new Promise(resolve => {
+        let finished = false;
+        const done = () => { if (!finished) { finished = true; resolve(); } };
+        w.onended = done;
+        w.onerror = done;
+        w.onloadedmetadata = () => {
+          const maxMs = Math.ceil(((w.duration || 12) / w.playbackRate) * 1000) + 1500;
+          setTimeout(done, maxMs);
+        };
+        setTimeout(done, 18000);
+        w.play().catch(done);
+      });
+      return true;
+    }
+    if (!window.__faMap) window.__faMap = await (await fetch('audio/fa/map.json')).json();
+    const name = window.__faMap[clean];
         if (!name) return false;
         const a = new Audio('audio/fa/' + name + '.mp3');
         a.playbackRate = Math.min(2, Math.max(0.5, rate || 1));
@@ -821,17 +883,32 @@ async function speakFaClip(text, rate) {
     } catch (e) { return false; }
 }
 async function speakClips(text) {
-    const names = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-    if (!names.length) return false;
-    const clips = names.map(n => { const a = new Audio('audio/en/' + n + '.mp3'); a.preload = 'auto'; return a; });
-    const ok = await Promise.all(clips.map(a => new Promise(r => {
-        a.onloadedmetadata = () => r(true);
-        a.onerror = () => r(false);
-        setTimeout(() => r(false), 4000);
-    })));
-    if (ok.includes(false)) return false;
-    for (let i = 0; i < clips.length; i++) { const a = clips[i]; await new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } }; a.onended = go; a.onerror = go; if (i < clips.length - 1) setTimeout(go, Math.max(60, (a.duration || 0.4) * 1000 - 130)); a.play().catch(go); }); }
-    return true;
+  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  if (!words.length) return false;
+  const validClips = [];
+  for (const w of words) {
+    const a = new Audio('audio/en/' + w + '.mp3');
+    a.preload = 'auto';
+    const loaded = await new Promise(r => {
+      a.onloadedmetadata = () => r(true);
+      a.onerror = () => r(false);
+      setTimeout(() => r(false), 1500);
+    });
+    if (loaded) validClips.push(a);
+  }
+  if (!validClips.length) return false;
+  for (let i = 0; i < validClips.length; i++) {
+    const a = validClips[i];
+    await new Promise(r => {
+      let d = false;
+      const go = () => { if (!d) { d = true; r(); } };
+      a.onended = go;
+      a.onerror = go;
+      if (i < validClips.length - 1) setTimeout(go, Math.max(80, (a.duration || 0.45) * 1000 - 110));
+      a.play().catch(go);
+    });
+  }
+  return true;
 }
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
     if (String(lang).toLowerCase().startsWith('fa')) {
@@ -918,8 +995,8 @@ window.speakCurrentSignal = async function() {
     } 
 }
 
-async function speakSignal(symbol, side) { 
-    if (!$("ttsSymbol")?.checked) return; 
+async function speakSignal(symbol, side, forceTest = false) {
+  if (!forceTest && !$("ttsSymbol")?.checked) return; 
     if (isWelcomePlaying) return;
     const sideEn = side === 'LONG' ? 'Long' : 'Short'; 
     await speakNative(`New signal. ${sideEn} on ${symbol}`, 'en-US', 1.0); 
