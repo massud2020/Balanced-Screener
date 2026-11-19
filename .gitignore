@@ -7,3 +7,5 @@ android/
 *.apk
 .DS_Store
 .env
+*.csv
+*.bak*
