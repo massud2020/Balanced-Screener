@@ -854,21 +854,17 @@ async function speakFaClip(text, rate) {
     const clean = String(text || '').trim();
     if (clean.startsWith('خوش آمدید')) {
       try { if (window.__welcomeAudio) { window.__welcomeAudio.pause(); } } catch(e) {}
-      const w = new Audio('audio/fa/welcome.mp3');
+      const audioFile = clean.includes('بازار رنج') ? 'audio/fa/welcome_range.mp3' : 'audio/fa/welcome_trend.mp3';
+      const w = new Audio(audioFile + '?v=' + Date.now());
       window.__welcomeAudio = w;
       w.preload = 'auto';
       w.volume = 1.0;
-      w.playbackRate = Math.max(0.85, Math.min(1.25, Number(rate) || 1.0));
+      w.playbackRate = Math.max(0.85, Math.min(1.2, Number(rate) || 1.0));
       await new Promise(resolve => {
         let finished = false;
         const done = () => { if (!finished) { finished = true; resolve(); } };
         w.onended = done;
         w.onerror = done;
-        w.onloadedmetadata = () => {
-          const maxMs = Math.ceil(((w.duration || 12) / w.playbackRate) * 1000) + 1500;
-          setTimeout(done, maxMs);
-        };
-        setTimeout(done, 18000);
         w.play().catch(done);
       });
       return true;
@@ -1152,11 +1148,9 @@ window.doEnter = async function() {
 
     if(!$("splashMute").checked) {
         isWelcomePlaying = true;
-        const welcomeText =
-            "خوش آمدید به اسکرینر حرفه‌ای بالانس. " +
-            `بازار اسکن شد؛ وضعیت فعلی بازار ${marketStateFa} است و ${stratFaName} در صفحه اصلی فعال شد. ` +
-            "فیلترهای هوشمند اخبار و همبستگی در حال بررسی هستند. " +
-            "لطفاً منتظر بمانید، اسکن خودکار به زودی آغاز می‌شود.";
+        const welcomeText = detectedRegime === "range"
+        ? "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رنج و کم‌نوسان تشخیص داده شد و استراتژی رنج انتخاب شد. اسکن خودکار به زودی آغاز می‌شود."
+        : "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رونددار تشخیص داده شد و استراتژی سه به یک انتخاب شد. اسکن خودکار به زودی آغاز می‌شود.";
 
         await speakNative(welcomeText, 'fa-IR', 1.0);
         isWelcomePlaying = false;
