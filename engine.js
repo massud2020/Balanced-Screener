@@ -332,8 +332,18 @@
             const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
             const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
-            const bbBuy = !useBbFilter || (Number.isFinite(lastLower) && lastClose <= lastLower + (lastAtr * 0.2));
-            const bbSell = !useBbFilter || (Number.isFinite(lastUpper) && lastClose >= lastUpper - (lastAtr * 0.2));
+            const cLast = cl[idx], cPrev = cl[idx - 1] || cLast;
+            const bodyLast = Math.abs(cLast.close - cLast.open);
+            const lowerWick = Math.min(cLast.open, cLast.close) - cLast.low;
+            const upperWick = cLast.high - Math.max(cLast.open, cLast.close);
+            const bullRejection = (cLast.close > cLast.open) || (lowerWick > bodyLast * 1.2);
+            const bearRejection = (cLast.close < cLast.open) || (upperWick > bodyLast * 1.2);
+
+            const touchedLower = Number.isFinite(lastLower) && (cLast.low <= lastLower + (lastAtr * 0.15) || cPrev.low <= lastLower + (lastAtr * 0.15));
+            const touchedUpper = Number.isFinite(lastUpper) && (cLast.high >= lastUpper - (lastAtr * 0.15) || cPrev.high >= lastUpper - (lastAtr * 0.15));
+
+            const bbBuy = !useBbFilter || (touchedLower && bullRejection);
+            const bbSell = !useBbFilter || (touchedUpper && bearRejection);
             if ((useRsiFilter || useBbFilter) && rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
             else if ((useRsiFilter || useBbFilter) && rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
             else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
@@ -431,16 +441,23 @@
         }
 
         if (opts.h1 !== false) {
-            const isOk = (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN');
-            checks.push({ l: "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
+            const isOk = mode === "range"
+                ? (h1Trend === 'NEUTRAL' || (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'))
+                : ((checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'));
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند H1" : "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
             if (!isOk && !failReason) failReason = "مخالف H1";
         }
 
         if (opts.m15 !== false) {
             let isOk = true, valStr = 'تایید';
-            if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
-            else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
-            checks.push({ l: "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
+            if (mode === "range") {
+                isOk = (m15Trend === 'NEUTRAL' || (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'));
+                valStr = isOk ? (m15Trend === 'NEUTRAL' ? 'خنثی (ایده‌آل)' : 'تایید') : 'رد';
+            } else {
+                if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
+                else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
+            }
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
             if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
@@ -460,14 +477,16 @@
         const swingLook = Number(opts.swingLook) > 0 ? Math.floor(Number(opts.swingLook)) : 50;
         const swings = findSwingLevels(cl, swingLook);
         const requestedSlAtr = mode === "range"
-            ? (Number(opts.rangeSlAtr) > 0 ? Number(opts.rangeSlAtr) : (Number(opts.slAtr) > 0 ? Number(opts.slAtr) : 2.5))
+            ? (Number(opts.rangeSlAtr) > 0 ? Number(opts.rangeSlAtr) : (Number(opts.slAtr) > 0 ? Number(opts.slAtr) : 1.6))
             : (Number(opts.slAtr) > 0 ? Number(opts.slAtr) : (Number(opts.atrMultSL) > 0 ? Number(opts.atrMultSL) : 1.5));
         const maxRiskAtr = mode === "range" && Number(opts.rangeMaxRiskATR) > 0 ? Number(opts.rangeMaxRiskATR) : Infinity;
         const effectiveSlAtr = Math.min(requestedSlAtr, maxRiskAtr);
         const riskDist = lastAtr * effectiveSlAtr;
         let structOk = true;
-        if (checkedSide === "LONG" && Number.isFinite(swings.swingHigh) && swings.swingHigh > lastClose && (swings.swingHigh - lastClose) < riskDist) structOk = false;
-        if (checkedSide === "SHORT" && Number.isFinite(swings.swingLow) && swings.swingLow < lastClose && (lastClose - swings.swingLow) < riskDist) structOk = false;
+        if (mode !== "range") {
+            if (checkedSide === "LONG" && Number.isFinite(swings.swingHigh) && swings.swingHigh > lastClose && (swings.swingHigh - lastClose) < riskDist) structOk = false;
+            if (checkedSide === "SHORT" && Number.isFinite(swings.swingLow) && swings.swingLow < lastClose && (lastClose - swings.swingLow) < riskDist) structOk = false;
+        }
         checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
