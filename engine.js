@@ -405,7 +405,7 @@
             }
 
             const isRangeOk = !!side;
-            const rangeLabel = (opts.rsi !== false && useBbFilter) ? "اشباع RSI + برخورد بولینگر" : useBbFilter ? "برخورد بولینگر (بدون فیلتر RSI)" : "اشباع RSI (بدون بولینگر)";
+            const rangeLabel = (opts.rsi !== false && opts.bb !== false) ? "اشباع RSI + برخورد بولینگر" : (opts.bb !== false) ? "برخورد بولینگر (بدون فیلتر RSI)" : "اشباع RSI (بدون بولینگر)";
             checks.push({ l: rangeLabel, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
             if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
