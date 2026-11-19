@@ -1116,6 +1116,37 @@ function renderHistory() {
 window.changeLanguage = function(lang) { currentLang = lang; LS("bs_lang", lang); document.body.dir = lang === 'fa' ? 'rtl' : 'ltr'; if(lang==='fa'){ $('splashLangFa').classList.add('active'); $('splashLangEn').classList.remove('active'); setText("splashSubtitle", "برای ورود ضربه بزنید"); $("start-ai-btn").textContent = "ورود به اسکرینر"; $("skip-ai-btn").textContent = "رد کردن"; setText("muteText", "بدون صدا"); $("langToggle").innerText = "EN"; } else { $('splashLangEn').classList.add('active'); $('splashLangFa').classList.remove('active'); setText("splashSubtitle", "Tap to enter"); $("start-ai-btn").textContent = "Enter Screener"; $("skip-ai-btn").textContent = "Skip"; setText("muteText", "Mute"); $("langToggle").innerText = "FA"; } };
 
 // 🛠 تابع doEnter اصلاح شده برای پخش ۵ جمله بدون تداخل
+
+async function playRadarSweep(rows) {
+  const card = document.getElementById("scanStatusCard");
+  if (!card) return;
+  const list = Array.isArray(rows) && rows.length ? rows : [
+    {s:"EURUSD"},{s:"GBPUSD"},{s:"USDJPY"},{s:"XAUUSD"},{s:"BTCUSDT"},{s:"ETHUSDT"},{s:"SOLUSDT"},{s:"US30"},{s:"NAS100"}
+  ];
+  const total = list.length;
+  const totEl = document.getElementById("scanTotal");
+  const curEl = document.getElementById("scanCurrent");
+  const symEl = document.getElementById("scanSymbol");
+  const fillEl = document.getElementById("scanProgressFill");
+  if (totEl) totEl.textContent = total;
+  if (curEl) curEl.textContent = "0";
+  if (fillEl) fillEl.style.width = "0%";
+  card.classList.add("on");
+  const steps = Math.min(total, 18);
+  const stepMs = Math.max(70, Math.floor(1700 / steps));
+  for (let i = 1; i <= steps; i++) {
+    const idx = Math.min(total - 1, Math.floor((i / steps) * total) - 1);
+    const curNum = Math.max(1, Math.floor((i / steps) * total));
+    if (curEl) curEl.textContent = curNum;
+    if (symEl) symEl.textContent = "در حال بررسی " + (list[idx]?.s || "بازار") + "...";
+    if (fillEl) fillEl.style.width = Math.round((curNum / total) * 100) + "%";
+    await new Promise(r => setTimeout(r, stepMs));
+  }
+  if (symEl) symEl.textContent = "اسکن کامل شد ✓";
+  await new Promise(r => setTimeout(r, 320));
+  card.classList.remove("on");
+}
+
 window.doEnter = async function() {
     unlockTTS();
     const btn = $('start-ai-btn'); btn.disabled = true; btn.textContent = "در حال اسکن بازار..."; setText("splashSubtitle", "در حال بررسی رژیم بازار (روند / رنج)...");
@@ -1158,7 +1189,7 @@ window.doEnter = async function() {
 
     $('ai-splash').classList.add('hidden');
     setTimeout(() => $('ai-splash').style.display = 'none', 300);
-    setTimeout(() => { window.__entered = true; scan(true); }, 500);
+    setTimeout(async () => { window.__entered = true; await scan(true); if (typeof LAST !== "undefined" && LAST?.rows) await playRadarSweep(LAST.rows); }, 350);
 };
 
 window.doSkip = function() { 
