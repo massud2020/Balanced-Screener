@@ -432,11 +432,22 @@
                 if (!distanceOk && !failReason) failReason = "فاصله قیمت از EMA21 بیش از حد است";
             }
             if (opts.nc !== false) {
-                let isOk = true; 
-                if (checkedSide === 'LONG' && ema21[idx] <= ema50[idx]) isOk = false; 
-                if (checkedSide === 'SHORT' && ema21[idx] >= ema50[idx]) isOk = false; 
-                checks.push({ l: "بدون تقاطع EMA21/50 (لحظه سیگنال)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 0.5 });
-                if (!isOk && !failReason) failReason = "تقاطع EMA21/50";
+                let isOk = true;
+                const lookNc = Math.min(5, idx);
+                for (let k = idx - lookNc; k <= idx; k++) {
+                    if (checkedSide === 'LONG' && ema21[k] <= ema50[k]) { isOk = false; break; }
+                    if (checkedSide === 'SHORT' && ema21[k] >= ema50[k]) { isOk = false; break; }
+                }
+                checks.push({ l: "بدون تقاطع EMA21/50 (۵ کندل اخیر)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 0.5 });
+                if (!isOk && !failReason) failReason = "تقاطع اخیر EMA21/50";
+            }
+
+            if (opts.rsi !== false) {
+                const rsiTrendOk = checkedSide === 'LONG'
+                    ? (lastRsi >= 40 && lastRsi <= 68)
+                    : (lastRsi >= 32 && lastRsi <= 60);
+                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.0 });
+                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک صعودی (40-68)" : "RSI خارج از محدوده پولبک نزولی (32-60)";
             }
         }
 
