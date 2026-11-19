@@ -1,4 +1,4 @@
-// trade-policy.js — one deterministic exit policy shared by live scanner and backtest.
+// trade-policy.js — deterministic exit policy with real Bid/Ask spread support.
 const TradePolicy = (() => {
     function calcRSI(closes, period = 14) {
         const out = new Array(closes.length).fill(null);
@@ -46,8 +46,6 @@ const TradePolicy = (() => {
         return out;
     }
 
-    // Divergence is confirmed only after the right-hand confirmation candle closes.
-    // This function receives bars up to the current bar, so it never reads future data.
     function checkDivergence(bars, rsiArr, isLong, lookback = 15) {
         const len = bars.length;
         if (len < lookback + 2) return false;
@@ -91,55 +89,66 @@ const TradePolicy = (() => {
             if (bar.time < startTime) continue;
             if (![bar.high, bar.low, bar.close, bar.time].every(Number.isFinite)) continue;
 
-            // Conservative OHLC ordering: if SL and TP are both touched in one bar, SL wins.
+            const bidOpen = Number.isFinite(bar.bidOpen) ? bar.bidOpen : bar.open;
+            const bidHigh = Number.isFinite(bar.bidHigh) ? bar.bidHigh : bar.high;
+            const bidLow = Number.isFinite(bar.bidLow) ? bar.bidLow : bar.low;
+            const bidClose = Number.isFinite(bar.bidClose) ? bar.bidClose : bar.close;
+
+            const askOpen = Number.isFinite(bar.askOpen) ? bar.askOpen : bar.open;
+            const askHigh = Number.isFinite(bar.askHigh) ? bar.askHigh : bar.high;
+            const askLow = Number.isFinite(bar.askLow) ? bar.askLow : bar.low;
+            const askClose = Number.isFinite(bar.askClose) ? bar.askClose : bar.close;
+
             if (mode === 'range') {
-                if (isLong && bar.low <= sl) {
-                    const exit = Number.isFinite(bar.open) && bar.open < sl ? bar.open : sl;
+                if (isLong && bidLow <= sl) {
+                    const exit = Number.isFinite(bidOpen) && bidOpen < sl ? bidOpen : sl;
                     return { status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
                 }
-                if (!isLong && bar.high >= sl) {
-                    const exit = Number.isFinite(bar.open) && bar.open > sl ? bar.open : sl;
+                if (!isLong && askHigh >= sl) {
+                    const exit = Number.isFinite(askOpen) && askOpen > sl ? askOpen : sl;
                     return { status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
                 }
-                if (isLong && bar.high >= rangeTp) {
-                    const exit = Number.isFinite(bar.open) && bar.open > rangeTp ? bar.open : rangeTp;
+                if (isLong && bidHigh >= rangeTp) {
+                    const exit = Number.isFinite(bidOpen) && bidOpen > rangeTp ? bidOpen : rangeTp;
                     return { status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
                 }
-                if (!isLong && bar.low <= rangeTp) {
-                    const exit = Number.isFinite(bar.open) && bar.open < rangeTp ? bar.open : rangeTp;
+                if (!isLong && askLow <= rangeTp) {
+                    const exit = Number.isFinite(askOpen) && askOpen < rangeTp ? askOpen : rangeTp;
                     return { status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
                 }
             } else {
-                // The stop active at the start of this candle is checked before updating it.
-                if (isLong && bar.low <= currentSl) {
-                    const exit = Number.isFinite(bar.open) && bar.open < currentSl ? bar.open : currentSl;
+                if (isLong && bidLow <= currentSl) {
+                    const exit = Number.isFinite(bidOpen) && bidOpen < currentSl ? bidOpen : currentSl;
                     return { status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
                 }
-                if (!isLong && bar.high >= currentSl) {
-                    const exit = Number.isFinite(bar.open) && bar.open > currentSl ? bar.open : currentSl;
+                if (!isLong && askHigh >= currentSl) {
+                    const exit = Number.isFinite(askOpen) && askOpen > currentSl ? askOpen : currentSl;
                     return { status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
                 }
 
-                const favorable = isLong ? (bar.high - entry) / risk : (entry - bar.low) / risk;
+                const favorable = isLong ? (bidHigh - entry) / risk : (entry - askLow) / risk;
                 peakFav = Math.max(peakFav, favorable);
                 if (checkDivergence(bars.slice(0, i + 1), rsiArr.slice(0, i + 1), isLong)) {
-                    const rMult = isLong ? (bar.close - entry) / risk : (entry - bar.close) / risk;
-                    return { status: 'closed', why: 'RSI_DIV', exit: bar.close, closeTime: bar.time, R: rMult, peakFav };
+                    const exitPx = isLong ? bidClose : askClose;
+                    const rMult = isLong ? (exitPx - entry) / risk : (entry - exitPx) / risk;
+                    return { status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav };
                 }
                 const atrNow = Number(atrArr[i]);
                 if (Number.isFinite(atrNow) && atrNow > 0) {
-                    const candidate = isLong ? bar.close - atrNow * trailMult : bar.close + atrNow * trailMult;
+                    const candidate = isLong ? bidClose - atrNow * trailMult : askClose + atrNow * trailMult;
                     currentSl = isLong ? Math.max(currentSl, candidate) : Math.min(currentSl, candidate);
                 }
             }
 
             if (bar.time - startTime >= maxHold) {
-                const rMult = isLong ? (bar.close - entry) / risk : (entry - bar.close) / risk;
-                return { status: 'closed', why: 'TIME', exit: bar.close, closeTime: bar.time, R: rMult, peakFav };
+                const exitPx = isLong ? bidClose : askClose;
+                const rMult = isLong ? (exitPx - entry) / risk : (entry - exitPx) / risk;
+                return { status: 'closed', why: 'TIME', exit: exitPx, closeTime: bar.time, R: rMult, peakFav };
             }
         }
         const last = bars[bars.length - 1];
-        const currentR = last ? (isLong ? (last.close - entry) / risk : (entry - last.close) / risk) : 0;
+        const lastExecPx = last ? (isLong ? (last.bidClose ?? last.close) : (last.askClose ?? last.close)) : 0;
+        const currentR = last ? (isLong ? (lastExecPx - entry) / risk : (entry - lastExecPx) / risk) : 0;
         return { status: 'open', currentSl, currentR, peakFav };
     }
 

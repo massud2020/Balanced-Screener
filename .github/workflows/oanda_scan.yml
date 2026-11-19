@@ -68,7 +68,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           # افزودن فایل‌های خروجی اسکنر
-          git add data.json history.json latest_signal.txt
+          git add data.json history.json demo_ledger.json latest_signal.txt
           
           # پاکسازی سایر تغییرات ناخواسته (مثل package-lock.json) برای جلوگیری از خطای rebase
           git checkout -- .
