@@ -342,8 +342,10 @@
             const touchedLower = Number.isFinite(lastLower) && (cLast.low <= lastLower + (lastAtr * 0.15) || cPrev.low <= lastLower + (lastAtr * 0.15));
             const touchedUpper = Number.isFinite(lastUpper) && (cLast.high >= lastUpper - (lastAtr * 0.15) || cPrev.high >= lastUpper - (lastAtr * 0.15));
 
-            const bbBuy = !useBbFilter || (touchedLower && bullRejection);
-            const bbSell = !useBbFilter || (touchedUpper && bearRejection);
+            const insideLower = !Number.isFinite(lastLower) || cLast.close > lastLower;
+        const insideUpper = !Number.isFinite(lastUpper) || cLast.close < lastUpper;
+        const bbBuy = !useBbFilter || (touchedLower && bullRejection && insideLower);
+        const bbSell = !useBbFilter || (touchedUpper && bearRejection && insideUpper);
             if ((useRsiFilter || useBbFilter) && rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
             else if ((useRsiFilter || useBbFilter) && rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
             else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
@@ -361,9 +363,9 @@
         let trendPatternGate = true;
         if (mode !== "range") {
             trendEmaGate = checkedSide === "LONG"
-                ? ema21[idx] > ema50[idx] && ema50[idx] > ema200[idx]
+                ? ema21[idx] > ema50[idx] && ema50[idx] > ema200[idx] && lastClose > ema50[idx]
                 : checkedSide === "SHORT"
-                    ? ema21[idx] < ema50[idx] && ema50[idx] < ema200[idx]
+                    ? ema21[idx] < ema50[idx] && ema50[idx] < ema200[idx] && lastClose < ema50[idx]
                     : false;
             checks.push({
                 l: "گیت الزامی چینش EMA21/50/200",
@@ -410,7 +412,9 @@
             if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
             if (opts.adx !== false) {
-                const isTrending = lastAdx >= (opts.adxMin || 20);
+                const prevAdx = Number.isFinite(adxArr[idx - 2]) ? adxArr[idx - 2] : lastAdx;
+            const adxExhausted = lastAdx > 38 && lastAdx < prevAdx;
+            const isTrending = lastAdx >= (opts.adxMin || 20) && !adxExhausted;
                 checks.push({ l: `روند / ADX قوی (${lastAdx.toFixed(1)})`, ok: isTrending, v: isTrending ? 'تایید' : 'رد', w: 1.0 });
                 if (!isTrending && !failReason) failReason = "ADX ضعیف";
             }
