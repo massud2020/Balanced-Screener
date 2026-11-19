@@ -1,0 +1,2205 @@
+{
+  "generatedAt": "2026-11-16T08:34:08.725Z",
+  "timeframe": "H1",
+  "split": "chronological 70% in-sample / 30% out-of-sample",
+  "splitTime": "2026-01-13T17:32:27.700Z",
+  "stopLossATRGrid": [
+    2,
+    2.5,
+    3
+  ],
+  "takeProfitRGrid": [
+    1,
+    1.2,
+    1.5,
+    2
+  ],
+  "costAssumptionsPriceUnits": {
+    "EURUSD": 0.0001,
+    "GBPUSD": 0.0001,
+    "AUDUSD": 0.0001,
+    "NZDUSD": 0.0001,
+    "USDCAD": 0.0001,
+    "GOLD": 0.3
+  },
+  "warning": "Costs are provisional assumptions copied from the project test scripts, not verified broker quotes. Replace with broker-specific spread/commission/slippage before treating results as executable.",
+  "dataQuality": {
+    "EURUSD": {
+      "rows": 17273,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 156,
+      "largestGapSec": 198000,
+      "start": 1706572800,
+      "end": 1794790486,
+      "rawRows": 17273,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    },
+    "GBPUSD": {
+      "rows": 17275,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 155,
+      "largestGapSec": 198000,
+      "start": 1706572800,
+      "end": 1794790486,
+      "rawRows": 17275,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    },
+    "GOLD": {
+      "rows": 13772,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 613,
+      "largestGapSec": 288000,
+      "start": 1719288000,
+      "end": 1794789911,
+      "rawRows": 13772,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    },
+    "AUDUSD": {
+      "rows": 17340,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 150,
+      "largestGapSec": 198000,
+      "start": 1706572800,
+      "end": 1794790906,
+      "rawRows": 17340,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    },
+    "NZDUSD": {
+      "rows": 17342,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 152,
+      "largestGapSec": 198000,
+      "start": 1706572800,
+      "end": 1794790906,
+      "rawRows": 17342,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    },
+    "USDCAD": {
+      "rows": 17349,
+      "duplicates": 0,
+      "invalid": 0,
+      "outOfOrder": 0,
+      "gaps": 149,
+      "largestGapSec": 198000,
+      "start": 1706572800,
+      "end": 1794791011,
+      "rawRows": 17349,
+      "invalidRows": 0,
+      "duplicateRows": 0,
+      "outOfOrderInputRows": 0,
+      "reversedInput": false,
+      "inputOrdering": "ascending"
+    }
+  },
+  "grid": [
+    {
+      "slAtr": 2,
+      "tpR": 1,
+      "inSample": {
+        "trades": 1710,
+        "winRate": 49.4,
+        "netR": -90.59,
+        "grossR": -16.61,
+        "totalCostsR": 73.97,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 101.08,
+        "averageR": -0.053,
+        "recoveryFactor": -0.9
+      },
+      "outOfSample": {
+        "trades": 715,
+        "winRate": 47.8,
+        "netR": -64.22,
+        "grossR": -31.17,
+        "totalCostsR": 33.05,
+        "profitFactor": 0.84,
+        "maxDrawdownR": 68.75,
+        "averageR": -0.09,
+        "recoveryFactor": -0.93
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 457,
+            "winRate": 50.8,
+            "netR": -13.78,
+            "grossR": 7.34,
+            "totalCostsR": 21.12,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 25.15,
+            "averageR": -0.03,
+            "recoveryFactor": -0.55
+          },
+          "outOfSample": {
+            "trades": 186,
+            "winRate": 50.5,
+            "netR": -7.82,
+            "grossR": 1.74,
+            "totalCostsR": 9.56,
+            "profitFactor": 0.92,
+            "maxDrawdownR": 14.43,
+            "averageR": -0.042,
+            "recoveryFactor": -0.54
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 431,
+            "winRate": 46.9,
+            "netR": -40.97,
+            "grossR": -24.83,
+            "totalCostsR": 16.15,
+            "profitFactor": 0.83,
+            "maxDrawdownR": 48.79,
+            "averageR": -0.095,
+            "recoveryFactor": -0.84
+          },
+          "outOfSample": {
+            "trades": 161,
+            "winRate": 46.6,
+            "netR": -17.59,
+            "grossR": -11.08,
+            "totalCostsR": 6.51,
+            "profitFactor": 0.81,
+            "maxDrawdownR": 22.36,
+            "averageR": -0.109,
+            "recoveryFactor": -0.79
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 86,
+            "winRate": 53.5,
+            "netR": 4.56,
+            "grossR": 6,
+            "totalCostsR": 1.44,
+            "profitFactor": 1.11,
+            "maxDrawdownR": 6.3,
+            "averageR": 0.053,
+            "recoveryFactor": 0.72
+          },
+          "outOfSample": {
+            "trades": 46,
+            "winRate": 47.8,
+            "netR": -2.3,
+            "grossR": -1.96,
+            "totalCostsR": 0.34,
+            "profitFactor": 0.9,
+            "maxDrawdownR": 6.15,
+            "averageR": -0.05,
+            "recoveryFactor": -0.37
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 208,
+            "winRate": 49,
+            "netR": -13.31,
+            "grossR": -1.91,
+            "totalCostsR": 11.4,
+            "profitFactor": 0.88,
+            "maxDrawdownR": 14.31,
+            "averageR": -0.064,
+            "recoveryFactor": -0.93
+          },
+          "outOfSample": {
+            "trades": 94,
+            "winRate": 51.1,
+            "netR": -3.61,
+            "grossR": 2.07,
+            "totalCostsR": 5.68,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 12.65,
+            "averageR": -0.038,
+            "recoveryFactor": -0.29
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 231,
+            "winRate": 51.5,
+            "netR": -8.26,
+            "grossR": 6.94,
+            "totalCostsR": 15.19,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 19.78,
+            "averageR": -0.036,
+            "recoveryFactor": -0.42
+          },
+          "outOfSample": {
+            "trades": 107,
+            "winRate": 52.3,
+            "netR": -2.18,
+            "grossR": 5.01,
+            "totalCostsR": 7.19,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 10.06,
+            "averageR": -0.02,
+            "recoveryFactor": -0.22
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 297,
+            "winRate": 48.1,
+            "netR": -18.82,
+            "grossR": -10.15,
+            "totalCostsR": 8.67,
+            "profitFactor": 0.88,
+            "maxDrawdownR": 23.92,
+            "averageR": -0.063,
+            "recoveryFactor": -0.79
+          },
+          "outOfSample": {
+            "trades": 121,
+            "winRate": 38.8,
+            "netR": -30.73,
+            "grossR": -26.95,
+            "totalCostsR": 3.77,
+            "profitFactor": 0.6,
+            "maxDrawdownR": 31.69,
+            "averageR": -0.254,
+            "recoveryFactor": -0.97
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2,
+      "tpR": 1.2,
+      "inSample": {
+        "trades": 1638,
+        "winRate": 45.1,
+        "netR": -80.11,
+        "grossR": -9.05,
+        "totalCostsR": 71.06,
+        "profitFactor": 0.91,
+        "maxDrawdownR": 94.48,
+        "averageR": -0.049,
+        "recoveryFactor": -0.85
+      },
+      "outOfSample": {
+        "trades": 695,
+        "winRate": 44.5,
+        "netR": -46.35,
+        "grossR": -14.37,
+        "totalCostsR": 31.98,
+        "profitFactor": 0.89,
+        "maxDrawdownR": 56.64,
+        "averageR": -0.067,
+        "recoveryFactor": -0.82
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 432,
+            "winRate": 46.8,
+            "netR": -6.83,
+            "grossR": 13.15,
+            "totalCostsR": 19.98,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 21.63,
+            "averageR": -0.016,
+            "recoveryFactor": -0.32
+          },
+          "outOfSample": {
+            "trades": 174,
+            "winRate": 46.6,
+            "netR": -4.26,
+            "grossR": 4.57,
+            "totalCostsR": 8.83,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 14.78,
+            "averageR": -0.025,
+            "recoveryFactor": -0.29
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 414,
+            "winRate": 43.2,
+            "netR": -34,
+            "grossR": -18.53,
+            "totalCostsR": 15.47,
+            "profitFactor": 0.86,
+            "maxDrawdownR": 45.66,
+            "averageR": -0.082,
+            "recoveryFactor": -0.74
+          },
+          "outOfSample": {
+            "trades": 159,
+            "winRate": 42.8,
+            "netR": -16.17,
+            "grossR": -9.77,
+            "totalCostsR": 6.4,
+            "profitFactor": 0.83,
+            "maxDrawdownR": 21.54,
+            "averageR": -0.102,
+            "recoveryFactor": -0.75
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 85,
+            "winRate": 51.8,
+            "netR": 10.37,
+            "grossR": 11.8,
+            "totalCostsR": 1.43,
+            "profitFactor": 1.25,
+            "maxDrawdownR": 5.5,
+            "averageR": 0.122,
+            "recoveryFactor": 1.89
+          },
+          "outOfSample": {
+            "trades": 46,
+            "winRate": 41.3,
+            "netR": -4.45,
+            "grossR": -4.11,
+            "totalCostsR": 0.34,
+            "profitFactor": 0.84,
+            "maxDrawdownR": 9.35,
+            "averageR": -0.097,
+            "recoveryFactor": -0.48
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 207,
+            "winRate": 45.9,
+            "netR": -7.55,
+            "grossR": 3.81,
+            "totalCostsR": 11.36,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 11.66,
+            "averageR": -0.036,
+            "recoveryFactor": -0.65
+          },
+          "outOfSample": {
+            "trades": 92,
+            "winRate": 44.6,
+            "netR": -7.37,
+            "grossR": -1.76,
+            "totalCostsR": 5.61,
+            "profitFactor": 0.86,
+            "maxDrawdownR": 14.6,
+            "averageR": -0.08,
+            "recoveryFactor": -0.5
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 226,
+            "winRate": 46.9,
+            "netR": -6.14,
+            "grossR": 8.68,
+            "totalCostsR": 14.82,
+            "profitFactor": 0.95,
+            "maxDrawdownR": 19.78,
+            "averageR": -0.027,
+            "recoveryFactor": -0.31
+          },
+          "outOfSample": {
+            "trades": 106,
+            "winRate": 50.9,
+            "netR": 5.9,
+            "grossR": 13.02,
+            "totalCostsR": 7.12,
+            "profitFactor": 1.11,
+            "maxDrawdownR": 7.43,
+            "averageR": 0.056,
+            "recoveryFactor": 0.79
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 274,
+            "winRate": 40.9,
+            "netR": -35.96,
+            "grossR": -27.95,
+            "totalCostsR": 8,
+            "profitFactor": 0.78,
+            "maxDrawdownR": 37.27,
+            "averageR": -0.131,
+            "recoveryFactor": -0.96
+          },
+          "outOfSample": {
+            "trades": 118,
+            "winRate": 39,
+            "netR": -19.98,
+            "grossR": -16.3,
+            "totalCostsR": 3.68,
+            "profitFactor": 0.73,
+            "maxDrawdownR": 21.35,
+            "averageR": -0.169,
+            "recoveryFactor": -0.94
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2,
+      "tpR": 1.5,
+      "inSample": {
+        "trades": 1528,
+        "winRate": 39.5,
+        "netR": -79.99,
+        "grossR": -13.72,
+        "totalCostsR": 66.28,
+        "profitFactor": 0.92,
+        "maxDrawdownR": 95.27,
+        "averageR": -0.052,
+        "recoveryFactor": -0.84
+      },
+      "outOfSample": {
+        "trades": 653,
+        "winRate": 39.2,
+        "netR": -38.8,
+        "grossR": -8.7,
+        "totalCostsR": 30.1,
+        "profitFactor": 0.91,
+        "maxDrawdownR": 46,
+        "averageR": -0.059,
+        "recoveryFactor": -0.84
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 393,
+            "winRate": 40.2,
+            "netR": -16.58,
+            "grossR": 1.57,
+            "totalCostsR": 18.15,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 26.26,
+            "averageR": -0.042,
+            "recoveryFactor": -0.63
+          },
+          "outOfSample": {
+            "trades": 163,
+            "winRate": 42.9,
+            "netR": 7.4,
+            "grossR": 15.67,
+            "totalCostsR": 8.26,
+            "profitFactor": 1.08,
+            "maxDrawdownR": 15.07,
+            "averageR": 0.045,
+            "recoveryFactor": 0.49
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 388,
+            "winRate": 39.7,
+            "netR": -16.01,
+            "grossR": -1.52,
+            "totalCostsR": 14.49,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 32.03,
+            "averageR": -0.041,
+            "recoveryFactor": -0.5
+          },
+          "outOfSample": {
+            "trades": 145,
+            "winRate": 35.2,
+            "netR": -24.14,
+            "grossR": -18.36,
+            "totalCostsR": 5.79,
+            "profitFactor": 0.76,
+            "maxDrawdownR": 28.26,
+            "averageR": -0.167,
+            "recoveryFactor": -0.85
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 85,
+            "winRate": 42.4,
+            "netR": 2.63,
+            "grossR": 4.05,
+            "totalCostsR": 1.41,
+            "profitFactor": 1.05,
+            "maxDrawdownR": 8.38,
+            "averageR": 0.031,
+            "recoveryFactor": 0.31
+          },
+          "outOfSample": {
+            "trades": 45,
+            "winRate": 37.8,
+            "netR": -2.25,
+            "grossR": -1.92,
+            "totalCostsR": 0.33,
+            "profitFactor": 0.92,
+            "maxDrawdownR": 8.15,
+            "averageR": -0.05,
+            "recoveryFactor": -0.28
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 199,
+            "winRate": 43.7,
+            "netR": 9.06,
+            "grossR": 20.02,
+            "totalCostsR": 10.95,
+            "profitFactor": 1.08,
+            "maxDrawdownR": 9.58,
+            "averageR": 0.046,
+            "recoveryFactor": 0.95
+          },
+          "outOfSample": {
+            "trades": 89,
+            "winRate": 42.7,
+            "netR": 0.64,
+            "grossR": 6.03,
+            "totalCostsR": 5.39,
+            "profitFactor": 1.01,
+            "maxDrawdownR": 12.8,
+            "averageR": 0.007,
+            "recoveryFactor": 0.05
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 215,
+            "winRate": 38.1,
+            "netR": -21.43,
+            "grossR": -7.39,
+            "totalCostsR": 14.04,
+            "profitFactor": 0.85,
+            "maxDrawdownR": 31.44,
+            "averageR": -0.1,
+            "recoveryFactor": -0.68
+          },
+          "outOfSample": {
+            "trades": 105,
+            "winRate": 45.7,
+            "netR": 8.16,
+            "grossR": 15.19,
+            "totalCostsR": 7.03,
+            "profitFactor": 1.13,
+            "maxDrawdownR": 8.52,
+            "averageR": 0.078,
+            "recoveryFactor": 0.96
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 248,
+            "winRate": 35.1,
+            "netR": -37.67,
+            "grossR": -30.44,
+            "totalCostsR": 7.23,
+            "profitFactor": 0.77,
+            "maxDrawdownR": 39.58,
+            "averageR": -0.152,
+            "recoveryFactor": -0.95
+          },
+          "outOfSample": {
+            "trades": 106,
+            "winRate": 30.2,
+            "netR": -28.61,
+            "grossR": -25.32,
+            "totalCostsR": 3.3,
+            "profitFactor": 0.63,
+            "maxDrawdownR": 33.6,
+            "averageR": -0.27,
+            "recoveryFactor": -0.85
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2,
+      "tpR": 2,
+      "inSample": {
+        "trades": 1360,
+        "winRate": 32.6,
+        "netR": -98.06,
+        "grossR": -38.95,
+        "totalCostsR": 59.11,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 121.32,
+        "averageR": -0.072,
+        "recoveryFactor": -0.81
+      },
+      "outOfSample": {
+        "trades": 587,
+        "winRate": 33.4,
+        "netR": -22.99,
+        "grossR": 3.82,
+        "totalCostsR": 26.81,
+        "profitFactor": 0.94,
+        "maxDrawdownR": 46.18,
+        "averageR": -0.039,
+        "recoveryFactor": -0.5
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 342,
+            "winRate": 33.9,
+            "netR": -14.8,
+            "grossR": 0.86,
+            "totalCostsR": 15.66,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 30.21,
+            "averageR": -0.043,
+            "recoveryFactor": -0.49
+          },
+          "outOfSample": {
+            "trades": 145,
+            "winRate": 37.2,
+            "netR": 9.29,
+            "grossR": 16.53,
+            "totalCostsR": 7.23,
+            "profitFactor": 1.1,
+            "maxDrawdownR": 16.77,
+            "averageR": 0.064,
+            "recoveryFactor": 0.55
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 343,
+            "winRate": 32.4,
+            "netR": -23.24,
+            "grossR": -10.56,
+            "totalCostsR": 12.68,
+            "profitFactor": 0.9,
+            "maxDrawdownR": 41.24,
+            "averageR": -0.068,
+            "recoveryFactor": -0.56
+          },
+          "outOfSample": {
+            "trades": 132,
+            "winRate": 30.3,
+            "netR": -19.05,
+            "grossR": -13.75,
+            "totalCostsR": 5.3,
+            "profitFactor": 0.81,
+            "maxDrawdownR": 25.01,
+            "averageR": -0.144,
+            "recoveryFactor": -0.76
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 81,
+            "winRate": 29.6,
+            "netR": -11.8,
+            "grossR": -10.45,
+            "totalCostsR": 1.35,
+            "profitFactor": 0.8,
+            "maxDrawdownR": 16.41,
+            "averageR": -0.146,
+            "recoveryFactor": -0.72
+          },
+          "outOfSample": {
+            "trades": 43,
+            "winRate": 32.6,
+            "netR": -1.24,
+            "grossR": -0.92,
+            "totalCostsR": 0.32,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 6.15,
+            "averageR": -0.029,
+            "recoveryFactor": -0.2
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 183,
+            "winRate": 36.1,
+            "netR": 5.8,
+            "grossR": 15.93,
+            "totalCostsR": 10.13,
+            "profitFactor": 1.05,
+            "maxDrawdownR": 16.39,
+            "averageR": 0.032,
+            "recoveryFactor": 0.35
+          },
+          "outOfSample": {
+            "trades": 81,
+            "winRate": 38.3,
+            "netR": 7.3,
+            "grossR": 12.15,
+            "totalCostsR": 4.85,
+            "profitFactor": 1.14,
+            "maxDrawdownR": 13.9,
+            "averageR": 0.09,
+            "recoveryFactor": 0.52
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 202,
+            "winRate": 32.2,
+            "netR": -18.47,
+            "grossR": -5.25,
+            "totalCostsR": 13.22,
+            "profitFactor": 0.87,
+            "maxDrawdownR": 31.04,
+            "averageR": -0.091,
+            "recoveryFactor": -0.59
+          },
+          "outOfSample": {
+            "trades": 95,
+            "winRate": 37.9,
+            "netR": 12.04,
+            "grossR": 18.35,
+            "totalCostsR": 6.31,
+            "profitFactor": 1.19,
+            "maxDrawdownR": 7.7,
+            "averageR": 0.127,
+            "recoveryFactor": 1.56
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 209,
+            "winRate": 29.2,
+            "netR": -35.55,
+            "grossR": -29.48,
+            "totalCostsR": 6.07,
+            "profitFactor": 0.76,
+            "maxDrawdownR": 41.11,
+            "averageR": -0.17,
+            "recoveryFactor": -0.86
+          },
+          "outOfSample": {
+            "trades": 91,
+            "winRate": 23.1,
+            "netR": -31.33,
+            "grossR": -28.52,
+            "totalCostsR": 2.8,
+            "profitFactor": 0.56,
+            "maxDrawdownR": 40.89,
+            "averageR": -0.344,
+            "recoveryFactor": -0.77
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2.5,
+      "tpR": 1,
+      "inSample": {
+        "trades": 1392,
+        "winRate": 48.7,
+        "netR": -75.3,
+        "grossR": -27.36,
+        "totalCostsR": 47.93,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 86.36,
+        "averageR": -0.054,
+        "recoveryFactor": -0.87
+      },
+      "outOfSample": {
+        "trades": 602,
+        "winRate": 47.5,
+        "netR": -52.74,
+        "grossR": -30.41,
+        "totalCostsR": 22.32,
+        "profitFactor": 0.84,
+        "maxDrawdownR": 56.5,
+        "averageR": -0.088,
+        "recoveryFactor": -0.93
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 365,
+            "winRate": 50.7,
+            "netR": -6.54,
+            "grossR": 6.7,
+            "totalCostsR": 13.24,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 18.16,
+            "averageR": -0.018,
+            "recoveryFactor": -0.36
+          },
+          "outOfSample": {
+            "trades": 150,
+            "winRate": 51.3,
+            "netR": -2.13,
+            "grossR": 3.95,
+            "totalCostsR": 6.08,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 12.99,
+            "averageR": -0.014,
+            "recoveryFactor": -0.16
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 355,
+            "winRate": 49.3,
+            "netR": -13.05,
+            "grossR": -2.48,
+            "totalCostsR": 10.56,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 24.47,
+            "averageR": -0.037,
+            "recoveryFactor": -0.53
+          },
+          "outOfSample": {
+            "trades": 135,
+            "winRate": 43.7,
+            "netR": -21.54,
+            "grossR": -17.23,
+            "totalCostsR": 4.31,
+            "profitFactor": 0.73,
+            "maxDrawdownR": 27.03,
+            "averageR": -0.16,
+            "recoveryFactor": -0.8
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 79,
+            "winRate": 54.4,
+            "netR": 5.93,
+            "grossR": 7,
+            "totalCostsR": 1.07,
+            "profitFactor": 1.16,
+            "maxDrawdownR": 4.18,
+            "averageR": 0.075,
+            "recoveryFactor": 1.42
+          },
+          "outOfSample": {
+            "trades": 43,
+            "winRate": 41.9,
+            "netR": -7.22,
+            "grossR": -6.97,
+            "totalCostsR": 0.25,
+            "profitFactor": 0.71,
+            "maxDrawdownR": 8.22,
+            "averageR": -0.168,
+            "recoveryFactor": -0.88
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 179,
+            "winRate": 49.2,
+            "netR": -10.57,
+            "grossR": -2.68,
+            "totalCostsR": 7.89,
+            "profitFactor": 0.89,
+            "maxDrawdownR": 21.25,
+            "averageR": -0.059,
+            "recoveryFactor": -0.5
+          },
+          "outOfSample": {
+            "trades": 83,
+            "winRate": 50.6,
+            "netR": -2.84,
+            "grossR": 1.21,
+            "totalCostsR": 4.04,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 8.52,
+            "averageR": -0.034,
+            "recoveryFactor": -0.33
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 192,
+            "winRate": 47.4,
+            "netR": -17.87,
+            "grossR": -7.84,
+            "totalCostsR": 10.03,
+            "profitFactor": 0.83,
+            "maxDrawdownR": 27.13,
+            "averageR": -0.093,
+            "recoveryFactor": -0.66
+          },
+          "outOfSample": {
+            "trades": 99,
+            "winRate": 51.5,
+            "netR": -3.1,
+            "grossR": 2.23,
+            "totalCostsR": 5.33,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 10.33,
+            "averageR": -0.031,
+            "recoveryFactor": -0.3
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 222,
+            "winRate": 43.2,
+            "netR": -33.2,
+            "grossR": -28.07,
+            "totalCostsR": 5.13,
+            "profitFactor": 0.74,
+            "maxDrawdownR": 35.11,
+            "averageR": -0.15,
+            "recoveryFactor": -0.95
+          },
+          "outOfSample": {
+            "trades": 92,
+            "winRate": 42.4,
+            "netR": -15.9,
+            "grossR": -13.6,
+            "totalCostsR": 2.3,
+            "profitFactor": 0.71,
+            "maxDrawdownR": 20.42,
+            "averageR": -0.173,
+            "recoveryFactor": -0.78
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2.5,
+      "tpR": 1.2,
+      "inSample": {
+        "trades": 1318,
+        "winRate": 44.2,
+        "netR": -75.01,
+        "grossR": -29.52,
+        "totalCostsR": 45.49,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 100.48,
+        "averageR": -0.057,
+        "recoveryFactor": -0.75
+      },
+      "outOfSample": {
+        "trades": 571,
+        "winRate": 42.9,
+        "netR": -50.59,
+        "grossR": -29.41,
+        "totalCostsR": 21.18,
+        "profitFactor": 0.85,
+        "maxDrawdownR": 53.2,
+        "averageR": -0.089,
+        "recoveryFactor": -0.95
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 345,
+            "winRate": 47.5,
+            "netR": 3.81,
+            "grossR": 16.33,
+            "totalCostsR": 12.52,
+            "profitFactor": 1.02,
+            "maxDrawdownR": 14,
+            "averageR": 0.011,
+            "recoveryFactor": 0.27
+          },
+          "outOfSample": {
+            "trades": 142,
+            "winRate": 48.6,
+            "netR": 7.05,
+            "grossR": 12.82,
+            "totalCostsR": 5.77,
+            "profitFactor": 1.09,
+            "maxDrawdownR": 14.16,
+            "averageR": 0.05,
+            "recoveryFactor": 0.5
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 332,
+            "winRate": 45.8,
+            "netR": -5.31,
+            "grossR": 4.56,
+            "totalCostsR": 9.86,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 25.07,
+            "averageR": -0.016,
+            "recoveryFactor": -0.21
+          },
+          "outOfSample": {
+            "trades": 129,
+            "winRate": 36.4,
+            "netR": -30.5,
+            "grossR": -26.4,
+            "totalCostsR": 4.1,
+            "profitFactor": 0.65,
+            "maxDrawdownR": 31.95,
+            "averageR": -0.236,
+            "recoveryFactor": -0.95
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 78,
+            "winRate": 46.2,
+            "netR": 0.15,
+            "grossR": 1.2,
+            "totalCostsR": 1.05,
+            "profitFactor": 1,
+            "maxDrawdownR": 5.69,
+            "averageR": 0.002,
+            "recoveryFactor": 0.03
+          },
+          "outOfSample": {
+            "trades": 41,
+            "winRate": 39,
+            "netR": -5.58,
+            "grossR": -5.34,
+            "totalCostsR": 0.24,
+            "profitFactor": 0.78,
+            "maxDrawdownR": 6.12,
+            "averageR": -0.136,
+            "recoveryFactor": -0.91
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 171,
+            "winRate": 47.4,
+            "netR": -0.03,
+            "grossR": 7.52,
+            "totalCostsR": 7.55,
+            "profitFactor": 1,
+            "maxDrawdownR": 17.94,
+            "averageR": 0,
+            "recoveryFactor": 0
+          },
+          "outOfSample": {
+            "trades": 80,
+            "winRate": 48.8,
+            "netR": 1.96,
+            "grossR": 5.82,
+            "totalCostsR": 3.87,
+            "profitFactor": 1.05,
+            "maxDrawdownR": 6.72,
+            "averageR": 0.024,
+            "recoveryFactor": 0.29
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 186,
+            "winRate": 40.9,
+            "netR": -27.11,
+            "grossR": -17.38,
+            "totalCostsR": 9.74,
+            "profitFactor": 0.77,
+            "maxDrawdownR": 31.09,
+            "averageR": -0.146,
+            "recoveryFactor": -0.87
+          },
+          "outOfSample": {
+            "trades": 96,
+            "winRate": 46.9,
+            "netR": -2.93,
+            "grossR": 2.21,
+            "totalCostsR": 5.15,
+            "profitFactor": 0.95,
+            "maxDrawdownR": 10.17,
+            "averageR": -0.031,
+            "recoveryFactor": -0.29
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 206,
+            "winRate": 35.9,
+            "netR": -46.51,
+            "grossR": -41.75,
+            "totalCostsR": 4.77,
+            "profitFactor": 0.65,
+            "maxDrawdownR": 47.85,
+            "averageR": -0.226,
+            "recoveryFactor": -0.97
+          },
+          "outOfSample": {
+            "trades": 83,
+            "winRate": 34.9,
+            "netR": -20.58,
+            "grossR": -18.52,
+            "totalCostsR": 2.06,
+            "profitFactor": 0.62,
+            "maxDrawdownR": 25.01,
+            "averageR": -0.248,
+            "recoveryFactor": -0.82
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2.5,
+      "tpR": 1.5,
+      "inSample": {
+        "trades": 1204,
+        "winRate": 39.1,
+        "netR": -69.71,
+        "grossR": -28.11,
+        "totalCostsR": 41.59,
+        "profitFactor": 0.91,
+        "maxDrawdownR": 104.43,
+        "averageR": -0.058,
+        "recoveryFactor": -0.67
+      },
+      "outOfSample": {
+        "trades": 535,
+        "winRate": 38.5,
+        "netR": -36.86,
+        "grossR": -17.29,
+        "totalCostsR": 19.57,
+        "profitFactor": 0.89,
+        "maxDrawdownR": 43.47,
+        "averageR": -0.069,
+        "recoveryFactor": -0.85
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 300,
+            "winRate": 42.7,
+            "netR": 6.41,
+            "grossR": 17.3,
+            "totalCostsR": 10.89,
+            "profitFactor": 1.04,
+            "maxDrawdownR": 13.97,
+            "averageR": 0.021,
+            "recoveryFactor": 0.46
+          },
+          "outOfSample": {
+            "trades": 132,
+            "winRate": 43.9,
+            "netR": 9.07,
+            "grossR": 14.31,
+            "totalCostsR": 5.25,
+            "profitFactor": 1.12,
+            "maxDrawdownR": 12.16,
+            "averageR": 0.069,
+            "recoveryFactor": 0.75
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 310,
+            "winRate": 41.6,
+            "netR": 4.09,
+            "grossR": 13.2,
+            "totalCostsR": 9.11,
+            "profitFactor": 1.02,
+            "maxDrawdownR": 18.01,
+            "averageR": 0.013,
+            "recoveryFactor": 0.23
+          },
+          "outOfSample": {
+            "trades": 120,
+            "winRate": 35,
+            "netR": -19.71,
+            "grossR": -15.9,
+            "totalCostsR": 3.8,
+            "profitFactor": 0.76,
+            "maxDrawdownR": 24.78,
+            "averageR": -0.164,
+            "recoveryFactor": -0.8
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 76,
+            "winRate": 35.5,
+            "netR": -9.52,
+            "grossR": -8.5,
+            "totalCostsR": 1.02,
+            "profitFactor": 0.81,
+            "maxDrawdownR": 13.78,
+            "averageR": -0.125,
+            "recoveryFactor": -0.69
+          },
+          "outOfSample": {
+            "trades": 41,
+            "winRate": 39,
+            "netR": -1.08,
+            "grossR": -0.84,
+            "totalCostsR": 0.24,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 5.55,
+            "averageR": -0.026,
+            "recoveryFactor": -0.19
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 162,
+            "winRate": 40.1,
+            "netR": -6.37,
+            "grossR": 0.81,
+            "totalCostsR": 7.18,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 25.67,
+            "averageR": -0.039,
+            "recoveryFactor": -0.25
+          },
+          "outOfSample": {
+            "trades": 76,
+            "winRate": 46.1,
+            "netR": 8.23,
+            "grossR": 11.85,
+            "totalCostsR": 3.62,
+            "profitFactor": 1.19,
+            "maxDrawdownR": 7.41,
+            "averageR": 0.108,
+            "recoveryFactor": 1.11
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 177,
+            "winRate": 36.2,
+            "netR": -25.28,
+            "grossR": -15.99,
+            "totalCostsR": 9.3,
+            "profitFactor": 0.79,
+            "maxDrawdownR": 32.56,
+            "averageR": -0.143,
+            "recoveryFactor": -0.78
+          },
+          "outOfSample": {
+            "trades": 89,
+            "winRate": 41.6,
+            "netR": -2.42,
+            "grossR": 2.32,
+            "totalCostsR": 4.74,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 10.56,
+            "averageR": -0.027,
+            "recoveryFactor": -0.23
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 179,
+            "winRate": 32.4,
+            "netR": -39.03,
+            "grossR": -34.93,
+            "totalCostsR": 4.1,
+            "profitFactor": 0.67,
+            "maxDrawdownR": 41.18,
+            "averageR": -0.218,
+            "recoveryFactor": -0.95
+          },
+          "outOfSample": {
+            "trades": 77,
+            "winRate": 23.4,
+            "netR": -30.94,
+            "grossR": -29.03,
+            "totalCostsR": 1.91,
+            "profitFactor": 0.46,
+            "maxDrawdownR": 33.77,
+            "averageR": -0.402,
+            "recoveryFactor": -0.92
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 2.5,
+      "tpR": 2,
+      "inSample": {
+        "trades": 1071,
+        "winRate": 33.1,
+        "netR": -71.82,
+        "grossR": -34.8,
+        "totalCostsR": 37.03,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 121.97,
+        "averageR": -0.067,
+        "recoveryFactor": -0.59
+      },
+      "outOfSample": {
+        "trades": 473,
+        "winRate": 34.5,
+        "netR": -2.79,
+        "grossR": 14.19,
+        "totalCostsR": 16.98,
+        "profitFactor": 0.99,
+        "maxDrawdownR": 36.46,
+        "averageR": -0.006,
+        "recoveryFactor": -0.08
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 258,
+            "winRate": 35.7,
+            "netR": 3.34,
+            "grossR": 12.66,
+            "totalCostsR": 9.31,
+            "profitFactor": 1.02,
+            "maxDrawdownR": 19.22,
+            "averageR": 0.013,
+            "recoveryFactor": 0.17
+          },
+          "outOfSample": {
+            "trades": 111,
+            "winRate": 34.2,
+            "netR": -3.3,
+            "grossR": 0.93,
+            "totalCostsR": 4.23,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 13.09,
+            "averageR": -0.03,
+            "recoveryFactor": -0.25
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 258,
+            "winRate": 31.8,
+            "netR": -23.89,
+            "grossR": -16.44,
+            "totalCostsR": 7.45,
+            "profitFactor": 0.87,
+            "maxDrawdownR": 36.73,
+            "averageR": -0.093,
+            "recoveryFactor": -0.65
+          },
+          "outOfSample": {
+            "trades": 105,
+            "winRate": 34.3,
+            "netR": -1.1,
+            "grossR": 2.17,
+            "totalCostsR": 3.27,
+            "profitFactor": 0.98,
+            "maxDrawdownR": 22.12,
+            "averageR": -0.01,
+            "recoveryFactor": -0.05
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 71,
+            "winRate": 28.2,
+            "netR": -13.43,
+            "grossR": -12.48,
+            "totalCostsR": 0.95,
+            "profitFactor": 0.74,
+            "maxDrawdownR": 18.19,
+            "averageR": -0.189,
+            "recoveryFactor": -0.74
+          },
+          "outOfSample": {
+            "trades": 39,
+            "winRate": 30.8,
+            "netR": -4.01,
+            "grossR": -3.78,
+            "totalCostsR": 0.23,
+            "profitFactor": 0.85,
+            "maxDrawdownR": 6.95,
+            "averageR": -0.103,
+            "recoveryFactor": -0.58
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 155,
+            "winRate": 35.5,
+            "netR": 0.32,
+            "grossR": 7.17,
+            "totalCostsR": 6.85,
+            "profitFactor": 1,
+            "maxDrawdownR": 18.06,
+            "averageR": 0.002,
+            "recoveryFactor": 0.02
+          },
+          "outOfSample": {
+            "trades": 65,
+            "winRate": 43.1,
+            "netR": 15.35,
+            "grossR": 18.45,
+            "totalCostsR": 3.1,
+            "profitFactor": 1.4,
+            "maxDrawdownR": 7.54,
+            "averageR": 0.236,
+            "recoveryFactor": 2.04
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 164,
+            "winRate": 31.7,
+            "netR": -17.47,
+            "grossR": -8.81,
+            "totalCostsR": 8.66,
+            "profitFactor": 0.85,
+            "maxDrawdownR": 34.18,
+            "averageR": -0.107,
+            "recoveryFactor": -0.51
+          },
+          "outOfSample": {
+            "trades": 83,
+            "winRate": 38.6,
+            "netR": 9.95,
+            "grossR": 14.36,
+            "totalCostsR": 4.41,
+            "profitFactor": 1.18,
+            "maxDrawdownR": 7.42,
+            "averageR": 0.12,
+            "recoveryFactor": 1.34
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 165,
+            "winRate": 32.1,
+            "netR": -20.69,
+            "grossR": -16.89,
+            "totalCostsR": 3.8,
+            "profitFactor": 0.81,
+            "maxDrawdownR": 26.62,
+            "averageR": -0.125,
+            "recoveryFactor": -0.78
+          },
+          "outOfSample": {
+            "trades": 70,
+            "winRate": 24.3,
+            "netR": -19.68,
+            "grossR": -17.94,
+            "totalCostsR": 1.74,
+            "profitFactor": 0.62,
+            "maxDrawdownR": 28.37,
+            "averageR": -0.281,
+            "recoveryFactor": -0.69
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 3,
+      "tpR": 1,
+      "inSample": {
+        "trades": 1285,
+        "winRate": 47.9,
+        "netR": -88.79,
+        "grossR": -47.86,
+        "totalCostsR": 40.93,
+        "profitFactor": 0.87,
+        "maxDrawdownR": 99.44,
+        "averageR": -0.069,
+        "recoveryFactor": -0.89
+      },
+      "outOfSample": {
+        "trades": 556,
+        "winRate": 47.1,
+        "netR": -50.8,
+        "grossR": -31.7,
+        "totalCostsR": 19.1,
+        "profitFactor": 0.83,
+        "maxDrawdownR": 53.59,
+        "averageR": -0.091,
+        "recoveryFactor": -0.95
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 354,
+            "winRate": 49.4,
+            "netR": -15.55,
+            "grossR": -3.23,
+            "totalCostsR": 12.32,
+            "profitFactor": 0.92,
+            "maxDrawdownR": 21.26,
+            "averageR": -0.044,
+            "recoveryFactor": -0.73
+          },
+          "outOfSample": {
+            "trades": 141,
+            "winRate": 48.2,
+            "netR": -9.87,
+            "grossR": -4.36,
+            "totalCostsR": 5.51,
+            "profitFactor": 0.87,
+            "maxDrawdownR": 14.29,
+            "averageR": -0.07,
+            "recoveryFactor": -0.69
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 307,
+            "winRate": 50.2,
+            "netR": -4.19,
+            "grossR": 3.65,
+            "totalCostsR": 7.84,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 19.82,
+            "averageR": -0.014,
+            "recoveryFactor": -0.21
+          },
+          "outOfSample": {
+            "trades": 121,
+            "winRate": 45.5,
+            "netR": -14.62,
+            "grossR": -11.28,
+            "totalCostsR": 3.34,
+            "profitFactor": 0.79,
+            "maxDrawdownR": 24.36,
+            "averageR": -0.121,
+            "recoveryFactor": -0.6
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 74,
+            "winRate": 47.3,
+            "netR": -4.85,
+            "grossR": -4.02,
+            "totalCostsR": 0.83,
+            "profitFactor": 0.88,
+            "maxDrawdownR": 7.48,
+            "averageR": -0.066,
+            "recoveryFactor": -0.65
+          },
+          "outOfSample": {
+            "trades": 38,
+            "winRate": 39.5,
+            "netR": -7.8,
+            "grossR": -7.61,
+            "totalCostsR": 0.19,
+            "profitFactor": 0.66,
+            "maxDrawdownR": 7.8,
+            "averageR": -0.205,
+            "recoveryFactor": -1
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 169,
+            "winRate": 49.7,
+            "netR": -7.51,
+            "grossR": -0.62,
+            "totalCostsR": 6.89,
+            "profitFactor": 0.91,
+            "maxDrawdownR": 17.82,
+            "averageR": -0.044,
+            "recoveryFactor": -0.42
+          },
+          "outOfSample": {
+            "trades": 79,
+            "winRate": 53.2,
+            "netR": 1.46,
+            "grossR": 5.05,
+            "totalCostsR": 3.59,
+            "profitFactor": 1.04,
+            "maxDrawdownR": 6.4,
+            "averageR": 0.018,
+            "recoveryFactor": 0.23
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 183,
+            "winRate": 45.9,
+            "netR": -23.68,
+            "grossR": -14.88,
+            "totalCostsR": 8.8,
+            "profitFactor": 0.77,
+            "maxDrawdownR": 25.47,
+            "averageR": -0.129,
+            "recoveryFactor": -0.93
+          },
+          "outOfSample": {
+            "trades": 92,
+            "winRate": 51.1,
+            "netR": -3.25,
+            "grossR": 1.26,
+            "totalCostsR": 4.51,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 10.42,
+            "averageR": -0.035,
+            "recoveryFactor": -0.31
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 198,
+            "winRate": 41.9,
+            "netR": -33.01,
+            "grossR": -28.75,
+            "totalCostsR": 4.26,
+            "profitFactor": 0.71,
+            "maxDrawdownR": 35.67,
+            "averageR": -0.167,
+            "recoveryFactor": -0.93
+          },
+          "outOfSample": {
+            "trades": 85,
+            "winRate": 41.2,
+            "netR": -16.71,
+            "grossR": -14.74,
+            "totalCostsR": 1.97,
+            "profitFactor": 0.67,
+            "maxDrawdownR": 19.31,
+            "averageR": -0.197,
+            "recoveryFactor": -0.87
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 3,
+      "tpR": 1.2,
+      "inSample": {
+        "trades": 1217,
+        "winRate": 44.5,
+        "netR": -61.73,
+        "grossR": -22.94,
+        "totalCostsR": 38.79,
+        "profitFactor": 0.91,
+        "maxDrawdownR": 86.28,
+        "averageR": -0.051,
+        "recoveryFactor": -0.72
+      },
+      "outOfSample": {
+        "trades": 517,
+        "winRate": 43.9,
+        "netR": -32.05,
+        "grossR": -14.43,
+        "totalCostsR": 17.62,
+        "profitFactor": 0.89,
+        "maxDrawdownR": 36.38,
+        "averageR": -0.062,
+        "recoveryFactor": -0.88
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 330,
+            "winRate": 48.2,
+            "netR": 8.52,
+            "grossR": 19.99,
+            "totalCostsR": 11.47,
+            "profitFactor": 1.05,
+            "maxDrawdownR": 12.06,
+            "averageR": 0.026,
+            "recoveryFactor": 0.71
+          },
+          "outOfSample": {
+            "trades": 134,
+            "winRate": 46.3,
+            "netR": -0.75,
+            "grossR": 4.42,
+            "totalCostsR": 5.17,
+            "profitFactor": 0.99,
+            "maxDrawdownR": 18.26,
+            "averageR": -0.006,
+            "recoveryFactor": -0.04
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 286,
+            "winRate": 48.3,
+            "netR": 12.14,
+            "grossR": 19.38,
+            "totalCostsR": 7.24,
+            "profitFactor": 1.08,
+            "maxDrawdownR": 12.54,
+            "averageR": 0.042,
+            "recoveryFactor": 0.97
+          },
+          "outOfSample": {
+            "trades": 106,
+            "winRate": 43.4,
+            "netR": -7.03,
+            "grossR": -4.12,
+            "totalCostsR": 2.91,
+            "profitFactor": 0.89,
+            "maxDrawdownR": 21.5,
+            "averageR": -0.066,
+            "recoveryFactor": -0.33
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 72,
+            "winRate": 36.1,
+            "netR": -15.63,
+            "grossR": -14.82,
+            "totalCostsR": 0.81,
+            "profitFactor": 0.66,
+            "maxDrawdownR": 16.65,
+            "averageR": -0.217,
+            "recoveryFactor": -0.94
+          },
+          "outOfSample": {
+            "trades": 38,
+            "winRate": 39.5,
+            "netR": -5,
+            "grossR": -4.81,
+            "totalCostsR": 0.19,
+            "profitFactor": 0.78,
+            "maxDrawdownR": 5.84,
+            "averageR": -0.132,
+            "recoveryFactor": -0.86
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 164,
+            "winRate": 46.3,
+            "netR": -3.13,
+            "grossR": 3.58,
+            "totalCostsR": 6.71,
+            "profitFactor": 0.97,
+            "maxDrawdownR": 16.21,
+            "averageR": -0.019,
+            "recoveryFactor": -0.19
+          },
+          "outOfSample": {
+            "trades": 76,
+            "winRate": 50,
+            "netR": 4.29,
+            "grossR": 7.72,
+            "totalCostsR": 3.43,
+            "profitFactor": 1.11,
+            "maxDrawdownR": 6.6,
+            "averageR": 0.056,
+            "recoveryFactor": 0.65
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 176,
+            "winRate": 39.8,
+            "netR": -30.46,
+            "grossR": -21.97,
+            "totalCostsR": 8.49,
+            "profitFactor": 0.73,
+            "maxDrawdownR": 34,
+            "averageR": -0.173,
+            "recoveryFactor": -0.9
+          },
+          "outOfSample": {
+            "trades": 86,
+            "winRate": 46.5,
+            "netR": -2.6,
+            "grossR": 1.56,
+            "totalCostsR": 4.17,
+            "profitFactor": 0.95,
+            "maxDrawdownR": 9.69,
+            "averageR": -0.03,
+            "recoveryFactor": -0.27
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 189,
+            "winRate": 38.1,
+            "netR": -33.17,
+            "grossR": -29.1,
+            "totalCostsR": 4.07,
+            "profitFactor": 0.71,
+            "maxDrawdownR": 38.1,
+            "averageR": -0.176,
+            "recoveryFactor": -0.87
+          },
+          "outOfSample": {
+            "trades": 77,
+            "winRate": 33.8,
+            "netR": -20.95,
+            "grossR": -19.19,
+            "totalCostsR": 1.76,
+            "profitFactor": 0.59,
+            "maxDrawdownR": 25.25,
+            "averageR": -0.272,
+            "recoveryFactor": -0.83
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 3,
+      "tpR": 1.5,
+      "inSample": {
+        "trades": 1096,
+        "winRate": 39.4,
+        "netR": -57.34,
+        "grossR": -22.23,
+        "totalCostsR": 35.11,
+        "profitFactor": 0.92,
+        "maxDrawdownR": 94.47,
+        "averageR": -0.052,
+        "recoveryFactor": -0.61
+      },
+      "outOfSample": {
+        "trades": 484,
+        "winRate": 39.3,
+        "netR": -18.2,
+        "grossR": -1.84,
+        "totalCostsR": 16.36,
+        "profitFactor": 0.94,
+        "maxDrawdownR": 32.82,
+        "averageR": -0.038,
+        "recoveryFactor": -0.55
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 290,
+            "winRate": 42.8,
+            "netR": 6.58,
+            "grossR": 16.69,
+            "totalCostsR": 10.11,
+            "profitFactor": 1.04,
+            "maxDrawdownR": 14.39,
+            "averageR": 0.023,
+            "recoveryFactor": 0.46
+          },
+          "outOfSample": {
+            "trades": 126,
+            "winRate": 42.1,
+            "netR": 3.36,
+            "grossR": 8.16,
+            "totalCostsR": 4.81,
+            "profitFactor": 1.04,
+            "maxDrawdownR": 14.58,
+            "averageR": 0.027,
+            "recoveryFactor": 0.23
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 253,
+            "winRate": 43.1,
+            "netR": 10.07,
+            "grossR": 16.42,
+            "totalCostsR": 6.34,
+            "profitFactor": 1.07,
+            "maxDrawdownR": 17.56,
+            "averageR": 0.04,
+            "recoveryFactor": 0.57
+          },
+          "outOfSample": {
+            "trades": 97,
+            "winRate": 38.1,
+            "netR": -6.89,
+            "grossR": -4.26,
+            "totalCostsR": 2.63,
+            "profitFactor": 0.89,
+            "maxDrawdownR": 20.91,
+            "averageR": -0.071,
+            "recoveryFactor": -0.33
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 67,
+            "winRate": 25.4,
+            "netR": -25.27,
+            "grossR": -24.52,
+            "totalCostsR": 0.75,
+            "profitFactor": 0.5,
+            "maxDrawdownR": 25.59,
+            "averageR": -0.377,
+            "recoveryFactor": -0.99
+          },
+          "outOfSample": {
+            "trades": 36,
+            "winRate": 33.3,
+            "netR": -6.17,
+            "grossR": -6,
+            "totalCostsR": 0.17,
+            "profitFactor": 0.74,
+            "maxDrawdownR": 8.13,
+            "averageR": -0.171,
+            "recoveryFactor": -0.76
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 150,
+            "winRate": 40.7,
+            "netR": -3.27,
+            "grossR": 2.88,
+            "totalCostsR": 6.15,
+            "profitFactor": 0.96,
+            "maxDrawdownR": 21.08,
+            "averageR": -0.022,
+            "recoveryFactor": -0.16
+          },
+          "outOfSample": {
+            "trades": 71,
+            "winRate": 45.1,
+            "netR": 5.87,
+            "grossR": 9.02,
+            "totalCostsR": 3.15,
+            "profitFactor": 1.14,
+            "maxDrawdownR": 6.76,
+            "averageR": 0.083,
+            "recoveryFactor": 0.87
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 168,
+            "winRate": 37.5,
+            "netR": -18.74,
+            "grossR": -10.6,
+            "totalCostsR": 8.14,
+            "profitFactor": 0.83,
+            "maxDrawdownR": 22.9,
+            "averageR": -0.112,
+            "recoveryFactor": -0.82
+          },
+          "outOfSample": {
+            "trades": 82,
+            "winRate": 43.9,
+            "netR": 7.82,
+            "grossR": 11.77,
+            "totalCostsR": 3.95,
+            "profitFactor": 1.16,
+            "maxDrawdownR": 8.19,
+            "averageR": 0.095,
+            "recoveryFactor": 0.95
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 168,
+            "winRate": 34.5,
+            "netR": -26.71,
+            "grossR": -23.1,
+            "totalCostsR": 3.6,
+            "profitFactor": 0.75,
+            "maxDrawdownR": 32.85,
+            "averageR": -0.159,
+            "recoveryFactor": -0.81
+          },
+          "outOfSample": {
+            "trades": 72,
+            "winRate": 27.8,
+            "netR": -22.18,
+            "grossR": -20.54,
+            "totalCostsR": 1.64,
+            "profitFactor": 0.57,
+            "maxDrawdownR": 28.88,
+            "averageR": -0.308,
+            "recoveryFactor": -0.77
+          }
+        }
+      },
+      "selectionObjective": null
+    },
+    {
+      "slAtr": 3,
+      "tpR": 2,
+      "inSample": {
+        "trades": 975,
+        "winRate": 32.6,
+        "netR": -80.87,
+        "grossR": -49.59,
+        "totalCostsR": 31.28,
+        "profitFactor": 0.88,
+        "maxDrawdownR": 123.43,
+        "averageR": -0.083,
+        "recoveryFactor": -0.66
+      },
+      "outOfSample": {
+        "trades": 423,
+        "winRate": 32.6,
+        "netR": -29.93,
+        "grossR": -15.87,
+        "totalCostsR": 14.06,
+        "profitFactor": 0.9,
+        "maxDrawdownR": 45.81,
+        "averageR": -0.071,
+        "recoveryFactor": -0.65
+      },
+      "bySymbol": {
+        "EURUSD": {
+          "inSample": {
+            "trades": 249,
+            "winRate": 34.1,
+            "netR": -10.22,
+            "grossR": -1.58,
+            "totalCostsR": 8.64,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 28.43,
+            "averageR": -0.041,
+            "recoveryFactor": -0.36
+          },
+          "outOfSample": {
+            "trades": 106,
+            "winRate": 31.1,
+            "netR": -13,
+            "grossR": -9.09,
+            "totalCostsR": 3.91,
+            "profitFactor": 0.83,
+            "maxDrawdownR": 16.02,
+            "averageR": -0.123,
+            "recoveryFactor": -0.81
+          }
+        },
+        "GBPUSD": {
+          "inSample": {
+            "trades": 213,
+            "winRate": 32.9,
+            "netR": -10.61,
+            "grossR": -5.34,
+            "totalCostsR": 5.27,
+            "profitFactor": 0.93,
+            "maxDrawdownR": 28.2,
+            "averageR": -0.05,
+            "recoveryFactor": -0.38
+          },
+          "outOfSample": {
+            "trades": 82,
+            "winRate": 30.5,
+            "netR": -9.7,
+            "grossR": -7.48,
+            "totalCostsR": 2.22,
+            "profitFactor": 0.84,
+            "maxDrawdownR": 20.87,
+            "averageR": -0.118,
+            "recoveryFactor": -0.46
+          }
+        },
+        "GOLD": {
+          "inSample": {
+            "trades": 66,
+            "winRate": 22.7,
+            "netR": -24.19,
+            "grossR": -23.45,
+            "totalCostsR": 0.74,
+            "profitFactor": 0.53,
+            "maxDrawdownR": 25.03,
+            "averageR": -0.367,
+            "recoveryFactor": -0.97
+          },
+          "outOfSample": {
+            "trades": 36,
+            "winRate": 30.6,
+            "netR": -4.86,
+            "grossR": -4.69,
+            "totalCostsR": 0.17,
+            "profitFactor": 0.81,
+            "maxDrawdownR": 8.81,
+            "averageR": -0.135,
+            "recoveryFactor": -0.55
+          }
+        },
+        "AUDUSD": {
+          "inSample": {
+            "trades": 144,
+            "winRate": 34,
+            "netR": -5.86,
+            "grossR": 0.03,
+            "totalCostsR": 5.89,
+            "profitFactor": 0.94,
+            "maxDrawdownR": 21.91,
+            "averageR": -0.041,
+            "recoveryFactor": -0.27
+          },
+          "outOfSample": {
+            "trades": 65,
+            "winRate": 44.6,
+            "netR": 18.21,
+            "grossR": 21.12,
+            "totalCostsR": 2.92,
+            "profitFactor": 1.48,
+            "maxDrawdownR": 6.33,
+            "averageR": 0.28,
+            "recoveryFactor": 2.88
+          }
+        },
+        "NZDUSD": {
+          "inSample": {
+            "trades": 154,
+            "winRate": 33.1,
+            "netR": -10.53,
+            "grossR": -3.02,
+            "totalCostsR": 7.51,
+            "profitFactor": 0.9,
+            "maxDrawdownR": 24.71,
+            "averageR": -0.068,
+            "recoveryFactor": -0.43
+          },
+          "outOfSample": {
+            "trades": 72,
+            "winRate": 36.1,
+            "netR": 1.62,
+            "grossR": 5.03,
+            "totalCostsR": 3.41,
+            "profitFactor": 1.03,
+            "maxDrawdownR": 10.18,
+            "averageR": 0.023,
+            "recoveryFactor": 0.16
+          }
+        },
+        "USDCAD": {
+          "inSample": {
+            "trades": 149,
+            "winRate": 32.2,
+            "netR": -19.46,
+            "grossR": -16.23,
+            "totalCostsR": 3.23,
+            "profitFactor": 0.8,
+            "maxDrawdownR": 30.84,
+            "averageR": -0.131,
+            "recoveryFactor": -0.63
+          },
+          "outOfSample": {
+            "trades": 62,
+            "winRate": 22.6,
+            "netR": -22.19,
+            "grossR": -20.77,
+            "totalCostsR": 1.42,
+            "profitFactor": 0.53,
+            "maxDrawdownR": 28.93,
+            "averageR": -0.358,
+            "recoveryFactor": -0.77
+          }
+        }
+      },
+      "selectionObjective": null
+    }
+  ],
+  "selectedOnInSampleOnly": null,
+  "selectedParameterOutOfSample": null,
+  "selectionRule": "At least 30 IS trades and PF > 1; maximize NetR - 0.5 * MaxDD(R). If no candidate qualifies, no SL/TP pair is selected."
+}
