@@ -688,7 +688,8 @@ let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
 let isScanning = false;
 let LAST = null;
-let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI"]');
+let activeConditions = JSON.parse(LS("bs_active_cond") || '["EMA200", "EMA21/50", "بدون تقاطع", "۳+۱", "M15", "H1", "RSI", "BB"]');
+if (!LS("bs_bb_init_v1")) { if (!activeConditions.includes("BB")) activeConditions.push("BB"); LS("bs_active_cond", JSON.stringify(activeConditions)); LS("bs_bb_init_v1", "1"); }
 let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
 if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { activeMarkets = ["crypto", "forex", "metal", "commodity", "index", "stock"]; LS("bs_active_mkts", JSON.stringify(activeMarkets)); }
 
@@ -1249,7 +1250,7 @@ function renderList(rows) {
         const symbolPreset = Presets.getPreset(r.id);
         const opts = { 
             m15: activeConditions.includes('M15'), h1: activeConditions.includes('H1'), 
-            rsi: activeConditions.includes('RSI'), trend: activeConditions.includes('EMA200'), 
+            rsi: activeConditions.includes('RSI'), bb: activeConditions.includes('BB'), trend: activeConditions.includes('EMA200'), 
             emax: activeConditions.includes('EMA21/50'), nc: activeConditions.includes('بدون تقاطع'), 
             pat: activeConditions.includes('۳+۱'), mode: currentMode,
             sessionFilter: sessionFilter || !!symbolPreset.session, newsHours: finalNewsHours, adx: true

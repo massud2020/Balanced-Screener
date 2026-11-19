@@ -327,14 +327,15 @@
 
         if (mode === "range") {
             const useRsiFilter = opts.rsi !== false;
+            const useBbFilter = opts.bb !== false;
             const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 38;
             const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
             const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
-            const bbBuy = lastLower !== null && lastClose <= lastLower + (lastAtr * 0.2);
-            const bbSell = lastUpper !== null && lastClose >= lastUpper - (lastAtr * 0.2);
-            if (rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
-            else if (rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
+            const bbBuy = !useBbFilter || (Number.isFinite(lastLower) && lastClose <= lastLower + (lastAtr * 0.2));
+            const bbSell = !useBbFilter || (Number.isFinite(lastUpper) && lastClose >= lastUpper - (lastAtr * 0.2));
+            if ((useRsiFilter || useBbFilter) && rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
+            else if ((useRsiFilter || useBbFilter) && rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
             else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
         } else {
             const trendUpM5 = ema50[idx] > ema200[idx];
@@ -394,7 +395,8 @@
             }
 
             const isRangeOk = !!side;
-            checks.push({ l: opts.rsi !== false ? `اشباع RSI + برخورد بولینگر` : `برخورد بولینگر (بدون فیلتر RSI)`, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
+            const rangeLabel = (useRsiFilter && useBbFilter) ? "اشباع RSI + برخورد بولینگر" : useBbFilter ? "برخورد بولینگر (بدون فیلتر RSI)" : "اشباع RSI (بدون بولینگر)";
+            checks.push({ l: rangeLabel, ok: isRangeOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 2.0 });
             if (!isRangeOk && !failReason) failReason = "شرایط رنج برقرار نیست";
         } else {
             if (opts.adx !== false) {
