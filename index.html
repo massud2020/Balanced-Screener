@@ -766,7 +766,7 @@ async function speakClips(text) {
         setTimeout(() => r(false), 4000);
     })));
     if (ok.includes(false)) return false;
-    for (const a of clips) await new Promise(r => { a.onended = r; a.onerror = r; a.play().catch(r); });
+    for (let i = 0; i < clips.length; i++) { const a = clips[i]; await new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } }; a.onended = go; a.onerror = go; if (i < clips.length - 1) setTimeout(go, Math.max(60, (a.duration || 0.4) * 1000 - 130)); a.play().catch(go); }); }
     return true;
 }
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
@@ -1004,7 +1004,7 @@ window.doEnter = async function() {
     
     $('ai-splash').classList.add('hidden'); 
     setTimeout(() => $('ai-splash').style.display = 'none', 300); 
-    setTimeout(() => { scan(true); }, 500); 
+    setTimeout(() => { window.__entered = true; scan(true); }, 500); 
 };
 
 window.doSkip = function() { 
@@ -1013,7 +1013,7 @@ window.doSkip = function() {
     isWelcomePlaying = false; // مطمئن شویم قفل در حالت اسکیپ باز است
     $('ai-splash').classList.add('hidden'); 
     setTimeout(() => $('ai-splash').style.display = 'none', 300); 
-    setTimeout(() => { scan(true); }, 300); 
+    setTimeout(() => { window.__entered = true; scan(true); }, 300); 
 };
 
 window.setMode = function(mode) {
@@ -1193,12 +1193,17 @@ window.scan = async function(isAuto = false) {
             const currentArr = currentKeys ? currentKeys.split(',') : [];
             const lastSeenArr = lastSeen ? lastSeen.split(',') : [];
             let newSignalsCount = 0;
+            const __first = !window.__annDone; window.__annDone = true;
+            const __ann = (LS("bs_announced_keys") || "").split(',').filter(Boolean);
+            const __fresh = currentArr.filter(k => !__ann.includes(k));
+            LS("bs_announced_keys", currentArr.join(','));
+            if (window.__entered) { const __ef = !window.__entryDone; window.__entryDone = true; const __n = __ef ? currentArr.filter(k => !lastSeenArr.includes(k)).length : __fresh.length; if (__n > 0) setTimeout(function(){ const __u = window.__uniq || []; const __c = __ef ? __u.length : __u.filter(r => __fresh.some(k => k.split('|')[0] === r.id)).length; if (__c > 0) announceNewSignals(__c, __ef ? __u : __u.filter(r => __fresh.some(k => k.split('|')[0] === r.id))).catch(function(){}); }, 600); }
             currentArr.forEach(k => { if (!lastSeenArr.includes(k)) newSignalsCount++; });
             if (newSignalsCount > 0) {
                 $("unreadBadge").innerText = newSignalsCount;
                 $("unreadBadge").classList.add("on");
                 // 🛠 announceNewSignals خودش چک می‌کند که پیام خوش‌آمدگویی در حال پخش نباشد
-                try { await announceNewSignals(newSignalsCount, rows); } catch(e) { console.warn('Announce error:', e); }
+                try { /* announce handled above */ } catch(e) { console.warn('Announce error:', e); }
             } else { $("unreadBadge").classList.remove("on"); }
         }
 
@@ -1279,6 +1284,7 @@ function renderList(rows) {
         if (!seenCategories.has(catKey)) { uniqueSignals.push(r); seenCategories.add(catKey); } else { duplicateSignals.push(r); }
     });
 
+    window.__uniq = uniqueSignals.slice();
     let sg = uniqueSignals.filter(r => vf === "all" || r.side === vf);
     const nl = uniqueSignals.filter(r => r.side === "LONG").length;
     const ns = uniqueSignals.filter(r => r.side === "SHORT").length;

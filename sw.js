@@ -1,4 +1,4 @@
-const C = "bscreener-v107"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
+const C = "bscreener-v108"; // ✨ نسخه کش تغییر کرد تا آپدیت اجباری شود
 const F = [
   "./",
   "index.html",

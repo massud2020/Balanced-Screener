@@ -15,7 +15,6 @@ if (!Array.isArray(U) || U.length === 0) {
 }
 
 const TOK = (process.env.OANDA_TOKEN || "").replace(/[^A-Za-z0-9-]/g, ""), ENV = /live/i.test(process.env.OANDA_ENV || "") ? "live" : "practice";
-console.log("[auth] token length:", TOK.length, "| practice:", ENV === "practice", "| live:", ENV === "live");
 const F15 = process.env.M15 !== "0", FH1 = process.env.H1 !== "0", RSI_ON = process.env.RSI !== "0";
 const RSI_L = +(process.env.RSI_L || 38), RSI_S = +(process.env.RSI_S || 62), STRICT = process.env.H1_STRICT === "1";
 const MODES = (process.env.MODES || "pattern,range").split(",").map(x => x.trim()).filter(x => x === "pattern" || x === "range");
