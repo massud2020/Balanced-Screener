@@ -1,7 +1,7 @@
 // Background scanner for GitHub Actions
 // v42: Full MTF (M5, M15, H1) + Partial TP Logic
 const fs = require("fs"),
-  { evaluate, dropForming, filterCorrelated, isInTradingSession } = require("./engine.js"),
+  { evaluate, dropForming, filterCorrelated, getCorrelationGroups, isInTradingSession } = require("./engine.js"),
   TradePolicy = require("./trade-policy.js"),
   AL = require("./alerts.js");
 
@@ -413,8 +413,27 @@ async function once(now) {
 
   try {
     if (typeof filterCorrelated === "function") {
-      const active = allRows.filter(r => r && r.side);
-      const kept = new Set(filterCorrelated(active).map(r => r.id + "|" + r.side));
+      const openGroups = new Set();
+      if (typeof getCorrelationGroups === "function") {
+        for (const openId of Object.keys(STATE.active || {})) {
+          if (isOpen(openId)) {
+            getCorrelationGroups(openId).forEach(g => openGroups.add(g));
+          }
+        }
+      }
+      const candidates = allRows.filter(r => {
+        if (!r || !r.side) return false;
+        if (typeof getCorrelationGroups === "function") {
+          const rGroups = getCorrelationGroups(r.id);
+          if (rGroups.some(g => openGroups.has(g))) {
+            r.side = null;
+            r.fail = "همبستگی با پوزیشن باز فعلی";
+            return false;
+          }
+        }
+        return true;
+      });
+      const kept = new Set(filterCorrelated(candidates).map(r => r.id + "|" + r.side));
       allRows.forEach(r => { if (r.side && !kept.has(r.id + "|" + r.side)) { r.side = null; r.fail = r.fail || "حذف به‌خاطر همبستگی"; } });
     }
   } catch (e) {}
