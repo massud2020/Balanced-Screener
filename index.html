@@ -347,6 +347,63 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 .sum-box .val { font-size: 15px; font-weight: 800; color: var(--tx); direction: ltr; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* === PRO TRADING TERMINAL UI UPGRADE (v96) === */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+body {
+  font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  background: radial-gradient(circle at top right, #131926 0%, #0b0d11 55%);
+}
+.val, .ss-counter, .badge, .ic-lang, .mkt .cnt, #histNetR, #histWinRate, #histPF, #histMaxDD {
+  font-variant-numeric: tabular-nums;
+}
+header.bar {
+  background: rgba(18, 22, 31, 0.85) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+.session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(70, 197, 140, 0.12);
+  color: #46c58c;
+  border: 1px solid rgba(70, 197, 140, 0.3);
+  margin-top: 2px;
+}
+.session-pill.off {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.session-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.strategy-box, .set, .hist-stat-box, .chart-section {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+.hist-stat-box {
+  background: linear-gradient(145deg, rgba(28, 34, 48, 0.9), rgba(18, 22, 31, 0.95)) !important;
+  border-radius: 12px !important;
+  padding: 12px 10px !important;
+  transition: transform 0.2s ease;
+}
+.mode-switch button.on {
+  background: linear-gradient(135deg, rgba(70, 197, 140, 0.2), rgba(59, 130, 246, 0.15)) !important;
+  border-color: rgba(70, 197, 140, 0.45) !important;
+  color: #fff !important;
+}
 </style>
 </head>
 <body>
@@ -384,7 +441,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
       <span>Balanced Screener</span>
       <div class="logo-icon">◈</div>
     </div>
-    <span class="brand-sub">v95</span>
+    <span class="brand-sub">v96 Pro • M5 Guard</span><div class="session-pill" id="liveSessionPill"><span class="session-dot"></span><span id="liveSessionTxt">سشن فعال</span></div>
   </div>
   <div class="acts-left">
     <button class="ic" id="showHist" onclick="openHistory()">
@@ -1481,6 +1538,25 @@ setInterval(() => { if($('ai-splash').style.display === 'none' && $("autoScanChk
 setInterval(() => { loadNewsCalendar().catch(e => console.warn(e)); }, 30 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('ai-splash').style.display === 'none' && $("autoScanChk")?.checked && !isScanning) scan(true); });
 setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000);
+</script>
+
+<script>
+(function updateSessionBadge() {
+  function refresh() {
+    const pill = document.getElementById('liveSessionPill');
+    const txt = document.getElementById('liveSessionTxt');
+    if (!pill || !txt) return;
+    const hr = new Date().getUTCHours();
+    const active = hr >= 7 && hr <= 20;
+    pill.classList.toggle('off', !active);
+    const isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
+    txt.textContent = active
+      ? (isEn ? 'London / NY Active' : 'سشن لندن/نیویورک')
+      : (isEn ? 'Asia / Low-Vol' : 'سشن آسیا (کم‌نوسان)');
+  }
+  refresh();
+  setInterval(refresh, 30000);
+})();
 </script>
 </body>
 </html>
