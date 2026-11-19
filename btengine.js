@@ -99,6 +99,8 @@
                 ? Number(opts.costPriceBySymbol[symbol]) : null;
             const costPrice = explicitCostPrice == null ? symbolCostPips * configuredPipSize : explicitCostPrice;
             const costR = costPrice / riskDist;
+            const maxSpreadR = Number(opts.maxSpreadR) > 0 ? Number(opts.maxSpreadR) : 0.28;
+            if (costR > maxSpreadR) continue;
 
             // The signal is evaluated at the open of bar i using only bar i-1
             // and earlier closed data. Bar i is the first post-entry bar.

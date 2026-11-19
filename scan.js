@@ -458,6 +458,15 @@ async function once(now) {
     const riskDist = Math.abs(row.entry - row.sl);
     const execSl = isLongSig ? execEntry - riskDist : execEntry + riskDist;
     const spreadR = riskDist > 0 ? +(Math.abs(execEntry - row.entry) / riskDist).toFixed(3) : 0;
+        const maxSpreadR = Number(rowPreset.maxSpreadR) > 0 ? Number(rowPreset.maxSpreadR) : 0.28;
+        if (spreadR > maxSpreadR) {
+            delete STATE.sent[lockKey];
+            delete STATE.sent[histKey];
+            row.side = null;
+            row._pendingNotify = false;
+            row.fail = "حذف به خاطر اسپرد بالا (" + spreadR + "R)";
+            continue;
+        }
     row.entry = execEntry; row.sl = execSl; row._spreadR = spreadR;
     openSig(row.id, row.side, execEntry, row.mode, now, { sl: execSl, tp: row.tp, d: row.d, bt: row.bt, atr: row.atr, policyOpts: { rangeTpMult: Number(row.tp1R) || Number(rowPreset.rangeTpMult) || 1.5, trailingAtrMult: 0.5 } });
     
