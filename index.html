@@ -9,105 +9,7 @@
 <title>Balanced Screener - پنل تحلیل</title>
 
 <!-- 🛠 Unlock TTS + ثبت Service Worker + تله هش برای دکمه بک -->
-<script>
-    // 1. Unlock TTS با اولین کلیک/لمس
-    let ttsUnlocked = false;
-    function unlockTTS() {
-        if (ttsUnlocked) return;
-        ttsUnlocked = true;
-        if ('speechSynthesis' in window) {
-            try {
-                window.speechSynthesis.getVoices();
-                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-                const u = new SpeechSynthesisUtterance(' ');
-                u.volume = 0;
-                window.speechSynthesis.speak(u);
-            } catch(e) {}
-        }
-    }
-    document.addEventListener('click', unlockTTS, { once: false });
-    document.addEventListener('touchstart', unlockTTS, { once: false });
 
-    // 2. ثبت Service Worker برای اعلان‌های پس‌زمینه
-    let swRegistration = null;
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                swRegistration = reg;
-                console.log('Service Worker registered');
-            }).catch(err => console.warn('SW registration failed', err));
-        });
-    }
-
-    // 3. تله هش برای دکمه بک
-    window.allowExit = false;
-    window.activeModalId = null;
-    let backPressTime = 0;
-    let trapCounter = 0;
-
-    function pushTrap() {
-        if (window.allowExit) return;
-        trapCounter++;
-        try { history.pushState({ trap: trapCounter }, '', '#trap_' + trapCounter); }
-        catch(e) { window.location.hash = '#trap_' + trapCounter; }
-    }
-
-    window.addEventListener('load', () => {
-        pushTrap(); pushTrap();
-        setTimeout(pushTrap, 500); setTimeout(pushTrap, 1500);
-    });
-
-    window.addEventListener('popstate', function (e) {
-        if (window.allowExit) return;
-        pushTrap();
-        if (window.activeModalId) {
-            const id = window.activeModalId;
-            document.getElementById(id).style.display = "none";
-            if (id === "nsModal" && typeof window.destroyLwc === 'function') {
-                window.destroyLwc(); document.getElementById("tvContainer").innerHTML = ""; window.currentSignalInModal = null;
-            }
-            window.activeModalId = null;
-            return;
-        }
-        const now = Date.now();
-        if (now - backPressTime < 2000) {
-            window.allowExit = true;
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) { window.Capacitor.Plugins.App.exitApp(); }
-            else if (navigator.app) { navigator.app.exitApp(); }
-            else { window.history.go(-5); }
-        } else {
-            backPressTime = now;
-            if (typeof window.showExitToast === 'function') window.showExitToast();
-            else {
-                const t = document.getElementById("toast");
-                if (t) {
-                    t.innerText = "برای خروج، مجدداً دکمه بازگشت را بزنید";
-                    t.style.display = "block"; t.style.opacity = "1";
-                    setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.style.display = "none", 300); }, 2000);
-                }
-            }
-        }
-    });
-
-    window.addEventListener('load', () => {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.addListener('backButton', () => {
-                if (window.allowExit) return;
-                if (window.activeModalId) {
-                    const id = window.activeModalId;
-                    document.getElementById(id).style.display = "none";
-                    if (id === "nsModal" && typeof window.destroyLwc === 'function') {
-                        window.destroyLwc(); document.getElementById("tvContainer").innerHTML = ""; window.currentSignalInModal = null;
-                    }
-                    window.activeModalId = null; return;
-                }
-                const now = Date.now();
-                if (now - backPressTime < 2000) { window.allowExit = true; window.Capacitor.Plugins.App.exitApp(); }
-                else { backPressTime = now; if (typeof window.showExitToast === 'function') window.showExitToast(); }
-            });
-        }
-    });
-</script>
 
 <script src="presets.js"></script>
 <script src="engine.js"></script>
@@ -831,14 +733,29 @@ window.showExitToast = function() {
 };
 
 function openModal(id) {
-    if (window.activeModalId) return; 
+    if (window.activeModalId) return;
+    const el = document.getElementById(id);
+    if (!el) return;
     window.activeModalId = id;
-    document.getElementById(id).style.display = "block";
-    history.pushState({ modal: id }, '', '#modal_' + id + '_' + Date.now());
+    el.style.display = "block";
+    history.pushState({ uiLayer: id }, "", "#layer_" + id);
 }
 
-function closeModal(id) {
-    if (window.activeModalId === id) { history.back(); }
+function closeModal(id, fromBackEvent) {
+    const targetId = id || window.activeModalId;
+    if (!targetId) return;
+    const el = document.getElementById(targetId);
+    if (el) el.style.display = "none";
+    if (targetId === "nsModal" && typeof window.destroyLwc === "function") {
+        window.destroyLwc();
+        const tv = document.getElementById("tvContainer");
+        if (tv) tv.innerHTML = "";
+        window.currentSignalInModal = null;
+    }
+    window.activeModalId = null;
+    if (!fromBackEvent && history.state && history.state.uiLayer === targetId) {
+        history.back();
+    }
 }
 
 const toObjs = (arr) => arr ? arr.map(c => Array.isArray(c) ? {time: c[0], open: c[1], high: c[2], low: c[3], close: c[4]} : c) : [];
@@ -1729,74 +1646,98 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
 </script>
 
 <script>
-(function(){
-  let lastBackTs = 0;
-  function handleAppBack() {
-    const histM = document.getElementById("histModal");
-    if (histM && histM.style.display === "block") {
-      if (typeof closeHistory === "function") closeHistory();
-      else histM.style.display = "none";
-      window.activeModalId = null;
-      return true;
-    }
-    const nsM = document.getElementById("nsModal");
-    if (nsM && nsM.style.display === "block") {
-      if (typeof closeNsModal === "function") closeNsModal();
-      else nsM.style.display = "none";
-      window.activeModalId = null;
-      return true;
-    }
-    const setP = document.getElementById("settingsPanel");
-    if (setP && setP.classList.contains("on")) {
-      if (typeof toggleSettings === "function") toggleSettings();
-      else {
-        setP.classList.remove("on");
-        const ab = document.getElementById("appBody");
-        if (ab) ab.style.display = "block";
-      }
-      return true;
-    }
-    if (window.activeModalId) {
-      const m = document.getElementById(window.activeModalId);
-      if (m) m.style.display = "none";
-      window.activeModalId = null;
-      return true;
-    }
-    return false;
-  }
+(function () {
+    let lastBackTs = 0;
+    let isHandlingInternalBack = false;
 
-  window.addEventListener("popstate", function() {
-    if (handleAppBack()) {
-      history.pushState({ root: true }, "", location.pathname + location.search);
-    }
-  });
-
-  document.addEventListener("DOMContentLoaded", function() {
-    history.replaceState({ root: true }, "", location.pathname + location.search);
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-      window.Capacitor.Plugins.App.addListener("backButton", function() {
-        if (handleAppBack()) return;
-        const now = Date.now();
-        if (now - lastBackTs < 2000) {
-          window.Capacitor.Plugins.App.exitApp();
-        } else {
-          lastBackTs = now;
-          if (typeof showExitToast === "function") showExitToast();
+    function closeTopLayer(fromBackEvent) {
+        const nsM = document.getElementById("nsModal");
+        if (nsM && nsM.style.display === "block") {
+            closeModal("nsModal", fromBackEvent);
+            return true;
         }
-      });
+        const histM = document.getElementById("histModal");
+        if (histM && histM.style.display === "block") {
+            closeModal("histModal", fromBackEvent);
+            return true;
+        }
+        if (window.activeModalId) {
+            closeModal(window.activeModalId, fromBackEvent);
+            return true;
+        }
+        const setP = document.getElementById("settingsPanel");
+        if (setP && setP.classList.contains("on")) {
+            setP.classList.remove("on");
+            const ab = document.getElementById("appBody");
+            if (ab) ab.style.display = "block";
+            if (!fromBackEvent && history.state && history.state.uiLayer === "settings") {
+                history.back();
+            }
+            return true;
+        }
+        return false;
     }
-  });
 
-  const origToggleSettings = window.toggleSettings;
-  if (typeof origToggleSettings === "function") {
-    window.toggleSettings = function() {
-      origToggleSettings.apply(this, arguments);
-      const setP = document.getElementById("settingsPanel");
-      if (setP && setP.classList.contains("on")) {
-        history.pushState({ panel: "settings" }, "", "#settings");
-      }
-    };
-  }
+    const origToggleSettings = window.toggleSettings;
+    if (typeof origToggleSettings === "function") {
+        window.toggleSettings = function () {
+            const setP = document.getElementById("settingsPanel");
+            const wasOn = setP && setP.classList.contains("on");
+            if (wasOn) {
+                closeTopLayer(false);
+            } else {
+                origToggleSettings.apply(this, arguments);
+                if (setP && setP.classList.contains("on")) {
+                    history.pushState({ uiLayer: "settings" }, "", "#settings");
+                }
+            }
+        };
+    }
+
+    window.addEventListener("DOMContentLoaded", function () {
+        history.replaceState({ root: true }, "", location.pathname + location.search);
+        history.pushState({ guard: true }, "", "#app");
+    });
+
+    window.addEventListener("popstate", function () {
+        if (isHandlingInternalBack) return;
+        isHandlingInternalBack = true;
+        try {
+            if (closeTopLayer(true)) {
+                history.pushState({ guard: true }, "", "#app");
+                return;
+            }
+            const now = Date.now();
+            if (now - lastBackTs < 2000) {
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                    window.Capacitor.Plugins.App.exitApp();
+                } else if (navigator.app && navigator.app.exitApp) {
+                    navigator.app.exitApp();
+                }
+            } else {
+                lastBackTs = now;
+                history.pushState({ guard: true }, "", "#app");
+                if (typeof window.showExitToast === "function") window.showExitToast();
+            }
+        } finally {
+            setTimeout(() => { isHandlingInternalBack = false; }, 50);
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+            window.Capacitor.Plugins.App.addListener("backButton", function () {
+                if (closeTopLayer(false)) return;
+                const now = Date.now();
+                if (now - lastBackTs < 2000) {
+                    window.Capacitor.Plugins.App.exitApp();
+                } else {
+                    lastBackTs = now;
+                    if (typeof window.showExitToast === "function") window.showExitToast();
+                }
+            });
+        }
+    });
 })();
 </script>
 
