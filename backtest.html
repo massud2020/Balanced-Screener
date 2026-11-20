@@ -69,8 +69,69 @@
  function validateReady(){const ok=data.m5.length>=220;$('runBtn').disabled=!ok;$('status').textContent=ok?`آماده اجرا · M5: ${data.m5.length.toLocaleString('fa-IR')} کندل${data.m15.length?' · M15: '+data.m15.length:''}${data.h1.length?' · H1: '+data.h1.length:''}`:'برای بک‌تست حداقل ۲۲۰ کندل M5 بارگذاری کنید.';}
  ['m5','m15','h1'].forEach(k=>$(k==='m5'?'fileM5':k==='m15'?'fileM15':'fileH1').addEventListener('change',e=>loadFile(k,e.target.files[0])));
  function dateBound(id,end){const v=$(id).value;if(!v)return null;return Math.floor(new Date(v+(end?'T23:59:59':'T00:00:00')).getTime()/1000);}
- function runOne(mode,m5,m15,h1,opts){return new Promise((resolve,reject)=>{if(worker)worker.terminate();worker=new Worker('btworker.js');const id=mode+'-'+Date.now();worker.onmessage=e=>{if(e.data.id!==id)return;worker.terminate();worker=null;e.data.ok?resolve({...e.data,mode}):reject(Error(e.data.err||'Worker error'));};worker.onerror=e=>{worker.terminate();worker=null;reject(Error(e.message||'Worker failed'));};worker.postMessage({id,payload:{symbol:$('symbol').value.trim().toUpperCase(),m5,m15,h1,opts:{...opts,mode}}});});}
- $('runBtn').addEventListener('click',async()=>{const symbol=$('symbol').value.trim().toUpperCase();if(!symbol){$('status').textContent='نماد را وارد کنید.';return;}const from=dateBound('dateFrom',false),to=dateBound('dateTo',true);if(from&&to&&from>to){$('status').textContent='تاریخ شروع نباید بعد از تاریخ پایان باشد.';return;}const m5=data.m5.filter(c=>!to||c.time<=to);if(m5.length<220){$('status').textContent='داده M5 در بازه انتخابی کافی نیست؛ حداقل ۲۲۰ کندل لازم است.';return;}const m15=data.m15.filter(c=>!to||c.time<=to),h1=data.h1.filter(c=>!to||c.time<=to);const symbolPreset=Presets.getPreset(symbol);const opts={sessionFilter:!!symbolPreset.session,spreadPips:+$('spread').value||0,commissionPips:+$('commission').value||0,slippagePips:+$('slippage').value||0,pipSize:+$('pipSize').value||undefined,h1:data.h1.length>=200,m15:data.m15.length>=50,signalIntervalSec:300,rangeSlAtr:+$('rangeSlAtr').value||2.5,rangeTpMult:+$('rangeTpMult').value||1.0,trailingAtrMult:+$('trailingAtrMult').value||0.5};const modes=$('mode').value==='both'?['pattern','range']:[$('mode').value];$('runBtn').disabled=true;$('progress').style.display='block';$('status').textContent='در حال اجرای موتور بک‌تست...';try{let out=[];for(const mode of modes){const subset=from?m5.filter(c=>c.time>=from-200*300):m5;const res=await runOne(mode,subset,m15,h1,opts);out.push(...res.trades.map(t=>({...t,mode})));}allTrades=Backtest.applyPortfolioConstraints(out.filter(t=>!from||t.openTime>=from),{maxOpenPositions:1,maxPerCorrelationGroup:1}).sort((a,b)=>a.closeTime-b.closeTime);renderResults(allTrades,modes.join('+'));$('status').textContent=`بک‌تست تکمیل شد · ${allTrades.length.toLocaleString('fa-IR')} معامله بسته‌شده · ${symbol}`;$('exportBtn').disabled=!allTrades.length;}catch(e){$('status').textContent='خطا در بک‌تست: '+e.message;}finally{$('runBtn').disabled=false;$('progress').style.display='none';}});
+ 
+function resampleFromM5(m5, sec) {
+  if (!Array.isArray(m5) || !m5.length) return [];
+  const out = [];
+  let cur = null;
+  for (const c of m5) {
+    const bucket = Math.floor(c.time / sec) * sec;
+    if (!cur || cur.time !== bucket) {
+      if (cur) out.push(cur);
+      cur = { time: bucket, open: c.open, high: c.high, low: c.low, close: c.close };
+    } else {
+      if (c.high > cur.high) cur.high = c.high;
+      if (c.low < cur.low) cur.low = c.low;
+      cur.close = c.close;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function runOne(mode, m5, m15, h1, opts) {
+  const effM15 = (Array.isArray(m15) && m15.length >= 30) ? m15 : resampleFromM5(m5, 900);
+  const effH1  = (Array.isArray(h1)  && h1.length  >= 20) ? h1  : resampleFromM5(m5, 3600);
+  const symbol = $('symbol').value.trim().toUpperCase();
+  const payload = { symbol, m5, m15: effM15, h1: effH1, opts: { ...opts, mode } };
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const runDirect = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        const trades = Backtest.runBacktestOnSymbol(payload.symbol, payload.m5, payload.m15, payload.h1, payload.opts);
+        const stats = Backtest.calculateStats(trades);
+        resolve({ trades, stats, mode });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    try {
+      if (worker) worker.terminate();
+      worker = new Worker('btworker.js');
+      const id = mode + '-' + Date.now();
+      const timer = setTimeout(() => { try { worker.terminate(); } catch(e){} runDirect(); }, 3500);
+      worker.onmessage = e => {
+        if (e.data.id !== id || settled) return;
+        clearTimeout(timer);
+        settled = true;
+        worker.terminate();
+        worker = null;
+        e.data.ok ? resolve({ ...e.data, mode }) : runDirect();
+      };
+      worker.onerror = () => {
+        clearTimeout(timer);
+        try { worker.terminate(); } catch(e){}
+        worker = null;
+        runDirect();
+      };
+      worker.postMessage({ id, payload });
+    } catch (e) {
+      runDirect();
+    }
+  });
+}
+$('runBtn').addEventListener('click',async()=>{const symbol=$('symbol').value.trim().toUpperCase();if(!symbol){$('status').textContent='نماد را وارد کنید.';return;}const from=dateBound('dateFrom',false),to=dateBound('dateTo',true);if(from&&to&&from>to){$('status').textContent='تاریخ شروع نباید بعد از تاریخ پایان باشد.';return;}const m5=data.m5.filter(c=>!to||c.time<=to);if(m5.length<220){$('status').textContent='داده M5 در بازه انتخابی کافی نیست؛ حداقل ۲۲۰ کندل لازم است.';return;}const m15=data.m15.filter(c=>!to||c.time<=to),h1=data.h1.filter(c=>!to||c.time<=to);const symbolPreset=Presets.getPreset(symbol);const opts={sessionFilter:!!symbolPreset.session,spreadPips:+$('spread').value||0,commissionPips:+$('commission').value||0,slippagePips:+$('slippage').value||0,pipSize:+$('pipSize').value||undefined,h1:(data.h1.length>=20 || data.m5.length>=240),m15:(data.m15.length>=30 || data.m5.length>=120),signalIntervalSec:300,rangeSlAtr:+$('rangeSlAtr').value||2.5,rangeTpMult:+$('rangeTpMult').value||1.0,trailingAtrMult:+$('trailingAtrMult').value||0.5};const modes=$('mode').value==='both'?['pattern','range']:[$('mode').value];$('runBtn').disabled=true;$('progress').style.display='block';$('status').textContent='در حال اجرای موتور بک‌تست...';try{let out=[];for(const mode of modes){const subset=from?m5.filter(c=>c.time>=from-200*300):m5;const res=await runOne(mode,subset,m15,h1,opts);out.push(...res.trades.map(t=>({...t,mode})));}allTrades=Backtest.applyPortfolioConstraints(out.filter(t=>!from||t.openTime>=from),{maxOpenPositions:1,maxPerCorrelationGroup:1}).sort((a,b)=>a.closeTime-b.closeTime);renderResults(allTrades,modes.join('+'));$('status').textContent=`بک‌تست تکمیل شد · ${allTrades.length.toLocaleString('fa-IR')} معامله بسته‌شده · ${symbol}`;$('exportBtn').disabled=!allTrades.length;}catch(e){$('status').textContent='خطا در بک‌تست: '+e.message;}finally{$('runBtn').disabled=false;$('progress').style.display='none';}});
  function renderResults(trades,mode){const s=Backtest.calculateStats(trades);$('resultMode').textContent=mode==='pattern+range'?'Trend + Range':mode==='pattern'?'Trend':'Range';$('sTotal').textContent=s.total;$('sWin').textContent=s.winRate+'%';$('sNet').textContent=(s.netR>0?'+':'')+s.netR+' R';$('sNet').className=s.netR>=0?'positive':'negative';$('sPf').textContent=Number.isFinite(s.pf)?s.pf:'∞';$('sDd').textContent=s.maxDD+' R';$('sWl').textContent=`${s.wins} / ${s.losses} / ${s.flats}`;renderChart(trades);$('tradesBody').innerHTML=trades.length?trades.map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.symbol||$('symbol').value)}</td><td>${t.mode==='range'?'Range':'Trend'}</td><td class="${t.side==='LONG'?'positive':'negative'}">${t.side}</td><td>${num(t.entry)}</td><td>${num(t.exit)}</td><td>${num(t.sl)}</td><td>${num(t.tp1)}</td><td>${num(t.tp2)}</td><td>${fmtDate(t.openTime)}</td><td>${fmtDate(t.closeTime)}</td><td>${esc(t.why||'-')}</td><td class="${t.R>=0?'positive':'negative'}">${t.R>0?'+':''}${Number(t.R).toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="13" class="empty">در این بازه معامله بسته‌شده‌ای پیدا نشد.</td></tr>';}
  function num(v){return Number.isFinite(Number(v))?Number(v).toPrecision(7):'—';}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
  function renderChart(trades){const c=$('equityChart'),ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1521';ctx.fillRect(0,0,w,h);if(!trades.length){ctx.fillStyle='#91a0b5';ctx.textAlign='center';ctx.font='18px Tahoma';ctx.fillText('پس از اجرای بک‌تست، نمودار نمایش داده می‌شود',w/2,h/2);$('chartStart').textContent='شروع: —';$('chartEnd').textContent='پایان: —';return;}let eq=0;const pts=[0,...trades.map(t=>(eq+=Number(t.R)||0))],min=Math.min(0,...pts),max=Math.max(1,...pts),pad=24;ctx.strokeStyle='#2b3b50';ctx.lineWidth=1;for(let i=0;i<5;i++){let y=pad+(h-2*pad)*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();}const yOf=v=>h-pad-(v-min)/(max-min||1)*(h-2*pad);ctx.strokeStyle='#39c995';ctx.lineWidth=3;ctx.beginPath();pts.forEach((v,i)=>{const x=pad+(w-2*pad)*i/(pts.length-1||1);i?ctx.lineTo(x,yOf(v)):ctx.moveTo(x,yOf(v));});ctx.stroke();ctx.fillStyle='#dce5f1';ctx.font='12px Tahoma';ctx.textAlign='left';ctx.fillText(max.toFixed(2)+' R',pad+4,pad+12);ctx.fillText(min.toFixed(2)+' R',pad+4,h-pad-4);$('chartStart').textContent='شروع: '+fmtDate(trades[0].openTime);$('chartEnd').textContent='پایان: '+fmtDate(trades[trades.length-1].closeTime);}
