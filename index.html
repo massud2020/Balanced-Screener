@@ -1062,7 +1062,7 @@ async function loadNewsCalendar() {
 let histChartInstance = null;
 function renderHistory() {
     const now = Date.now() / 1000;
-    let validClosed = closedHistData.filter(d => d.result !== undefined && d.R !== undefined);
+    let validClosed = closedHistData.filter(d => d.R !== undefined && d.R !== null);
     let filteredClosed = validClosed.filter(d => { 
         if (histFilter === 'today') return (now - (d.time || 0)) < 86400; 
         if (histFilter === 'week') return (now - (d.time || 0)) < 7 * 86400; 
@@ -1104,8 +1104,8 @@ function renderHistory() {
             const isOpen = d.result === 'open';
             let statusCol = 'var(--mu)', statusTxt = 'در حال پایش', rTxt = '-';
             if (!isOpen) {
-                if (d.R > 0) { statusCol = 'var(--gb)'; statusTxt = (d.why === 'TP2' || d.why === 'TP1+TRAIL') ? 'سود (TP)' : 'سود (FADE)'; } 
-                else if (d.R < 0) { statusCol = 'var(--rb)'; statusTxt = 'ضرر (SL)'; } 
+                if (d.R > 0) { statusCol = 'var(--gb)'; statusTxt = `سود (${d.why || 'TP'})`; } 
+                else if (d.R < 0) { statusCol = 'var(--rb)'; statusTxt = `ضرر (${d.why || 'SL'})`; } 
                 else { statusCol = '#a7aebb'; statusTxt = 'سر به سر (BE)'; }
                 if (d.R !== undefined) rTxt = (d.R > 0 ? '+' : '') + Number(d.R).toFixed(2) + 'R';
             }
@@ -1391,15 +1391,30 @@ window.scan = async function(isAuto = false) {
 
         try { localStorage.removeItem('bs_closed_hist_cache'); } catch(_) {}
       try {
-        const histJson = await fetchGitJson('history.json');
-        if (histJson && Array.isArray(histJson.history)) {
-          closedHistData = histJson.history.map(h => ({
-            ...h,
-            dateStr: new Date(((h.time || h.bt || (Date.now()/1000)) * 1000)).toLocaleString('fa-IR')
-          }));
-        } else {
-          closedHistData = [];
+        const [histJson, ledgerJson] = await Promise.all([
+          fetchGitJson('history.json').catch(() => null),
+          fetchGitJson('demo_ledger.json').catch(() => null)
+        ]);
+        let rawList = [];
+        if (Array.isArray(histJson)) rawList.push(...histJson);
+        else if (histJson && Array.isArray(histJson.history)) rawList.push(...histJson.history);
+        if (ledgerJson && Array.isArray(ledgerJson.closed)) {
+          rawList.push(...ledgerJson.closed);
         }
+        const uniqueMap = new Map();
+        rawList.forEach(h => {
+          if (!h || !h.id || h.R === undefined) return;
+          const t = h.closedAt || h.time || h.bt || 0;
+          const uniqueKey = `${h.id}_${h.side}_${t}`;
+          uniqueMap.set(uniqueKey, {
+            ...h,
+            time: t,
+            why: h.why || h.reason || (h.R > 0 ? 'TP' : (h.R < 0 ? 'SL' : 'BE')),
+            result: h.result || (h.R > 0 ? 'win' : (h.R < 0 ? 'loss' : 'be')),
+            dateStr: t ? new Date(t * 1000).toLocaleString('fa-IR') : ''
+          });
+        });
+        closedHistData = Array.from(uniqueMap.values());
       } catch(e) {
         console.warn("History fetch error:", e.message);
         closedHistData = [];
