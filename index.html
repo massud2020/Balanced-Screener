@@ -1370,6 +1370,7 @@ window.scan = async function(isAuto = false) {
     statusCard.classList.add("on");
 
     try {
+ try {
         $("st").innerHTML = "در حال دریافت دیتا...";
         const json = await fetchGitJson('data.json');
         if (json.error) throw new Error(`خطای صرافی: ${json.error}`);
@@ -1457,8 +1458,6 @@ window.scan = async function(isAuto = false) {
                 // 🛠 announceNewSignals خودش چک می‌کند که پیام خوش‌آمدگویی در حال پخش نباشد
                 try { /* announce handled above */ } catch(e) { console.warn('Announce error:', e); }
             } else { $("unreadBadge").classList.remove("on"); }
-        }
-
         totalEl.textContent = rows.length;
         for(let i=0; i<rows.length; i++) { 
             counter.textContent = i + 1; symEl.textContent = rows[i].id; progressFill.style.width = `${((i+1)/rows.length)*100}%`;
