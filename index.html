@@ -1389,17 +1389,58 @@ window.scan = async function(isAuto = false) {
             });
         }
 
-        try {
-            const histJson = await fetchGitJson('history.json');
-            if (histJson && Array.isArray(histJson.history)) closedHistData = histJson.history.map(h => ({ ...h, dateStr: new Date((h.time || h.bt || Date.now()/1000) * 1000).toLocaleString('fa-IR') }));
-        } catch(e) { console.warn("History fetch error:", e.message); }
+        try { localStorage.removeItem('bs_closed_hist_cache'); } catch(_) {}
+      try {
+        const histJson = await fetchGitJson('history.json');
+        if (histJson && Array.isArray(histJson.history)) {
+          closedHistData = histJson.history.map(h => ({
+            ...h,
+            dateStr: new Date(((h.time || h.bt || (Date.now()/1000)) * 1000)).toLocaleString('fa-IR')
+          }));
+        } else {
+          closedHistData = [];
+        }
+      } catch(e) {
+        console.warn("History fetch error:", e.message);
+        closedHistData = [];
+      }
 
-        if (json.state && json.state.active) {
-            openHistData = Object.keys(json.state.active).map(id => {
-                const s = json.state.active[id];
-                return { id: id, side: s.side || 'LONG', entry: s.entry, sl: s.sl, result: 'open', time: s.time || (Date.now()/1000), dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'نامشخص', k: id + '|' + s.side + '|' + s.time };
-            });
-            const currentKeys = openHistData.map(d => d.k).join(',');
+      const activeMap = new Map();
+      if (json.state && json.state.active) {
+        Object.keys(json.state.active).forEach(id => {
+          const s = json.state.active[id];
+          activeMap.set(id, {
+            id: id,
+            side: s.side || 'LONG',
+            entry: s.entry,
+            sl: s.currentSl || s.sl,
+            currentR: s.currentR,
+            why: s.mode === 'range' ? 'Range' : 'Trend 3+1',
+            result: 'open',
+            time: s.time || (Date.now()/1000),
+            dateStr: s.time ? new Date(s.time * 1000).toLocaleString('fa-IR') : 'فعال در سرور',
+            k: id + '|' + (s.side || 'LONG') + '|' + (s.time || '')
+          });
+        });
+      }
+      rows.filter(r => r && r.side && (r.isActive || r.side === 'LONG' || r.side === 'SHORT')).forEach(r => {
+        if (!activeMap.has(r.id)) {
+          activeMap.set(r.id, {
+            id: r.id,
+            side: r.side,
+            entry: r.entry,
+            sl: r.sl,
+            currentR: r.currentR,
+            why: r.mode === 'range' ? 'Range' : 'Trend 3+1',
+            result: 'open',
+            time: r.time || (Date.now()/1000),
+            dateStr: r.time ? new Date(r.time * 1000).toLocaleString('fa-IR') : 'فعال در سرور',
+            k: r.id + '|' + r.side + '|' + (r.time || '')
+          });
+        }
+      });
+      openHistData = Array.from(activeMap.values());
+      const currentKeys = openHistData.map(d => d.k).join(',');
             const lastSeen = LS("bs_last_seen_signals_keys") || "";
             const currentArr = currentKeys ? currentKeys.split(',') : [];
             const lastSeenArr = lastSeen ? lastSeen.split(',') : [];
