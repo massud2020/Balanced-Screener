@@ -1714,5 +1714,78 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
   setInterval(refresh, 30000);
 })();
 </script>
+
+<script>
+(function(){
+  let lastBackTs = 0;
+  function handleAppBack() {
+    const histM = document.getElementById("histModal");
+    if (histM && histM.style.display === "block") {
+      if (typeof closeHistory === "function") closeHistory();
+      else histM.style.display = "none";
+      window.activeModalId = null;
+      return true;
+    }
+    const nsM = document.getElementById("nsModal");
+    if (nsM && nsM.style.display === "block") {
+      if (typeof closeNsModal === "function") closeNsModal();
+      else nsM.style.display = "none";
+      window.activeModalId = null;
+      return true;
+    }
+    const setP = document.getElementById("settingsPanel");
+    if (setP && setP.classList.contains("on")) {
+      if (typeof toggleSettings === "function") toggleSettings();
+      else {
+        setP.classList.remove("on");
+        const ab = document.getElementById("appBody");
+        if (ab) ab.style.display = "block";
+      }
+      return true;
+    }
+    if (window.activeModalId) {
+      const m = document.getElementById(window.activeModalId);
+      if (m) m.style.display = "none";
+      window.activeModalId = null;
+      return true;
+    }
+    return false;
+  }
+
+  window.addEventListener("popstate", function() {
+    if (handleAppBack()) {
+      history.pushState({ root: true }, "", location.pathname + location.search);
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    history.replaceState({ root: true }, "", location.pathname + location.search);
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      window.Capacitor.Plugins.App.addListener("backButton", function() {
+        if (handleAppBack()) return;
+        const now = Date.now();
+        if (now - lastBackTs < 2000) {
+          window.Capacitor.Plugins.App.exitApp();
+        } else {
+          lastBackTs = now;
+          if (typeof showExitToast === "function") showExitToast();
+        }
+      });
+    }
+  });
+
+  const origToggleSettings = window.toggleSettings;
+  if (typeof origToggleSettings === "function") {
+    window.toggleSettings = function() {
+      origToggleSettings.apply(this, arguments);
+      const setP = document.getElementById("settingsPanel");
+      if (setP && setP.classList.contains("on")) {
+        history.pushState({ panel: "settings" }, "", "#settings");
+      }
+    };
+  }
+})();
+</script>
+
 </body>
 </html>
