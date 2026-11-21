@@ -695,6 +695,16 @@ const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; 
 const fmtNum = n => Number(n).toLocaleString('fa-IR');
 const safeFixed = (val, digits) => { const num = Number(val); return isNaN(num) ? '-' : num.toFixed(digits); };
 
+if (typeof window.unlockTTS !== "function") {
+  window.unlockTTS = function () {
+    try {
+      if ("speechSynthesis" in window && typeof window.speechSynthesis.resume === "function") {
+        window.speechSynthesis.resume();
+      }
+    } catch (_) {}
+  };
+}
+
 let currentMode = LS("bs_mode") || "pattern";
 let currentLang = LS("bs_lang") || 'fa';
 let vf = "all"; 
@@ -838,7 +848,7 @@ async function speakClips(text) {
 }
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
   if (typeof text === 'string') {
-    text = text.replace(/حرفه‌ای/g, 'حِرفه‌ای');
+    text = text.replace(/حرفه‌?\u200c?ای/g, 'حِرفه‌ای');
   }
     if (String(lang).toLowerCase().startsWith('fa')) {
         if (await speakFaClip(text, rate)) return { success: true, engine: 'Audio files' };
@@ -901,7 +911,7 @@ async function announceNewSignals(newCount, rows) {
             const title = `🚨 ${newCount} New Signal${newCount > 1 ? 's' : ''}`;
             const body = `${firstSig.id} - ${side}`;
 
-            if (swRegistration) {
+            if (typeof swRegistration !== "undefined" && swRegistration && swRegistration.active) {
                 // اگر Service Worker در دسترس باشد، از آن استفاده می‌کنیم
                 swRegistration.active.postMessage({
                     type: 'SHOW_NOTIFICATION',
@@ -1734,7 +1744,7 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
   function safeCloseTopLayer() {
     try {
       if (typeof closeTopLayer === "function") {
-        return Boolean(closeTopLayer(false));
+        return Boolean(closeTopLayer(true));
       }
     } catch (_) {}
     return false;
