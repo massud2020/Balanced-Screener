@@ -1725,42 +1725,69 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
     });
 
     (function () {
-  if (window.__bsBackBound) return;
+  if (window.__bsSafeBackBound) return;
+  let lastBackPress = 0;
 
-  function bindBackButton() {
-    if (window.__bsBackBound) return;
-    const appPlugin =
-      window.Capacitor &&
-      window.Capacitor.Plugins &&
-      window.Capacitor.Plugins.App;
-
-    if (!appPlugin || typeof appPlugin.addListener !== "function") return;
-    window.__bsBackBound = true;
-
-    appPlugin.addListener("backButton", function () {
-      if (window.allowExit) return;
-      if (typeof closeTopLayer === "function" && closeTopLayer(false)) {
-        return;
+  function safeCloseTopLayer() {
+    try {
+      if (typeof closeTopLayer === "function") {
+        return Boolean(closeTopLayer(false));
       }
-
-      const now = Date.now();
-      if (now - lastBackTs < 2000) {
-        window.allowExit = true;
-        if (typeof appPlugin.exitApp === "function") {
-          appPlugin.exitApp();
-        }
-      } else {
-        lastBackTs = now;
-        if (typeof window.showExitToast === "function") {
-          window.showExitToast();
-        }
-      }
-    });
+    } catch (_) {}
+    return false;
   }
 
-  document.addEventListener("DOMContentLoaded", bindBackButton);
-  window.addEventListener("load", bindBackButton);
-  bindBackButton();
+  function safeShowToast() {
+    try {
+      if (typeof window.showExitToast === "function") {
+        window.showExitToast();
+      }
+    } catch (_) {}
+  }
+
+  function safeExitApp(appPlugin) {
+    try {
+      window.allowExit = true;
+      if (appPlugin && typeof appPlugin.exitApp === "function") {
+        appPlugin.exitApp();
+      }
+    } catch (_) {}
+  }
+
+  function bindSafeBack() {
+    if (window.__bsSafeBackBound) return;
+    try {
+      const appPlugin =
+        window.Capacitor &&
+        window.Capacitor.Plugins &&
+        window.Capacitor.Plugins.App;
+
+      if (!appPlugin || typeof appPlugin.addListener !== "function") return;
+      window.__bsSafeBackBound = true;
+
+      appPlugin.addListener("backButton", function () {
+        try {
+          if (window.allowExit) return;
+          if (safeCloseTopLayer()) return;
+
+          const now = Date.now();
+          if (now - lastBackPress < 2000) {
+            safeExitApp(appPlugin);
+          } else {
+            lastBackPress = now;
+            safeShowToast();
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindSafeBack, { once: true });
+  } else {
+    bindSafeBack();
+  }
+  window.addEventListener("load", bindSafeBack, { once: true });
 })();
 })();
 </script>
