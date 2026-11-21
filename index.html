@@ -837,6 +837,9 @@ async function speakClips(text) {
   return true;
 }
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
+  if (typeof text === 'string') {
+    text = text.replace(/حرفه‌ای/g, 'حِرفه‌ای');
+  }
     if (String(lang).toLowerCase().startsWith('fa')) {
         if (await speakFaClip(text, rate)) return { success: true, engine: 'Audio files' };
     }
