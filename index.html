@@ -1724,20 +1724,44 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
         }
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.addListener("backButton", function () {
-                if (closeTopLayer(false)) return;
-                const now = Date.now();
-                if (now - lastBackTs < 2000) {
-                    window.Capacitor.Plugins.App.exitApp();
-                } else {
-                    lastBackTs = now;
-                    if (typeof window.showExitToast === "function") window.showExitToast();
-                }
-            });
+    (function () {
+  if (window.__bsBackBound) return;
+
+  function bindBackButton() {
+    if (window.__bsBackBound) return;
+    const appPlugin =
+      window.Capacitor &&
+      window.Capacitor.Plugins &&
+      window.Capacitor.Plugins.App;
+
+    if (!appPlugin || typeof appPlugin.addListener !== "function") return;
+    window.__bsBackBound = true;
+
+    appPlugin.addListener("backButton", function () {
+      if (window.allowExit) return;
+      if (typeof closeTopLayer === "function" && closeTopLayer(false)) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastBackTs < 2000) {
+        window.allowExit = true;
+        if (typeof appPlugin.exitApp === "function") {
+          appPlugin.exitApp();
         }
+      } else {
+        lastBackTs = now;
+        if (typeof window.showExitToast === "function") {
+          window.showExitToast();
+        }
+      }
     });
+  }
+
+  document.addEventListener("DOMContentLoaded", bindBackButton);
+  window.addEventListener("load", bindBackButton);
+  bindBackButton();
+})();
 })();
 </script>
 
