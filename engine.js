@@ -350,10 +350,16 @@
             else if ((useRsiFilter || useBbFilter) && rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
             else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
         } else {
-            const trendUpM5 = ema50[idx] > ema200[idx];
-            checkedSide = trendUpM5 ? 'LONG' : 'SHORT';
-            if (trendUpM5) side = "LONG";
-            else if (ema50[idx] < ema200[idx]) side = "SHORT";
+            if (ema50[idx] > ema200[idx]) {
+                side = "LONG";
+                checkedSide = "LONG";
+            } else if (ema50[idx] < ema200[idx]) {
+                side = "SHORT";
+                checkedSide = "SHORT";
+            } else {
+                side = null;
+                checkedSide = "NEUTRAL";
+            }
         }
 
         let failReason = null;
@@ -363,9 +369,9 @@
         let trendPatternGate = true;
         if (mode !== "range") {
             trendEmaGate = checkedSide === "LONG"
-                ? ema21[idx] > ema50[idx] && ema50[idx] > ema200[idx] && lastClose > ema50[idx]
+                ? ema21[idx] > ema50[idx] && ema50[idx] > ema200[idx]
                 : checkedSide === "SHORT"
-                    ? ema21[idx] < ema50[idx] && ema50[idx] < ema200[idx] && lastClose < ema50[idx]
+                    ? ema21[idx] < ema50[idx] && ema50[idx] < ema200[idx]
                     : false;
             checks.push({
                 l: "گیت الزامی چینش EMA21/50/200",
@@ -455,15 +461,15 @@
             }
         }
 
-        if (opts.h1 !== false) {
+        if (opts.h1 !== false && closedH1.length >= 200) {
             const isOk = mode === "range"
                 ? (h1Trend === 'NEUTRAL' || (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'))
                 : ((checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'));
-            checks.push({ l: mode === "range" ? "عدم مخالفت روند H1" : "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 2.0 });
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند H1" : "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
             if (!isOk && !failReason) failReason = "مخالف H1";
         }
 
-        if (opts.m15 !== false) {
+        if (opts.m15 !== false && closedM15.length >= 50) {
             let isOk = true, valStr = 'تایید';
             if (mode === "range") {
                 isOk = (m15Trend === 'NEUTRAL' || (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'));
@@ -472,7 +478,7 @@
                 if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
                 else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
             }
-            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: 1.5 });
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: 1.0 });
             if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
@@ -551,7 +557,7 @@
             scorePercent: +scorePercent.toFixed(1),
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
-            mode, entry, sl, tp: mode === "range" ? tp1 : null, tp1: mode === "range" ? tp1 : null, tp2: mode === "range" ? tp2 : null, tp1R, tp2R, rsi: lastRsi, adx: lastAdx,
+            mode, entry, sl, tp: mode === "range" ? tp1 : null, tp1: mode === "range" ? tp1 : null, tp2: mode === "range" ? tp2 : null, tp1R: mode === "range" ? tp1R : null, tp2R: mode === "range" ? tp2R : null, rsi: lastRsi, adx: lastAdx,
             trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5),
             atr: lastAtr,
             effectiveSlAtr,

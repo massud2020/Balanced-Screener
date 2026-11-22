@@ -41,7 +41,7 @@ describe('Backtest phase 4 execution and time-exit accuracy', () => {
   test('backtest fills at the next M5 candle open', () => {
     const bars = makeTrendFixture();
     const trades = Backtest.runBacktestOnSymbol('EURUSD', bars, [], [], {
-      mode: 'pattern', h1: false, m15: false, pa: false, nc: false,
+      mode: 'pattern', h1: false, m15: false, pa: false, nc: false, rsi: false, adx: false, maxDistATR: 0,
       spreadPips: 0, commissionPips: 0, slippagePips: 0
     });
     expect(trades.length).toBeGreaterThan(0);

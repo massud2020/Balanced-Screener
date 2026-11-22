@@ -69,7 +69,7 @@ describe('Engine phase 3 math and mandatory Trend gates', () => {
     const candles = makeTrendCandles();
     const result = Engine.evaluate('EURUSD', candles, [], [], {
       mode: 'pattern', adx: false, trend: false, emax: false,
-      nc: false, h1: false, m15: false, pa: false, maxDistATR: 0, minRatio: 0.5
+      nc: false, h1: false, m15: false, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5
     }, candles.at(-1).time + 301);
 
     expect(result.hardGates).toEqual([
@@ -83,7 +83,7 @@ describe('Engine phase 3 math and mandatory Trend gates', () => {
     const candles = makeTrendCandles({ dropStart: 285, dropStep: 0.3 });
     const result = Engine.evaluate('EURUSD', candles, [], [], {
       mode: 'pattern', adx: false, trend: false, emax: false,
-      nc: false, h1: false, m15: false, pa: false, maxDistATR: 0, minRatio: 0.5
+      nc: false, h1: false, m15: false, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5
     }, candles.at(-1).time + 301);
 
     expect(result.scorePercent).toBe(100);
