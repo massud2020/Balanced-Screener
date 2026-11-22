@@ -792,7 +792,7 @@ function getGaugeGradient(scorePercent, side, numSegments) {
 async function speakFaClip(text, rate) {
   try {
     const clean = String(text || '').trim();
-    if (false && clean.startsWith('خوش آمدید')) {
+    if (clean.startsWith('خوش آمدید')) {
       try { if (window.__welcomeAudio) { window.__welcomeAudio.pause(); } } catch(e) {}
       const audioFile = clean.includes('بازار رنج') ? 'audio/fa/welcome_range.mp3' : 'audio/fa/welcome_trend.mp3';
       const w = new Audio(audioFile + '?v=' + Date.now());
@@ -848,7 +848,7 @@ async function speakClips(text) {
 }
 async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
   if (typeof text === 'string') {
-    text = text.replace(/ح\s*[ًٌٍَُِْـ]?\s*ر\s*[ًٌٍَُِْـ]?\s*ف\s*[ًٌٍَُِْـ]?\s*ه‌?\u200c?\s*ا\s*[ًٌٍَُِْـ]?\s*ی/g, 'حِرفه‌ای');
+    text = text.replace(/حرفه‌?\u200c?ای/g, 'حِرفه‌ای');
   }
     if (String(lang).toLowerCase().startsWith('fa')) {
         if (await speakFaClip(text, rate)) return { success: true, engine: 'Audio files' };
@@ -1722,10 +1722,12 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
             }
             const now = Date.now();
             if (now - lastBackTs < 2000) {
-                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && typeof window.Capacitor.Plugins.App.exitApp === 'function') {
                     window.Capacitor.Plugins.App.exitApp();
-                } else if (navigator.app && navigator.app.exitApp) {
+                } else if (navigator.app && typeof navigator.app.exitApp === 'function') {
                     navigator.app.exitApp();
+                } else if (window.Android && typeof window.Android.exitApp === 'function') {
+                    window.Android.exitApp();
                 }
             } else {
                 lastBackTs = now;
