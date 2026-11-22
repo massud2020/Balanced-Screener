@@ -57,7 +57,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --no-save
+        run: npm install --no-save --legacy-peer-deps
 
       - name: Run Scanner
         run: node scan.js
