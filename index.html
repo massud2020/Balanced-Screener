@@ -1807,5 +1807,82 @@ setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000)
 })();
 </script>
 
+
+<script>
+/* __BS_ANDROID_BACK_GUARD__ */
+(function () {
+  if (window.__bsAndroidBackGuardInstalled) return;
+  window.__bsAndroidBackGuardInstalled = true;
+  let lastBackTime = 0;
+
+  function closeOpenUi() {
+    try {
+      const nsModal = document.getElementById("nsModal");
+      if (nsModal && nsModal.style.display === "block") {
+        if (typeof window.closeNsModal === "function") window.closeNsModal();
+        else nsModal.style.display = "none";
+        return true;
+      }
+      const histModal = document.getElementById("histModal");
+      if (histModal && histModal.style.display === "block") {
+        if (typeof window.closeHistory === "function") window.closeHistory();
+        else histModal.style.display = "none";
+        return true;
+      }
+      const setPanel = document.getElementById("settingsPanel");
+      if (setPanel && setPanel.classList.contains("on")) {
+        setPanel.classList.remove("on");
+        const appBody = document.getElementById("appBody");
+        if (appBody) appBody.style.display = "block";
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function handleAndroidBack(ev) {
+    try {
+      if (ev && typeof ev.preventDefault === "function") ev.preventDefault();
+      if (closeOpenUi()) {
+        try { history.pushState({ bsGuard: true }, "", "#app"); } catch (_) {}
+        return;
+      }
+      const now = Date.now();
+      if (now - lastBackTime < 2000) {
+        try {
+          if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && typeof window.Capacitor.Plugins.App.exitApp === "function") {
+            window.Capacitor.Plugins.App.exitApp();
+            return;
+          }
+        } catch (_) {}
+        try {
+          if (navigator.app && typeof navigator.app.exitApp === "function") {
+            navigator.app.exitApp();
+            return;
+          }
+        } catch (_) {}
+        try {
+          if (window.Android && typeof window.Android.exitApp === "function") {
+            window.Android.exitApp();
+            return;
+          }
+        } catch (_) {}
+      } else {
+        lastBackTime = now;
+        try { history.pushState({ bsGuard: true }, "", "#app"); } catch (_) {}
+        if (typeof window.showExitToast === "function") window.showExitToast();
+      }
+    } catch (_) {}
+  }
+
+  document.addEventListener("backbutton", handleAndroidBack, false);
+  window.addEventListener("popstate", function () {
+    if (!closeOpenUi()) {
+      try { history.pushState({ bsGuard: true }, "", "#app"); } catch (_) {}
+    }
+  });
+})();
+</script>
+
 </body>
 </html>

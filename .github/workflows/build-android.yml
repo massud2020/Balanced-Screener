@@ -68,7 +68,7 @@ jobs:
           npx cap sync android
           
           if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
-            sed -i 's/gradle-.*-bin.zip/gradle-8.7-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+            sed -i 's/gradle-.*-bin.zip/gradle-8.11.1-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           fi
 
       # 10. ساخت آیکون‌ها و اسپلش
