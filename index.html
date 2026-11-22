@@ -718,8 +718,11 @@ function saveCurrentConds() {
   if (currentMode === "range") LS("bs_active_cond_range", JSON.stringify(activeRangeConditions));
   else LS("bs_active_cond_trend", JSON.stringify(activeTrendConditions));
 }
-let activeMarkets = JSON.parse(LS("bs_active_mkts") || '["crypto", "forex", "metal", "commodity", "index", "stock"]');
-if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { activeMarkets = ["crypto", "forex", "metal", "commodity", "index", "stock"]; LS("bs_active_mkts", JSON.stringify(activeMarkets)); }
+const ALL_MARKETS = ["crypto", "forex", "metal", "commodity", "index", "stock"];
+let activeMarkets = JSON.parse(LS("bs_active_mkts") || JSON.stringify(ALL_MARKETS));
+if (!Array.isArray(activeMarkets) || activeMarkets.length === 0) { activeMarkets = [...ALL_MARKETS]; LS("bs_active_mkts", JSON.stringify(activeMarkets)); }
+let userDisabledMarkets = JSON.parse(LS("bs_user_disabled_mkts") || "[]");
+if (!Array.isArray(userDisabledMarkets)) userDisabledMarkets = [];
 
 let closedHistData = [];
 let openHistData = [];
@@ -1264,18 +1267,57 @@ function isMarketOpen(marketKey) {
     return true;
 }
 
+function syncMarketKeysWithSchedule() {
+    let changed = false;
+    for (const m of ALL_MARKETS) {
+        const openNow = isMarketOpen(m);
+        const currentlyOn = activeMarkets.includes(m);
+        if (!openNow) {
+            if (currentlyOn) {
+                activeMarkets = activeMarkets.filter(x => x !== m);
+                changed = true;
+            }
+        } else {
+            if (!currentlyOn && !userDisabledMarkets.includes(m)) {
+                activeMarkets.push(m);
+                changed = true;
+            }
+        }
+    }
+    if (!activeMarkets.includes("crypto")) {
+        activeMarkets.unshift("crypto");
+        changed = true;
+    }
+    if (changed) {
+        LS("bs_active_mkts", JSON.stringify(activeMarkets));
+    }
+    return changed;
+}
+
 function renderChips() {
+    syncMarketKeysWithSchedule();
     $("mkts").innerHTML = Object.keys(MKT_LABEL).map(m => {
-        const isOpen = isMarketOpen(m); let isOn = activeMarkets.includes(m);
-        if (!isOpen && isOn) { activeMarkets = activeMarkets.filter(x => x !== m); LS("bs_active_mkts", JSON.stringify(activeMarkets)); isOn = false; }
+        const isOpen = isMarketOpen(m);
+        const isOn = isOpen && activeMarkets.includes(m);
         return `<button class="mkt ${isOn?'on':''} ${isOpen?'':'disabled'}" data-m="${m}" ${isOpen?'':'disabled'}>${MKT_LABEL[m]} <span class="cnt">${isOpen ? `${MKT_COUNTS[m]}/${MKT_COUNTS[m]}` : 'تعطیل'}</span></button>`;
     }).join("");
 }
 
 $("mkts").onclick = (e) => {
     const btn = e.target.closest(".mkt"); if(!btn || btn.disabled) return; const m = btn.dataset.m;
-    if(activeMarkets.includes(m)) { activeMarkets = activeMarkets.filter(x => x !== m); btn.classList.remove("on"); } else { activeMarkets.push(m); btn.classList.add("on"); }
-    LS("bs_active_mkts", JSON.stringify(activeMarkets)); if(LAST) renderList(LAST.rows);
+    if (!isMarketOpen(m)) return;
+    if (activeMarkets.includes(m)) {
+        activeMarkets = activeMarkets.filter(x => x !== m);
+        if (!userDisabledMarkets.includes(m)) userDisabledMarkets.push(m);
+        btn.classList.remove("on");
+    } else {
+        activeMarkets.push(m);
+        userDisabledMarkets = userDisabledMarkets.filter(x => x !== m);
+        btn.classList.add("on");
+    }
+    LS("bs_active_mkts", JSON.stringify(activeMarkets));
+    LS("bs_user_disabled_mkts", JSON.stringify(userDisabledMarkets));
+    if(LAST) renderList(LAST.rows);
 };
 
 window.setFilter = function(v) { vf = v; document.querySelectorAll("#sumFilters button").forEach(btn => btn.classList.remove("on")); document.querySelector(`#sumFilters button[data-v="${v}"]`).classList.add("on"); if(LAST) renderList(LAST.rows); };
@@ -1636,7 +1678,7 @@ loadNewsCalendar().catch(e => console.warn(e));
 setInterval(() => { if($('ai-splash').style.display === 'none' && $("autoScanChk")?.checked) scan(true); }, 3 * 60 * 1000);
 setInterval(() => { loadNewsCalendar().catch(e => console.warn(e)); }, 30 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('ai-splash').style.display === 'none' && $("autoScanChk")?.checked && !isScanning) scan(true); });
-setInterval(() => { renderChips(); if(LAST) renderList(LAST.rows); }, 60 * 1000);
+setInterval(() => { const wasChanged = syncMarketKeysWithSchedule(); renderChips(); if(wasChanged && LAST) renderList(LAST.rows); }, 30 * 1000);
 </script>
 
 <script>
