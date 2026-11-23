@@ -1496,7 +1496,7 @@ function renderList(rows) {
                     nc: activeTrendConditions.includes('بدون تقاطع'),
                     pat: activeTrendConditions.includes('۳+۱'),
                     mode: currentMode,
-            sessionFilter: sessionFilter || !!symbolPreset.session, newsHours: finalNewsHours, adx: true
+            sessionFilter: sessionFilter || !!symbolPreset.session || (currentMode === 'range' && symbolPreset.session !== false), newsHours: finalNewsHours, adx: true
         };
         let res = {};
         try { res = Engine.evaluate(r.id, m5, m15, h1, opts, LAST ? (LAST.time / 1000) : (Date.now() / 1000)); } catch(e) { }

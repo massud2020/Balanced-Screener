@@ -358,7 +358,7 @@ async function once(now) {
         let useMode = pickModeByAdx(probe.adx);
         if (!modes.includes(useMode)) useMode = modes[0];
 
-        const opts = { ...preset, mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: preset.rangeRsiL ?? (process.env.RSI_L ? RSI_L : (preset.rsiL ?? RSI_L)), rsiS: preset.rangeRsiS ?? (process.env.RSI_S ? RSI_S : (preset.rsiS ?? RSI_S)), adx: true, pa: false, sessionFilter: !!preset.session, signalIntervalSec: 300, trailingAtrMult: 0.5 };
+        const opts = { ...preset, mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: preset.rangeRsiL ?? (process.env.RSI_L ? RSI_L : (preset.rsiL ?? RSI_L)), rsiS: preset.rangeRsiS ?? (process.env.RSI_S ? RSI_S : (preset.rsiS ?? RSI_S)), adx: true, pa: false, sessionFilter: useMode === "range" ? (preset.session !== false) : !!preset.session, signalIntervalSec: 300, trailingAtrMult: 0.5 };
         const r = evaluate(u[0], a, m15, h, opts, now);
 
         const blocked = r.side && isOpen(u[0]);
