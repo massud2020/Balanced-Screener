@@ -502,8 +502,8 @@ async function once(now) {
   try { const n = await processAlerts(now); if (n) console.log(`Price alerts sent: ${n}`); } catch (e) {}
   for (const k of Object.keys(STATE.sent)) if (now - STATE.sent[k] > 2 * 86400) delete STATE.sent[k];
 
-  const threeDaysAgo = now - (3 * 24 * 3600);
-  history = history.filter(h => h.time > threeDaysAgo);
+  const sevenDaysAgo = now - (7 * 24 * 3600);
+  history = history.filter(h => h.time > sevenDaysAgo);
   const seenH = new Set();
   history = history.sort((a, b) => a.time - b.time).filter(h => {
     const k = h.k || `${h.id}|${h.side}|${dayKey(h.time)}`;
