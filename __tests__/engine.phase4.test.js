@@ -73,3 +73,11 @@ describe('Correlation groups with overlapping memberships', () => {
     expect(a.some(group => b.includes(group))).toBe(true);
   });
 });
+
+
+test('US indices share a correlation group', () => {
+  const Engine = require('../engine.js');
+  const nas = Engine.getCorrelationGroups('NAS100');
+  const spx = Engine.getCorrelationGroups('SPX500');
+  expect(nas.some(g => spx.includes(g))).toBe(true);
+});

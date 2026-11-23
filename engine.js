@@ -18,7 +18,11 @@
         ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'NZDJPY'],
         ['XAUUSD', 'XAGUSD'],
         ['BTCUSDT', 'ETHUSDT'],
-        ['SOLUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'ADAUSDT', 'SUIUSDT', 'DOGEUSDT', 'XRPUSDT', 'LTCUSDT', 'BNBUSDT']
+        ['SOLUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'ADAUSDT', 'SUIUSDT', 'DOGEUSDT', 'XRPUSDT', 'LTCUSDT', 'BNBUSDT'],
+        ['US30', 'NAS100', 'SPX500', 'US2000'],
+        ['UK100', 'DE40', 'FR40'],
+        ['WTICO', 'BRENT'],
+        ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'AVGO', 'NFLX', 'PLTR']
     ];
 
     function getCorrelationGroups(symbol) {
@@ -328,6 +332,8 @@
         if (mode === "range") {
             const useRsiFilter = opts.rsi !== false;
             const useBbFilter = opts.bb !== false;
+            const useWidthFilter = opts.rangeWidth !== false;
+            const useReversalFilter = opts.rangeReversal !== false;
             const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 38;
             const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
@@ -336,8 +342,8 @@
             const bodyLast = Math.abs(cLast.close - cLast.open);
             const lowerWick = Math.min(cLast.open, cLast.close) - cLast.low;
             const upperWick = cLast.high - Math.max(cLast.open, cLast.close);
-            const bullRejection = (cLast.close > cLast.open) || (lowerWick > bodyLast * 1.2);
-            const bearRejection = (cLast.close < cLast.open) || (upperWick > bodyLast * 1.2);
+            const bullRejection = !useReversalFilter || (cLast.close > cLast.open) || (lowerWick > bodyLast * 1.2);
+            const bearRejection = !useReversalFilter || (cLast.close < cLast.open) || (upperWick > bodyLast * 1.2);
 
             const touchedLower = Number.isFinite(lastLower) && (cLast.low <= lastLower + (lastAtr * 0.15) || cPrev.low <= lastLower + (lastAtr * 0.15));
             const touchedUpper = Number.isFinite(lastUpper) && (cLast.high >= lastUpper - (lastAtr * 0.15) || cPrev.high >= lastUpper - (lastAtr * 0.15));
@@ -392,7 +398,8 @@
 
             const minBandWidthAtr = Number.isFinite(Number(opts.rangeMinATR)) ? Number(opts.rangeMinATR) : 1.5;
             const bandWidthAtr = (lastUpper - lastLower) / Math.max(lastAtr, Number.EPSILON);
-            const isNotSqueeze = bandWidthAtr >= minBandWidthAtr;
+            const useWidthFilter = opts.rangeWidth !== false;
+            const isNotSqueeze = !useWidthFilter || bandWidthAtr >= minBandWidthAtr;
             checks.push({ l: "عرض بولینگر / ATR", ok: isNotSqueeze, v: `${bandWidthAtr.toFixed(2)} ATR`, w: 1.0 });
             if (!isNotSqueeze && !failReason) failReason = "عرض باند رنج کمتر از حداقل است";
 

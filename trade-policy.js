@@ -82,7 +82,16 @@ const TradePolicy = (() => {
         const rangeTpMult = Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : 1.5;
         const rangeTp = isLong ? entry + risk * rangeTpMult : entry - risk * rangeTpMult;
         const trailMult = Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5;
-        let peakFav = 0;
+        const maxLossR = Number(opts.maxLossR) > 0 ? Number(opts.maxLossR) : 2.0;
+    const capClosed = (res) => {
+      if (!res || res.status !== 'closed' || !Number.isFinite(res.R)) return res;
+      if (res.R < -maxLossR) {
+        const cappedExit = isLong ? entry - risk * maxLossR : entry + risk * maxLossR;
+        return { ...res, exit: cappedExit, R: -maxLossR, gapCapped: true };
+      }
+      return res;
+    };
+    let peakFav = 0;
 
         for (let i = 0; i < bars.length; i++) {
             const bar = bars[i];
@@ -102,28 +111,28 @@ const TradePolicy = (() => {
             if (mode === 'range') {
                 if (isLong && bidLow <= sl) {
                     const exit = Number.isFinite(bidOpen) && bidOpen < sl ? bidOpen : sl;
-                    return { status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav });
                 }
                 if (!isLong && askHigh >= sl) {
                     const exit = Number.isFinite(askOpen) && askOpen > sl ? askOpen : sl;
-                    return { status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav });
                 }
                 if (isLong && bidHigh >= rangeTp) {
                     const exit = Number.isFinite(bidOpen) && bidOpen > rangeTp ? bidOpen : rangeTp;
-                    return { status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav });
                 }
                 if (!isLong && askLow <= rangeTp) {
                     const exit = Number.isFinite(askOpen) && askOpen < rangeTp ? askOpen : rangeTp;
-                    return { status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'TP', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav });
                 }
             } else {
                 if (isLong && bidLow <= currentSl) {
                     const exit = Number.isFinite(bidOpen) && bidOpen < currentSl ? bidOpen : currentSl;
-                    return { status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav });
                 }
                 if (!isLong && askHigh >= currentSl) {
                     const exit = Number.isFinite(askOpen) && askOpen > currentSl ? askOpen : currentSl;
-                    return { status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav };
+                    return capClosed({ status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav });
                 }
 
                 const favorable = isLong ? (bidHigh - entry) / risk : (entry - askLow) / risk;
@@ -131,7 +140,7 @@ const TradePolicy = (() => {
                 if (checkDivergence(bars.slice(0, i + 1), rsiArr.slice(0, i + 1), isLong)) {
                     const exitPx = isLong ? bidClose : askClose;
                     const rMult = isLong ? (exitPx - entry) / risk : (entry - exitPx) / risk;
-                    return { status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav };
+                    return capClosed({ status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
                 }
                 const atrNow = Number(atrArr[i]);
                 if (Number.isFinite(atrNow) && atrNow > 0) {
@@ -143,7 +152,7 @@ const TradePolicy = (() => {
             if (bar.time - startTime >= maxHold) {
                 const exitPx = isLong ? bidClose : askClose;
                 const rMult = isLong ? (exitPx - entry) / risk : (entry - exitPx) / risk;
-                return { status: 'closed', why: 'TIME', exit: exitPx, closeTime: bar.time, R: rMult, peakFav };
+                return capClosed({ status: 'closed', why: 'TIME', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
             }
         }
         const last = bars[bars.length - 1];

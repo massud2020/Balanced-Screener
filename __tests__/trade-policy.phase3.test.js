@@ -40,3 +40,21 @@ describe('Trade policy gap fills', () => {
     expect(result.R).toBe(-1.5);
   });
 });
+
+
+test('caps gap loss at 2R across SL and TIME exits', () => {
+  const slGap = TradePolicy.resolveTrade({
+    side: 'LONG', entry: 100, sl: 99, mode: 'pattern', startTime: 1,
+    bars: [{ time: 1, open: 96, high: 97, low: 95, close: 96.5 }]
+  });
+  expect(slGap.why).toBe('TRAIL_SL');
+  expect(slGap.R).toBe(-2);
+  expect(slGap.exit).toBe(98);
+
+  const timeGap = TradePolicy.resolveTrade({
+    side: 'LONG', entry: 100, sl: 90, mode: 'pattern', startTime: 1, maxHoldSec: 10,
+    bars: [{ time: 20, open: 95, high: 96, low: 91, close: 75 }]
+  });
+  expect(timeGap.why).toBe('TIME');
+  expect(timeGap.R).toBe(-2);
+});

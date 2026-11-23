@@ -316,6 +316,23 @@ async function processAlerts(now) {
 
 const LOOP = +(process.env.LOOP_SECONDS || 0), IV = +(process.env.INTERVAL || 60) * 1000, sleep = ms => new Promise(r => setTimeout(r, ms));
 
+function isServerMarketOpen(u, nowSec) {
+  const mkt = mktOf(u);
+  if (mkt === "crypto") return true;
+  const d = new Date((nowSec || Math.floor(Date.now() / 1000)) * 1000);
+  const day = d.getUTCDay();
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (mkt === "forex" || mkt === "metal" || mkt === "commodity") {
+    if (day === 0 || day === 6) return false;
+    if (day === 5 && mins >= 1290) return false;
+    return true;
+  }
+  if (mkt === "stock" || mkt === "index") {
+    return day >= 1 && day <= 5 && mins >= 885 && mins <= 1255;
+  }
+  return true;
+}
+
 async function once(now) {
   const modes = enabledModes();
   const allRows = [];
@@ -349,7 +366,11 @@ async function once(now) {
         const bt = cl.length ? cl[cl.length - 1].time : 0;
         const packCandles = (arr) => arr.slice(-210).map(c => [c.time, c.open, c.high, c.low, c.close]);
 
-        if (symbolDisabled) {
+        if (!symbolDisabled && !isServerMarketOpen(u, now)) {
+        allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "بازار بسته / گپ بازگشایی", pass: 0, total: 0, mode: modes[0], u: u, src: dataSrc, bt, a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: [] });
+        continue;
+      }
+      if (symbolDisabled) {
           allRows.push({ id: u[0], side: null, d: u[3], mkt: mktOf(u), fail: "نماد برای سیگنال جدید غیرفعال است", pass: 0, total: 0, mode: modes[0], u, src: dataSrc, bt, a: packCandles(a), m15: packCandles(m15), h: packCandles(h), checks: [] });
           continue;
         }
@@ -471,7 +492,7 @@ async function once(now) {
     openSig(row.id, row.side, execEntry, row.mode, now, { sl: execSl, tp: row.tp, d: row.d, bt: row.bt, atr: row.atr, policyOpts: { rangeTpMult: Number(row.tp1R) || Number(rowPreset.rangeTpMult) || 1.5, trailingAtrMult: 0.5 } });
     
     const checksData = row._checks || [];
-    if (!history.some(h => h.id === row.id && h.side === row.side && dayKey(h.time) === dayKey(now))) {
+    if (!history.some(h => h.id === row.id && h.side === row.side && (!Number.isFinite(Number(h.exit)) || dayKey(h.time) === dayKey(now)))) {
       history.push({ id: row.id, side: row.side, entry: row.entry, sl: row.sl, spreadR: row._spreadR || 0, rsi: row.rsi, time: now, bt: row.bt, k: histKey, d: row.d, mode: row.mode, src: row.src || "oanda", checks: checksData, totalConds: row.total });
     }
     
