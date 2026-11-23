@@ -442,11 +442,36 @@
                 checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
                 if (!isOk && !failReason) failReason = "مخالف EMA21/50";
             }
-            if (Number(opts.maxDistATR) > 0) {
-                const distanceAtr = Math.abs(lastClose - ema21[idx]) / Math.max(lastAtr, Number.EPSILON);
-                const distanceOk = distanceAtr <= Number(opts.maxDistATR);
-                checks.push({ l: "فاصله ورود از EMA21", ok: distanceOk, v: `${distanceAtr.toFixed(2)} ATR`, w: 1.0 });
-                if (!distanceOk && !failReason) failReason = "فاصله قیمت از EMA21 بیش از حد است";
+            let trendPullbackGate = true;
+            if (opts.maxDistATR !== 0 && opts.maxDistATR !== false && opts.pullback !== false) {
+                const safeAtr = Math.max(lastAtr, Number.EPSILON);
+                const maxEntryDistAtr = Number(opts.maxDistATR) > 0 ? Number(opts.maxDistATR) : 1.8;
+                const maxPullbackGapAtr = Number(opts.pullbackMaxAtr) > 0 ? Number(opts.pullbackMaxAtr) : 0.75;
+                const start4 = Math.max(0, idx - 3);
+                let nearestGapAtr = Infinity;
+                for (let k = start4; k <= idx; k++) {
+                    const e21 = Number.isFinite(ema21[k]) ? ema21[k] : ema21[idx];
+                    const gap = checkedSide === 'LONG'
+                        ? (cl[k].low - e21) / safeAtr
+                        : (e21 - cl[k].high) / safeAtr;
+                    if (gap < nearestGapAtr) nearestGapAtr = gap;
+                }
+                const entryDistAtr = Math.abs(lastClose - ema21[idx]) / safeAtr;
+                const nearEmaOk = nearestGapAtr <= maxPullbackGapAtr;
+                const entryDistOk = entryDistAtr <= maxEntryDistAtr;
+                trendPullbackGate = nearEmaOk && entryDistOk;
+                const gapLabel = Math.max(0, nearestGapAtr).toFixed(2);
+                checks.push({
+                    l: "پولبک به محدوده EMA21",
+                    ok: trendPullbackGate,
+                    v: `${gapLabel} / ${entryDistAtr.toFixed(2)} ATR`,
+                    w: 1.5
+                });
+                if (!trendPullbackGate && !failReason) {
+                    failReason = !nearEmaOk
+                        ? `عدم پولبک به محدوده EMA21 (${gapLabel} ATR)`
+                        : `فاصله ورود از EMA21 بیش از حد (${entryDistAtr.toFixed(2)} ATR)`;
+                }
             }
             if (opts.nc !== false) {
                 let isOk = true;
@@ -546,7 +571,8 @@
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
         const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 70;
         const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate);
-        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed;
+        const pullbackPassed = mode === "range" || (typeof trendPullbackGate === "undefined" ? true : trendPullbackGate);
+        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed && pullbackPassed;
 
         let tier = null;
         if (allPassed) {

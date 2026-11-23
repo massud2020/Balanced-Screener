@@ -92,3 +92,28 @@ describe('Engine phase 3 math and mandatory Trend gates', () => {
     expect(result.side).toBeNull();
   });
 });
+
+
+test('enforces EMA21 pullback tolerance (allows near-EMA21 pullback, blocks overextended entries)', () => {
+  const extended = makeTrendCandles();
+  const blocked = Engine.evaluate('EURUSD', extended, [], [], {
+    mode: 'pattern', adx: false, trend: false, emax: false,
+    nc: false, h1: false, m15: false, pa: false, rsi: false, minRatio: 0.5
+  }, extended.at(-1).time + 301);
+  expect(blocked.side).toBeNull();
+
+  // شبیه‌سازی پولبک نزدیک EMA21 (با فاصله حدود 0.4 ATR بدون لمس کامل خط EMA21)
+  const nearPullback = extended.map(c => ({ ...c }));
+  const n = nearPullback.length;
+  const refPrice = nearPullback[n - 5].close;
+  nearPullback[n - 4] = candle(nearPullback[n - 4].time, refPrice - 0.60, refPrice - 0.66, 0.02);
+  nearPullback[n - 3] = candle(nearPullback[n - 3].time, refPrice - 0.66, refPrice - 0.71, 0.02);
+  nearPullback[n - 2] = candle(nearPullback[n - 2].time, refPrice - 0.71, refPrice - 0.75, 0.02);
+  nearPullback[n - 1] = candle(nearPullback[n - 1].time, refPrice - 0.75, refPrice - 0.66, 0.02);
+
+  const allowed = Engine.evaluate('EURUSD', nearPullback, [], [], {
+    mode: 'pattern', adx: false, trend: false, emax: false,
+    nc: false, h1: false, m15: false, pa: false, rsi: false, minRatio: 0.5
+  }, nearPullback.at(-1).time + 301);
+  expect(allowed.side).toBe('LONG');
+});
