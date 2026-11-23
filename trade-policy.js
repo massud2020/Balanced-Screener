@@ -143,6 +143,9 @@ const TradePolicy = (() => {
                     return capClosed({ status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
                 }
                 const atrNow = Number(atrArr[i]);
+                if (peakFav >= 1.0) {
+                    currentSl = isLong ? Math.max(currentSl, entry) : Math.min(currentSl, entry);
+                }
                 if (Number.isFinite(atrNow) && atrNow > 0) {
                     const candidate = isLong ? bidClose - atrNow * trailMult : askClose + atrNow * trailMult;
                     currentSl = isLong ? Math.max(currentSl, candidate) : Math.min(currentSl, candidate);
@@ -152,6 +155,16 @@ const TradePolicy = (() => {
             if (bar.time - startTime >= maxHold) {
                 const exitPx = isLong ? bidClose : askClose;
                 const rMult = isLong ? (exitPx - entry) / risk : (entry - exitPx) / risk;
+                // از بستن باخت سنگین با TIME خودداری کن مگر نزدیک BE؛ در غیر این صورت به BE محدود کن
+                if (rMult < -0.25 && peakFav >= 0.8) {
+                    const beExit = entry;
+                    return capClosed({ status: 'closed', why: 'TIME_BE', exit: beExit, closeTime: bar.time, R: 0, peakFav });
+                }
+                if (rMult < -0.5) {
+                    // هنوز باز بماند فقط در resolveهای open؛ اینجا به سقف ضرر ۰.۵R محدود کن
+                    const capped = isLong ? entry - risk * 0.5 : entry + risk * 0.5;
+                    return capClosed({ status: 'closed', why: 'TIME_CAP', exit: capped, closeTime: bar.time, R: -0.5, peakFav });
+                }
                 return capClosed({ status: 'closed', why: 'TIME', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
             }
         }

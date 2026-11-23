@@ -1,9 +1,12 @@
-// engine.js — Balanced Screener Core Engine (V6 - Full Featured)
+// engine.js — Balanced Screener Core Engine (V6.1 - Quality Filter (WR-focused))
 (function (root, factory) {
-    if (typeof define === 'function' && define.amd) { define([], function () { return factory(root); }); }
-    else if (typeof module === 'object' && module.exports) { module.exports = factory(root); }
-    else { root.Engine = factory(root); }
-}(typeof self !== 'undefined' ? self : this, function (root) {
+    var eng = factory(root);
+    try { if (typeof define === 'function' && define.amd) { define([], function () { return eng; }); } } catch (e) {}
+    try { if (typeof module === 'object' && module.exports) { module.exports = eng; } } catch (e) {}
+    root.Engine = eng;
+    if (typeof globalThis !== 'undefined') globalThis.Engine = eng;
+    if (typeof window !== 'undefined') window.Engine = eng;
+}(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this), function (root) {
     'use strict';
 
     let PresetAPI = root && root.Presets;
@@ -229,7 +232,7 @@
         return { swingHigh, swingLow };
     }
 
-    function checkPattern3to1(candles, minBodyRatio = 0.5) {
+    function checkPattern3to1(candles, minBodyRatio = 0.75) {
         if (!Array.isArray(candles) || candles.length < 4) {
             return { pattern_buy: false, pattern_sell: false, buyRatio: null, sellRatio: null };
         }
@@ -242,13 +245,49 @@
         }
         const buyRatio = redBody > 0 && greenCount === 1 ? greenBody / redBody : null;
         const sellRatio = greenBody > 0 && redCount === 1 ? redBody / greenBody : null;
-        const threshold = Number.isFinite(minBodyRatio) && minBodyRatio >= 0 ? minBodyRatio : 0.5;
+        const threshold = Number.isFinite(minBodyRatio) && minBodyRatio >= 0 ? minBodyRatio : 0.75;
+        // Last candle should be the impulse (buy=green, sell=red)
+        const last = recent[3];
+        const lastGreen = last.close > last.open;
+        const lastRed = last.close < last.open;
         return {
-            pattern_buy: redCount === 3 && greenCount === 1 && buyRatio !== null && buyRatio >= threshold,
-            pattern_sell: greenCount === 3 && redCount === 1 && sellRatio !== null && sellRatio >= threshold,
+            pattern_buy: redCount === 3 && greenCount === 1 && lastGreen && buyRatio !== null && buyRatio >= threshold,
+            pattern_sell: greenCount === 3 && redCount === 1 && lastRed && sellRatio !== null && sellRatio >= threshold,
             buyRatio,
             sellRatio
         };
+    }
+
+    function nearEmaPullback(candles, emaArr, atrVal, side) {
+        if (!candles || !emaArr || candles.length < 6) return false;
+        const tol = Math.max(Number(atrVal) * 0.35, 1e-12);
+        const from = Math.max(0, candles.length - 8);
+        for (let i = from; i < candles.length; i++) {
+            const e = emaArr[i];
+            if (!Number.isFinite(e)) continue;
+            const c = candles[i];
+            if (side === 'LONG') {
+                if (c.low <= e + tol && c.close >= e - tol) return true;
+            } else {
+                if (c.high >= e - tol && c.close <= e + tol) return true;
+            }
+        }
+        return false;
+    }
+
+    function countBandTouches(candles, bandArr, atrVal, side, lookback = 30) {
+        if (!candles || !bandArr) return 0;
+        const n = candles.length;
+        const from = Math.max(1, n - lookback);
+        const tol = Math.max(Number(atrVal) * 0.12, 1e-12);
+        let touches = 0;
+        for (let i = from; i < n; i++) {
+            const b = bandArr[i];
+            if (!Number.isFinite(b)) continue;
+            if (side === 'LONG' && candles[i].low <= b + tol) touches++;
+            if (side === 'SHORT' && candles[i].high >= b - tol) touches++;
+        }
+        return touches;
     }
 
     function checkPriceActionConfirmation(candles, side) {
@@ -355,6 +394,9 @@
             if ((useRsiFilter || useBbFilter) && rsiBuy && bbBuy) { side = "LONG"; checkedSide = "LONG"; }
             else if ((useRsiFilter || useBbFilter) && rsiSell && bbSell) { side = "SHORT"; checkedSide = "SHORT"; }
             else { side = null; checkedSide = ema50[idx] > ema200[idx] ? "LONG" : "SHORT"; }
+
+            // ذخیره برای چک لمس‌های متعدد باند
+            opts.__rangeTouchSide = side;
         } else {
             if (ema50[idx] > ema200[idx]) {
                 side = "LONG";
@@ -403,8 +445,7 @@
             checks.push({ l: "عرض بولینگر / ATR", ok: isNotSqueeze, v: `${bandWidthAtr.toFixed(2)} ATR`, w: 1.0 });
             if (!isNotSqueeze && !failReason) failReason = "عرض باند رنج کمتر از حداقل است";
 
-            const rawMinTouches = Number.isFinite(Number(opts.rangeMinTouches)) ? Number(opts.rangeMinTouches) : 2;
-            const minTouches = Math.max(0, Math.floor(rawMinTouches));
+            const minTouches = Math.max(2, Math.floor(Number(opts.rangeMinTouches) || 2));
             if (minTouches > 0) {
                 const lookback = Math.max(4, Math.floor(Number(opts.rangeTouchLookback) || 30));
                 const touchPct = Math.max(0, Number(opts.rangeTouchPct) || 0.1);
@@ -416,7 +457,7 @@
                     if (cl[j].high >= bb.upper[j] - tol || cl[j].low <= bb.lower[j] + tol) touches++;
                 }
                 const enoughTouches = touches >= minTouches;
-                checks.push({ l: `تعداد برخورد باند (${minTouches} حداقل)`, ok: enoughTouches, v: String(touches), w: 2.0 });
+                checks.push({ l: `تعداد برخورد باند (${minTouches} حداقل)`, ok: enoughTouches, v: String(touches), w: 1.0 });
                 if (!enoughTouches && !failReason) failReason = "برخورد کافی به باندهای رنج وجود ندارد";
             }
 
@@ -443,36 +484,11 @@
                 checks.push({ l: "ترازبندی EMA21/50", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
                 if (!isOk && !failReason) failReason = "مخالف EMA21/50";
             }
-            let trendPullbackGate = true;
-            if (opts.maxDistATR !== 0 && opts.maxDistATR !== false && opts.pullback !== false) {
-                const safeAtr = Math.max(lastAtr, Number.EPSILON);
-                const maxEntryDistAtr = Number(opts.maxDistATR) > 0 ? Number(opts.maxDistATR) : 1.8;
-                const maxPullbackGapAtr = Number(opts.pullbackMaxAtr) > 0 ? Number(opts.pullbackMaxAtr) : 0.75;
-                const start4 = Math.max(0, idx - 3);
-                let nearestGapAtr = Infinity;
-                for (let k = start4; k <= idx; k++) {
-                    const e21 = Number.isFinite(ema21[k]) ? ema21[k] : ema21[idx];
-                    const gap = checkedSide === 'LONG'
-                        ? (cl[k].low - e21) / safeAtr
-                        : (e21 - cl[k].high) / safeAtr;
-                    if (gap < nearestGapAtr) nearestGapAtr = gap;
-                }
-                const entryDistAtr = Math.abs(lastClose - ema21[idx]) / safeAtr;
-                const nearEmaOk = nearestGapAtr <= maxPullbackGapAtr;
-                const entryDistOk = entryDistAtr <= maxEntryDistAtr;
-                trendPullbackGate = nearEmaOk && entryDistOk;
-                const gapLabel = Math.max(0, nearestGapAtr).toFixed(2);
-                checks.push({
-                    l: "پولبک به محدوده EMA21",
-                    ok: trendPullbackGate,
-                    v: `${gapLabel} / ${entryDistAtr.toFixed(2)} ATR`,
-                    w: 1.5
-                });
-                if (!trendPullbackGate && !failReason) {
-                    failReason = !nearEmaOk
-                        ? `عدم پولبک به محدوده EMA21 (${gapLabel} ATR)`
-                        : `فاصله ورود از EMA21 بیش از حد (${entryDistAtr.toFixed(2)} ATR)`;
-                }
+            if (Number(opts.maxDistATR) > 0) {
+                const distanceAtr = Math.abs(lastClose - ema21[idx]) / Math.max(lastAtr, Number.EPSILON);
+                const distanceOk = distanceAtr <= Number(opts.maxDistATR);
+                checks.push({ l: "فاصله ورود از EMA21", ok: distanceOk, v: `${distanceAtr.toFixed(2)} ATR`, w: 1.0 });
+                if (!distanceOk && !failReason) failReason = "فاصله قیمت از EMA21 بیش از حد است";
             }
             if (opts.nc !== false) {
                 let isOk = true;
@@ -486,11 +502,11 @@
             }
 
             if (opts.rsi !== false) {
-                const rsiMin = Number.isFinite(Number(opts.trendRsiMin)) ? Number(opts.trendRsiMin) : 42;
-                const rsiMax = Number.isFinite(Number(opts.trendRsiMax)) ? Number(opts.trendRsiMax) : 58;
-                const rsiTrendOk = lastRsi >= rsiMin && lastRsi <= rsiMax;
-                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.5 });
-                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? `خروج RSI از محدوده پولبک صعودی (${rsiMin}-${rsiMax})` : `خروج RSI از محدوده پولبک نزولی (${rsiMin}-${rsiMax})`;
+                const rsiTrendOk = checkedSide === 'LONG'
+                    ? (lastRsi >= 42 && lastRsi <= 58)
+                    : (lastRsi >= 42 && lastRsi <= 58);
+                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.2 });
+                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک صعودی (42-58)" : "RSI خارج از محدوده پولبک نزولی (42-58)";
             }
         }
 
@@ -511,18 +527,33 @@
                 if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
                 else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
             }
-            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: mode === "range" ? 1.0 : 2.0 });
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: 1.0 });
             if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
         if (mode !== "range") {
             // The 3+1 pattern is mandatory for every Trend signal; opts.pat
             // cannot disable a strategy-defining condition.
-            const patternMinRatio = Math.max(0.5, Number(opts.minRatio) > 0 ? Number(opts.minRatio) : 0.5);
+            const patternMinRatio = Math.max(0.75, Number(opts.minRatio) > 0 ? Number(opts.minRatio) : 0.75);
             const pattern = checkPattern3to1(cl, patternMinRatio);
             trendPatternGate = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
             checks.push({ l: "الگوی الزامی دقیق ۳+۱", ok: trendPatternGate, v: trendPatternGate ? 'تایید' : 'رد', w: 1.5 });
             if (!trendPatternGate && !failReason) failReason = "الگوی الزامی ۳+۱ برقرار نیست";
+
+            // پولبک به EMA21/50 الزامی — جلوگیری از ورود وسط فضای خالی
+            const pb21 = nearEmaPullback(cl, ema21, lastAtr, checkedSide);
+            const pb50 = nearEmaPullback(cl, ema50, lastAtr, checkedSide);
+            const pullbackOk = pb21 || pb50;
+            checks.push({ l: "پولبک به EMA21/50", ok: pullbackOk, v: pullbackOk ? (pb21 ? 'EMA21' : 'EMA50') : 'رد', w: 1.3 });
+            if (!pullbackOk && !failReason) failReason = "عدم پولبک به EMA";
+            if (!pullbackOk) trendPatternGate = false;
+
+            // ضدکشیدگی: فاصله تا EMA200 نباید خیلی زیاد باشد
+            const maxStretch = Number(opts.maxDistATR) > 0 ? Number(opts.maxDistATR) : 3.5;
+            const distEma200 = Math.abs(lastClose - ema200[idx]) / Math.max(lastAtr, 1e-12);
+            const notStretched = distEma200 <= maxStretch;
+            checks.push({ l: `فاصله تا EMA200 (${distEma200.toFixed(1)} ATR)`, ok: notStretched, v: notStretched ? 'تایید' : 'کشیده', w: 1.0 });
+            if (!notStretched && !failReason) failReason = "قیمت بیش از حد از EMA200 فاصله دارد";
         }
 
         // Price Action confirmation was removed from Trend entry logic in Build 94.
@@ -546,10 +577,14 @@
 
         const entry = lastClose;
         let sl = checkedSide === "LONG" ? entry - riskDist : entry + riskDist;
-        const tp1R = mode === "range"
+        const isCrypto = /USDT$|BTC|ETH|SOL|BNB|XRP|ADA|DOGE/i.test(String(symbol));
+        let tp1R = mode === "range"
             ? (Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : (Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.5))
-            : 1.5;
-        const tp2R = mode === "range" ? tp1R : 4.0;
+            : (Number(opts.tp1R) > 0 ? Number(opts.tp1R) : 2.0);
+        // حداقل RR خالص‌تر برای فارکس/فلزات
+        if (!isCrypto && mode === "range") tp1R = Math.max(tp1R, 1.8);
+        if (!isCrypto && mode !== "range") tp1R = Math.max(tp1R, 1.8);
+        const tp2R = mode === "range" ? tp1R : (Number(opts.tp2R) > 0 ? Number(opts.tp2R) : 3.5);
         let tp1 = checkedSide === "LONG" ? entry + riskDist * tp1R : entry - riskDist * tp1R;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * tp2R : entry - riskDist * tp2R;
 
@@ -570,10 +605,16 @@
             if (c.ok) score += w;
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 80;
-        const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate);
-        const pullbackPassed = mode === "range" || (typeof trendPullbackGate === "undefined" ? true : trendPullbackGate);
-        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed && pullbackPassed;
+        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 85;
+        let trendSideOk = true;
+        if (mode !== "range" && checkedSide === "LONG") trendSideOk = lastClose >= ema200[idx];
+        if (mode !== "range" && checkedSide === "SHORT") trendSideOk = lastClose <= ema200[idx];
+        if (mode !== "range") {
+            checks.push({ l: "سمت درست نسبت به EMA200", ok: trendSideOk, v: trendSideOk ? 'تایید' : 'رد', w: 0 });
+            if (!trendSideOk && !failReason) failReason = "خلاف سمت EMA200";
+        }
+        const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate && trendSideOk);
+        const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed;
 
         let tier = null;
         if (allPassed) {
