@@ -258,18 +258,35 @@
         };
     }
 
-    function nearEmaPullback(candles, emaArr, atrVal, side) {
+    function nearEmaPullback(candles, emaArr, atrVal, side, opts = {}) {
+        // محدوده پولبک (نه فقط لمس دقیق): پیش‌فرض تا 1.8 ATR از EMA
+        // تا معاملات خوبِ کمی دور از خط از دست نروند، ولی ورودهای خیلی کشیده رد شوند.
         if (!candles || !emaArr || candles.length < 6) return false;
-        const tol = Math.max(Number(atrVal) * 0.35, 1e-12);
-        const from = Math.max(0, candles.length - 8);
+        const atr = Math.max(Number(atrVal) || 0, 1e-12);
+        const minDist = Number.isFinite(Number(opts.pullbackMinAtr)) ? Number(opts.pullbackMinAtr) : 0.0;
+        const maxDist = Number.isFinite(Number(opts.pullbackMaxAtr)) ? Number(opts.pullbackMaxAtr) : 1.8;
+        const lookback = Math.max(4, Math.floor(Number(opts.pullbackLookback) || 12));
+        const from = Math.max(0, candles.length - lookback);
         for (let i = from; i < candles.length; i++) {
             const e = emaArr[i];
             if (!Number.isFinite(e)) continue;
-            const c = candles[i];
+            const bar = candles[i];
             if (side === 'LONG') {
-                if (c.low <= e + tol && c.close >= e - tol) return true;
+                // کمینه قیمت در محدوده زیر/روی EMA، و کلوز نباید خیلی زیر EMA شکسته باشد
+                const dist = (e - bar.low) / atr; // مثبت = low زیر EMA
+                const distClose = (bar.close - e) / atr;
+                const inZone = bar.low <= e + atr * 0.25 && dist <= maxDist && dist >= -0.25;
+                const notBroken = distClose >= -0.35; // کلوز خیلی زیر EMA نباشد
+                if (inZone && notBroken && Math.abs(Math.min(dist, 0)) <= maxDist) return true;
+                // نزدیک از بالا هم قبول (پولبک سطحی)
+                if (bar.low <= e + atr * maxDist && bar.close >= e - atr * 0.35 && (e - bar.low) / atr <= maxDist) return true;
             } else {
-                if (c.high >= e - tol && c.close <= e + tol) return true;
+                const dist = (bar.high - e) / atr;
+                const distClose = (e - bar.close) / atr;
+                const inZone = bar.high >= e - atr * 0.25 && dist <= maxDist && dist >= -0.25;
+                const notBroken = distClose >= -0.35;
+                if (inZone && notBroken) return true;
+                if (bar.high >= e - atr * maxDist && bar.close <= e + atr * 0.35 && (bar.high - e) / atr <= maxDist) return true;
             }
         }
         return false;
@@ -541,12 +558,21 @@
             if (!trendPatternGate && !failReason) failReason = "الگوی الزامی ۳+۱ برقرار نیست";
 
             // پولبک به EMA21/50 الزامی — جلوگیری از ورود وسط فضای خالی
-            const pb21 = nearEmaPullback(cl, ema21, lastAtr, checkedSide);
-            const pb50 = nearEmaPullback(cl, ema50, lastAtr, checkedSide);
-            const pullbackOk = pb21 || pb50;
-            checks.push({ l: "پولبک به EMA21/50", ok: pullbackOk, v: pullbackOk ? (pb21 ? 'EMA21' : 'EMA50') : 'رد', w: 1.3 });
-            if (!pullbackOk && !failReason) failReason = "عدم پولبک به EMA";
-            if (!pullbackOk) trendPatternGate = false;
+            // محدوده پولبک فقط نسبت به EMA21 (تا 1.8 ATR) — EMA50 معیار پولبک نیست
+            const pbOpts = {
+                pullbackMinAtr: opts.pullbackMinAtr,
+                pullbackMaxAtr: opts.pullbackMaxAtr != null ? opts.pullbackMaxAtr : 1.8,
+                pullbackLookback: opts.pullbackLookback != null ? opts.pullbackLookback : 12
+            };
+            const pb21 = nearEmaPullback(cl, ema21, lastAtr, checkedSide, pbOpts);
+            const pullbackOk = pb21;
+            checks.push({ l: "محدوده پولبک EMA21", ok: pullbackOk, v: pullbackOk ? 'EMA21' : 'خارج محدوده', w: 1.1 });
+            if (!pullbackOk && !failReason) failReason = "خارج از محدوده پولبک EMA21";
+            if (!pullbackOk && (opts.pullbackHard !== true)) {
+                /* soft: فقط روی امتیاز اثر دارد */
+            } else if (!pullbackOk) {
+                trendPatternGate = false;
+            }
 
             // ضدکشیدگی: فاصله تا EMA200 نباید خیلی زیاد باشد
             const maxStretch = Number(opts.maxDistATR) > 0 ? Number(opts.maxDistATR) : 3.5;
