@@ -510,7 +510,7 @@
                 if (m15Trend === 'NEUTRAL') { isOk = false; valStr = 'بدون دیتا'; }
                 else { isOk = (checkedSide === 'LONG' && m15Trend === 'UP') || (checkedSide === 'SHORT' && m15Trend === 'DOWN'); valStr = isOk ? 'تایید' : 'رد'; }
             }
-            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: 1.0 });
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند M15" : "همسو با روند M15", ok: isOk, v: valStr, w: mode === "range" ? 1.0 : 2.0 });
             if (!isOk && !failReason) failReason = "مخالف M15 یا بدون دیتا";
         }
 
@@ -569,7 +569,7 @@
             if (c.ok) score += w;
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 70;
+        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 80;
         const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate);
         const pullbackPassed = mode === "range" || (typeof trendPullbackGate === "undefined" ? true : trendPullbackGate);
         const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed && pullbackPassed;

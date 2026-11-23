@@ -129,3 +129,23 @@ test('enforces 42-58 RSI pullback window for trend entries', () => {
   expect(rsiCheck).toBeDefined();
   expect(rsiCheck.ok).toBe(false);
 });
+
+
+test('enforces default 80% minimum score and 2.0 weight for M15 trend alignment', () => {
+  const candles = makeTrendCandles();
+  // ساخت سری M15 خنثی/نزولی تا هم‌سویی M15 رد شود
+  const flatM15 = Array.from({ length: 60 }, (_, i) => ({
+    time: 1700000000 + i * 900,
+    open: 120, high: 120.1, low: 119.9, close: 120
+  }));
+  const res = Engine.evaluate('TEST', candles, flatM15, [], {
+    mode: 'pattern', adx: false, trend: false, emax: false,
+    nc: false, h1: false, m15: true, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5
+  }, candles.at(-1).time + 301);
+  const m15Check = res.checks.find(c => c.l === 'همسو با روند M15');
+  expect(m15Check).toBeDefined();
+  expect(m15Check.w).toBe(2.0);
+  expect(m15Check.ok).toBe(false);
+  expect(res.scorePercent).toBeLessThan(80);
+  expect(res.side).toBeNull();
+});
