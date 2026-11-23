@@ -485,11 +485,11 @@
             }
 
             if (opts.rsi !== false) {
-                const rsiTrendOk = checkedSide === 'LONG'
-                    ? (lastRsi >= 40 && lastRsi <= 68)
-                    : (lastRsi >= 32 && lastRsi <= 60);
-                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.0 });
-                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک صعودی (40-68)" : "RSI خارج از محدوده پولبک نزولی (32-60)";
+                const rsiMin = Number.isFinite(Number(opts.trendRsiMin)) ? Number(opts.trendRsiMin) : 42;
+                const rsiMax = Number.isFinite(Number(opts.trendRsiMax)) ? Number(opts.trendRsiMax) : 58;
+                const rsiTrendOk = lastRsi >= rsiMin && lastRsi <= rsiMax;
+                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.5 });
+                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? `خروج RSI از محدوده پولبک صعودی (${rsiMin}-${rsiMax})` : `خروج RSI از محدوده پولبک نزولی (${rsiMin}-${rsiMax})`;
             }
         }
 

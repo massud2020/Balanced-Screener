@@ -117,3 +117,15 @@ test('enforces EMA21 pullback tolerance (allows near-EMA21 pullback, blocks over
   }, nearPullback.at(-1).time + 301);
   expect(allowed.side).toBe('LONG');
 });
+
+
+test('enforces 42-58 RSI pullback window for trend entries', () => {
+  const overboughtTrend = makeTrendCandles();
+  const resHighRsi = Engine.evaluate('EURUSD', overboughtTrend, [], [], {
+    mode: 'pattern', adx: false, trend: false, emax: false,
+    nc: false, h1: false, m15: false, pa: false, rsi: true, maxDistATR: 0, minRatio: 0.5
+  }, overboughtTrend.at(-1).time + 301);
+  const rsiCheck = resHighRsi.checks.find(c => c.l === 'محدوده RSI پولبک روند');
+  expect(rsiCheck).toBeDefined();
+  expect(rsiCheck.ok).toBe(false);
+});
