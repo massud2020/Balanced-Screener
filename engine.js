@@ -403,7 +403,8 @@
             checks.push({ l: "عرض بولینگر / ATR", ok: isNotSqueeze, v: `${bandWidthAtr.toFixed(2)} ATR`, w: 1.0 });
             if (!isNotSqueeze && !failReason) failReason = "عرض باند رنج کمتر از حداقل است";
 
-            const minTouches = Math.max(0, Math.floor(Number(opts.rangeMinTouches) || 0));
+            const rawMinTouches = Number.isFinite(Number(opts.rangeMinTouches)) ? Number(opts.rangeMinTouches) : 2;
+            const minTouches = Math.max(0, Math.floor(rawMinTouches));
             if (minTouches > 0) {
                 const lookback = Math.max(4, Math.floor(Number(opts.rangeTouchLookback) || 30));
                 const touchPct = Math.max(0, Number(opts.rangeTouchPct) || 0.1);
@@ -415,7 +416,7 @@
                     if (cl[j].high >= bb.upper[j] - tol || cl[j].low <= bb.lower[j] + tol) touches++;
                 }
                 const enoughTouches = touches >= minTouches;
-                checks.push({ l: `تعداد برخورد باند (${minTouches} حداقل)`, ok: enoughTouches, v: String(touches), w: 1.0 });
+                checks.push({ l: `تعداد برخورد باند (${minTouches} حداقل)`, ok: enoughTouches, v: String(touches), w: 2.0 });
                 if (!enoughTouches && !failReason) failReason = "برخورد کافی به باندهای رنج وجود ندارد";
             }
 

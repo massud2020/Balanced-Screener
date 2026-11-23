@@ -149,3 +149,34 @@ test('enforces default 80% minimum score and 2.0 weight for M15 trend alignment'
   expect(res.scorePercent).toBeLessThan(80);
   expect(res.side).toBeNull();
 });
+
+
+test('enforces default 2 Bollinger band touches in range mode', () => {
+  const candles = Array.from({ length: 260 }, (_, i) => ({
+    time: 1790000000 + i * 300,
+    open: 1.1000,
+    high: 1.1008,
+    low: 1.0992,
+    close: i % 2 === 0 ? 1.1006 : 1.0994
+  }));
+  // تنها ۱ برخورد به باند پایین در کندل آخر
+  candles[259] = {
+    time: 1790000000 + 259 * 300,
+    open: 1.1000,
+    high: 1.1002,
+    low: 1.0970,
+    close: 1.0995
+  };
+
+  const res = Engine.evaluate('TEST', candles, [], [], {
+    mode: 'range', signalIntervalSec: 300, sessionFilter: false,
+    adx: false, h1: false, m15: false, rsi: false, rangeMinATR: 0
+  }, candles[candles.length - 1].time + 300);
+
+  const touchCheck = res.checks.find(c => c.l.includes('برخورد باند') && c.l.includes('2'));
+  expect(touchCheck).toBeDefined();
+  expect(touchCheck.ok).toBe(false);
+  expect(touchCheck.w).toBe(2.0);
+  expect(res.side).toBeNull();
+  expect(res.fail).toBe('برخورد کافی به باندهای رنج وجود ندارد');
+});
