@@ -232,7 +232,7 @@
         return { swingHigh, swingLow };
     }
 
-    function checkPattern3to1(candles, minBodyRatio = 0.75) {
+    function checkPattern3to1(candles, minBodyRatio = 0.5) {
         if (!Array.isArray(candles) || candles.length < 4) {
             return { pattern_buy: false, pattern_sell: false, buyRatio: null, sellRatio: null };
         }
@@ -245,7 +245,7 @@
         }
         const buyRatio = redBody > 0 && greenCount === 1 ? greenBody / redBody : null;
         const sellRatio = greenBody > 0 && redCount === 1 ? redBody / greenBody : null;
-        const threshold = Number.isFinite(minBodyRatio) && minBodyRatio >= 0 ? minBodyRatio : 0.75;
+        const threshold = Number.isFinite(minBodyRatio) && minBodyRatio >= 0 ? minBodyRatio : 0.5;
         // Last candle should be the impulse (buy=green, sell=red)
         const last = recent[3];
         const lastGreen = last.close > last.open;
@@ -390,8 +390,8 @@
             const useBbFilter = opts.bb !== false;
             const useWidthFilter = opts.rangeWidth !== false;
             const useReversalFilter = opts.rangeReversal !== false;
-            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 42;
-            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 58;
+            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 38;
+            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
             const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
             const cLast = cl[idx], cPrev = cl[idx - 1] || cLast;
@@ -523,7 +523,7 @@
                     ? (lastRsi >= 42 && lastRsi <= 58)
                     : (lastRsi >= 42 && lastRsi <= 58);
                 checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.2 });
-                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک (42-58)" : "RSI خارج از محدوده پولبک (42-58)";
+                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک صعودی (42-58)" : "RSI خارج از محدوده پولبک نزولی (42-58)";
             }
         }
 
@@ -551,7 +551,7 @@
         if (mode !== "range") {
             // The 3+1 pattern is mandatory for every Trend signal; opts.pat
             // cannot disable a strategy-defining condition.
-            const patternMinRatio = Math.max(0.75, Number(opts.minRatio) > 0 ? Number(opts.minRatio) : 0.75);
+            const patternMinRatio = Math.max(0.5, Number(opts.minRatio) > 0 ? Number(opts.minRatio) : 0.5);
             const pattern = checkPattern3to1(cl, patternMinRatio);
             trendPatternGate = checkedSide === 'LONG' ? pattern.pattern_buy : pattern.pattern_sell;
             checks.push({ l: "الگوی الزامی دقیق ۳+۱", ok: trendPatternGate, v: trendPatternGate ? 'تایید' : 'رد', w: 1.5 });
