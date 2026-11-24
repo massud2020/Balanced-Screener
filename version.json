@@ -1,8 +1,8 @@
 {
-  "build": 97,
+  "build": 98,
   "engine": 61,
-  "apkVersionName": "6.1.1",
-  "apkUrl": "https://github.com/massud2020/Balanced-Screener/releases/latest",
+  "apkVersionName": "6.1.2",
+  "apkUrl": "https://github.com/massud2020/Balanced-Screener/actions",
   "force": false,
-  "note": "Remote config + version banner; minRatio 0.5; RSI 42-58; EMA21 pullback 1.8 ATR"
+  "note": "Local strategy-config first + visible config chip"
 }
