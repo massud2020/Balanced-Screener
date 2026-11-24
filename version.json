@@ -1,5 +1,8 @@
 {
-  "build": 95,
-  "engine": 56,
-  "note": "v56: unified preset/session wiring, corrected closed-bar execution, ATR-based 0.5 trailing, gap-aware shared exits, range SL/TP study and overlap-aware portfolio validation"
+  "build": 97,
+  "engine": 61,
+  "apkVersionName": "6.1.1",
+  "apkUrl": "https://github.com/massud2020/Balanced-Screener/releases/latest",
+  "force": false,
+  "note": "Remote config + version banner; minRatio 0.5; RSI 42-58; EMA21 pullback 1.8 ATR"
 }

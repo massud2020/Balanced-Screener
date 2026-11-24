@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "updated": "2026-11-24",
+  "defaults": {
+    "minRatio": 0.5,
+    "minScorePercent": 85,
+    "pullbackMaxAtr": 1.8,
+    "pullbackHard": false,
+    "rsiL": 42,
+    "rsiS": 58,
+    "rangeRsiL": 42,
+    "rangeRsiS": 58,
+    "tp1R": 2.0,
+    "tp2R": 3.5
+  },
+  "symbols": {
+    "EURUSD": {
+      "minRatio": 0.5,
+      "minScorePercent": 85
+    },
+    "GBPUSD": {
+      "minRatio": 0.5,
+      "minScorePercent": 90
+    },
+    "XAUUSD": {
+      "minRatio": 0.5,
+      "minScorePercent": 90
+    },
+    "GOLD": {
+      "minRatio": 0.5,
+      "minScorePercent": 90
+    },
+    "BTCUSDT": {
+      "minRatio": 0.5
+    },
+    "ETHUSDT": {
+      "minRatio": 0.5
+    }
+  },
+  "notes": "Remote strategy config — edit on GitHub without rebuilding APK"
+}
