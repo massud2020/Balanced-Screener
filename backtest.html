@@ -368,21 +368,99 @@ async function loadFile(key,file){
 }
 
 
+
  function dateBound(id,end){
-   const v=$(id).value; if(!v) return null;
-   return Math.floor(new Date(v+(end?'T23:59:59':'T00:00:00')).getTime()/1000);
+   const el=$(id); if(!el||!el.value) return null;
+   return Math.floor(new Date(el.value+(end?'T23:59:59':'T00:00:00')).getTime()/1000);
  }
+ function drawEquity(trades){
+   const canvas=$('equityChart'); if(!canvas||!canvas.getContext) return;
+   const ctx=canvas.getContext('2d');
+   const w=canvas.width, h=canvas.height;
+   ctx.clearRect(0,0,w,h);
+   ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,w,h);
+   if(!trades||!trades.length){ $('chartStart').textContent='شروع: —'; $('chartEnd').textContent='پایان: —'; return; }
+   const sorted=[...trades].sort((a,b)=>(a.closeTime||0)-(b.closeTime||0));
+   let eq=0; const pts=[0];
+   sorted.forEach(t=>{ eq+=Number(t.R||0); pts.push(eq); });
+   const min=Math.min(...pts), max=Math.max(...pts);
+   const span=(max-min)||1;
+   ctx.strokeStyle='#22c55e'; ctx.lineWidth=2; ctx.beginPath();
+   pts.forEach((v,i)=>{
+     const x=(i/(pts.length-1||1))*(w-20)+10;
+     const y=h-20-((v-min)/span)*(h-40);
+     if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+   });
+   ctx.stroke();
+   // zero line
+   const z=h-20-((0-min)/span)*(h-40);
+   ctx.strokeStyle='#334155'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,z); ctx.lineTo(w,z); ctx.stroke();
+   if($('chartStart')) $('chartStart').textContent='شروع: '+fmtDate(sorted[0].closeTime||sorted[0].time);
+   if($('chartEnd')) $('chartEnd').textContent='پایان: '+fmtDate(sorted[sorted.length-1].closeTime||sorted[sorted.length-1].time);
+ }
+ function renderTrades(trades){
+   const body=$('tradesBody'); if(!body) return;
+   if(!trades||!trades.length){
+     body.innerHTML='<tr><td colspan="13" class="empty">معامله‌ای یافت نشد.</td></tr>';
+     return;
+   }
+   const sorted=[...trades].sort((a,b)=>(a.closeTime||0)-(b.closeTime||0));
+   body.innerHTML=sorted.map((t,i)=>{
+     const r=Number(t.R||0);
+     const cls=r>0.05?'win':(r<-0.05?'loss':'flat');
+     return '<tr class="'+cls+'">'+
+       '<td>'+(i+1)+'</td>'+
+       '<td>'+(t.symbol||'')+'</td>'+
+       '<td>'+(t.mode||'')+'</td>'+
+       '<td>'+(t.side||'')+'</td>'+
+       '<td>'+(t.entry!=null?Number(t.entry).toFixed(2):'—')+'</td>'+
+       '<td>'+(t.exit!=null?Number(t.exit).toFixed(2):'—')+'</td>'+
+       '<td>'+(t.sl!=null?Number(t.sl).toFixed(2):'—')+'</td>'+
+       '<td>'+(t.why||t.exitWhy||'')+'</td>'+
+       '<td>'+(Number.isFinite(r)?r.toFixed(2):'—')+'</td>'+
+       '</tr>';
+   }).join('');
+ }
+ function renderStats(trades, stats){
+   const st=stats||(typeof Backtest!=='undefined'?Backtest.calculateStats(trades):{});
+   const set=(id,v)=>{ const el=$(id); if(el) el.textContent=v; };
+   set('sTotal', String(st.total!=null?st.total:(trades?trades.length:0)));
+   set('sWin', (st.winRate!=null?Number(st.winRate).toFixed(1):'0')+'%');
+   set('sNet', st.netR!=null?Number(st.netR).toFixed(2):'—');
+   set('sPf', st.pf!=null?Number(st.pf).toFixed(2):'—');
+   set('sDd', st.maxDD!=null?Number(st.maxDD).toFixed(2):'—');
+   set('sWl', (st.wins||0)+' / '+(st.losses||0)+' / '+(st.flats||0));
+   const rm=$('resultMode'); if(rm) rm.textContent='اجرا شد';
+   const exp=$('exportBtn'); if(exp){ exp.disabled=!(trades&&trades.length); }
+   window.__lastTrades=trades||[];
+ }
+ function wireExport(){
+   const exp=$('exportBtn'); if(!exp||exp._wired) return; exp._wired=true;
+   exp.addEventListener('click', ()=>{
+     const trades=window.__lastTrades||[];
+     if(!trades.length) return;
+     const lines=['#,symbol,side,mode,entry,exit,sl,why,R,closeTime'];
+     trades.forEach((t,i)=>{
+       lines.push([i+1,t.symbol,t.side,t.mode,t.entry,t.exit,t.sl,t.why||'',t.R,t.closeTime].join(','));
+     });
+     const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv'});
+     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backtest-trades.csv'; a.click();
+   });
+ }
+
  ['m5','m15','h1'].forEach(k=>{
    const el=$(k==='m5'?'fileM5':k==='m15'?'fileM15':'fileH1');
-   if(!el) return;
+   if(!el||el._wired) return; el._wired=true;
    el.addEventListener('change', e=>{
      const f=e.target.files && e.target.files[0];
      if(!f){ const st=$('status'); if(st) st.textContent='فایلی انتخاب نشد'; return; }
      loadFile(k,f);
    });
  });
+
  const runBtn=$('runBtn');
- if(runBtn){
+ if(runBtn && !runBtn._wired){
+   runBtn._wired=true;
    runBtn.addEventListener('click', async ()=>{
      const symbol=($('symbol')&&$('symbol').value||'').trim().toUpperCase();
      if(!symbol){ $('status').textContent='نماد را وارد کنید.'; return; }
@@ -390,66 +468,63 @@ async function loadFile(key,file){
      let m5=data.m5.slice();
      if(from) m5=m5.filter(c=>c.time>=from);
      if(to) m5=m5.filter(c=>c.time<=to);
-     if(m5.length<50){ $('status').textContent='داده M5 کافی نیست (حداقل ۵۰ کندل، فعلی: '+m5.length+').'; return; }
+     if(m5.length<200){ $('status').textContent='برای موتور بک‌تست حداقل ۲۰۰ کندل M5 لازم است (فعلی: '+m5.length+').'; return; }
      const m15=data.m15.filter(c=>(!from||c.time>=from)&&(!to||c.time<=to));
      const h1=data.h1.filter(c=>(!from||c.time>=from)&&(!to||c.time<=to));
-     $('status').textContent='در حال اجرای بک‌تست...';
+     $('status').textContent='در حال اجرای بک‌تست روی '+m5.length.toLocaleString('fa-IR')+' کندل...';
+     const prog=$('progress'); if(prog) prog.style.width='30%';
      try{
        if(typeof Backtest==='undefined'||!Backtest.runBacktestOnSymbol){
          throw new Error('موتور بک‌تست بارگذاری نشد (Backtest).');
        }
        const opts={};
        try{ if(typeof Presets!=='undefined'&&Presets.getPreset) Object.assign(opts, Presets.getPreset(symbol)||{}); }catch(e){}
-       const trailEl=$('trailAtr'); if(trailEl&&trailEl.value) opts.trailingAtrMult=Number(trailEl.value)||opts.trailingAtrMult;
-       const trades=Backtest.runBacktestOnSymbol(symbol, m5, m15, h1, opts);
+       const modeEl=$('mode'); if(modeEl&&modeEl.value) opts.mode=modeEl.value;
+       const spread=$('spread'); if(spread) opts.spreadPips=Number(spread.value)||0;
+       const commission=$('commission'); if(commission) opts.commissionPips=Number(commission.value)||0;
+       const slippage=$('slippage'); if(slippage) opts.slippagePips=Number(slippage.value)||0;
+       const trail=$('trailingAtrMult'); if(trail&&trail.value) opts.trailingAtrMult=Number(trail.value)||1.2;
+       const rsl=$('rangeSlAtr'); if(rsl&&rsl.value) opts.rangeMaxRiskATR=Number(rsl.value);
+       const rtp=$('rangeTpMult'); if(rtp&&rtp.value) opts.rangeTpMult=Number(rtp.value);
+       // allow UI to breathe on large sets
+       await new Promise(r=>setTimeout(r,30));
+       if(prog) prog.style.width='60%';
+       const trades=Backtest.runBacktestOnSymbol(symbol, m5, m15, h1, opts)||[];
        const stats=Backtest.calculateStats(trades);
-       $('status').textContent='✅ انجام شد · معاملات: '+(trades&&trades.length||0);
-       // best-effort fill stats if elements exist
-       const set=(id,v)=>{const el=$(id); if(el) el.textContent=v;};
-       if(stats){
-         set('statWR', (stats.winRate!=null? (stats.winRate*100).toFixed(1)+'%': '—'));
-         set('statN', String(trades.length));
-         set('statPF', stats.profitFactor!=null? Number(stats.profitFactor).toFixed(2): '—');
-         set('statNet', stats.netR!=null? Number(stats.netR).toFixed(2): '—');
-       }
-       console.log('backtest done', stats, trades&&trades.slice(0,3));
+       if(prog) prog.style.width='100%';
+       renderStats(trades, stats);
+       renderTrades(trades);
+       drawEquity(trades);
+       wireExport();
+       $('status').textContent='✅ انجام شد · معاملات: '+trades.length+
+         (stats?(' · WR '+Number(stats.winRate||0).toFixed(1)+'% · NetR '+Number(stats.netR||0).toFixed(2)):'');
+       $('status').classList.add('ok');
      }catch(e){
        $('status').textContent='خطا در اجرا: '+(e&&e.message?e.message:e);
+       $('status').classList.add('err');
        console.error(e);
+     } finally {
+       setTimeout(()=>{ const p=$('progress'); if(p) p.style.width='0%'; }, 800);
      }
    });
  }
  const resetBtn=$('resetBtn');
- if(resetBtn){
+ if(resetBtn && !resetBtn._wired){
+   resetBtn._wired=true;
    resetBtn.addEventListener('click', ()=>{
-     data.m5=[]; data.m15=[]; data.h1=[];
+     data.m5=[]; data.m15=[]; data.h1=[]; window.__lastTrades=[];
      ['fileM5','fileM15','fileH1'].forEach(id=>{const el=$(id); if(el) el.value='';});
      ['infoM5','infoM15','infoH1'].forEach(id=>{const el=$(id); if(el){ el.textContent=''; el.classList.remove('file-ok'); }});
+     renderStats([], {total:0,winRate:0,netR:0,pf:0,maxDD:0,wins:0,losses:0,flats:0});
+     renderTrades([]);
+     drawEquity([]);
      validateReady();
      $('status').textContent='داده‌ها پاک شد.';
    });
  }
 
 })();
-</script>
 
-<script>
-(function(){
-  function goOneStepBack() {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.location.href = "index.html";
-    }
-  }
-  document.addEventListener("DOMContentLoaded", function() {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-      window.Capacitor.Plugins.App.addListener("backButton", function() {
-        goOneStepBack();
-      });
-    }
-  });
-})();
 </script>
 
 </body></html>
