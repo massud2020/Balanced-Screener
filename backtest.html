@@ -30,7 +30,7 @@ input[type="file"].loaded { outline: 2px solid #22c55e !important; border-radius
 </head>
 <body>
 <div class="wrap">
- <header class="top"><div><h1>📊 بک‌تست حرفه‌ای</h1><div class="sub">Balanced Screener · Build 91 / Engine 52</div></div><a href="index.html">بازگشت به اسکرینر ←</a></header>
+ <header class="top"><div><h1>📊 بک‌تست حرفه‌ای</h1><div class="sub">Balanced Screener · Backtest</div></div><a href="index.html">بازگشت به اسکرینر ←</a></header>
  <section class="panel">
   <h2>۱) داده‌های تاریخی</h2>
   <div class="grid">
@@ -211,6 +211,71 @@ async function loadFile(key,file){
     const st=$('status'); if(st){ st.textContent='خطا: '+(e&&e.message?e.message:e); st.classList.add('err'); st.classList.remove('ok'); }
     validateReady();
   }
+}
+
+
+ function dateBound(id,end){
+   const v=$(id).value; if(!v) return null;
+   return Math.floor(new Date(v+(end?'T23:59:59':'T00:00:00')).getTime()/1000);
+ }
+ ['m5','m15','h1'].forEach(k=>{
+   const el=$(k==='m5'?'fileM5':k==='m15'?'fileM15':'fileH1');
+   if(!el) return;
+   el.addEventListener('change', e=>{
+     const f=e.target.files && e.target.files[0];
+     if(!f){ const st=$('status'); if(st) st.textContent='فایلی انتخاب نشد'; return; }
+     loadFile(k,f);
+   });
+ });
+ const runBtn=$('runBtn');
+ if(runBtn){
+   runBtn.addEventListener('click', async ()=>{
+     const symbol=($('symbol')&&$('symbol').value||'').trim().toUpperCase();
+     if(!symbol){ $('status').textContent='نماد را وارد کنید.'; return; }
+     const from=dateBound('dateFrom',false), to=dateBound('dateTo',true);
+     let m5=data.m5.slice();
+     if(from) m5=m5.filter(c=>c.time>=from);
+     if(to) m5=m5.filter(c=>c.time<=to);
+     if(m5.length<50){ $('status').textContent='داده M5 کافی نیست (حداقل ۵۰ کندل، فعلی: '+m5.length+').'; return; }
+     const m15=data.m15.filter(c=>(!from||c.time>=from)&&(!to||c.time<=to));
+     const h1=data.h1.filter(c=>(!from||c.time>=from)&&(!to||c.time<=to));
+     $('status').textContent='در حال اجرای بک‌تست...';
+     try{
+       if(typeof Backtest==='undefined'||!Backtest.runBacktestOnSymbol){
+         throw new Error('موتور بک‌تست بارگذاری نشد (Backtest).');
+       }
+       const opts={};
+       try{ if(typeof Presets!=='undefined'&&Presets.getPreset) Object.assign(opts, Presets.getPreset(symbol)||{}); }catch(e){}
+       const trailEl=$('trailAtr'); if(trailEl&&trailEl.value) opts.trailingAtrMult=Number(trailEl.value)||opts.trailingAtrMult;
+       const trades=Backtest.runBacktestOnSymbol(symbol, m5, m15, h1, opts);
+       const stats=Backtest.calculateStats(trades);
+       $('status').textContent='✅ انجام شد · معاملات: '+(trades&&trades.length||0);
+       // best-effort fill stats if elements exist
+       const set=(id,v)=>{const el=$(id); if(el) el.textContent=v;};
+       if(stats){
+         set('statWR', (stats.winRate!=null? (stats.winRate*100).toFixed(1)+'%': '—'));
+         set('statN', String(trades.length));
+         set('statPF', stats.profitFactor!=null? Number(stats.profitFactor).toFixed(2): '—');
+         set('statNet', stats.netR!=null? Number(stats.netR).toFixed(2): '—');
+       }
+       console.log('backtest done', stats, trades&&trades.slice(0,3));
+     }catch(e){
+       $('status').textContent='خطا در اجرا: '+(e&&e.message?e.message:e);
+       console.error(e);
+     }
+   });
+ }
+ const resetBtn=$('resetBtn');
+ if(resetBtn){
+   resetBtn.addEventListener('click', ()=>{
+     data.m5=[]; data.m15=[]; data.h1=[];
+     ['fileM5','fileM15','fileH1'].forEach(id=>{const el=$(id); if(el) el.value='';});
+     ['infoM5','infoM15','infoH1'].forEach(id=>{const el=$(id); if(el){ el.textContent=''; el.classList.remove('file-ok'); }});
+     validateReady();
+     $('status').textContent='داده‌ها پاک شد.';
+   });
+ }
+
 })();
 </script>
 
