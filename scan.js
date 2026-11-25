@@ -185,7 +185,7 @@ function openSig(id, side, entry, mode, now, extra) {
   STATE.active[id] = { side, entry, mode, time: now, sl: e.sl, tp: tp1, d: e.d,
     bt: (e.bt != null ? e.bt + 300 : now), policyVersion: 3,
     atr: e.atr, signalClose: entry,
-    policyOpts: { ...(e.policyOpts || {}), trailingAtrMult: 0.5 },
+    policyOpts: { ...(e.policyOpts || {}), trailingAtrMult: (e.policyOpts && e.policyOpts.trailingAtrMult) || 1.2, trailAfterR: 1.0 },
     currentSl: e.sl, currentR: 0, tp1Hit: false };
 }
 function calcR(side, entry, sl, exitPx) {
@@ -504,7 +504,7 @@ async function once(now) {
     const sent = await tg(
       "🌐 [پس‌زمینه] " + (L ? "🟢 LONG " : "🔴 SHORT ") + row.id + "\n" + modeName +
       "\nEntry " + fd(row.entry, row.d) + " | SL " + fd(row.sl, row.d) +
-      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش\nخروج: " + (row.mode === "range" ? `حد سود ${fd(row.tp1R, 1)}R یا SL` : "Trailing 0.5 ATR یا واگرایی RSI"),
+      "\nRSI " + fd(row.rsi, 1) + " | کندل " + ageMin + " دقیقه پیش\nخروج: " + (row.mode === "range" ? `حد سود ${fd(row.tp1R, 1)}R یا SL` : "بدون TP ثابت | تریل بعد +1R (1.2 ATR) یا واگرایی RSI"),
       TH_SIG
     );
     

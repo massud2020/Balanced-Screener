@@ -607,9 +607,13 @@
         let tp1R = mode === "range"
             ? (Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : (Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.5))
             : (Number(opts.tp1R) > 0 ? Number(opts.tp1R) : 2.0);
-        // حداقل RR خالص‌تر برای فارکس/فلزات
-        if (!isCrypto && mode === "range") tp1R = Math.max(tp1R, 1.8);
-        if (!isCrypto && mode !== "range") tp1R = Math.max(tp1R, 1.8);
+        // Range: fixed TP from rangeTpMult (no artificial 1.8 lock)
+        // Trend/pattern: NO hard take-profit — exit via RSI divergence + trailing after +1R
+        if (mode === "range") {
+            // optional soft floor so range targets are not tiny; can override with rangeTpMult
+            const rangeFloor = Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.2;
+            tp1R = Math.max(tp1R, rangeFloor);
+        }
         const tp2R = mode === "range" ? tp1R : (Number(opts.tp2R) > 0 ? Number(opts.tp2R) : 3.5);
         let tp1 = checkedSide === "LONG" ? entry + riskDist * tp1R : entry - riskDist * tp1R;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * tp2R : entry - riskDist * tp2R;
@@ -658,8 +662,17 @@
             scorePercent: +scorePercent.toFixed(1),
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
-            mode, entry, sl, tp: mode === "range" ? tp1 : null, tp1: mode === "range" ? tp1 : null, tp2: mode === "range" ? tp2 : null, tp1R: mode === "range" ? tp1R : null, tp2R: mode === "range" ? tp2R : null, rsi: lastRsi, adx: lastAdx,
-            trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5),
+            mode, entry, sl,
+            // Range: fixed TP. Trend: no hard TP (null) — management = RSI_DIV + trail after +1R
+            tp: mode === "range" ? tp1 : null,
+            tp1: mode === "range" ? tp1 : null,
+            tp2: mode === "range" ? tp2 : null,
+            tp1R: mode === "range" ? tp1R : null,
+            tp2R: mode === "range" ? tp2R : null,
+            exitPolicy: mode === "range" ? "RANGE_TP" : "RSI_DIV_TRAIL",
+            exitPolicyNote: mode === "range" ? ("حد سود ثابت " + tp1R.toFixed(1) + "R") : "بدون TP ثابت — خروج با واگرایی RSI یا تریل بعد از +1R",
+            rsi: lastRsi, adx: lastAdx,
+            trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 1.2),
             atr: lastAtr,
             effectiveSlAtr,
             correlationGroup: getCorrelationGroup(symbol),

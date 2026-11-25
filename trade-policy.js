@@ -81,7 +81,8 @@ const TradePolicy = (() => {
         const maxHold = Number(maxHoldSec) > 0 ? Number(maxHoldSec) : 24 * 3600;
         const rangeTpMult = Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : 1.5;
         const rangeTp = isLong ? entry + risk * rangeTpMult : entry - risk * rangeTpMult;
-        const trailMult = Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5;
+        const trailMult = Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 1.2;
+        const trailAfterR = Number(opts.trailAfterR) > 0 ? Number(opts.trailAfterR) : 1.0;
         const maxLossR = Number(opts.maxLossR) > 0 ? Number(opts.maxLossR) : 2.0;
     const capClosed = (res) => {
       if (!res || res.status !== 'closed' || !Number.isFinite(res.R)) return res;
@@ -143,12 +144,13 @@ const TradePolicy = (() => {
                     return capClosed({ status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
                 }
                 const atrNow = Number(atrArr[i]);
-                if (peakFav >= 1.0) {
+                if (peakFav >= trailAfterR) {
                     currentSl = isLong ? Math.max(currentSl, entry) : Math.min(currentSl, entry);
                 }
-                if (Number.isFinite(atrNow) && atrNow > 0) {
+                if (peakFav >= trailAfterR && Number.isFinite(atrNow) && atrNow > 0) {
                     const candidate = isLong ? bidClose - atrNow * trailMult : askClose + atrNow * trailMult;
-                    currentSl = isLong ? Math.max(currentSl, candidate) : Math.min(currentSl, candidate);
+                    if (isLong) currentSl = Math.max(currentSl, entry, candidate);
+                    else currentSl = Math.min(currentSl, entry, candidate);
                 }
             }
 
