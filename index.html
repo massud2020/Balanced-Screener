@@ -1096,12 +1096,17 @@ async function playRadarSweep(rows) {
 
 window.doEnter = async function() {
     unlockTTS();
-    const btn = $('start-ai-btn'); btn.disabled = true; btn.textContent = "در حال اسکن بازار..."; setText("splashSubtitle", "در حال بررسی رژیم بازار (روند / رنج)...");
+    const btn = $('start-ai-btn');
+    if (btn) { btn.disabled = true; btn.textContent = "در حال اسکن بازار..."; }
+    setText("splashSubtitle", "در حال بررسی رژیم بازار (روند / رنج)...");
     if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
 
     let detectedRegime = "pattern";
     try {
-        const snap = await fetchGitJson("results.json");
+        const snap = await Promise.race([
+            fetchGitJson("results.json"),
+            new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))
+        ]).catch(() => null);
         if (snap && Array.isArray(snap.rows) && snap.rows.length > 0) {
             let adxSum = 0, adxCnt = 0;
             for (const r of snap.rows) {
@@ -1124,22 +1129,28 @@ window.doEnter = async function() {
     const marketStateFa = detectedRegime === "range" ? "رنج و کم‌نوسان" : "روندی";
     setText("splashSubtitle", `بازار ${marketStateFa} تشخیص داده شد — ${stratFaName} فعال شد`);
 
-    // اول اسپلش را ببند؛ صدا در پس‌زمینه (گیر نکردن روی TTS)
-    $('ai-splash').classList.add('hidden');
-    setTimeout(() => { try { $('ai-splash').style.display = 'none'; } catch(e){} }, 300);
-    setTimeout(async () => { window.__entered = true; try { await scan(true); } catch(e){} try { if (typeof LAST !== "undefined" && LAST?.rows) await playRadarSweep(LAST.rows); } catch(e){} }, 350);
-
-    if(!$("splashMute").checked) {
+    if (!$("splashMute").checked) {
         isWelcomePlaying = true;
         const welcomeText = detectedRegime === "range"
         ? "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رنج و کم‌نوسان تشخیص داده شد و استراتژی رنج انتخاب شد. اسکن خودکار به زودی آغاز می‌شود."
         : "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رونددار تشخیص داده شد و استراتژی سه به یک انتخاب شد. اسکن خودکار به زودی آغاز می‌شود.";
-        Promise.race([
-            speakNative(welcomeText, 'fa-IR', 1.0),
-            new Promise(r => setTimeout(r, 12000))
-        ]).catch(()=>{}).finally(() => { isWelcomePlaying = false; });
+        try {
+            await Promise.race([
+                speakNative(welcomeText, 'fa-IR', 1.0),
+                new Promise(r => setTimeout(r, 20000))
+            ]);
+        } catch (e) {}
+        isWelcomePlaying = false;
     }
-};
+
+    $('ai-splash').classList.add('hidden');
+    setTimeout(() => { try { $('ai-splash').style.display = 'none'; } catch(e){} }, 300);
+    setTimeout(async () => {
+        window.__entered = true;
+        try { await scan(true); } catch (e) {}
+        try { if (typeof LAST !== "undefined" && LAST && LAST.rows) await playRadarSweep(LAST.rows); } catch (e) {}
+    }, 350);
+};;
 
 window.doSkip = function() { 
     unlockTTS();
