@@ -1,17 +1,4 @@
 {
-  "updated": "2026-11-25T01:44:06.183358+00:00",
-  "events": [
-    {
-      "time": "2026-11-25T08:30:00-05:00",
-      "title": "Core PCE Price Index m/m",
-      "impact": "high",
-      "currency": "USD"
-    },
-    {
-      "time": "2026-11-25T08:30:00-05:00",
-      "title": "Prelim GDP q/q",
-      "impact": "high",
-      "currency": "USD"
-    }
-  ]
+  "updated": "2026-11-25T16:24:58.476988+00:00",
+  "events": []
 }
