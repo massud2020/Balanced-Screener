@@ -129,11 +129,13 @@ const TradePolicy = (() => {
             } else {
                 if (isLong && bidLow <= currentSl) {
                     const exit = Number.isFinite(bidOpen) && bidOpen < currentSl ? bidOpen : currentSl;
-                    return capClosed({ status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav });
+                    const moved = Math.abs(currentSl - sl) > 1e-12;
+                    return capClosed({ status: 'closed', why: moved ? 'TRAIL_SL' : 'SL', exit, closeTime: bar.time, R: (exit - entry) / risk, peakFav });
                 }
                 if (!isLong && askHigh >= currentSl) {
                     const exit = Number.isFinite(askOpen) && askOpen > currentSl ? askOpen : currentSl;
-                    return capClosed({ status: 'closed', why: 'TRAIL_SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav });
+                    const moved = Math.abs(currentSl - sl) > 1e-12;
+                    return capClosed({ status: 'closed', why: moved ? 'TRAIL_SL' : 'SL', exit, closeTime: bar.time, R: (entry - exit) / risk, peakFav });
                 }
 
                 const favorable = isLong ? (bidHigh - entry) / risk : (entry - askLow) / risk;
@@ -144,13 +146,17 @@ const TradePolicy = (() => {
                     return capClosed({ status: 'closed', why: 'RSI_DIV', exit: exitPx, closeTime: bar.time, R: rMult, peakFav });
                 }
                 const atrNow = Number(atrArr[i]);
+                // BE only after +1R (or trailAfterR)
                 if (peakFav >= trailAfterR) {
                     currentSl = isLong ? Math.max(currentSl, entry) : Math.min(currentSl, entry);
                 }
+                // ATR trail only after BE threshold — avoid early TRAIL_SL noise
                 if (peakFav >= trailAfterR && Number.isFinite(atrNow) && atrNow > 0) {
                     const candidate = isLong ? bidClose - atrNow * trailMult : askClose + atrNow * trailMult;
-                    if (isLong) currentSl = Math.max(currentSl, entry, candidate);
-                    else currentSl = Math.min(currentSl, entry, candidate);
+                    // never trail worse than BE after activation
+                    const floorSl = isLong ? entry : entry;
+                    if (isLong) currentSl = Math.max(currentSl, floorSl, candidate);
+                    else currentSl = Math.min(currentSl, floorSl, candidate);
                 }
             }
 

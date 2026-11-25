@@ -449,7 +449,7 @@
 
         if (mode === "range") {
             if (opts.adx !== false) {
-                const rangeAdxMax = Number.isFinite(Number(opts.rangeAdxMax)) ? Number(opts.rangeAdxMax) : 25;
+                const rangeAdxMax = Number.isFinite(Number(opts.rangeAdxMax)) ? Number(opts.rangeAdxMax) : 18;
                 const isLowTrend = lastAdx <= rangeAdxMax;
                 checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
                 if (!isLowTrend && !failReason) failReason = "ADX قوی است";
@@ -527,12 +527,18 @@
             }
         }
 
+        let h1GateOk = true;
         if (opts.h1 !== false && closedH1.length >= 200) {
             const isOk = mode === "range"
                 ? (h1Trend === 'NEUTRAL' || (checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'))
                 : ((checkedSide === 'LONG' && h1Trend === 'UP') || (checkedSide === 'SHORT' && h1Trend === 'DOWN'));
-            checks.push({ l: mode === "range" ? "عدم مخالفت روند H1" : "همسو با روند H1", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.0 });
+            h1GateOk = isOk;
+            checks.push({ l: mode === "range" ? "عدم مخالفت روند H1 (الزامی)" : "همسو با روند H1 (الزامی)", ok: isOk, v: isOk ? 'تایید' : 'رد', w: 1.5 });
             if (!isOk && !failReason) failReason = "مخالف H1";
+        } else if (opts.h1 !== false && mode !== "range") {
+            h1GateOk = false;
+            checks.push({ l: "همسو با روند H1 (الزامی)", ok: false, v: 'بدون دیتا', w: 1.5 });
+            if (!failReason) failReason = "داده H1 ناکافی";
         }
 
         if (opts.m15 !== false && closedM15.length >= 50) {
@@ -598,7 +604,7 @@
             if (checkedSide === "LONG" && Number.isFinite(swings.swingHigh) && swings.swingHigh > lastClose && (swings.swingHigh - lastClose) < riskDist) structOk = false;
             if (checkedSide === "SHORT" && Number.isFinite(swings.swingLow) && swings.swingLow < lastClose && (lastClose - swings.swingLow) < riskDist) structOk = false;
         }
-        checks.push({ l: "ساختار بازار", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.0 });
+        checks.push({ l: "ساختار بازار (الزامی)", ok: structOk, v: structOk ? 'تایید' : 'رد', w: 1.5 });
         if (!structOk && !failReason) failReason = "نزدیک به ساختار";
 
         const entry = lastClose;
@@ -607,13 +613,9 @@
         let tp1R = mode === "range"
             ? (Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : (Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.5))
             : (Number(opts.tp1R) > 0 ? Number(opts.tp1R) : 2.0);
-        // Range: fixed TP from rangeTpMult (no artificial 1.8 lock)
-        // Trend/pattern: NO hard take-profit — exit via RSI divergence + trailing after +1R
-        if (mode === "range") {
-            // optional soft floor so range targets are not tiny; can override with rangeTpMult
-            const rangeFloor = Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.2;
-            tp1R = Math.max(tp1R, rangeFloor);
-        }
+        // حداقل RR خالص‌تر برای فارکس/فلزات
+        if (!isCrypto && mode === "range") tp1R = Math.max(tp1R, 1.8);
+        if (!isCrypto && mode !== "range") tp1R = Math.max(tp1R, 1.8);
         const tp2R = mode === "range" ? tp1R : (Number(opts.tp2R) > 0 ? Number(opts.tp2R) : 3.5);
         let tp1 = checkedSide === "LONG" ? entry + riskDist * tp1R : entry - riskDist * tp1R;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * tp2R : entry - riskDist * tp2R;
@@ -635,7 +637,12 @@
             if (c.ok) score += w;
         });
         const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
-        const MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 85;
+        let MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 85;
+        // Range: require slightly higher quality to reduce low-edge mean-reversion noise
+        if (mode === "range") {
+            const rangeMin = Number.isFinite(Number(opts.rangeMinScorePercent)) ? Number(opts.rangeMinScorePercent) : 88;
+            MIN_SCORE_PERCENT = Math.max(MIN_SCORE_PERCENT, rangeMin);
+        }
         let trendSideOk = true;
         if (mode !== "range" && checkedSide === "LONG") trendSideOk = lastClose >= ema200[idx];
         if (mode !== "range" && checkedSide === "SHORT") trendSideOk = lastClose <= ema200[idx];
@@ -643,7 +650,12 @@
             checks.push({ l: "سمت درست نسبت به EMA200", ok: trendSideOk, v: trendSideOk ? 'تایید' : 'رد', w: 0 });
             if (!trendSideOk && !failReason) failReason = "خلاف سمت EMA200";
         }
-        const hardGatesPassed = mode === "range" || (trendEmaGate && trendPatternGate && trendSideOk);
+        // Trend: EMA + pattern + side + H1 + structure must all pass
+        // Range: ADX soft-regime already checked; H1 non-oppose is hard; higher score enforced below
+        const rangeGateOk = mode !== "range" || h1GateOk;
+        const hardGatesPassed = mode === "range"
+            ? rangeGateOk
+            : (trendEmaGate && trendPatternGate && trendSideOk && h1GateOk && structOk);
         const allPassed = (scorePercent >= MIN_SCORE_PERCENT) && !!side && hardGatesPassed;
 
         let tier = null;
@@ -662,17 +674,8 @@
             scorePercent: +scorePercent.toFixed(1),
             pass: +score.toFixed(1),
             total: +maxScore.toFixed(1),
-            mode, entry, sl,
-            // Range: fixed TP. Trend: no hard TP (null) — management = RSI_DIV + trail after +1R
-            tp: mode === "range" ? tp1 : null,
-            tp1: mode === "range" ? tp1 : null,
-            tp2: mode === "range" ? tp2 : null,
-            tp1R: mode === "range" ? tp1R : null,
-            tp2R: mode === "range" ? tp2R : null,
-            exitPolicy: mode === "range" ? "RANGE_TP" : "RSI_DIV_TRAIL",
-            exitPolicyNote: mode === "range" ? ("حد سود ثابت " + tp1R.toFixed(1) + "R") : "بدون TP ثابت — خروج با واگرایی RSI یا تریل بعد از +1R",
-            rsi: lastRsi, adx: lastAdx,
-            trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 1.2),
+            mode, entry, sl, tp: mode === "range" ? tp1 : null, tp1: mode === "range" ? tp1 : null, tp2: mode === "range" ? tp2 : null, tp1R: mode === "range" ? tp1R : null, tp2R: mode === "range" ? tp2R : null, rsi: lastRsi, adx: lastAdx,
+            trailingAtrStep: lastAtr * (Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5),
             atr: lastAtr,
             effectiveSlAtr,
             correlationGroup: getCorrelationGroup(symbol),

@@ -1,19 +1,24 @@
 {
-  "version": 4,
+  "version": 3,
   "updated": "2026-11-25",
   "defaults": {
     "minRatio": 0.5,
     "minScorePercent": 85,
     "rangeMinScorePercent": 88,
     "rangeAdxMax": 18,
-    "rangeMinRR": 1.2,
     "pullbackMaxAtr": 1.8,
+    "pullbackHard": false,
     "rsiL": 42,
     "rsiS": 58,
+    "rangeRsiL": 42,
+    "rangeRsiS": 58,
+    "tp1R": 2.0,
+    "tp2R": 3.5,
     "trailingAtrMult": 1.2,
     "trailAfterR": 1.0,
     "h1": true,
     "m15": true
   },
-  "notes": "Trend: no hard TP — RSI divergence + trail after +1R. Range uses rangeTpMult only."
+  "symbols": {},
+  "notes": "Hard H1+structure for Trend; tighter Range; trail only after +1R with 1.2 ATR"
 }
