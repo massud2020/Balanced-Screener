@@ -73,7 +73,22 @@ input[type="file"].loaded { outline: 2px solid #22c55e !important; border-radius
 <script>
 (() => {
  'use strict';
- const $=id=>document.getElementById(id); const data={m5:[],m15:[],h1:[]}; let allTrades=[]; let worker=null;
+ const $=id=>document.getElementById(id); const data={m5:[],m15:[],h1:[]};
+function fmtDate(t){
+  try {
+    const n=Number(t);
+    if(!Number.isFinite(n)) return String(t??'');
+    const d=new Date((n>1e12?n:n*1000));
+    if(!Number.isFinite(d.getTime())) return String(t);
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const day=String(d.getDate()).padStart(2,'0');
+    const hh=String(d.getHours()).padStart(2,'0');
+    const mm=String(d.getMinutes()).padStart(2,'0');
+    return y+'-'+m+'-'+day+' '+hh+':'+mm;
+  } catch(e) { return String(t??''); }
+}
+ let allTrades=[]; let worker=null;
  const 
 aliases={
   time:['time','timestamp','datetime','date_time','gmt','bar_time','opentime','open_time','date_time_utc','time_utc','date'],
@@ -88,22 +103,35 @@ function parseTime(v,extra){
   let s=String(v).trim(); if(!s)return NaN;
   if(/^\d{10}$/.test(s))return Number(s);
   if(/^\d{13}$/.test(s))return Math.floor(Number(s)/1000);
-  // 2024.03.01 or 2024.03.01 10:00
-  s=s.replace(/\./g,'-');
   if(extra!=null&&String(extra).trim()!==''){
     const e=String(extra).trim();
     s=/^\d{1,2}:\d{2}/.test(e)?(s.split(/\s+/)[0]+' '+e):(s+' '+e);
   }
+  // US Excel/Sheets: M/D/YYYY H:MM[:SS] [AM|PM]
+  let um=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|am|pm)?/);
+  if(um){
+    let month=+um[1], day=+um[2], year=+um[3];
+    let hh=+um[4], mm=+um[5], ss=um[6]?+um[6]:0;
+    const ap=(um[7]||'').toUpperCase();
+    if(ap==='PM' && hh<12) hh+=12;
+    if(ap==='AM' && hh===12) hh=0;
+    const dt=new Date(year, month-1, day, hh, mm, ss);
+    return Number.isFinite(dt.getTime())?Math.floor(dt.getTime()/1000):NaN;
+  }
+  // US date only M/D/YYYY
+  um=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(um){
+    const dt=new Date(+um[3], +um[1]-1, +um[2]);
+    return Number.isFinite(dt.getTime())?Math.floor(dt.getTime()/1000):NaN;
+  }
+  // MT5 style 2024.03.01 or 2024.03.01 10:00
+  s=s.replace(/\./g,'-');
   // DD-MM-YYYY
-  if(/^\d{1,2}-\d{1,2}-\d{4}/.test(s)){
+  if(/^\d{1,2}-\d{1,2}-\d{4}/.test(s) && !/^\d{4}-/.test(s)){
     const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(.*)$/);
     if(m)s=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')+(m[4]||'');
   }
   if(/^\d{8}$/.test(s))s=s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
-  if(/^\d{8}\s+\d{1,2}:\d{2}/.test(s)){
-    const p=s.split(/\s+/);
-    s=p[0].slice(0,4)+'-'+p[0].slice(4,6)+'-'+p[0].slice(6,8)+' '+p[1];
-  }
   s=s.replace('T',' ').replace(/Z$/,'');
   let n=Date.parse(s);
   if(!Number.isFinite(n))n=Date.parse(s.replace(/-/g,'/'));
@@ -144,9 +172,12 @@ function splitLine(l, sep){
 }
 function looksNumericRow(cols){
   if(cols.length<5) return false;
-  // time-ish + 4 numbers
   const nums=cols.slice(1,5).map(toNum);
-  return nums.every(Number.isFinite);
+  if(!nums.every(Number.isFinite)) return false;
+  // time can be unix or parseable date string (e.g. 9/8/2026 4:00)
+  const t=cols[0];
+  if(/^\d{10,13}$/.test(String(t).trim())) return true;
+  return Number.isFinite(parseTime(t));
 }
 function parseCsv(txt){
   const lines=String(txt||'').replace(/^\uFEFF/,'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -292,8 +323,17 @@ async function loadFile(key,file){
     const txt=await readFileAsText(file);
     if(!txt||!String(txt).trim()) throw Error('فایل خالی است یا قابل خواندن نیست');
     const fname=(file.name||'').toLowerCase();
-    const isJson=fname.endsWith('.json')||/^\s*[\[{]/.test(txt);
-    const bars=isJson?parseJson(txt):parseCsv(txt);
+    let bars;
+    const looksJson=(name.endsWith('.json')||fname&&fname.endsWith('.json'))||/^\s*[\[{]/.test(txt);
+    if(looksJson){
+      try{ bars=parseJson(txt); }
+      catch(jsonErr){
+        try{ bars=parseCsv(txt); }
+        catch(csvErr){ throw new Error('JSON: '+(jsonErr&&jsonErr.message)+' | CSV: '+(csvErr&&csvErr.message)); }
+      }
+    } else {
+      bars=parseCsv(txt);
+    }
     if(!bars.length) throw Error('هیچ کندل معتبر شناسایی نشد. فرمت: time/date + open,high,low,close');
     data[key]=bars;
     const infoId=key==='m5'?'infoM5':key==='m15'?'infoM15':'infoH1';
