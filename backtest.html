@@ -13,9 +13,9 @@
  <section class="panel">
   <h2>۱) داده‌های تاریخی</h2>
   <div class="grid">
-   <div class="filebox"><b>کندل‌های M5 <span class="pill">الزامی</span></b><input id="fileM5" type="file" accept=".csv,.txt,.json"><small id="infoM5">فایل CSV یا JSON را انتخاب کنید</small></div>
-   <div class="filebox"><b>کندل‌های M15</b><input id="fileM15" type="file" accept=".csv,.txt,.json"><small id="infoM15">اختیاری؛ حداقل ۵۰ کندل برای فعال‌شدن فیلتر</small></div>
-   <div class="filebox"><b>کندل‌های H1</b><input id="fileH1" type="file" accept=".csv,.txt,.json"><small id="infoH1">اختیاری؛ حداقل ۲۰۰ کندل برای فعال‌شدن فیلتر</small></div>
+   <div class="filebox"><b>کندل‌های M5 <span class="pill">الزامی</span></b><input id="fileM5" type="file" accept=".csv,.txt,.json,text/csv,text/plain,application/json"><small id="infoM5">فایل CSV یا JSON را انتخاب کنید</small></div>
+   <div class="filebox"><b>کندل‌های M15</b><input id="fileM15" type="file" accept=".csv,.txt,.json,text/csv,text/plain,application/json"><small id="infoM15">اختیاری؛ حداقل ۵۰ کندل برای فعال‌شدن فیلتر</small></div>
+   <div class="filebox"><b>کندل‌های H1</b><input id="fileH1" type="file" accept=".csv,.txt,.json,text/csv,text/plain,application/json"><small id="infoH1">اختیاری؛ حداقل ۲۰۰ کندل برای فعال‌شدن فیلتر</small></div>
    <div class="field"><label>نماد</label><input id="symbol" type="text" value="EURUSD" placeholder="مثلاً EURUSD یا BTCUSDT"></div>
   </div>
   <div class="hint">ستون‌های قابل قبول: time/date/timestamp, open, high, low, close. زمان باید قابل تشخیص باشد؛ داده‌ها بر اساس زمان مرتب و کندل‌های تکراری حذف می‌شوند. فایل M5 باید حداقل ۲۲۰ کندل داشته باشد.</div>
@@ -53,18 +53,43 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id); const data={m5:[],m15:[],h1:[]}; let allTrades=[]; let worker=null;
- const aliases={time:['time','timestamp','datetime','date_time','<date> <time>'],date:['date','<date>'],open:['open','<open>','o'],high:['high','<high>','h'],low:['low','<low>','l'],close:['close','<close>','c']};
- function parseTime(v, extra){
-  if(v==null||v==='') return NaN; let s=String(v).trim();
-  if(/^\d{10,13}$/.test(s)){let n=Number(s);return s.length>=13?Math.floor(n/1000):n;}
-  if(extra && /^\d{4}[./-]\d{1,2}[./-]\d{1,2}$/.test(s)){s=s.replace(/[./]/g,'-')+' '+extra;}else if(extra && /^\d{1,2}[./-]\d{1,2}[./-]\d{4}$/.test(s)){s=s.replace(/[./]/g,'-')+' '+extra;}
-  if(/^\d{1,2}[./-]\d{1,2}[./-]\d{4}/.test(s)){const m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(.*)$/);if(m)s=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}${m[4]}`;}
-  const n=Date.parse(s);return Number.isFinite(n)?Math.floor(n/1000):NaN;
- }
- function normRows(rows){return rows.map(r=>({time:(Number(r.time)>1e12?Math.floor(Number(r.time)/1000):Number(r.time)),open:Number(r.open),high:Number(r.high),low:Number(r.low),close:Number(r.close)})).filter(c=>Number.isFinite(c.time)&&[c.open,c.high,c.low,c.close].every(Number.isFinite)&&c.high>=c.low&&c.high>=Math.max(c.open,c.close)&&c.low<=Math.min(c.open,c.close)).sort((a,b)=>a.time-b.time).filter((c,i,a)=>i===0||c.time!==a[i-1].time);}
- function parseCsv(txt){const lines=txt.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw Error('CSV حداقل باید یک ردیف عنوان و یک ردیف داده داشته باشد.');const sep=[',',';','\t'].sort((a,b)=>(lines[0].split(b).length-lines[0].split(a).length))[0];const split=l=>l.split(sep).map(x=>x.trim().replace(/^"|"$/g,''));const head=split(lines[0]).map(x=>x.toLowerCase().replace(/\s+/g,'_'));const find=k=>head.findIndex(h=>aliases[k].some(a=>h===a||h.includes(a)));let ix={time:find('time'),date:find('date'),open:find('open'),high:find('high'),low:find('low'),close:find('close')};if(ix.time<0&&ix.date<0)throw Error('ستون زمان پیدا نشد.');for(const k of ['open','high','low','close'])if(ix[k]<0)throw Error('ستون '+k+' پیدا نشد.');const rows=[];for(let i=1;i<lines.length;i++){const a=split(lines[i]);let t=ix.date>=0?parseTime(a[ix.date],ix.time>=0?a[ix.time]:a[ix.date+1]):parseTime(a[ix.time]);if(ix.date>=0&&ix.time<0&&ix.date+1<a.length){const maybe=parseTime(a[ix.date]+' '+a[ix.date+1]);if(Number.isFinite(maybe))t=maybe;}rows.push({time:t,open:a[ix.open],high:a[ix.high],low:a[ix.low],close:a[ix.close]});}return normRows(rows);}
- function parseJson(txt){const j=JSON.parse(txt);const rows=Array.isArray(j)?j:(j.candles||j.data||j.bars||[]);return normRows(rows.map(c=>{const raw=Array.isArray(c)?c[0]:(c.time??c.timestamp);return {time:(typeof raw==='string'&&!/^\d{10,13}$/.test(raw)?parseTime(raw):raw),open:Array.isArray(c)?c[1]:(c.open??c.o),high:Array.isArray(c)?c[2]:(c.high??c.h),low:Array.isArray(c)?c[3]:(c.low??c.l),close:Array.isArray(c)?c[4]:(c.close??c.c)};}));}
- async function loadFile(key,file){if(!file)return;try{const txt=await file.text();const bars=file.name.toLowerCase().endsWith('.json')?parseJson(txt):parseCsv(txt);if(!bars.length)throw Error('هیچ کندل معتبر شناسایی نشد.');data[key]=bars;$(key==='m5'?'infoM5':key==='m15'?'infoM15':'infoH1').textContent=`${bars.length.toLocaleString('fa-IR')} کندل · ${fmtDate(bars[0].time)} تا ${fmtDate(bars[bars.length-1].time)}`;validateReady();$('status').textContent=`داده ${key.toUpperCase()} با موفقیت بارگذاری شد.`;}catch(e){data[key]=[];$('status').textContent='خطا در خواندن فایل: '+e.message;validateReady();}}
+ const aliases={time:['time','timestamp','datetime','date_time','gmt','bar_time','opentime','open_time','date_time_utc','time_utc','<time>'],date:['date','<date>','day','tradingday'],open:['open','<open>','o','openprice','open_price'],high:['high','<high>','h','highprice','high_price'],low:['low','<low>','l','lowprice','low_price'],close:['close','<close>','c','closeprice','close_price','price']};
+function parseTime(v,extra){
+  if(v==null||v==='')return NaN;let s=String(v).trim();if(!s)return NaN;
+  if(/^\d{10}$/.test(s))return Number(s);if(/^\d{13}$/.test(s))return Math.floor(Number(s)/1000);
+  s=s.replace(/\./g,'-');
+  if(extra!=null&&String(extra).trim()!==''){const e=String(extra).trim();s=/^\d{1,2}:\d{2}/.test(e)?(s.split(/\s+/)[0]+' '+e):(s+' '+e);}
+  if(/^\d{1,2}-\d{1,2}-\d{4}/.test(s)){const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(.*)$/);if(m)s=`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}${m[4]||''}`;}
+  if(/^\d{8}$/.test(s))s=s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+  s=s.replace('T',' ').replace(/Z$/,'');
+  let n=Date.parse(s);if(!Number.isFinite(n))n=Date.parse(s.replace(/-/g,'/'));
+  if(!Number.isFinite(n)&&/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}/.test(s))n=Date.parse(s.replace(' ','T')+'Z');
+  return Number.isFinite(n)?Math.floor(n/1000):NaN;
+}
+function toNum(v){if(v==null||v==='')return NaN;let s=String(v).trim().replace(/\s/g,'');if(/^\d{1,3}(\.\d{3})+,\d+$/.test(s))s=s.replace(/\./g,'').replace(',','.');else if(s.indexOf(',')>=0&&s.indexOf('.')<0)s=s.replace(',','.');return Number(s);}
+function normRows(rows){return rows.map(r=>({time:(Number(r.time)>1e12?Math.floor(Number(r.time)/1000):Number(r.time)),open:toNum(r.open),high:toNum(r.high),low:toNum(r.low),close:toNum(r.close)})).filter(c=>Number.isFinite(c.time)&&[c.open,c.high,c.low,c.close].every(Number.isFinite)&&c.high+1e-12>=c.low).sort((a,b)=>a.time-b.time).filter((c,i,a)=>i===0||c.time!==a[i-1].time);}
+function detectSep(headerLine){const cands=[',',';','\t','|'];let best=',',n=0;for(const s of cands){const k=headerLine.split(s).length;if(k>n){n=k;best=s;}}return best;}
+function parseCsv(txt){
+  const lines=String(txt||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
+  if(lines.length<2)throw Error('CSV حداقل باید یک ردیف عنوان و یک ردیف داده داشته باشد.');
+  const sep=detectSep(lines[0]);
+  const split=l=>{const out=[];let cur='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"'){q=!q;continue;}if(!q&&ch===sep){out.push(cur.trim());cur='';continue;}cur+=ch;}out.push(cur.trim());return out.map(x=>x.replace(/^"|"$/g,''));};
+  const head=split(lines[0]).map(x=>x.toLowerCase().replace(/^\uFEFF/,'').replace(/[<>]/g,'').replace(/\s+/g,'_'));
+  const find=keys=>{for(let i=0;i<head.length;i++){const h=head[i];for(const a of keys){const k=String(a).toLowerCase().replace(/[<>]/g,'').replace(/\s+/g,'_');if(h===k||h.endsWith('_'+k)||h.includes(k))return i;}}return -1;};
+  let ix={time:find(aliases.time),date:find(aliases.date),open:find(aliases.open),high:find(aliases.high),low:find(aliases.low),close:find(aliases.close)};
+  if(ix.time<0&&ix.date>=0){const tOnly=find(['time']);if(tOnly>=0&&tOnly!==ix.date)ix.time=tOnly;}
+  if(ix.time<0&&ix.date<0)ix.time=0;
+  for(const k of ['open','high','low','close']){if(ix[k]<0)throw Error('ستون '+k+' پیدا نشد. هدر: '+head.join(' | '));}
+  const rows=[];let badTime=0;
+  for(let i=1;i<lines.length;i++){const a=split(lines[i]);if(a.length<4)continue;let t;if(ix.date>=0&&ix.time>=0&&ix.date!==ix.time)t=parseTime(a[ix.date],a[ix.time]);else if(ix.date>=0)t=parseTime(a[ix.date],a[ix.date+1]);else t=parseTime(a[ix.time]);if(!Number.isFinite(t)){badTime++;continue;}rows.push({time:t,open:a[ix.open],high:a[ix.high],low:a[ix.low],close:a[ix.close]});}
+  const out=normRows(rows);
+  if(!out.length)throw Error('هیچ کندل معتبری از CSV ساخته نشد. هدر: '+head.join(' | ')+(badTime?(' · زمان نامعتبر: '+badTime):''));
+  return out;
+}
+function parseJson(txt){const j=JSON.parse(txt);const rows=Array.isArray(j)?j:(j.candles||j.data||j.bars||j.ohlc||[]);return normRows(rows.map(c=>{if(Array.isArray(c))return {time:c[0],open:c[1],high:c[2],low:c[3],close:c[4]};const raw=c.time??c.timestamp??c.t??c.Date??c.date;return {time:(typeof raw==='string'&&!/^\d{10,13}$/.test(String(raw))?parseTime(raw):raw),open:c.open??c.o??c.Open,high:c.high??c.h??c.High,low:c.low??c.l??c.Low,close:c.close??c.c??c.Close};}));}
+function readFileAsText(file){if(!file)return Promise.reject(new Error('فایلی انتخاب نشد'));if(typeof file.text==='function')return file.text().catch(()=>readViaFileReader(file));return readViaFileReader(file);}
+function readViaFileReader(file){return new Promise((resolve,reject)=>{try{const fr=new FileReader();fr.onload=()=>resolve(String(fr.result||''));fr.onerror=()=>reject(fr.error||new Error('خواندن فایل ناموفق بود'));fr.readAsText(file);}catch(e){reject(e);}});}
+async function loadFile(key,file){if(!file)return;try{$('status').textContent='در حال خواندن '+(file.name||'فایل')+' …';const txt=await readFileAsText(file);if(!txt||!String(txt).trim())throw Error('فایل خالی است یا قابل خواندن نیست');const name=(file.name||'').toLowerCase();const isJson=name.endsWith('.json')||/^\s*[\[{]/.test(txt);const bars=isJson?parseJson(txt):parseCsv(txt);if(!bars.length)throw Error('هیچ کندل معتبر شناسایی نشد.');data[key]=bars;$(key==='m5'?'infoM5':key==='m15'?'infoM15':'infoH1').textContent=`${bars.length.toLocaleString('fa-IR')} کندل · ${fmtDate(bars[0].time)} تا ${fmtDate(bars[bars.length-1].time)}`;validateReady();$('status').textContent=`داده ${key.toUpperCase()} با موفقیت بارگذاری شد (${bars.length} کندل).`;}catch(e){data[key]=[];$('status').textContent='خطا در خواندن فایل: '+(e&&e.message?e.message:e);validateReady();}}
  function fmtDate(t){return new Date(t*1000).toLocaleString('fa-IR');}
  function validateReady(){const ok=data.m5.length>=220;$('runBtn').disabled=!ok;$('status').textContent=ok?`آماده اجرا · M5: ${data.m5.length.toLocaleString('fa-IR')} کندل${data.m15.length?' · M15: '+data.m15.length:''}${data.h1.length?' · H1: '+data.h1.length:''}`:'برای بک‌تست حداقل ۲۲۰ کندل M5 بارگذاری کنید.';}
  ['m5','m15','h1'].forEach(k=>$(k==='m5'?'fileM5':k==='m15'?'fileM15':'fileH1').addEventListener('change',e=>loadFile(k,e.target.files[0])));
