@@ -797,30 +797,51 @@ async function speakFaClip(text, rate) {
   try {
     const clean = String(text || '').trim();
     if (clean.startsWith('خوش آمدید')) {
-      try { if (window.__welcomeAudio) { window.__welcomeAudio.pause(); } } catch(e) {}
+      try { if (window.__welcomeAudio) { window.__welcomeAudio.pause(); window.__welcomeAudio = null; } } catch(e) {}
       const audioFile = clean.includes('بازار رنج') ? 'audio/fa/welcome_range.mp3' : 'audio/fa/welcome_trend.mp3';
       const w = new Audio(audioFile + '?v=' + Date.now());
       window.__welcomeAudio = w;
       w.preload = 'auto';
       w.volume = 1.0;
-      w.playbackRate = Math.max(0.85, Math.min(1.2, Number(rate) || 1.0));
-      await new Promise(resolve => {
+      w.playbackRate = Math.max(0.85, Math.min(1.15, Number(rate) || 1.0));
+      await new Promise((resolve) => {
         let finished = false;
-        const done = () => { if (!finished) { finished = true; resolve(); } };
-        w.onended = done;
-        w.onerror = done;
-        w.play().catch(done);
+        const done = () => { if (!finished) { finished = true; resolve(true); } };
+        w.onended = () => done();
+        w.onerror = () => done();
+        const armSafety = () => {
+          const dur = Number(w.duration);
+          const ms = (Number.isFinite(dur) && dur > 0)
+            ? Math.ceil((dur / (w.playbackRate || 1)) * 1000) + 1500
+            : 180000;
+          setTimeout(done, Math.min(ms, 180000));
+        };
+        w.onloadedmetadata = armSafety;
+        if (w.readyState >= 1) armSafety();
+        w.play().catch(() => done());
       });
       return true;
     }
-    if (!window.__faMap) window.__faMap = await (await fetch('audio/fa/map.json')).json();
+    if (!window.__faMap) {
+      try { window.__faMap = await (await fetch('audio/fa/map.json')).json(); } catch(e) { return false; }
+    }
     const name = window.__faMap[clean];
-        if (!name) return false;
-        const a = new Audio('audio/fa/' + name + '.mp3');
-        a.playbackRate = Math.min(2, Math.max(0.5, rate || 1));
-        await new Promise((res, rej) => { a.onended = res; a.onerror = rej; a.play().catch(rej); });
-        return true;
-    } catch (e) { return false; }
+    if (!name) return false;
+    const a = new Audio('audio/fa/' + name + '.mp3');
+    a.playbackRate = Math.min(2, Math.max(0.5, rate || 1));
+    await new Promise((res) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; res(); } };
+      a.onended = finish;
+      a.onerror = finish;
+      a.onloadedmetadata = () => {
+        const dur = Number(a.duration);
+        if (Number.isFinite(dur) && dur > 0) setTimeout(finish, Math.ceil(dur / (a.playbackRate || 1) * 1000) + 1000);
+      };
+      a.play().catch(finish);
+    });
+    return true;
+  } catch (e) { return false; }
 }
 async function speakClips(text) {
   const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
@@ -878,7 +899,7 @@ async function speakNative(text, lang = 'fa-IR', rate = 1.0) {
                 const finish = (r) => { if (!resolved) { resolved = true; resolve(r); } };
                 u.onend = () => finish({ success: true, engine: 'Web Speech API' }); 
                 u.onerror = (e) => finish({ success: false, error: e.error || "Web Speech Error" }); 
-                setTimeout(() => finish({ success: false, error: "TTS timeout" }), 20000); // افزایش تایم‌اوت برای ۵ جمله
+                setTimeout(() => finish({ success: false, error: "TTS timeout" }), Math.min(180000, Math.max(20000, String(text||"").length * 80))); // افزایش تایم‌اوت برای ۵ جمله
                 window.speechSynthesis.speak(u); 
             } catch(e) { resolve({ success: false, error: e.message }); } 
         });
@@ -1097,7 +1118,7 @@ async function playRadarSweep(rows) {
 window.doEnter = async function() {
     unlockTTS();
     const btn = $('start-ai-btn');
-    if (btn) { btn.disabled = true; btn.textContent = "در حال اسکن بازار..."; }
+    if (btn) { btn.disabled = true; btn.textContent = "در حال پخش خوشامد..."; }
     setText("splashSubtitle", "در حال بررسی رژیم بازار (روند / رنج)...");
     if ("Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch(e) {} }
 
@@ -1117,17 +1138,14 @@ window.doEnter = async function() {
                 const val = adxArr[adxArr.length - 1];
                 if (Number.isFinite(val)) { adxSum += val; adxCnt++; }
             }
-            if (adxCnt > 0) {
-                const avgAdx = adxSum / adxCnt;
-                detectedRegime = avgAdx >= 22 ? "pattern" : "range";
-            }
+            if (adxCnt > 0) detectedRegime = (adxSum / adxCnt) >= 22 ? "pattern" : "range";
         }
     } catch (e) {}
 
     setMode(detectedRegime);
     const stratFaName = detectedRegime === "range" ? "استراتژی رنج" : "استراتژی ۳+۱";
     const marketStateFa = detectedRegime === "range" ? "رنج و کم‌نوسان" : "روندی";
-    setText("splashSubtitle", `بازار ${marketStateFa} تشخیص داده شد — ${stratFaName} فعال شد`);
+    setText("splashSubtitle", `بازار ${marketStateFa} تشخیص داده شد — در حال پخش خوشامد...`);
 
     if (!$("splashMute").checked) {
         isWelcomePlaying = true;
@@ -1136,13 +1154,14 @@ window.doEnter = async function() {
         : "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رونددار تشخیص داده شد و استراتژی سه به یک انتخاب شد. اسکن خودکار به زودی آغاز می‌شود.";
         try {
             await Promise.race([
-                speakNative(welcomeText, 'fa-IR', 1.0),
-                new Promise(r => setTimeout(r, 20000))
+                speakNative(welcomeText, 'fa-IR', 0.95),
+                new Promise(r => setTimeout(r, 180000))
             ]);
         } catch (e) {}
         isWelcomePlaying = false;
     }
 
+    setText("splashSubtitle", "ورود به اسکرینر...");
     $('ai-splash').classList.add('hidden');
     setTimeout(() => { try { $('ai-splash').style.display = 'none'; } catch(e){} }, 300);
     setTimeout(async () => {
@@ -1150,7 +1169,7 @@ window.doEnter = async function() {
         try { await scan(true); } catch (e) {}
         try { if (typeof LAST !== "undefined" && LAST && LAST.rows) await playRadarSweep(LAST.rows); } catch (e) {}
     }, 350);
-};;
+};;;
 
 window.doSkip = function() { 
     unlockTTS();
