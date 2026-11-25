@@ -1,8 +1,8 @@
 {
-  "build": 98,
-  "engine": 61,
-  "apkVersionName": "6.1.2",
+  "build": 99,
+  "engine": 62,
+  "apkVersionName": "6.2.0",
   "apkUrl": "https://github.com/massud2020/Balanced-Screener/actions",
   "force": false,
-  "note": "Local strategy-config first + visible config chip"
+  "note": "Unified strategy v5 — app/server aligned"
 }

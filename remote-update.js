@@ -5,8 +5,8 @@
 (function (root) {
   'use strict';
 
-  var APP_BUILD = 98;
-  var APP_VERSION_NAME = '6.1.2';
+  var APP_BUILD = 99;
+  var APP_VERSION_NAME = '6.2.0';
   var DEFAULT_RAW_BASE = 'https://raw.githubusercontent.com/massud2020/Balanced-Screener/main';
 
   var cfg = {

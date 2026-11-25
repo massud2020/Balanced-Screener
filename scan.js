@@ -205,7 +205,7 @@ function normalizeActiveTrade(a) {
   } else if (a.policyVersion < 3) {
     const risk = Number.isFinite(a.entry) && Number.isFinite(a.sl) ? Math.abs(a.entry - a.sl) : 0;
     const inferredTpR = a.mode === 'range' && risk > 0 && Number.isFinite(a.tp) ? Math.abs(a.tp - a.entry) / risk : 1.5;
-    a.policyOpts = { ...(a.policyOpts || {}), rangeTpMult: inferredTpR, trailingAtrMult: 0.5 };
+    a.policyOpts = { ...(a.policyOpts || {}), rangeTpMult: inferredTpR, trailingAtrMult: 1.2 };
     a.policyVersion = 3;
   }
 }
@@ -379,7 +379,7 @@ async function once(now) {
         let useMode = pickModeByAdx(probe.adx);
         if (!modes.includes(useMode)) useMode = modes[0];
 
-        const opts = { ...preset, mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: preset.rangeRsiL ?? (process.env.RSI_L ? RSI_L : (preset.rsiL ?? RSI_L)), rsiS: preset.rangeRsiS ?? (process.env.RSI_S ? RSI_S : (preset.rsiS ?? RSI_S)), adx: true, pa: false, sessionFilter: useMode === "range" ? (preset.session !== false) : !!preset.session, signalIntervalSec: 300, trailingAtrMult: 0.5 };
+        const opts = { ...preset, mode: useMode, m15: F15, h1: FH1, h1Strict: STRICT, rsi: RSI_ON, rsiL: preset.rangeRsiL ?? (process.env.RSI_L ? RSI_L : (preset.rsiL ?? RSI_L)), rsiS: preset.rangeRsiS ?? (process.env.RSI_S ? RSI_S : (preset.rsiS ?? RSI_S)), adx: true, pa: false, sessionFilter: useMode === "range" ? (preset.session !== false) : !!preset.session, signalIntervalSec: 300, trailingAtrMult: 1.2 };
         const r = evaluate(u[0], a, m15, h, opts, now);
 
         const blocked = r.side && isOpen(u[0]);
@@ -489,7 +489,7 @@ async function once(now) {
             continue;
         }
     row.entry = execEntry; row.sl = execSl; row._spreadR = spreadR;
-    openSig(row.id, row.side, execEntry, row.mode, now, { sl: execSl, tp: row.tp, d: row.d, bt: row.bt, atr: row.atr, policyOpts: { rangeTpMult: Number(row.tp1R) || Number(rowPreset.rangeTpMult) || 1.5, trailingAtrMult: 0.5 } });
+    openSig(row.id, row.side, execEntry, row.mode, now, { sl: execSl, tp: row.tp, d: row.d, bt: row.bt, atr: row.atr, policyOpts: { rangeTpMult: Number(row.tp1R) || Number(rowPreset.rangeTpMult) || 1.5, trailingAtrMult: 1.2 } });
     
     const checksData = row._checks || [];
     if (!history.some(h => h.id === row.id && h.side === row.side && (!Number.isFinite(Number(h.exit)) || dayKey(h.time) === dayKey(now)))) {
