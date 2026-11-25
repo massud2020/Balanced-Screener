@@ -106,6 +106,12 @@ function runOne(mode, m5, m15, h1, opts) {
       if (settled) return;
       settled = true;
       try {
+        if (typeof Backtest === 'undefined' || !Backtest.runBacktestOnSymbol) {
+          throw new Error('موتور بک‌تست بارگذاری نشد (Backtest/TradePolicy). اپ را یک‌بار کامل ببندید و دوباره باز کنید.');
+        }
+        if (typeof TradePolicy === 'undefined' && typeof (window&&window.TradePolicy) === 'undefined') {
+          console.warn('TradePolicy missing on window');
+        }
         const trades = Backtest.runBacktestOnSymbol(payload.symbol, payload.m5, payload.m15, payload.h1, payload.opts);
         const stats = Backtest.calculateStats(trades);
         resolve({ trades, stats, mode });
@@ -115,6 +121,7 @@ function runOne(mode, m5, m15, h1, opts) {
     };
     try {
       if (worker) worker.terminate();
+      if (window.Capacitor) { runDirect(); return; }
       worker = new Worker('btworker.js');
       const id = mode + '-' + Date.now();
       const timer = setTimeout(() => { try { worker.terminate(); } catch(e){} runDirect(); }, 3500);

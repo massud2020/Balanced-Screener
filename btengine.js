@@ -2,7 +2,7 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) { define(['./engine.js', './trade-policy.js'], factory); }
     else if (typeof module === 'object' && module.exports) { module.exports = factory(require('./engine.js'), require('./trade-policy.js')); }
-    else { root.Backtest = factory(root.Engine, root.TradePolicy); }
+    else { root.Backtest = factory(root.Engine, root.TradePolicy || (typeof TradePolicy !== "undefined" ? TradePolicy : null)); }
 }(typeof self !== 'undefined' ? self : this, function (Engine, TradePolicy) {
     'use strict';
     if (!Engine) throw new Error("Engine.js required");

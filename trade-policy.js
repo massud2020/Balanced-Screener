@@ -185,3 +185,5 @@ const TradePolicy = (() => {
     return { resolveTrade, calcRSI, calcAtrSeries, checkDivergence };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = TradePolicy;
+if (typeof globalThis !== 'undefined') globalThis.TradePolicy = TradePolicy;
+if (typeof window !== 'undefined') window.TradePolicy = TradePolicy;

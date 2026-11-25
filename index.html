@@ -1124,19 +1124,21 @@ window.doEnter = async function() {
     const marketStateFa = detectedRegime === "range" ? "رنج و کم‌نوسان" : "روندی";
     setText("splashSubtitle", `بازار ${marketStateFa} تشخیص داده شد — ${stratFaName} فعال شد`);
 
+    // اول اسپلش را ببند؛ صدا در پس‌زمینه (گیر نکردن روی TTS)
+    $('ai-splash').classList.add('hidden');
+    setTimeout(() => { try { $('ai-splash').style.display = 'none'; } catch(e){} }, 300);
+    setTimeout(async () => { window.__entered = true; try { await scan(true); } catch(e){} try { if (typeof LAST !== "undefined" && LAST?.rows) await playRadarSweep(LAST.rows); } catch(e){} }, 350);
+
     if(!$("splashMute").checked) {
         isWelcomePlaying = true;
         const welcomeText = detectedRegime === "range"
         ? "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رنج و کم‌نوسان تشخیص داده شد و استراتژی رنج انتخاب شد. اسکن خودکار به زودی آغاز می‌شود."
         : "خوش آمدید به اسکرینر حرفه‌ای بالانس. سیستم در حال آماده‌سازی موتور تحلیل و بررسی بازارهاست. فیلترهای هوشمند اخبار و همبستگی در حال بارگذاری هستند. لطفاً منتظر بمانید، بازار رونددار تشخیص داده شد و استراتژی سه به یک انتخاب شد. اسکن خودکار به زودی آغاز می‌شود.";
-
-        await speakNative(welcomeText, 'fa-IR', 1.0);
-        isWelcomePlaying = false;
+        Promise.race([
+            speakNative(welcomeText, 'fa-IR', 1.0),
+            new Promise(r => setTimeout(r, 12000))
+        ]).catch(()=>{}).finally(() => { isWelcomePlaying = false; });
     }
-
-    $('ai-splash').classList.add('hidden');
-    setTimeout(() => $('ai-splash').style.display = 'none', 300);
-    setTimeout(async () => { window.__entered = true; await scan(true); if (typeof LAST !== "undefined" && LAST?.rows) await playRadarSweep(LAST.rows); }, 350);
 };
 
 window.doSkip = function() { 
@@ -1325,7 +1327,10 @@ window.setFilter = function(v) { vf = v; document.querySelectorAll("#sumFilters 
 
 async function fetchGitJson(filename) {
     try {
-        const res = await fetch(`https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`, { cache: 'no-store' });
+        const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        const tmo = ctl ? setTimeout(() => ctl.abort(), 8000) : null;
+        const res = await fetch(`https://raw.githubusercontent.com/massud2020/Balanced-Screener/main/${filename}?t=${Date.now()}`, { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+        if (tmo) clearTimeout(tmo);
         if (!res.ok) throw new Error(res.status === 404 ? `فایل ${filename} یافت نشد` : `خطای شبکه ${res.status}`);
         return await res.json();
     } catch (e) {
