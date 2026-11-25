@@ -19,5 +19,5 @@
     "m15": true
   },
   "symbols": {},
-  "notes": "Unified v5: Trend=RSI_DIV+TRAIL no hard TP; Range=fixed TP; H1+structure hard on Trend"
+  "notes": "Unified v5: Trend=RSI_DIV+TRAIL no hard TP; Range=fixed TP; H1+structure hard on Trend | RSI unified: Trend uses rsiL/rsiS (42-58), Range rangeRsiL/S (42/58)"
 }

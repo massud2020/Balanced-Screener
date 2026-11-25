@@ -390,8 +390,8 @@
             const useBbFilter = opts.bb !== false;
             const useWidthFilter = opts.rangeWidth !== false;
             const useReversalFilter = opts.rangeReversal !== false;
-            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 38;
-            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 62;
+            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 42;
+            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 58;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
             const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
             const cLast = cl[idx], cPrev = cl[idx - 1] || cLast;
@@ -519,11 +519,12 @@
             }
 
             if (opts.rsi !== false) {
-                const rsiTrendOk = checkedSide === 'LONG'
-                    ? (lastRsi >= 42 && lastRsi <= 58)
-                    : (lastRsi >= 42 && lastRsi <= 58);
-                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)}`, w: 1.2 });
-                if (!rsiTrendOk && !failReason) failReason = checkedSide === 'LONG' ? "RSI خارج از محدوده پولبک صعودی (42-58)" : "RSI خارج از محدوده پولبک نزولی (42-58)";
+                const rsiLo = Number.isFinite(Number(opts.rsiL)) ? Number(opts.rsiL) : 42;
+                const rsiHi = Number.isFinite(Number(opts.rsiS)) ? Number(opts.rsiS) : 58;
+                // Trend pullback band from opts (defaults 42-58); same for LONG/SHORT mid-zone
+                const rsiTrendOk = lastRsi >= rsiLo && lastRsi <= rsiHi;
+                checks.push({ l: "محدوده RSI پولبک روند", ok: rsiTrendOk, v: `RSI ${lastRsi.toFixed(1)} (${rsiLo}-${rsiHi})`, w: 1.2 });
+                if (!rsiTrendOk && !failReason) failReason = `RSI خارج از محدوده پولبک (${rsiLo}-${rsiHi})`;
             }
         }
 
