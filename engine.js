@@ -659,7 +659,9 @@
         let MIN_SCORE_PERCENT = Number.isFinite(Number(opts.minScorePercent)) ? Number(opts.minScorePercent) : 85;
         // Range: require slightly higher quality to reduce low-edge mean-reversion noise
         if (mode === "range") {
-            const rangeMin = Number.isFinite(Number(opts.rangeMinScorePercent)) ? Number(opts.rangeMinScorePercent) : 88;
+            const rangeMinRaw = Number.isFinite(Number(opts.rangeMinScorePercent)) ? Number(opts.rangeMinScorePercent) : 88;
+            // Hard floor 70%: range entries cannot use a weaker score gate than this
+            const rangeMin = Math.max(70, rangeMinRaw);
             MIN_SCORE_PERCENT = Math.max(MIN_SCORE_PERCENT, rangeMin);
         }
         let trendSideOk = true;
