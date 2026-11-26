@@ -435,6 +435,8 @@ async function once(now) {
   try {
     if (typeof filterCorrelated === "function") {
       const MAX_SAME_DIR = 3;
+      const MAX_OPEN_TOTAL = 5;
+      const MAX_DAILY_NET_R = -3;
       const MAX_ASSET_CLASSES_SAME_DIR = 2;
       const openGroups = new Set();
       let openLong = 0, openShort = 0;
@@ -455,8 +457,25 @@ async function once(now) {
         if (side === "LONG") { openLong++; longClasses.add(cls); }
         else if (side === "SHORT") { openShort++; shortClasses.add(cls); }
       }
+      
+      // Circuit breaker: stop new entries if today's closed NetR is badly negative
+      let dailyNetR = 0;
+      try {
+        const hist = (typeof history !== 'undefined' && history) ? history : (STATE.history || []);
+        const arr = Array.isArray(hist) ? hist : (hist.history || []);
+        const startOfDay = new Date(); startOfDay.setUTCHours(0,0,0,0);
+        const t0 = startOfDay.getTime()/1000;
+        for (const t of arr) {
+          const ct = Number(t.closeTime || t.time || 0);
+          const R = Number(t.R);
+          if (ct >= t0 && Number.isFinite(R)) dailyNetR += R;
+        }
+      } catch (e) {}
+      const circuitDaily = dailyNetR <= MAX_DAILY_NET_R;
+
       const candidates = allRows.filter(r => {
         if (!r || !r.side) return false;
+        if (circuitDaily) { r.side = null; r.fail = "توقف روزانه NetR="+dailyNetR.toFixed(2); return false; }
         const side = String(r.side).toUpperCase();
         const cls = assetClassOf(r.id);
         if (typeof getCorrelationGroups === "function") {
@@ -464,6 +483,10 @@ async function once(now) {
           if (rGroups.some(g => openGroups.has(g))) {
             r.side = null; r.fail = "همبستگی با پوزیشن باز فعلی"; return false;
           }
+        }
+        const openTotal = openLong + openShort;
+        if (openTotal >= MAX_OPEN_TOTAL) {
+          r.side = null; r.fail = "سقف کل پوزیشن باز ("+MAX_OPEN_TOTAL+")"; return false;
         }
         if (side === "LONG" && openLong >= MAX_SAME_DIR) {
           r.side = null; r.fail = "سقف ۳ پوزیشن LONG باز"; return false;
@@ -513,7 +536,7 @@ async function once(now) {
     }
   } catch (e) {}
 
-  const MAX_NEW_PER_SCAN = 6;
+  const MAX_NEW_PER_SCAN = 3;
   const pending = allRows.filter(r => r && r.side && r._pendingNotify)
     .sort((a, b) => ((b.pass || 0) / Math.max(1, b.total || 1)) - ((a.pass || 0) / Math.max(1, a.total || 1)));
   pending.forEach((r, i) => { if (i >= MAX_NEW_PER_SCAN) { r.side = null; r._pendingNotify = false; r.fail = "سقف سیگنال"; } });

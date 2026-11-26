@@ -404,8 +404,8 @@
             const useBbFilter = opts.bb !== false;
             const useWidthFilter = opts.rangeWidth !== false;
             const useReversalFilter = opts.rangeReversal !== false;
-            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 42;
-            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 58;
+            const rangeRsiL = opts.rangeRsiL ?? opts.rsiL ?? 35;
+            const rangeRsiS = opts.rangeRsiS ?? opts.rsiS ?? 65;
             const rsiBuy = !useRsiFilter || lastRsi <= rangeRsiL;
             const rsiSell = !useRsiFilter || lastRsi >= rangeRsiS;
             const cLast = cl[idx], cPrev = cl[idx - 1] || cLast;
@@ -463,7 +463,7 @@
 
         if (mode === "range") {
             if (opts.adx !== false) {
-                const rangeAdxMax = Number.isFinite(Number(opts.rangeAdxMax)) ? Number(opts.rangeAdxMax) : 18;
+                const rangeAdxMax = Number.isFinite(Number(opts.rangeAdxMax)) ? Number(opts.rangeAdxMax) : 15;
                 const isLowTrend = lastAdx <= rangeAdxMax;
                 checks.push({ l: `رنج / ADX ملایم (${lastAdx.toFixed(1)})`, ok: isLowTrend, v: isLowTrend ? 'تایید' : 'رد', w: 1.0 });
                 if (!isLowTrend && !failReason) failReason = "ADX قوی است";
