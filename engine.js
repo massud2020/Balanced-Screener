@@ -16,17 +16,31 @@
     const CORRELATION_GROUPS = [
         ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD'],
         ['USDJPY', 'USDCHF', 'USDCAD'],
-        ['EURUSD', 'EURGBP', 'EURJPY', 'EURAUD', 'EURCHF'],
-        ['GBPUSD', 'GBPJPY', 'GBPAUD', 'GBPCHF', 'GBPNZD'],
+        ['EURUSD', 'EURGBP', 'EURJPY', 'EURAUD', 'EURCHF', 'EURCAD', 'EURNZD'],
+        ['GBPUSD', 'GBPJPY', 'GBPAUD', 'GBPCHF', 'GBPNZD', 'GBPCAD'],
         ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'NZDJPY'],
-        ['XAUUSD', 'XAGUSD'],
-        ['BTCUSDT', 'ETHUSDT'],
+        ['AUDUSD', 'NZDUSD', 'AUDNZD', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'NZDCAD', 'NZDCHF', 'NZDJPY'],
+        ['USDCAD', 'EURCAD', 'GBPCAD', 'AUDCAD', 'NZDCAD', 'CADJPY', 'CADCHF'],
+        ['USDCHF', 'EURCHF', 'GBPCHF', 'AUDCHF', 'NZDCHF', 'CADCHF', 'CHFJPY'],
+        ['XAUUSD', 'XAGUSD', 'GOLD', 'XCUUSD'],
+        ['BTCUSDT', 'ETHUSDT', 'BTCUSD', 'ETHUSD'],
         ['SOLUSDT', 'DOTUSDT', 'AVAXUSDT', 'LINKUSDT', 'ADAUSDT', 'SUIUSDT', 'DOGEUSDT', 'XRPUSDT', 'LTCUSDT', 'BNBUSDT'],
         ['US30', 'NAS100', 'SPX500', 'US2000'],
-        ['UK100', 'DE40', 'FR40'],
-        ['WTICO', 'BRENT'],
-        ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'AVGO', 'NFLX', 'PLTR']
+        ['UK100', 'DE40', 'FR40', 'AU200', 'JP225', 'HK33', 'EU50'],
+        ['WTICO', 'BRENT', 'NATGAS'],
+        ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'AVGO', 'NFLX', 'PLTR', 'JPM']
     ];
+
+    function getAssetClass(symbol) {
+        const s = String(symbol || '').toUpperCase();
+        if (['XAUUSD','XAGUSD','GOLD','XCUUSD','WTICO','BRENT','NATGAS'].includes(s)) return 'COMMODITY';
+        if (['US30','NAS100','SPX500','US2000','UK100','DE40','FR40','AU200','JP225','HK33','EU50'].includes(s)) return 'INDEX';
+        if (['AAPL','MSFT','GOOGL','AMZN','META','NVDA','TSLA','AMD','AVGO','NFLX','PLTR','JPM'].includes(s)) return 'EQUITY';
+        if (s.endsWith('USDT')) return 'CRYPTO';
+        if (s.includes('BTC') || s.includes('ETH')) return 'CRYPTO';
+        if (s.length === 6 && /^[A-Z]{6}$/.test(s)) return 'FX';
+        return 'OTHER';
+    }
 
     function getCorrelationGroups(symbol) {
         const key = PresetAPI && PresetAPI.normalizeSymbol ? PresetAPI.normalizeSymbol(symbol) : String(symbol || '').toUpperCase();
@@ -700,5 +714,5 @@
         };
     }
 
-    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, getCorrelationGroups, filterCorrelated, CORRELATION_GROUPS, isSessionActive, isInTradingSession: isSessionActive, isNewsBlackout };
+    return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, getCorrelationGroups, getAssetClass, filterCorrelated, CORRELATION_GROUPS, isSessionActive, isInTradingSession: isSessionActive, isNewsBlackout };
 }));

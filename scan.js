@@ -1,7 +1,7 @@
 // Background scanner for GitHub Actions
 // v42: Full MTF (M5, M15, H1) + Partial TP Logic
 const fs = require("fs"),
-  { evaluate, dropForming, filterCorrelated, getCorrelationGroups, isInTradingSession } = require("./engine.js"),
+  { evaluate, dropForming, filterCorrelated, getCorrelationGroups, getAssetClass, isInTradingSession } = require("./engine.js"),
   TradePolicy = require("./trade-policy.js"),
   AL = require("./alerts.js");
 
@@ -434,28 +434,82 @@ async function once(now) {
 
   try {
     if (typeof filterCorrelated === "function") {
+      const MAX_SAME_DIR = 3;
+      const MAX_ASSET_CLASSES_SAME_DIR = 2;
       const openGroups = new Set();
-      if (typeof getCorrelationGroups === "function") {
-        for (const openId of Object.keys(STATE.active || {})) {
-          if (isOpen(openId)) {
-            getCorrelationGroups(openId).forEach(g => openGroups.add(g));
-          }
+      let openLong = 0, openShort = 0;
+      const longClasses = new Set();
+      const shortClasses = new Set();
+      const assetClassOf = (id) => {
+        if (typeof getAssetClass === "function") return getAssetClass(id);
+        return "OTHER";
+      };
+      for (const openId of Object.keys(STATE.active || {})) {
+        if (!isOpen(openId)) continue;
+        if (typeof getCorrelationGroups === "function") {
+          getCorrelationGroups(openId).forEach(g => openGroups.add(g));
         }
+        const st = STATE.active[openId];
+        const side = String((st && (st.side || st.dir)) || "").toUpperCase();
+        const cls = assetClassOf(openId);
+        if (side === "LONG") { openLong++; longClasses.add(cls); }
+        else if (side === "SHORT") { openShort++; shortClasses.add(cls); }
       }
       const candidates = allRows.filter(r => {
         if (!r || !r.side) return false;
+        const side = String(r.side).toUpperCase();
+        const cls = assetClassOf(r.id);
         if (typeof getCorrelationGroups === "function") {
           const rGroups = getCorrelationGroups(r.id);
           if (rGroups.some(g => openGroups.has(g))) {
-            r.side = null;
-            r.fail = "همبستگی با پوزیشن باز فعلی";
-            return false;
+            r.side = null; r.fail = "همبستگی با پوزیشن باز فعلی"; return false;
           }
+        }
+        if (side === "LONG" && openLong >= MAX_SAME_DIR) {
+          r.side = null; r.fail = "سقف ۳ پوزیشن LONG باز"; return false;
+        }
+        if (side === "SHORT" && openShort >= MAX_SAME_DIR) {
+          r.side = null; r.fail = "سقف ۳ پوزیشن SHORT باز"; return false;
+        }
+        if (side === "LONG" && !longClasses.has(cls) && longClasses.size >= MAX_ASSET_CLASSES_SAME_DIR) {
+          r.side = null; r.fail = "سقف ۲ کلاس دارایی LONG"; return false;
+        }
+        if (side === "SHORT" && !shortClasses.has(cls) && shortClasses.size >= MAX_ASSET_CLASSES_SAME_DIR) {
+          r.side = null; r.fail = "سقف ۲ کلاس دارایی SHORT"; return false;
         }
         return true;
       });
-      const kept = new Set(filterCorrelated(candidates).map(r => r.id + "|" + r.side));
-      allRows.forEach(r => { if (r.side && !kept.has(r.id + "|" + r.side)) { r.side = null; r.fail = r.fail || "حذف به‌خاطر همبستگی"; } });
+      let ranked = filterCorrelated(candidates);
+      const picked = [];
+      let addLong = 0, addShort = 0;
+      const addLongCls = new Set();
+      const addShortCls = new Set();
+      for (const r of ranked) {
+        if (!r || !r.side) continue;
+        const side = String(r.side).toUpperCase();
+        const cls = assetClassOf(r.id);
+        if (side === "LONG") {
+          if (openLong + addLong >= MAX_SAME_DIR) { r.side = null; r.fail = "سقف ۳ LONG در این اسکن"; continue; }
+          if (!longClasses.has(cls) && !addLongCls.has(cls) && (longClasses.size + addLongCls.size) >= MAX_ASSET_CLASSES_SAME_DIR) {
+            r.side = null; r.fail = "سقف کلاس LONG در این اسکن"; continue;
+          }
+          addLong++; addLongCls.add(cls);
+        } else if (side === "SHORT") {
+          if (openShort + addShort >= MAX_SAME_DIR) { r.side = null; r.fail = "سقف ۳ SHORT در این اسکن"; continue; }
+          if (!shortClasses.has(cls) && !addShortCls.has(cls) && (shortClasses.size + addShortCls.size) >= MAX_ASSET_CLASSES_SAME_DIR) {
+            r.side = null; r.fail = "سقف کلاس SHORT در این اسکن"; continue;
+          }
+          addShort++; addShortCls.add(cls);
+        }
+        picked.push(r);
+      }
+      const kept = new Set(picked.map(r => r.id + "|" + r.side));
+      allRows.forEach(r => {
+        if (r.side && !kept.has(r.id + "|" + r.side)) {
+          r.side = null;
+          if (!r.fail) r.fail = "فیلتر همبستگی / سقف پورتفوی";
+        }
+      });
     }
   } catch (e) {}
 
