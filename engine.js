@@ -343,6 +343,25 @@
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
         const preset = getPreset(symbol);
         opts = { ...preset, ...opts };
+
+        // opts.endIndex (optional): evaluate as-of M5 bar index i (inclusive).
+        // Truncates M5 and aligns M15/H1 by time — for backtest/tests without mutating caller arrays.
+        const _endIdx = Number.isFinite(Number(opts.endIndex)) ? Math.floor(Number(opts.endIndex)) : null;
+        if (_endIdx != null && Array.isArray(candlesM5) && _endIdx >= 0 && _endIdx < candlesM5.length) {
+            candlesM5 = candlesM5.slice(0, _endIdx + 1);
+            const tEnd = candlesM5.length ? Number(candlesM5[candlesM5.length - 1].time) : null;
+            if (tEnd != null && Array.isArray(candlesM15) && candlesM15.length) {
+                let hi = candlesM15.length;
+                while (hi > 0 && Number(candlesM15[hi - 1].time) > tEnd) hi--;
+                candlesM15 = candlesM15.slice(0, hi);
+            }
+            if (tEnd != null && Array.isArray(candlesH1) && candlesH1.length) {
+                let hi = candlesH1.length;
+                while (hi > 0 && Number(candlesH1[hi - 1].time) > tEnd) hi--;
+                candlesH1 = candlesH1.slice(0, hi);
+            }
+        }
+
         if (opts.enabled === false) {
             return { side: null, checkedSide: 'LONG', fail: "نماد در تنظیمات غیرفعال است", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
