@@ -9,6 +9,49 @@
 }(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this), function (root) {
     'use strict';
 
+    function emptyResult(fail, checkedSide) {
+        return {
+            side: null,
+            checkedSide: checkedSide || 'LONG',
+            fail: fail || 'خطای ناشناخته',
+            pass: 0, total: 0, checks: [],
+            score: 0, maxScore: 0, scorePercent: 0, tier: null
+        };
+    }
+
+    function isFiniteNum(x) {
+        return typeof x === 'number' && Number.isFinite(x);
+    }
+
+    function isValidCandle(c) {
+        if (!c || typeof c !== 'object') return false;
+        return isFiniteNum(Number(c.open)) && isFiniteNum(Number(c.high))
+            && isFiniteNum(Number(c.low)) && isFiniteNum(Number(c.close))
+            && isFiniteNum(Number(c.time));
+    }
+
+    /** Keep only structurally valid OHLC bars; fix swapped high/low when needed. */
+    function sanitizeCandles(candles, maxFix) {
+        if (!Array.isArray(candles) || !candles.length) return [];
+        const out = [];
+        let fixed = 0;
+        const limit = maxFix == null ? candles.length : maxFix;
+        for (let i = 0; i < candles.length; i++) {
+            const c = candles[i];
+            if (!c) continue;
+            let o = Number(c.open), h = Number(c.high), l = Number(c.low), cl = Number(c.close), t = Number(c.time);
+            if (![o, h, l, cl, t].every(Number.isFinite)) continue;
+            if (h < l) { const tmp = h; h = l; l = tmp; fixed++; }
+            if (o > h) h = o;
+            if (o < l) l = o;
+            if (cl > h) h = cl;
+            if (cl < l) l = cl;
+            out.push({ time: t, open: o, high: h, low: l, close: cl, volume: Number(c.volume) || 0 });
+        }
+        return out;
+    }
+
+
     let PresetAPI = root && root.Presets;
     if (!PresetAPI && typeof require === 'function') { try { PresetAPI = require('./presets.js'); } catch (e) {} }
     const getPreset = PresetAPI && PresetAPI.getPreset ? PresetAPI.getPreset : (() => ({}));
@@ -341,27 +384,16 @@
     }
 
     function evaluate(symbol, candlesM5, candlesM15, candlesH1, opts = {}, nowSec = Date.now() / 1000) {
+        try {
+        // Normalize inputs — bad OHLC must not crash the scanner
+        if (!Array.isArray(candlesM5)) return emptyResult('داده M5 نامعتبر');
+        candlesM5 = sanitizeCandles(candlesM5);
+        candlesM15 = sanitizeCandles(Array.isArray(candlesM15) ? candlesM15 : []);
+        candlesH1 = sanitizeCandles(Array.isArray(candlesH1) ? candlesH1 : []);
+        if (typeof nowSec !== 'number' || !Number.isFinite(nowSec)) nowSec = Date.now() / 1000;
+
         const preset = getPreset(symbol);
         opts = { ...preset, ...opts };
-
-        // opts.endIndex (optional): evaluate as-of M5 bar index i (inclusive).
-        // Truncates M5 and aligns M15/H1 by time — for backtest/tests without mutating caller arrays.
-        const _endIdx = Number.isFinite(Number(opts.endIndex)) ? Math.floor(Number(opts.endIndex)) : null;
-        if (_endIdx != null && Array.isArray(candlesM5) && _endIdx >= 0 && _endIdx < candlesM5.length) {
-            candlesM5 = candlesM5.slice(0, _endIdx + 1);
-            const tEnd = candlesM5.length ? Number(candlesM5[candlesM5.length - 1].time) : null;
-            if (tEnd != null && Array.isArray(candlesM15) && candlesM15.length) {
-                let hi = candlesM15.length;
-                while (hi > 0 && Number(candlesM15[hi - 1].time) > tEnd) hi--;
-                candlesM15 = candlesM15.slice(0, hi);
-            }
-            if (tEnd != null && Array.isArray(candlesH1) && candlesH1.length) {
-                let hi = candlesH1.length;
-                while (hi > 0 && Number(candlesH1[hi - 1].time) > tEnd) hi--;
-                candlesH1 = candlesH1.slice(0, hi);
-            }
-        }
-
         if (opts.enabled === false) {
             return { side: null, checkedSide: 'LONG', fail: "نماد در تنظیمات غیرفعال است", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
@@ -378,7 +410,8 @@
             return { side: null, checkedSide: 'LONG', fail: "کمبود کندل تایم‌فریم سیگنال", pass: 0, total: 0, checks: [], score: 0, maxScore: 0, scorePercent: 0, tier: null };
         }
 
-        const closes = cl.map(c => c.close);
+        const closes = cl.map(c => Number(c.close));
+        if (!closes.length || closes.some(v => !Number.isFinite(v))) return emptyResult("قیمت close نامعتبر");
         const ema21 = ema(closes, 21), ema50 = ema(closes, 50), ema200 = ema(closes, 200);
         const rsiArr = rsi(closes, 14), atrArr = atr(cl, 14), adxArr = adx(cl, 14);
         const bb = bollingerBands(closes, 20, 2);
@@ -733,6 +766,12 @@
             ],
             checks, fail: allPassed ? null : (failReason || "امتیاز کافی نیست")
         };
+        } catch (err) {
+            var msg = (err && err.message) ? String(err.message) : String(err || 'error');
+            if (msg.length > 160) msg = msg.slice(0, 160);
+            return emptyResult('خطای موتور: ' + msg);
+        }
+
     }
 
     return { ema, rsi, atr, adx, bollingerBands, dropForming, findSwingLevels, checkPattern3to1, evaluate, getCorrelationGroup, getCorrelationGroups, getAssetClass, filterCorrelated, CORRELATION_GROUPS, isSessionActive, isInTradingSession: isSessionActive, isNewsBlackout };

@@ -139,6 +139,9 @@
             openTrade = { ...executionResult, ...outcome, symbol, openTime: executionTime, costR };
             trades.push(openTrade);
         }
+        } catch (err) {
+            // Keep backtest alive on single-bar engine errors
+            if (typeof console !== "undefined" && console.error) console.error("btengine", err && err.message ? err.message : err);
         } finally {
             m5.length = m5Full;
             m15.length = m15Full;
