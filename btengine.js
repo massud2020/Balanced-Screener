@@ -48,65 +48,80 @@
         const slippagePips = opts.slippagePips == null ? 0 : Math.max(0, Number(opts.slippagePips) || 0);
         const totalCostPips = spreadPips + commissionPips + slippagePips;
         const signalIntervalSec = Number(opts.signalIntervalSec) > 0 ? Number(opts.signalIntervalSec) : 300;
+        const maxSpreadR = Number(opts.maxSpreadR) > 0 ? Number(opts.maxSpreadR) : 0.28;
 
-        for (let i = 199; i < candlesM5.length - 1; i++) {
-            const currentM5 = candlesM5.slice(0, i + 1);
-            // Candle timestamps are OPEN times. The decision is made only after
-            // candle i has fully closed; execution is at candle i+1 open.
-            const decisionTime = currentM5[i].time + signalIntervalSec;
-            const executionTime = Number(candlesM5[i + 1].time);
+        // Precompute pip/cost once (was inside loop)
+        const normalizedSymbol = String(symbol || '').toUpperCase();
+        const inferredPipSize = normalizedSymbol.endsWith("USDT") ? 1
+            : (normalizedSymbol.includes("BTC") || normalizedSymbol.includes("ETH") || normalizedSymbol.includes("SOL") ? 1
+            : (normalizedSymbol.includes("JPY") ? 0.01
+            : (["XAUUSD", "XAGUSD", "GOLD"].includes(normalizedSymbol) ? 0.1 : 0.0001)));
+        const configuredPipSize = opts.pipSizeBySymbol && Number(opts.pipSizeBySymbol[symbol]) > 0
+            ? Number(opts.pipSizeBySymbol[symbol])
+            : (Number(opts.pipSize) > 0 ? Number(opts.pipSize) : inferredPipSize);
+        const symbolCostPips = opts.costPipsBySymbol && Number(opts.costPipsBySymbol[symbol]) >= 0
+            ? Number(opts.costPipsBySymbol[symbol]) : totalCostPips;
+        const explicitCostPrice = opts.costPriceBySymbol && Number(opts.costPriceBySymbol[symbol]) >= 0
+            ? Number(opts.costPriceBySymbol[symbol]) : null;
+        const baseCostPrice = explicitCostPrice == null ? symbolCostPips * configuredPipSize : explicitCostPrice;
 
+        // Avoid O(n²) array copies: truncate .length in-place (restored after loop)
+        const m5 = candlesM5;
+        const m15 = candlesM15;
+        const h1 = candlesH1;
+        const m5Full = m5.length;
+        const m15Full = m15.length;
+        const h1Full = h1.length;
+        let i15 = 0, iH1 = 0;
+
+        try {
+        for (let i = 199; i < m5Full - 1; i++) {
+            const decisionTime = m5[i].time + signalIntervalSec;
+            const executionTime = Number(m5[i + 1].time);
+
+            // Cheap gates first — no copies
             if (!isMarketOpen(executionTime, symbol)) continue;
-
-            // Do not re-enter on the same candle that closed the previous trade.
             if (openTrade && decisionTime <= openTrade.closeTime) continue;
             if (openTrade) openTrade = null;
 
-            const currentM15 = candlesM15.filter(c => c.time <= decisionTime);
-            const currentH1 = candlesH1.filter(c => c.time <= decisionTime);
-            const result = Engine.evaluate(symbol, currentM5, currentM15, currentH1, opts, decisionTime);
-            if (!result.side) continue;
+            // Advance higher-TF cursors (monotonic)
+            while (i15 < m15Full && m15[i15].time <= decisionTime) i15++;
+            while (iH1 < h1Full && h1[iH1].time <= decisionTime) iH1++;
 
-            // Signal is known at the prior candle close; execute at the next candle open.
-            const executionEntry = Number(candlesM5[i + 1].open);
+            m5.length = i + 1;
+            m15.length = i15;
+            h1.length = iH1;
+
+            const result = Engine.evaluate(symbol, m5, m15, h1, opts, decisionTime);
+            if (!result || !result.side) continue;
+
+            const executionEntry = Number(m5[i + 1] ? m5[i + 1].open : candlesM5[i + 1].open);
+            // m5.length truncated — use original for next bar open
+            const nextOpen = Number(candlesM5[i + 1].open);
             const riskDist = Math.abs(result.entry - result.sl);
-            if (!(riskDist > 0) || !Number.isFinite(riskDist) || !Number.isFinite(executionEntry)) continue;
+            if (!(riskDist > 0) || !Number.isFinite(riskDist) || !Number.isFinite(nextOpen)) continue;
             const direction = result.side === "LONG" ? 1 : -1;
-            const executionSl = executionEntry - direction * riskDist;
+            const executionSl = nextOpen - direction * riskDist;
             const tp1R = Number(result.tp1R) > 0 ? Number(result.tp1R) : 1.5;
             const tp2R = Number(result.tp2R) > 0 ? Number(result.tp2R) : (result.mode === "range" ? 1.5 : 4.0);
-            const executionTp1 = executionEntry + direction * riskDist * tp1R;
-            const executionTp2 = executionEntry + direction * riskDist * tp2R;
+            const executionTp1 = nextOpen + direction * riskDist * tp1R;
+            const executionTp2 = nextOpen + direction * riskDist * tp2R;
             const executionResult = {
-                ...result, entry: executionEntry, sl: executionSl,
+                ...result, entry: nextOpen, sl: executionSl,
                 tp: result.mode === 'range' ? executionTp1 : null,
                 tp1: result.mode === 'range' ? executionTp1 : null,
                 tp2: result.mode === 'range' ? executionTp2 : null,
                 openTime: executionTime
             };
 
-            const normalizedSymbol = String(symbol || '').toUpperCase();
-            const inferredPipSize = normalizedSymbol.endsWith("USDT") ? 1
-                : (normalizedSymbol.includes("BTC") || normalizedSymbol.includes("ETH") || normalizedSymbol.includes("SOL") ? 1
-                : (normalizedSymbol.includes("JPY") ? 0.01
-                : (["XAUUSD", "XAGUSD", "GOLD"].includes(normalizedSymbol) ? 0.1 : 0.0001)));
-            const configuredPipSize = opts.pipSizeBySymbol && Number(opts.pipSizeBySymbol[symbol]) > 0
-                ? Number(opts.pipSizeBySymbol[symbol])
-                : (Number(opts.pipSize) > 0 ? Number(opts.pipSize) : inferredPipSize);
-            const symbolCostPips = opts.costPipsBySymbol && Number(opts.costPipsBySymbol[symbol]) >= 0
-                ? Number(opts.costPipsBySymbol[symbol]) : totalCostPips;
-            const explicitCostPrice = opts.costPriceBySymbol && Number(opts.costPriceBySymbol[symbol]) >= 0
-                ? Number(opts.costPriceBySymbol[symbol]) : null;
-            const costPrice = explicitCostPrice == null ? symbolCostPips * configuredPipSize : explicitCostPrice;
-            const costR = costPrice / riskDist;
-            const maxSpreadR = Number(opts.maxSpreadR) > 0 ? Number(opts.maxSpreadR) : 0.28;
+            const costR = baseCostPrice / riskDist;
             if (costR > maxSpreadR) continue;
 
-            // The signal is evaluated at the open of bar i using only bar i-1
-            // and earlier closed data. Bar i is the first post-entry bar.
-            // Include pre-entry context for Wilder ATR and RSI divergence; startTime
-            // prevents those historical bars from being treated as tradable exit bars.
-            const futureCandles = candlesM5.slice(Math.max(0, i - 100), i + 501);
+            // Need full m5 for exit simulation window — restore length temporarily
+            m5.length = m5Full;
+            const from = Math.max(0, i - 100);
+            const to = Math.min(m5Full, i + 501);
+            const futureCandles = m5.slice(from, to);
             if (!futureCandles.length) break;
 
             const tradeOpts = {
@@ -119,11 +134,15 @@
                 executionResult.tp2, executionResult.trailingAtrStep, futureCandles, costR,
                 executionResult.mode || opts.mode || "pattern", executionTime, tradeOpts
             );
-            // Incomplete positions at the end of the dataset are not counted as closed trades.
             if (!outcome) break;
 
             openTrade = { ...executionResult, ...outcome, symbol, openTime: executionTime, costR };
             trades.push(openTrade);
+        }
+        } finally {
+            m5.length = m5Full;
+            m15.length = m15Full;
+            h1.length = h1Full;
         }
         return trades;
     }
