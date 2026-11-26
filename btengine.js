@@ -65,10 +65,11 @@
             ? Number(opts.costPriceBySymbol[symbol]) : null;
         const baseCostPrice = explicitCostPrice == null ? symbolCostPips * configuredPipSize : explicitCostPrice;
 
-        // Avoid O(n²) array copies: truncate .length in-place (restored after loop)
-        const m5 = candlesM5;
-        const m15 = candlesM15;
-        const h1 = candlesH1;
+        // Work on SHALLOW COPIES so caller arrays are never destroyed.
+        // Truncating .length on copies avoids O(n²) slice while keeping originals intact.
+        const m5 = candlesM5.slice();
+        const m15 = candlesM15.slice();
+        const h1 = candlesH1.slice();
         const m5Full = m5.length;
         const m15Full = m15.length;
         const h1Full = h1.length;
@@ -79,7 +80,7 @@
             const decisionTime = m5[i].time + signalIntervalSec;
             const executionTime = Number(m5[i + 1].time);
 
-            // Cheap gates first — no copies
+            // Cheap gates first — no per-bar copies
             if (!isMarketOpen(executionTime, symbol)) continue;
             if (openTrade && decisionTime <= openTrade.closeTime) continue;
             if (openTrade) openTrade = null;
@@ -95,8 +96,7 @@
             const result = Engine.evaluate(symbol, m5, m15, h1, opts, decisionTime);
             if (!result || !result.side) continue;
 
-            const executionEntry = Number(m5[i + 1] ? m5[i + 1].open : candlesM5[i + 1].open);
-            // m5.length truncated — use original for next bar open
+            // next bar open from full timeline (index i+1 may be past truncated length)
             const nextOpen = Number(candlesM5[i + 1].open);
             const riskDist = Math.abs(result.entry - result.sl);
             if (!(riskDist > 0) || !Number.isFinite(riskDist) || !Number.isFinite(nextOpen)) continue;
