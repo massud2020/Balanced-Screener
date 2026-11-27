@@ -9,3 +9,20 @@ android/
 .env
 *.csv
 *.bak*
+
+# Local / scratch folders
+Balanced-Screener/
+all3/
+allfix/
+auto_upd/
+btfix/
+btui/
+btux/
+corr/
+csvfix/
+errh/
+fix3/
+fixbw/
+fixbw2/
+github_sync/
+goldcsv/
