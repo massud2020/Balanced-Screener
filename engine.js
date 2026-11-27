@@ -680,13 +680,7 @@
         let tp1R = mode === "range"
             ? (Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : (Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.5))
             : (Number(opts.tp1R) > 0 ? Number(opts.tp1R) : 2.0);
-        // STRATEGY POLICY (unified):
-        // - RANGE: fixed TP from rangeTpMult (soft floor rangeMinRR default 1.2)
-        // - TREND: no hard TP — managed by RSI divergence + trail after +1R
-        if (mode === "range") {
-            const rangeFloor = Number(opts.rangeMinRR) > 0 ? Number(opts.rangeMinRR) : 1.2;
-            tp1R = Math.max(Number(tp1R) || 0, rangeFloor);
-        }
+      // - RANGE: fixed TP from rangeTpMult
         const tp2R = mode === "range" ? tp1R : (Number(opts.tp2R) > 0 ? Number(opts.tp2R) : 3.5);
         let tp1 = checkedSide === "LONG" ? entry + riskDist * tp1R : entry - riskDist * tp1R;
         let tp2 = checkedSide === "LONG" ? entry + riskDist * tp2R : entry - riskDist * tp2R;

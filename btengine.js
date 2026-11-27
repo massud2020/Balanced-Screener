@@ -77,76 +77,75 @@
 
         try {
         for (let i = 199; i < m5Full - 1; i++) {
-            const decisionTime = m5[i].time + signalIntervalSec;
-            const executionTime = Number(m5[i + 1].time);
-
-            // Cheap gates first — no per-bar copies
-            if (!isMarketOpen(executionTime, symbol)) continue;
-            if (openTrade && decisionTime <= openTrade.closeTime) continue;
-            if (openTrade) openTrade = null;
-
-            // Advance higher-TF cursors (monotonic)
-            while (i15 < m15Full && m15[i15].time <= decisionTime) i15++;
-            while (iH1 < h1Full && h1[iH1].time <= decisionTime) iH1++;
-
-            m5.length = i + 1;
-            m15.length = i15;
-            h1.length = iH1;
-
-            const result = Engine.evaluate(symbol, m5, m15, h1, opts, decisionTime);
-            if (!result || !result.side) continue;
-
-            // next bar open from full timeline (index i+1 may be past truncated length)
-            const nextOpen = Number(candlesM5[i + 1].open);
-            const riskDist = Math.abs(result.entry - result.sl);
-            if (!(riskDist > 0) || !Number.isFinite(riskDist) || !Number.isFinite(nextOpen)) continue;
-            const direction = result.side === "LONG" ? 1 : -1;
-            const executionSl = nextOpen - direction * riskDist;
-            const tp1R = Number(result.tp1R) > 0 ? Number(result.tp1R) : 1.5;
-            const tp2R = Number(result.tp2R) > 0 ? Number(result.tp2R) : (result.mode === "range" ? 1.5 : 4.0);
-            const executionTp1 = nextOpen + direction * riskDist * tp1R;
-            const executionTp2 = nextOpen + direction * riskDist * tp2R;
-            const executionResult = {
-                ...result, entry: nextOpen, sl: executionSl,
-                tp: result.mode === 'range' ? executionTp1 : null,
-                tp1: result.mode === 'range' ? executionTp1 : null,
-                tp2: result.mode === 'range' ? executionTp2 : null,
-                openTime: executionTime
-            };
-
-            const costR = baseCostPrice / riskDist;
-            if (costR > maxSpreadR) continue;
-
-            // Need full m5 for exit simulation window — restore length temporarily
-            m5.length = m5Full;
-            const from = Math.max(0, i - 100);
-            const to = Math.min(m5Full, i + 501);
-            const futureCandles = m5.slice(from, to);
-            if (!futureCandles.length) break;
-
-            const tradeOpts = {
-                ...opts,
-                rangeTpMult: Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : Number(result.tp1R) || 1.5,
-                trailingAtrMult: Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5
-            };
-            const outcome = simulateTrade(
-                executionResult.side, executionResult.entry, executionResult.sl, executionResult.tp1,
-                executionResult.tp2, executionResult.trailingAtrStep, futureCandles, costR,
-                executionResult.mode || opts.mode || "pattern", executionTime, tradeOpts
-            );
-            if (!outcome) break;
-
-            openTrade = { ...executionResult, ...outcome, symbol, openTime: executionTime, costR };
-            trades.push(openTrade);
+        const curM5 = m5[i];
+        const nextM5 = m5[i + 1];
+        if (!curM5 || !nextM5 || !Number.isFinite(Number(curM5.time)) || !Number.isFinite(Number(nextM5.time))) {
+          continue;
         }
-        } catch (err) {
-            // Keep backtest alive on single-bar engine errors
-            if (typeof console !== "undefined" && console.error) console.error("btengine", err && err.message ? err.message : err);
-        } finally {
-            m5.length = m5Full;
-            m15.length = m15Full;
-            h1.length = h1Full;
-        }
+
+        const decisionTime = Number(curM5.time) + signalIntervalSec;
+        const executionTime = Number(nextM5.time);
+
+        // Cheap gates first - no per-bar copies
+        if (!isMarketOpen(executionTime, symbol)) continue;
+        if (openTrade && decisionTime <= openTrade.closeTime) continue;
+        if (openTrade) openTrade = null;
+
+        // Advance higher-TF cursors (monotonic)
+        while (i15 < m15Full && m15[i15] && Number.isFinite(Number(m15[i15].time)) && Number(m15[i15].time) <= decisionTime) i15++;
+        while (iH1 < h1Full && h1[iH1] && Number.isFinite(Number(h1[iH1].time)) && Number(h1[iH1].time) <= decisionTime) iH1++;
+
+        const m5View = m5.slice(0, i + 1);
+        const m15View = m15.slice(0, i15);
+        const h1View = h1.slice(0, iH1);
+
+        const result = Engine.evaluate(symbol, m5View, m15View, h1View, opts, decisionTime);
+        if (!result || !result.side) continue;
+
+        const nextOpen = Number(nextM5.open);
+        const riskDist = Math.abs(result.entry - result.sl);
+        if (!(riskDist > 0) || !Number.isFinite(riskDist) || !Number.isFinite(nextOpen)) continue;
+        const direction = result.side === "LONG" ? 1 : -1;
+        const executionSl = nextOpen - direction * riskDist;
+        const tp1R = Number(result.tp1R) > 0 ? Number(result.tp1R) : 1.5;
+        const tp2R = Number(result.tp2R) > 0 ? Number(result.tp2R) : (result.mode === "range" ? 1.5 : 4.0);
+        const executionTp1 = nextOpen + direction * riskDist * tp1R;
+        const executionTp2 = nextOpen + direction * riskDist * tp2R;
+        const executionResult = {
+          ...result, entry: nextOpen, sl: executionSl,
+          tp: result.mode === 'range' ? executionTp1 : null,
+          tp1: result.mode === 'range' ? executionTp1 : null,
+          tp2: result.mode === 'range' ? executionTp2 : null,
+          openTime: executionTime
+        };
+
+        const costR = baseCostPrice / riskDist;
+        if (costR > maxSpreadR) continue;
+
+        const from = Math.max(0, i - 100);
+        const to = Math.min(m5Full, i + 501);
+        const futureCandles = m5.slice(from, to);
+        if (!futureCandles.length) break;
+
+        const tradeOpts = {
+          ...opts,
+          rangeTpMult: Number(opts.rangeTpMult) > 0 ? Number(opts.rangeTpMult) : Number(result.tp1R) || 1.5,
+          trailingAtrMult: Number(opts.trailingAtrMult) > 0 ? Number(opts.trailingAtrMult) : 0.5
+        };
+        const outcome = simulateTrade(
+          executionResult.side, executionResult.entry, executionResult.sl, executionResult.tp1,
+          executionResult.tp2, executionResult.trailingAtrStep, futureCandles, costR,
+          executionResult.mode || opts.mode || "pattern", executionTime, tradeOpts
+        );
+        if (!outcome) break;
+
+        openTrade = { ...executionResult, ...outcome, symbol, openTime: executionTime, costR };
+        trades.push(openTrade);
+      }
+    } catch (err) {
+      // Keep backtest alive on single-bar engine errors
+      if (typeof console !== "undefined" && console.error) console.error("btengine", err && err.message ? err.message : err);
+    }
         return trades;
     }
 

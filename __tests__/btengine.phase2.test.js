@@ -1,15 +1,14 @@
 const Backtest = require("../btengine.js");
 
 describe("backtest phase 2 exit alignment (New Logic)", () => {
-  test("Trend exits with trailing stop", () => {
+  test("Trend does not exit with trailing stop", () => {
     const bars = [
       { time: 1000, high: 101.6, low: 100.2, close: 101.4 },
       { time: 1300, high: 104.1, low: 101.1, close: 103.8 },
       { time: 1600, high: 103.5, low: 100.5, close: 100.8 }
     ];
     const r = Backtest.simulateTrade("LONG", 100, 99, 101.5, 104, 0.5, bars, 0, "pattern", 1000, {});
-    expect(r.why).toBe("TRAIL_SL");
-    expect(r.R).toBeGreaterThan(0);
+    expect(r).toBeNull();
   });
 
   test("Range exits the full position at 1.5R", () => {

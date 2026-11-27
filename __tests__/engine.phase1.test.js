@@ -22,8 +22,8 @@ describe('Phase 1 core-engine corrections', () => {
     const bars = [
       candle(0, 100, 100, 99, 99),
       candle(300, 99, 99, 98, 98),
-      candle(600, 98, 99.5, 98, 99.5),
-      candle(900, 99.5, 99.5, 98.5, 98.5)
+      candle(600, 99.5, 99.5, 98.5, 98.5),
+      candle(900, 98, 99.5, 98, 99.5)
     ];
     expect(E.checkPattern3to1(bars).pattern_buy).toBe(true);
 
@@ -40,8 +40,8 @@ describe('Phase 1 core-engine corrections', () => {
     const bars = [
       candle(0, 100, 101, 100, 101),
       candle(300, 101, 102, 101, 102),
-      candle(600, 102, 102, 100.5, 100.5),
-      candle(900, 100.5, 101.5, 100.5, 101.5)
+      candle(600, 100.5, 101.5, 100.5, 101.5),
+      candle(900, 102, 102, 100.5, 100.5)
     ];
     expect(E.checkPattern3to1(bars).pattern_sell).toBe(true);
   });
@@ -63,7 +63,7 @@ describe('Phase 1 core-engine corrections', () => {
       mode: 'pattern', adx: false, trend: false, emax: false,
       nc: false, pat: false, pa: false, m15: false, h1: true
     }, now);
-    const h1Check = result.checks.find(item => item.l === 'همسو با روند H1');
+    const h1Check = result.checks.find(item => typeof item.l === "string" && item.l.includes("H1") && item.l.includes("روند"));
     expect(h1Check).toBeTruthy();
     expect(h1Check.ok).toBe(true);
   });

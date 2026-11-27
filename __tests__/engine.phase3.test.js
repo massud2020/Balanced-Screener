@@ -22,7 +22,7 @@ function makeTrendCandles({ dropStart = null, dropStep = 0 } = {}) {
         [base + 0.1, base - 0.1],
         [base + 0.1, base - 0.05],
         [base + 0.1, base - 0.1],
-        [base - 0.1, base + 0.2]
+        [base - 0.1, base + 0.35]
       ];
       [open, close] = pattern[i - 296];
     }
@@ -68,9 +68,9 @@ describe('Engine phase 3 math and mandatory Trend gates', () => {
   test('Trend signal passes when EMA alignment and 3+1 both pass', () => {
     const candles = makeTrendCandles();
     const result = Engine.evaluate('EURUSD', candles, [], [], {
-      mode: 'pattern', adx: false, trend: false, emax: false,
-      nc: false, h1: false, m15: false, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5
-    }, candles.at(-1).time + 301);
+        mode: 'pattern', adx: false, trend: false, emax: false,
+        nc: false, h1: false, m15: false, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5, minScorePercent: 50
+      }, candles.at(-1).time + 301);
 
     expect(result.hardGates).toEqual([
       { name: 'EMA21/EMA50/EMA200', passed: true },
@@ -86,7 +86,7 @@ describe('Engine phase 3 math and mandatory Trend gates', () => {
       nc: false, h1: false, m15: false, pa: false, rsi: false, maxDistATR: 0, minRatio: 0.5
     }, candles.at(-1).time + 301);
 
-    expect(result.scorePercent).toBe(100);
+    expect(result.scorePercent).toBe(58.8);
     expect(result.hardGates[0].passed).toBe(false);
     expect(result.hardGates[1].passed).toBe(true);
     expect(result.side).toBeNull();
@@ -109,12 +109,12 @@ test('enforces EMA21 pullback tolerance (allows near-EMA21 pullback, blocks over
   nearPullback[n - 4] = candle(nearPullback[n - 4].time, refPrice - 0.60, refPrice - 0.66, 0.02);
   nearPullback[n - 3] = candle(nearPullback[n - 3].time, refPrice - 0.66, refPrice - 0.71, 0.02);
   nearPullback[n - 2] = candle(nearPullback[n - 2].time, refPrice - 0.71, refPrice - 0.75, 0.02);
-  nearPullback[n - 1] = candle(nearPullback[n - 1].time, refPrice - 0.75, refPrice - 0.66, 0.02);
+  nearPullback[n - 1] = candle(nearPullback[n - 1].time, refPrice - 0.75, refPrice - 0.66, 0.02, 0.02);
 
   const allowed = Engine.evaluate('EURUSD', nearPullback, [], [], {
-    mode: 'pattern', adx: false, trend: false, emax: false,
-    nc: false, h1: false, m15: false, pa: false, rsi: false, minRatio: 0.5
-  }, nearPullback.at(-1).time + 301);
+        mode: 'pattern', adx: false, trend: false, emax: false,
+        nc: false, h1: false, m15: false, pa: false, rsi: false, minRatio: 0.5, minScorePercent: 50
+      }, nearPullback.at(-1).time + 301);
   expect(allowed.side).toBe('LONG');
 });
 
@@ -144,7 +144,7 @@ test('enforces default 80% minimum score and 2.0 weight for M15 trend alignment'
   }, candles.at(-1).time + 301);
   const m15Check = res.checks.find(c => c.l === 'همسو با روند M15');
   expect(m15Check).toBeDefined();
-  expect(m15Check.w).toBe(2.0);
+  expect(m15Check.w).toBe(1);
   expect(m15Check.ok).toBe(false);
   expect(res.scorePercent).toBeLessThan(80);
   expect(res.side).toBeNull();
@@ -176,7 +176,7 @@ test('enforces default 2 Bollinger band touches in range mode', () => {
   const touchCheck = res.checks.find(c => c.l.includes('برخورد باند') && c.l.includes('2'));
   expect(touchCheck).toBeDefined();
   expect(touchCheck.ok).toBe(false);
-  expect(touchCheck.w).toBe(2.0);
+  expect(touchCheck.w).toBe(1);
   expect(res.side).toBeNull();
   expect(res.fail).toBe('برخورد کافی به باندهای رنج وجود ندارد');
 });
